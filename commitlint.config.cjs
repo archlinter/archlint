@@ -16,5 +16,7 @@ module.exports = {
         'build',    // Build system
       ],
     ],
+    'body-max-line-length': [0, 'always', Infinity],
+    'footer-max-line-length': [0, 'always', Infinity],
   },
 };
