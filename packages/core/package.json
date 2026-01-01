@@ -1,6 +1,6 @@
 {
   "name": "@archlinter/core",
-  "version": "1.0.0",
+  "version": "0.1.0",
   "description": "Core library for archlint - programmatic API",
   "license": "MIT",
   "main": "index.js",
