@@ -1,6 +1,6 @@
 {
   "name": "@archlinter/cli",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "Fast architecture smell detector for TypeScript/JavaScript",
   "license": "MIT",
   "repository": {
@@ -20,12 +20,12 @@
     "scripts"
   ],
   "optionalDependencies": {
-    "@archlinter/cli-darwin-arm64": "workspace:*",
-    "@archlinter/cli-darwin-x64": "workspace:*",
-    "@archlinter/cli-linux-x64": "workspace:*",
-    "@archlinter/cli-linux-arm64": "workspace:*",
-    "@archlinter/cli-linux-x64-musl": "workspace:*",
-    "@archlinter/cli-win32-x64": "workspace:*"
+    "@archlinter/cli-darwin-arm64": "1.0.0",
+    "@archlinter/cli-darwin-x64": "1.0.0",
+    "@archlinter/cli-linux-x64": "1.0.0",
+    "@archlinter/cli-linux-arm64": "1.0.0",
+    "@archlinter/cli-linux-x64-musl": "1.0.0",
+    "@archlinter/cli-win32-x64": "1.0.0"
   },
   "engines": {
     "node": ">=18"
