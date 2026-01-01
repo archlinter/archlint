@@ -43,7 +43,7 @@ glob = "0.3"
 notify = "6.1"
 
 # Git
-git2 = "0.19"
+git2 = { version = "0.19", features = ["vendored-openssl"] }
 
 # Misc
 regex = "1.11"
