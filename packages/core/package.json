@@ -1,0 +1,42 @@
+{
+  "name": "@archlinter/core",
+  "version": "0.1.0",
+  "description": "Core library for archlint - programmatic API",
+  "license": "MIT",
+  "main": "index.js",
+  "types": "index.d.ts",
+  "files": [
+    "index.js",
+    "index.d.ts",
+    "*.node"
+  ],
+  "napi": {
+    "name": "archlint",
+    "triples": {
+      "defaults": true,
+      "additional": [
+        "x86_64-unknown-linux-musl",
+        "aarch64-unknown-linux-gnu",
+        "aarch64-apple-darwin"
+      ]
+    }
+  },
+  "optionalDependencies": {
+    "@archlinter/core-linux-x64-gnu": "0.1.0",
+    "@archlinter/core-linux-x64-musl": "0.1.0",
+    "@archlinter/core-linux-arm64-gnu": "0.1.0",
+    "@archlinter/core-darwin-x64": "0.1.0",
+    "@archlinter/core-darwin-arm64": "0.1.0",
+    "@archlinter/core-win32-x64-msvc": "0.1.0"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "build": "napi build --release --platform --cargo-cwd ../../crates/archlint-napi .",
+    "prepublishOnly": "napi prepublish -t npm"
+  },
+  "devDependencies": {
+    "@napi-rs/cli": "^2.18.0"
+  }
+}

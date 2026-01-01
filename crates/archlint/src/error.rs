@@ -1,0 +1,33 @@
+use thiserror::Error;
+
+#[derive(Error, Debug)]
+pub enum AnalysisError {
+    #[error("IO error: {0}")]
+    Io(#[from] std::io::Error),
+
+    #[error("Git error: {0}")]
+    Git(#[from] git2::Error),
+
+    #[error("Config error: {0}")]
+    Config(#[from] serde_yaml::Error),
+
+    #[error("Regex error: {0}")]
+    Regex(#[from] regex::Error),
+
+    #[error("JSON error: {0}")]
+    Json(#[from] serde_json::Error),
+
+    #[error("Ignore error: {0}")]
+    Ignore(#[from] ignore::Error),
+
+    #[error("Notify error: {0}")]
+    Notify(#[from] notify::Error),
+
+    #[error("Path resolution error: {0}")]
+    PathResolution(String),
+
+    #[error("Invalid configuration: {0}")]
+    InvalidConfig(String),
+}
+
+pub type Result<T> = std::result::Result<T, AnalysisError>;

@@ -1,0 +1,20 @@
+ignore:
+  - "**/*.test.ts"
+  - "**/*.spec.ts"
+  - "**/__tests__/**"
+  - "**/__mocks__/**"
+
+aliases:
+  "@/*": "src/*"
+  "@components/*": "src/components/*"
+
+entry_points:
+  - "src/main.ts"
+  - "src/index.ts"
+  - "**/*.e2e.ts"
+
+thresholds:
+  god_module:
+    fan_in: 10
+    fan_out: 10
+    churn: 20

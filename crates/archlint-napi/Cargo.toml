@@ -1,0 +1,19 @@
+[package]
+name = "archlint-napi"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Node.js bindings for archlint"
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+archlint = { path = "../archlint" }
+napi = { version = "2", default-features = false, features = ["async", "serde-json", "napi4"] }
+napi-derive = "2"
+serde.workspace = true
+serde_json.workspace = true
+
+[build-dependencies]
+napi-build = "2"

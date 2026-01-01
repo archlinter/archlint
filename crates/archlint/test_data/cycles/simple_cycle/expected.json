@@ -1,0 +1,8 @@
+{
+  "cycles": [
+    {
+      "files": ["a.ts", "b.ts"],
+      "severity": "high"
+    }
+  ]
+}

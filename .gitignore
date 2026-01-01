@@ -1,0 +1,40 @@
+# Cargo workspace
+target/
+**/target/
+
+# Node.js
+node_modules/
+**/node_modules/
+.pnpm-debug.log*
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Build artifacts
+dist/
+**/dist/
+packages/cli-*/bin/
+!packages/cli/bin/
+*.node
+*.dylib
+*.so
+*.dll
+
+# NAPI-RS specific
+packages/core/npm/
+
+# Test outputs
+test_output.txt
+report.md
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Cache
+.archlint-cache
+.serena/

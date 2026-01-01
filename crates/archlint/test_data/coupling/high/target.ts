@@ -1,0 +1,11 @@
+import { dep1 } from './dep1';
+import { dep2 } from './dep2';
+import { dep3 } from './dep3';
+import { dep4 } from './dep4';
+import { dep5 } from './dep5';
+import { dep6 } from './dep6';
+import { dep7 } from './dep7';
+import { dep8 } from './dep8';
+import { dep9 } from './dep9';
+import { dep10 } from './dep10';
+export const a = 1;

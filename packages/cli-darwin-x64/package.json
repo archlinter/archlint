@@ -1,0 +1,21 @@
+{
+  "name": "@archlinter/cli-darwin-x64",
+  "version": "0.1.0",
+  "description": "archlint CLI binary for macOS x64",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/archlinter/archlint",
+    "directory": "packages/cli-darwin-x64"
+  },
+  "os": [
+    "darwin"
+  ],
+  "cpu": [
+    "x64"
+  ],
+  "files": [
+    "bin"
+  ],
+  "preferUnplugged": true
+}
