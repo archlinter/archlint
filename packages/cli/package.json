@@ -20,12 +20,12 @@
     "scripts"
   ],
   "optionalDependencies": {
-    "@archlinter/cli-darwin-arm64": "0.1.0",
-    "@archlinter/cli-darwin-x64": "0.1.0",
-    "@archlinter/cli-linux-x64": "0.1.0",
-    "@archlinter/cli-linux-arm64": "0.1.0",
-    "@archlinter/cli-linux-x64-musl": "0.1.0",
-    "@archlinter/cli-win32-x64": "0.1.0"
+    "@archlinter/cli-darwin-arm64": "workspace:*",
+    "@archlinter/cli-darwin-x64": "workspace:*",
+    "@archlinter/cli-linux-x64": "workspace:*",
+    "@archlinter/cli-linux-arm64": "workspace:*",
+    "@archlinter/cli-linux-x64-musl": "workspace:*",
+    "@archlinter/cli-win32-x64": "workspace:*"
   },
   "engines": {
     "node": ">=18"

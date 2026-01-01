@@ -22,12 +22,12 @@
     }
   },
   "optionalDependencies": {
-    "@archlinter/core-linux-x64-gnu": "0.1.0",
-    "@archlinter/core-linux-x64-musl": "0.1.0",
-    "@archlinter/core-linux-arm64-gnu": "0.1.0",
-    "@archlinter/core-darwin-x64": "0.1.0",
-    "@archlinter/core-darwin-arm64": "0.1.0",
-    "@archlinter/core-win32-x64-msvc": "0.1.0"
+    "@archlinter/core-linux-x64-gnu": "workspace:*",
+    "@archlinter/core-linux-x64-musl": "workspace:*",
+    "@archlinter/core-linux-arm64-gnu": "workspace:*",
+    "@archlinter/core-darwin-x64": "workspace:*",
+    "@archlinter/core-darwin-arm64": "workspace:*",
+    "@archlinter/core-win32-x64-msvc": "workspace:*"
   },
   "engines": {
     "node": ">=18"

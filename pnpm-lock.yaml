@@ -51,7 +51,26 @@ importers:
         specifier: ^8.51.0
         version: 8.51.0(eslint@9.39.2(jiti@2.6.1))(typescript@5.9.3)
 
-  packages/cli: {}
+  packages/cli:
+    optionalDependencies:
+      '@archlinter/cli-darwin-arm64':
+        specifier: workspace:*
+        version: link:../cli-darwin-arm64
+      '@archlinter/cli-darwin-x64':
+        specifier: workspace:*
+        version: link:../cli-darwin-x64
+      '@archlinter/cli-linux-arm64':
+        specifier: workspace:*
+        version: link:../cli-linux-arm64
+      '@archlinter/cli-linux-x64':
+        specifier: workspace:*
+        version: link:../cli-linux-x64
+      '@archlinter/cli-linux-x64-musl':
+        specifier: workspace:*
+        version: link:../cli-linux-x64-musl
+      '@archlinter/cli-win32-x64':
+        specifier: workspace:*
+        version: link:../cli-win32-x64
 
   packages/cli-darwin-arm64: {}
 
