@@ -1,8 +1,8 @@
 mod common;
 
-use common::analyze_fixture_with_config;
 use archlint::detectors::abstractness::AbstractnessViolationDetector;
 use archlint::detectors::Detector;
+use common::analyze_fixture_with_config;
 
 #[test]
 fn test_zone_of_pain_detected() {
@@ -15,7 +15,9 @@ fn test_zone_of_pain_detected() {
 
     // rigid.ts: A=0 (concrete), I=0 (stable) -> D = |0+0-1| = 1.0
     assert!(!smells.is_empty(), "Expected to detect Zone of Pain");
-    assert!(smells.iter().any(|s| s.files.iter().any(|f| f.ends_with("rigid.ts"))));
+    assert!(smells
+        .iter()
+        .any(|s| s.files.iter().any(|f| f.ends_with("rigid.ts"))));
 }
 
 #[test]
@@ -29,7 +31,9 @@ fn test_zone_of_uselessness_detected() {
 
     // unused.ts: A=1.0 (only type), I=1.0 (depends on something, no one depends on it) -> D = |1+1-1| = 1.0
     assert!(!smells.is_empty(), "Expected to detect Zone of Uselessness");
-    assert!(smells.iter().any(|s| s.files.iter().any(|f| f.ends_with("unused.ts"))));
+    assert!(smells
+        .iter()
+        .any(|s| s.files.iter().any(|f| f.ends_with("unused.ts"))));
 }
 
 #[test]

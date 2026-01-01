@@ -15,7 +15,8 @@ impl DetectorFactory for BarrelFileAbuseDetectorFactory {
         DetectorInfo {
             id: "barrel_file_abuse",
             name: "Barrel File Abuse Detector",
-            description: "Detects excessive use of barrel files (index.ts) that inflate the dependency graph",
+            description:
+                "Detects excessive use of barrel files (index.ts) that inflate the dependency graph",
             default_enabled: true,
             is_deep: false,
         }
@@ -48,7 +49,9 @@ impl Detector for BarrelFileAbuseDetector {
                 continue;
             }
 
-            let reexport_count = symbols.exports.iter()
+            let reexport_count = symbols
+                .exports
+                .iter()
                 .filter(|e| e.source.is_some()) // re-exports have a source
                 .count();
 

@@ -1,9 +1,9 @@
 use super::Framework;
+use ignore::WalkBuilder;
 use serde_json::Value;
 use std::collections::HashSet;
 use std::fs;
 use std::path::Path;
-use ignore::WalkBuilder;
 
 pub struct FrameworkDetector;
 
@@ -26,9 +26,9 @@ impl FrameworkDetector {
             let path = entry.path();
             if path.file_name().is_some_and(|n| n == "package.json") {
                 if let Ok(content) = fs::read_to_string(path) {
-                        if let Ok(json) = serde_json::from_str::<Value>(&content) {
-                            Self::detect_from_json(&json, &mut frameworks);
-                        }
+                    if let Ok(json) = serde_json::from_str::<Value>(&content) {
+                        Self::detect_from_json(&json, &mut frameworks);
+                    }
                 }
             }
         }
@@ -37,11 +37,7 @@ impl FrameworkDetector {
     }
 
     fn detect_from_json(json: &Value, frameworks: &mut HashSet<Framework>) {
-        let dependencies = [
-            "dependencies",
-            "devDependencies",
-            "peerDependencies",
-        ];
+        let dependencies = ["dependencies", "devDependencies", "peerDependencies"];
 
         for dep_type in dependencies {
             if let Some(deps) = json.get(dep_type).and_then(|d| d.as_object()) {

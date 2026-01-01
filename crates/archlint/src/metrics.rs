@@ -1,8 +1,8 @@
-use git2::{Repository, DiffOptions};
+use crate::Result;
+use git2::{DiffOptions, Repository};
+use indicatif::{ProgressBar, ProgressStyle};
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
-use crate::Result;
-use indicatif::{ProgressBar, ProgressStyle};
 
 pub struct GitChurn {
     repo: Option<Repository>,
@@ -14,7 +14,11 @@ impl GitChurn {
         Self { repo }
     }
 
-    pub fn calculate_churn(&self, files: &[PathBuf], show_progress: bool) -> Result<HashMap<PathBuf, usize>> {
+    pub fn calculate_churn(
+        &self,
+        files: &[PathBuf],
+        show_progress: bool,
+    ) -> Result<HashMap<PathBuf, usize>> {
         let mut churn_map = HashMap::new();
 
         if let Some(repo) = &self.repo {
@@ -115,6 +119,10 @@ pub struct FileMetrics {
 
 impl FileMetrics {
     pub fn new(fan_in: usize, fan_out: usize, churn: usize) -> Self {
-        Self { fan_in, fan_out, churn }
+        Self {
+            fan_in,
+            fan_out,
+            churn,
+        }
     }
 }

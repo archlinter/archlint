@@ -1,8 +1,8 @@
-use sha2::{Sha256, Digest};
-use std::fs;
-use std::path::Path;
 use crate::config::Config;
 use crate::Result;
+use sha2::{Digest, Sha256};
+use std::fs;
+use std::path::Path;
 
 pub fn file_content_hash(path: &Path) -> Result<String> {
     let content = fs::read(path)?;

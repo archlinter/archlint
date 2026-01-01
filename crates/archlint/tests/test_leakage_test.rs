@@ -1,8 +1,8 @@
 mod common;
 
-use common::analyze_fixture;
 use archlint::detectors::test_leakage::TestLeakageDetector;
 use archlint::detectors::Detector;
+use common::analyze_fixture;
 
 #[test]
 fn test_leakage_detected() {
@@ -15,7 +15,10 @@ fn test_leakage_detected() {
 
     let smell = &smells[0];
     assert!(smell.files.iter().any(|f| f.ends_with("prod.ts")));
-    assert!(smell.locations.iter().any(|l| l.description.contains("test.test.ts")));
+    assert!(smell
+        .locations
+        .iter()
+        .any(|l| l.description.contains("test.test.ts")));
 }
 
 #[test]
@@ -29,7 +32,10 @@ fn test_leakage_mock_import() {
 
     let smell = &smells[0];
     assert!(smell.files.iter().any(|f| f.ends_with("prod.ts")));
-    assert!(smell.locations.iter().any(|l| l.description.contains("api.ts")));
+    assert!(smell
+        .locations
+        .iter()
+        .any(|l| l.description.contains("api.ts")));
 }
 
 #[test]
@@ -47,5 +53,8 @@ fn test_test_to_test_ok() {
     let detector = TestLeakageDetector;
     let smells = detector.detect(&ctx);
 
-    assert!(smells.is_empty(), "Expected no leakage for test-to-test imports");
+    assert!(
+        smells.is_empty(),
+        "Expected no leakage for test-to-test imports"
+    );
 }

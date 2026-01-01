@@ -1,8 +1,8 @@
 mod common;
 
-use common::analyze_fixture;
 use archlint::detectors::package_cycle::PackageCycleDetector;
 use archlint::detectors::Detector;
+use common::analyze_fixture;
 
 #[test]
 fn test_package_cycle_detected() {
@@ -28,5 +28,8 @@ fn test_file_cycle_not_package_cycle() {
 
     // If depth is 1 (default), they are in the same package "pkg"
     // So it's a file cycle, but NOT a package cycle between different packages.
-    assert!(smells.is_empty(), "Expected no package cycle between different packages");
+    assert!(
+        smells.is_empty(),
+        "Expected no package cycle between different packages"
+    );
 }

@@ -16,7 +16,8 @@ impl DetectorFactory for ScatteredConfigDetectorFactory {
         DetectorInfo {
             id: "scattered_config",
             name: "Scattered Configuration Detector",
-            description: "Detects environment variables that are accessed from many different modules",
+            description:
+                "Detects environment variables that are accessed from many different modules",
             default_enabled: false,
             is_deep: false,
         }
@@ -42,13 +43,15 @@ impl Detector for ScatteredConfigDetector {
 
         for (path, symbols) in &ctx.file_symbols {
             for var in &symbols.env_vars {
-                var_usage.entry(var.to_string())
+                var_usage
+                    .entry(var.to_string())
                     .or_default()
                     .push(path.clone());
             }
         }
 
-        var_usage.into_iter()
+        var_usage
+            .into_iter()
             .filter(|(_, files)| files.len() > thresholds.max_files)
             .map(|(env_var, files)| ArchSmell::new_scattered_configuration(env_var, files))
             .collect()

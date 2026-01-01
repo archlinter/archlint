@@ -1,8 +1,8 @@
+use crate::config::{Config, LayerConfig};
 use crate::detectors::{ArchSmell, Detector, DetectorFactory, DetectorInfo};
 use crate::engine::AnalysisContext;
-use crate::config::{Config, LayerConfig};
-use std::path::Path;
 use inventory;
+use std::path::Path;
 
 pub fn init() {}
 
@@ -50,7 +50,9 @@ impl Detector for LayerViolationDetector {
                         if let Some(to_path) = ctx.graph.get_file_path(to_node) {
                             if let Some(to_layer) = self.find_layer(to_path, layers) {
                                 // Check if this import is allowed
-                                if from_layer.name != to_layer.name && !from_layer.allowed_imports.contains(&to_layer.name) {
+                                if from_layer.name != to_layer.name
+                                    && !from_layer.allowed_imports.contains(&to_layer.name)
+                                {
                                     smells.push(ArchSmell::new_layer_violation(
                                         from_path.clone(),
                                         to_path.clone(),
@@ -72,7 +74,8 @@ impl Detector for LayerViolationDetector {
 impl LayerViolationDetector {
     fn find_layer<'a>(&self, path: &Path, layers: &'a [LayerConfig]) -> Option<&'a LayerConfig> {
         // Find the most specific layer (longest matching path)
-        let mut matching_layers: Vec<&LayerConfig> = layers.iter()
+        let mut matching_layers: Vec<&LayerConfig> = layers
+            .iter()
             .filter(|l| self.matches_path(path, &l.path))
             .collect();
 

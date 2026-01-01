@@ -1,10 +1,10 @@
-use std::path::{Path, PathBuf};
-use std::collections::HashMap;
-use serde::{Serialize, Deserialize};
-use crate::parser::ParsedFile;
 use crate::config::Config;
+use crate::parser::ParsedFile;
 use crate::Result;
+use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use std::fs;
+use std::path::{Path, PathBuf};
 pub mod hash;
 use self::hash::config_hash;
 
@@ -59,9 +59,11 @@ impl AnalysisCache {
         let data = if cache_file.exists() {
             let content = fs::read_to_string(&cache_file)?;
             match serde_json::from_str::<CacheData>(&content) {
-                Ok(mut data) if data.meta.version == Self::VERSION
-                    && data.meta.app_version == Self::APP_VERSION
-                    && data.meta.config_hash == config_hash(config) => {
+                Ok(mut data)
+                    if data.meta.version == Self::VERSION
+                        && data.meta.app_version == Self::APP_VERSION
+                        && data.meta.config_hash == config_hash(config) =>
+                {
                     // Only check git head if git is enabled
                     let current_head = if config.enable_git {
                         crate::cache::hash::get_git_head(project_root)
@@ -116,10 +118,13 @@ impl AnalysisCache {
     }
 
     pub fn insert(&mut self, path: PathBuf, content_hash: String, parsed: ParsedFile) {
-        self.data.entries.insert(path, FileEntry {
-            content_hash,
-            parsed,
-        });
+        self.data.entries.insert(
+            path,
+            FileEntry {
+                content_hash,
+                parsed,
+            },
+        );
         self.is_dirty = true;
     }
 

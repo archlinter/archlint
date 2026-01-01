@@ -431,22 +431,54 @@ pub struct ScatteredConfigThresholds {
     pub max_files: usize,
 }
 
-fn default_fan_in() -> usize { 10 }
-fn default_fan_out() -> usize { 10 }
-fn default_churn() -> usize { 20 }
-fn default_function_complexity() -> usize { 10 }
-fn default_file_complexity() -> usize { 50 }
-fn default_large_file_lines() -> usize { 1000 }
-fn default_min_churn() -> usize { 10 }
-fn default_min_dependants() -> usize { 5 }
-fn default_unstable_score() -> usize { 100 }
-fn default_envy_ratio() -> f64 { 3.0 }
-fn default_min_co_changes() -> usize { 3 }
-fn default_min_frequency() -> usize { 5 }
-fn default_lookback_commits() -> usize { 500 }
-fn default_hub_min_dependants() -> usize { 20 }
+fn default_fan_in() -> usize {
+    10
+}
+fn default_fan_out() -> usize {
+    10
+}
+fn default_churn() -> usize {
+    20
+}
+fn default_function_complexity() -> usize {
+    10
+}
+fn default_file_complexity() -> usize {
+    50
+}
+fn default_large_file_lines() -> usize {
+    1000
+}
+fn default_min_churn() -> usize {
+    10
+}
+fn default_min_dependants() -> usize {
+    5
+}
+fn default_unstable_score() -> usize {
+    100
+}
+fn default_envy_ratio() -> f64 {
+    3.0
+}
+fn default_min_co_changes() -> usize {
+    3
+}
+fn default_min_frequency() -> usize {
+    5
+}
+fn default_lookback_commits() -> usize {
+    500
+}
+fn default_hub_min_dependants() -> usize {
+    20
+}
 fn default_hub_ignore_packages() -> Vec<String> {
-    vec!["react".to_string(), "lodash".to_string(), "typescript".to_string()]
+    vec![
+        "react".to_string(),
+        "lodash".to_string(),
+        "typescript".to_string(),
+    ]
 }
 fn default_test_patterns() -> Vec<String> {
     vec![
@@ -458,64 +490,146 @@ fn default_test_patterns() -> Vec<String> {
         "**/__mocks__/**".to_string(),
     ]
 }
-fn default_instability_diff() -> f64 { 0.3 }
-fn default_min_fan_total() -> usize { 5 }
-fn default_max_reexports() -> usize { 10 }
-fn default_max_transitive_deps() -> usize { 50 }
-fn default_flag_if_in_cycle() -> bool { true }
-fn default_vendor_max_files() -> usize { 10 }
-fn default_hub_min_fan_in() -> usize { 5 }
-fn default_hub_min_fan_out() -> usize { 5 }
-fn default_hub_max_complexity() -> usize { 5 }
-fn default_max_lcom() -> usize { 4 }
-fn default_lcom_min_methods() -> usize { 3 }
-fn default_cohesion_min_exports() -> usize { 5 }
-fn default_cohesion_max_components() -> usize { 2 }
-fn default_max_cbo() -> usize { 20 }
-fn default_package_depth() -> usize { 2 }
-fn default_max_depth() -> usize { 4 }
-fn default_max_params() -> usize { 5 }
-fn default_max_primitives() -> usize { 3 }
-fn default_distance_threshold() -> f64 { 0.85 }
-fn default_max_config_files() -> usize { 3 }
+fn default_instability_diff() -> f64 {
+    0.3
+}
+fn default_min_fan_total() -> usize {
+    5
+}
+fn default_max_reexports() -> usize {
+    10
+}
+fn default_max_transitive_deps() -> usize {
+    50
+}
+fn default_flag_if_in_cycle() -> bool {
+    true
+}
+fn default_vendor_max_files() -> usize {
+    10
+}
+fn default_hub_min_fan_in() -> usize {
+    5
+}
+fn default_hub_min_fan_out() -> usize {
+    5
+}
+fn default_hub_max_complexity() -> usize {
+    5
+}
+fn default_max_lcom() -> usize {
+    4
+}
+fn default_lcom_min_methods() -> usize {
+    3
+}
+fn default_cohesion_min_exports() -> usize {
+    5
+}
+fn default_cohesion_max_components() -> usize {
+    2
+}
+fn default_max_cbo() -> usize {
+    20
+}
+fn default_package_depth() -> usize {
+    2
+}
+fn default_max_depth() -> usize {
+    4
+}
+fn default_max_params() -> usize {
+    5
+}
+fn default_max_primitives() -> usize {
+    3
+}
+fn default_distance_threshold() -> f64 {
+    0.85
+}
+fn default_max_config_files() -> usize {
+    3
+}
 
 fn default_god_module() -> GodModuleThresholds {
-    GodModuleThresholds { fan_in: default_fan_in(), fan_out: default_fan_out(), churn: default_churn() }
+    GodModuleThresholds {
+        fan_in: default_fan_in(),
+        fan_out: default_fan_out(),
+        churn: default_churn(),
+    }
 }
 fn default_complexity() -> ComplexityThresholds {
-    ComplexityThresholds { function_threshold: default_function_complexity(), file_threshold: default_file_complexity() }
+    ComplexityThresholds {
+        function_threshold: default_function_complexity(),
+        file_threshold: default_file_complexity(),
+    }
 }
 fn default_large_file() -> LargeFileThresholds {
-    LargeFileThresholds { lines: default_large_file_lines() }
+    LargeFileThresholds {
+        lines: default_large_file_lines(),
+    }
 }
 fn default_unstable_interface() -> UnstableInterfaceThresholds {
-    UnstableInterfaceThresholds { min_churn: default_min_churn(), min_dependants: default_min_dependants(), score_threshold: default_unstable_score() }
+    UnstableInterfaceThresholds {
+        min_churn: default_min_churn(),
+        min_dependants: default_min_dependants(),
+        score_threshold: default_unstable_score(),
+    }
 }
 fn default_feature_envy() -> FeatureEnvyThresholds {
-    FeatureEnvyThresholds { ratio: default_envy_ratio() }
+    FeatureEnvyThresholds {
+        ratio: default_envy_ratio(),
+    }
 }
 fn default_shotgun_surgery() -> ShotgunSurgeryThresholds {
-    ShotgunSurgeryThresholds { min_co_changes: default_min_co_changes(), min_frequency: default_min_frequency(), lookback_commits: default_lookback_commits() }
+    ShotgunSurgeryThresholds {
+        min_co_changes: default_min_co_changes(),
+        min_frequency: default_min_frequency(),
+        lookback_commits: default_lookback_commits(),
+    }
 }
 fn default_hub_dependency() -> HubDependencyThresholds {
-    HubDependencyThresholds { min_dependants: default_hub_min_dependants(), ignore_packages: default_hub_ignore_packages() }
+    HubDependencyThresholds {
+        min_dependants: default_hub_min_dependants(),
+        ignore_packages: default_hub_ignore_packages(),
+    }
 }
 fn default_test_leakage() -> TestLeakageThresholds {
-    TestLeakageThresholds { test_patterns: default_test_patterns() }
+    TestLeakageThresholds {
+        test_patterns: default_test_patterns(),
+    }
 }
-fn default_layer_violation() -> LayerViolationThresholds { LayerViolationThresholds::default() }
+fn default_layer_violation() -> LayerViolationThresholds {
+    LayerViolationThresholds::default()
+}
 fn default_sdp_violation() -> SdpThresholds {
-    SdpThresholds { instability_diff: default_instability_diff(), min_fan_total: default_min_fan_total() }
+    SdpThresholds {
+        instability_diff: default_instability_diff(),
+        min_fan_total: default_min_fan_total(),
+    }
 }
 fn default_barrel_file_abuse() -> BarrelFileThresholds {
-    BarrelFileThresholds { max_reexports: default_max_reexports(), max_transitive_deps: default_max_transitive_deps(), flag_if_in_cycle: default_flag_if_in_cycle() }
+    BarrelFileThresholds {
+        max_reexports: default_max_reexports(),
+        max_transitive_deps: default_max_transitive_deps(),
+        flag_if_in_cycle: default_flag_if_in_cycle(),
+    }
 }
 fn default_vendor_coupling() -> VendorCouplingThresholds {
-    VendorCouplingThresholds { max_files_per_package: default_vendor_max_files(), ignore_packages: default_vendor_ignore() }
+    VendorCouplingThresholds {
+        max_files_per_package: default_vendor_max_files(),
+        ignore_packages: default_vendor_ignore(),
+    }
 }
-fn default_vendor_ignore() -> Vec<String> { vec!["react".to_string(), "lodash".to_string()] }
+fn default_vendor_ignore() -> Vec<String> {
+    vec!["react".to_string(), "lodash".to_string()]
+}
 fn default_hub_module() -> HubModuleThresholds {
-    HubModuleThresholds { min_fan_in: default_hub_min_fan_in(), min_fan_out: default_hub_min_fan_out(), max_complexity: default_hub_max_complexity() }
+    HubModuleThresholds {
+        min_fan_in: default_hub_min_fan_in(),
+        min_fan_out: default_hub_min_fan_out(),
+        max_complexity: default_hub_max_complexity(),
+    }
 }
 fn default_lcom() -> LcomThresholds {
     LcomThresholds {
@@ -545,9 +659,13 @@ fn default_package_cycles() -> PackageCyclesThresholds {
         exclude_patterns: Vec::new(),
     }
 }
-fn default_shared_state() -> SharedStateThresholds { SharedStateThresholds::default() }
+fn default_shared_state() -> SharedStateThresholds {
+    SharedStateThresholds::default()
+}
 fn default_deep_nesting() -> DeepNestingThresholds {
-    DeepNestingThresholds { max_depth: default_max_depth() }
+    DeepNestingThresholds {
+        max_depth: default_max_depth(),
+    }
 }
 fn default_long_params() -> LongParamsThresholds {
     LongParamsThresholds {
@@ -556,9 +674,13 @@ fn default_long_params() -> LongParamsThresholds {
     }
 }
 fn default_primitive_obsession() -> PrimitiveObsessionThresholds {
-    PrimitiveObsessionThresholds { max_primitives: default_max_primitives() }
+    PrimitiveObsessionThresholds {
+        max_primitives: default_max_primitives(),
+    }
 }
-fn default_orphan_types() -> OrphanTypesThresholds { OrphanTypesThresholds::default() }
+fn default_orphan_types() -> OrphanTypesThresholds {
+    OrphanTypesThresholds::default()
+}
 fn default_abstractness() -> AbstractnessThresholds {
     AbstractnessThresholds {
         distance_threshold: default_distance_threshold(),
@@ -577,7 +699,9 @@ fn default_cycles_thresholds() -> CyclesThresholds {
 }
 
 fn default_scattered_config() -> ScatteredConfigThresholds {
-    ScatteredConfigThresholds { max_files: default_max_config_files() }
+    ScatteredConfigThresholds {
+        max_files: default_max_config_files(),
+    }
 }
 
 impl Default for Thresholds {

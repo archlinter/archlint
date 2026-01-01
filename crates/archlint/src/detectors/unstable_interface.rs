@@ -1,6 +1,6 @@
+use crate::config::Config;
 use crate::detectors::{ArchSmell, Detector, DetectorFactory, DetectorInfo};
 use crate::engine::AnalysisContext;
-use crate::config::Config;
 
 pub struct UnstableInterfaceDetector;
 
@@ -61,5 +61,4 @@ impl Detector for UnstableInterfaceDetector {
     }
 }
 
-pub fn init() {
-}
+pub fn init() {}

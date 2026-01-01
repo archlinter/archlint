@@ -1,10 +1,9 @@
 mod common;
 
-use common::analyze_fixture_with_config;
+use archlint::config::Config;
 use archlint::detectors::god_module::GodModuleDetector;
 use archlint::detectors::Detector;
-use archlint::config::Config;
-
+use common::analyze_fixture_with_config;
 
 #[test]
 fn test_god_module_detected() {

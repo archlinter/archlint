@@ -1,8 +1,8 @@
 mod common;
 
-use common::analyze_fixture;
 use archlint::detectors::orphan_types::OrphanTypesDetector;
 use archlint::detectors::Detector;
+use common::analyze_fixture;
 
 #[test]
 fn test_unused_type_detected() {
@@ -26,5 +26,8 @@ fn test_used_interface_ok() {
     let detector = OrphanTypesDetector;
     let smells = detector.detect(&ctx);
 
-    assert!(smells.is_empty(), "Expected no orphan types for used interface");
+    assert!(
+        smells.is_empty(),
+        "Expected no orphan types for used interface"
+    );
 }

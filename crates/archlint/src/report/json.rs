@@ -4,7 +4,10 @@ use serde_json::json;
 use std::fs;
 use std::path::Path;
 
-pub fn generate_json(report: &AnalysisReport, config: &crate::config::SeverityConfig) -> serde_json::Value {
+pub fn generate_json(
+    report: &AnalysisReport,
+    config: &crate::config::SeverityConfig,
+) -> serde_json::Value {
     let smells_json: Vec<_> = report.smells.iter()
         .map(|(smell, explanation)| {
             let mut smell_json = json!({
@@ -93,12 +96,26 @@ pub fn generate_json(report: &AnalysisReport, config: &crate::config::SeverityCo
         .collect();
 
     // Count cycle clusters and files in cycles
-    let cycle_clusters_count = report.smells.iter()
-        .filter(|(s, _)| matches!(s.smell_type, crate::detectors::SmellType::CyclicDependencyCluster))
+    let cycle_clusters_count = report
+        .smells
+        .iter()
+        .filter(|(s, _)| {
+            matches!(
+                s.smell_type,
+                crate::detectors::SmellType::CyclicDependencyCluster
+            )
+        })
         .count();
 
-    let files_in_cycles: usize = report.smells.iter()
-        .filter(|(s, _)| matches!(s.smell_type, crate::detectors::SmellType::CyclicDependencyCluster))
+    let files_in_cycles: usize = report
+        .smells
+        .iter()
+        .filter(|(s, _)| {
+            matches!(
+                s.smell_type,
+                crate::detectors::SmellType::CyclicDependencyCluster
+            )
+        })
         .map(|(s, _)| s.files.len())
         .sum();
 
@@ -129,7 +146,11 @@ pub fn generate_json(report: &AnalysisReport, config: &crate::config::SeverityCo
     })
 }
 
-pub fn write_report<P: AsRef<Path>>(report: &AnalysisReport, path: P, config: &crate::config::SeverityConfig) -> Result<()> {
+pub fn write_report<P: AsRef<Path>>(
+    report: &AnalysisReport,
+    path: P,
+    config: &crate::config::SeverityConfig,
+) -> Result<()> {
     let output = generate_json(report, config);
     fs::write(path, serde_json::to_string_pretty(&output)?)?;
     Ok(())

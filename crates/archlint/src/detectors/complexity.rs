@@ -1,7 +1,7 @@
-use crate::parser::FunctionComplexity;
-use crate::engine::AnalysisContext;
-use crate::detectors::{Detector, ArchSmell, DetectorFactory, DetectorInfo};
 use crate::config::Config;
+use crate::detectors::{ArchSmell, Detector, DetectorFactory, DetectorInfo};
+use crate::engine::AnalysisContext;
+use crate::parser::FunctionComplexity;
 use inventory;
 use std::path::Path;
 

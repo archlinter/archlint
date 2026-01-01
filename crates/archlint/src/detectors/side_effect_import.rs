@@ -45,7 +45,10 @@ impl Detector for SideEffectImportDetector {
                         continue;
                     }
 
-                    smells.push(ArchSmell::new_side_effect_import(path.clone(), import.source.to_string()));
+                    smells.push(ArchSmell::new_side_effect_import(
+                        path.clone(),
+                        import.source.to_string(),
+                    ));
                 }
             }
         }
@@ -56,14 +59,14 @@ impl Detector for SideEffectImportDetector {
 
 impl SideEffectImportDetector {
     fn is_ignored_source(&self, source: &str) -> bool {
-        source.ends_with(".css") ||
-        source.ends_with(".scss") ||
-        source.ends_with(".sass") ||
-        source.ends_with(".less") ||
-        source == "reflect-metadata" ||
-        source.contains("polyfill") ||
-        source.contains("setup") ||
-        source.contains("instrument") ||
-        source.contains("register") // common pattern for side-effects that are sometimes intentional
+        source.ends_with(".css")
+            || source.ends_with(".scss")
+            || source.ends_with(".sass")
+            || source.ends_with(".less")
+            || source == "reflect-metadata"
+            || source.contains("polyfill")
+            || source.contains("setup")
+            || source.contains("instrument")
+            || source.contains("register") // common pattern for side-effects that are sometimes intentional
     }
 }

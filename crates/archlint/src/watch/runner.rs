@@ -30,9 +30,7 @@ impl WatchRunner {
         // Watch for changes
         self.ui.start();
 
-        watcher.watch(|changed_files| {
-            self.on_files_changed(changed_files)
-        })
+        watcher.watch(|changed_files| self.on_files_changed(changed_files))
     }
 
     fn on_files_changed(&mut self, files: Vec<PathBuf>) -> Result<()> {
@@ -55,9 +53,10 @@ impl WatchRunner {
 
         let report = self.engine.run()?;
 
-        let diff = self.last_report.as_ref().map(|prev| {
-            ReportDiff::calculate(prev, &report)
-        });
+        let diff = self
+            .last_report
+            .as_ref()
+            .map(|prev| ReportDiff::calculate(prev, &report));
 
         self.ui.show_results(&report, diff.as_ref());
 

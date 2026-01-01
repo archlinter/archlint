@@ -1,10 +1,10 @@
+use crate::config::Config;
+use crate::detectors::{ArchSmell, Detector, DetectorFactory, DetectorInfo};
+use crate::engine::AnalysisContext;
+use crate::parser::{FileSymbols, SymbolKind};
+use inventory;
 use std::collections::{HashMap, HashSet};
 use std::path::PathBuf;
-use crate::parser::{FileSymbols, SymbolKind};
-use crate::engine::AnalysisContext;
-use crate::detectors::{Detector, ArchSmell, DetectorFactory, DetectorInfo};
-use crate::config::Config;
-use inventory;
 
 pub fn init() {}
 
@@ -74,7 +74,10 @@ impl DeadSymbolsDetector {
 
         for (file_path, symbols) in file_symbols {
             for local_def in &symbols.local_definitions {
-                let is_exported = symbols.exports.iter().any(|e| e.name.as_str() == local_def.as_str());
+                let is_exported = symbols
+                    .exports
+                    .iter()
+                    .any(|e| e.name.as_str() == local_def.as_str());
                 let is_used_anywhere = all_project_usages.contains(local_def.as_str());
 
                 if !is_exported && !is_used_anywhere {

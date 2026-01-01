@@ -37,7 +37,8 @@ impl MermaidGenerator {
             let file_name = Self::get_short_name(file);
 
             // Determine CSS class based on smell types
-            let classes = Self::get_css_classes(file_smells.get(file).map(|v| v.as_slice()).unwrap_or(&[]));
+            let classes =
+                Self::get_css_classes(file_smells.get(file).map(|v| v.as_slice()).unwrap_or(&[]));
 
             if classes.is_empty() {
                 output.push_str(&format!("    {}[{}]\n", node_id, file_name));
@@ -82,7 +83,8 @@ impl MermaidGenerator {
         output.push_str("    classDef shotgunSurgery fill:#ff6666,stroke:#660000\n");
         output.push_str("    classDef hubDependency fill:#cc99ff,stroke:#330066\n");
         output.push_str("    classDef testLeakage fill:#ff6666,stroke:#cc0000,stroke-width:2px\n");
-        output.push_str("    classDef layerViolation fill:#ff3333,stroke:#990000,stroke-width:3px\n");
+        output
+            .push_str("    classDef layerViolation fill:#ff3333,stroke:#990000,stroke-width:3px\n");
         output.push_str("    classDef sdpViolation fill:#ffcc99,stroke:#ff6600\n");
 
         output.push_str("```\n");
@@ -98,8 +100,7 @@ impl MermaidGenerator {
             .unwrap_or("unknown");
 
         // Sanitize for Mermaid (no special chars that break syntax)
-        file_name
-            .replace(['.', '-', ' '], "_")
+        file_name.replace(['.', '-', ' '], "_")
     }
 
     fn get_css_classes(smell_types: &[&SmellType]) -> String {

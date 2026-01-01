@@ -1,8 +1,8 @@
 mod common;
 
-use common::analyze_fixture_with_config;
 use archlint::detectors::scattered_module::ScatteredModuleDetector;
 use archlint::detectors::Detector;
+use common::analyze_fixture_with_config;
 
 #[test]
 fn test_scattered_utils_detected() {
@@ -15,7 +15,9 @@ fn test_scattered_utils_detected() {
     let smells = detector.detect(&ctx);
 
     assert!(!smells.is_empty(), "Expected to detect scattered module");
-    assert!(smells.iter().any(|s| s.files.iter().any(|f| f.ends_with("utils.ts"))));
+    assert!(smells
+        .iter()
+        .any(|s| s.files.iter().any(|f| f.ends_with("utils.ts"))));
 }
 
 #[test]

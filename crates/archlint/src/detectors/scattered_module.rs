@@ -46,7 +46,8 @@ impl Detector for ScatteredModuleDetector {
             }
 
             // Ignore small files and barrels (barrels are handled by BarrelFileAbuseDetector)
-            if symbols.exports.len() < thresholds.min_exports || self.is_barrel_file(path, symbols) {
+            if symbols.exports.len() < thresholds.min_exports || self.is_barrel_file(path, symbols)
+            {
                 continue;
             }
 
@@ -63,7 +64,8 @@ impl Detector for ScatteredModuleDetector {
 
 impl ScatteredModuleDetector {
     fn is_barrel_file(&self, path: &std::path::Path, symbols: &crate::parser::FileSymbols) -> bool {
-        let is_index = path.file_name()
+        let is_index = path
+            .file_name()
             .and_then(|n| n.to_str())
             .map(|s| s.starts_with("index."))
             .unwrap_or(false);
@@ -90,7 +92,8 @@ impl ScatteredModuleDetector {
                 let shared: HashSet<_> = e1.used_symbols.intersection(&e2.used_symbols).collect();
 
                 // If they share symbols or one uses the other
-                let one_uses_other = e1.used_symbols.contains(&e2.name) || e2.used_symbols.contains(&e1.name);
+                let one_uses_other =
+                    e1.used_symbols.contains(&e2.name) || e2.used_symbols.contains(&e1.name);
 
                 if !shared.is_empty() || one_uses_other {
                     graph.add_edge(export_nodes[i], export_nodes[j], ());

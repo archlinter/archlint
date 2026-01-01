@@ -1,9 +1,9 @@
 mod common;
 
-use common::analyze_fixture_with_config;
 use archlint::config::Config;
 use archlint::detectors::dead_code::DeadCodeDetector;
 use archlint::detectors::Detector;
+use common::analyze_fixture_with_config;
 use std::collections::HashSet;
 
 #[test]

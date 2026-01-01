@@ -1,8 +1,8 @@
 mod common;
 
-use common::analyze_fixture;
 use archlint::detectors::vendor_coupling::VendorCouplingDetector;
 use archlint::detectors::Detector;
+use common::analyze_fixture;
 
 #[test]
 fn test_axios_spread_detected() {
@@ -10,7 +10,10 @@ fn test_axios_spread_detected() {
     let detector = VendorCouplingDetector;
     let smells = detector.detect(&ctx);
 
-    assert!(!smells.is_empty(), "Expected to detect vendor coupling for axios");
+    assert!(
+        !smells.is_empty(),
+        "Expected to detect vendor coupling for axios"
+    );
     assert!(smells.iter().any(|s| {
         if let archlint::detectors::SmellType::VendorCoupling { package } = &s.smell_type {
             package == "axios"

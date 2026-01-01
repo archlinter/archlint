@@ -1,8 +1,8 @@
 mod common;
 
-use common::analyze_fixture;
 use archlint::detectors::long_params::LongParameterListDetector;
 use archlint::detectors::Detector;
+use common::analyze_fixture;
 
 #[test]
 fn test_many_params_detected() {
@@ -35,7 +35,10 @@ fn test_constructor_ignored_by_default() {
     let detector = LongParameterListDetector;
     let smells = detector.detect(&ctx);
 
-    assert!(smells.is_empty(), "Expected constructor to be ignored by default");
+    assert!(
+        smells.is_empty(),
+        "Expected constructor to be ignored by default"
+    );
 }
 
 #[test]
@@ -48,7 +51,10 @@ fn test_constructor_detected_when_not_ignored() {
     let detector = LongParameterListDetector;
     let smells = detector.detect(&ctx);
 
-    assert!(!smells.is_empty(), "Expected to detect long constructor when not ignored");
+    assert!(
+        !smells.is_empty(),
+        "Expected to detect long constructor when not ignored"
+    );
 }
 
 use common::analyze_fixture_with_config;

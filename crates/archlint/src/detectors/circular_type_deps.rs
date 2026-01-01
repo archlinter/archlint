@@ -43,12 +43,16 @@ impl Detector for CircularTypeDepsDetector {
         let mut path_to_node = HashMap::new();
 
         for (path, symbols) in &ctx.file_symbols {
-            let from_node = *path_to_node.entry(path.clone()).or_insert_with(|| type_graph.add_node(path.clone()));
+            let from_node = *path_to_node
+                .entry(path.clone())
+                .or_insert_with(|| type_graph.add_node(path.clone()));
 
             for import in &symbols.imports {
                 if import.is_type_only {
                     if let Some(target_path) = self.resolve_import(import, path, ctx) {
-                        let to_node = *path_to_node.entry(target_path.clone()).or_insert_with(|| type_graph.add_node(target_path));
+                        let to_node = *path_to_node
+                            .entry(target_path.clone())
+                            .or_insert_with(|| type_graph.add_node(target_path));
                         type_graph.add_edge(from_node, to_node, ());
                     }
                 }
@@ -75,7 +79,12 @@ impl Detector for CircularTypeDepsDetector {
 }
 
 impl CircularTypeDepsDetector {
-    fn resolve_import(&self, import: &crate::parser::ImportedSymbol, from: &std::path::Path, ctx: &AnalysisContext) -> Option<std::path::PathBuf> {
+    fn resolve_import(
+        &self,
+        import: &crate::parser::ImportedSymbol,
+        from: &std::path::Path,
+        ctx: &AnalysisContext,
+    ) -> Option<std::path::PathBuf> {
         let node_idx = ctx.graph.get_node(from)?;
         for target_node in ctx.graph.dependencies(node_idx) {
             if let Some(target_path) = ctx.graph.get_file_path(target_node) {
@@ -90,7 +99,11 @@ impl CircularTypeDepsDetector {
                 // Since we don't store resolved path in ImportedSymbol yet,
                 // we'll use a slightly better heuristic.
                 let target_str = target_path.to_string_lossy();
-                let source_parts: Vec<&str> = import.source.split('/').filter(|s| !s.is_empty() && *s != "." && *s != "..").collect();
+                let source_parts: Vec<&str> = import
+                    .source
+                    .split('/')
+                    .filter(|s| !s.is_empty() && *s != "." && *s != "..")
+                    .collect();
 
                 if source_parts.iter().all(|part| target_str.contains(part)) {
                     return Some(target_path.clone());

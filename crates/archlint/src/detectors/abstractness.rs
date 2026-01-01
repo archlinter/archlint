@@ -1,7 +1,7 @@
 use crate::config::Config;
 use crate::detectors::{ArchSmell, Detector, DetectorFactory, DetectorInfo};
-use crate::parser::SymbolKind;
 use crate::engine::AnalysisContext;
+use crate::parser::SymbolKind;
 use inventory;
 use petgraph::graph::NodeIndex;
 
@@ -16,7 +16,8 @@ impl DetectorFactory for AbstractnessViolationDetectorFactory {
         DetectorInfo {
             id: "abstractness_violation",
             name: "Abstractness vs Instability Violation Detector",
-            description: "Detects modules that are far from the Main Sequence (Zone of Pain or Uselessness)",
+            description:
+                "Detects modules that are far from the Main Sequence (Zone of Pain or Uselessness)",
             default_enabled: false,
             is_deep: false,
         }
@@ -71,7 +72,9 @@ impl AbstractnessViolationDetector {
             return 0.0;
         }
 
-        let abstract_count = symbols.exports.iter()
+        let abstract_count = symbols
+            .exports
+            .iter()
             .filter(|e| e.kind == SymbolKind::Interface || e.kind == SymbolKind::Type)
             .count();
 

@@ -1,7 +1,7 @@
-use std::collections::HashMap;
-use std::path::{Path, PathBuf};
 use crate::config::Config;
 use crate::{AnalysisError, Result};
+use std::collections::HashMap;
+use std::path::{Path, PathBuf};
 
 #[derive(Clone)]
 pub struct PathResolver {
@@ -70,7 +70,9 @@ impl PathResolver {
     fn try_resolve_with_extensions(&self, base: &Path) -> Result<Option<PathBuf>> {
         // Try exact path first
         if base.exists() && base.is_file() {
-            return Ok(Some(base.canonicalize().unwrap_or_else(|_| base.to_path_buf())));
+            return Ok(Some(
+                base.canonicalize().unwrap_or_else(|_| base.to_path_buf()),
+            ));
         }
 
         let extensions = ["ts", "tsx", "js", "jsx"];

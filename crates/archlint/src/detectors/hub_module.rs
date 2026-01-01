@@ -14,7 +14,8 @@ impl DetectorFactory for HubModuleDetectorFactory {
         DetectorInfo {
             id: "hub_module",
             name: "Hub Module Detector",
-            description: "Detects modules that act as highly connected hubs with low internal logic",
+            description:
+                "Detects modules that act as highly connected hubs with low internal logic",
             default_enabled: false,
             is_deep: false,
         }
@@ -55,7 +56,12 @@ impl Detector for HubModuleDetector {
                     }
 
                     if max_complexity <= thresholds.max_complexity {
-                        smells.push(ArchSmell::new_hub_module(path.clone(), fan_in, fan_out, max_complexity));
+                        smells.push(ArchSmell::new_hub_module(
+                            path.clone(),
+                            fan_in,
+                            fan_out,
+                            max_complexity,
+                        ));
                     }
                 }
             }

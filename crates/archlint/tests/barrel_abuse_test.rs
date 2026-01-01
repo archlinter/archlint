@@ -1,8 +1,8 @@
 mod common;
 
-use common::analyze_fixture;
 use archlint::detectors::barrel_abuse::BarrelFileAbuseDetector;
 use archlint::detectors::Detector;
+use common::analyze_fixture;
 
 #[test]
 fn test_barrel_too_many_exports() {
@@ -15,7 +15,10 @@ fn test_barrel_too_many_exports() {
 
     let smell = &smells[0];
     assert!(smell.files.iter().any(|f| f.ends_with("index.ts")));
-    assert!(smell.metrics.iter().any(|m| matches!(m, archlint::detectors::SmellMetric::DependantCount(15))));
+    assert!(smell
+        .metrics
+        .iter()
+        .any(|m| matches!(m, archlint::detectors::SmellMetric::DependantCount(15))));
 }
 
 #[test]

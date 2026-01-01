@@ -74,7 +74,10 @@ impl WatchUI {
         }
 
         // Show summary
-        println!("\nTotal: {} smells", style(report.smells.len().to_string()).bold());
+        println!(
+            "\nTotal: {} smells",
+            style(report.smells.len().to_string()).bold()
+        );
         println!("{}", style("═".repeat(60)).dim());
         println!("\n(Ctrl+C to stop)\n");
 

@@ -46,7 +46,11 @@ impl DetectorRegistry {
         infos
     }
 
-    pub fn get_enabled(&self, config: &Config, all_detectors: bool) -> (Vec<Box<dyn Detector>>, bool) {
+    pub fn get_enabled(
+        &self,
+        config: &Config,
+        all_detectors: bool,
+    ) -> (Vec<Box<dyn Detector>>, bool) {
         self.get_enabled_with_presets(config, &[], all_detectors)
     }
 

@@ -1,8 +1,7 @@
-use archlint::resolver::PathResolver;
 use archlint::config::Config;
+use archlint::resolver::PathResolver;
 use std::fs;
 use tempfile::TempDir;
-
 
 #[test]
 fn test_resolve_relative_import() {
@@ -51,10 +50,14 @@ fn test_resolve_alias() {
     fs::write(components.join("Button.tsx"), "").unwrap();
 
     let mut config = Config::default();
-    config.aliases.insert("@components/*".to_string(), "src/components/*".to_string());
+    config
+        .aliases
+        .insert("@components/*".to_string(), "src/components/*".to_string());
 
     let resolver = PathResolver::new(root, &config);
-    let result = resolver.resolve("@components/Button", &root.join("main.ts")).unwrap();
+    let result = resolver
+        .resolve("@components/Button", &root.join("main.ts"))
+        .unwrap();
 
     assert!(result.is_some());
     assert_eq!(result.unwrap().file_name().unwrap(), "Button.tsx");

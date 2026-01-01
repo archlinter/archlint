@@ -28,22 +28,59 @@ impl ExplainEngine {
             SmellType::TestLeakage { .. } => Self::explain_test_leakage(smell),
             SmellType::LayerViolation { .. } => Self::explain_layer_violation(smell),
             SmellType::SdpViolation => Self::explain_sdp_violation(smell),
-            SmellType::BarrelFileAbuse => Self::simple_explanation("Barrel File Abuse", "Excessive re-exports in index file"),
-            SmellType::VendorCoupling { .. } => Self::simple_explanation("Vendor Coupling", "Direct usage of third-party package in many files"),
-            SmellType::SideEffectImport => Self::simple_explanation("Side-Effect Import", "Import that executes code on load"),
-            SmellType::HubModule => Self::simple_explanation("Hub Module", "Module acting as a pass-through hub"),
-            SmellType::LowCohesion { .. } => Self::simple_explanation("Low Cohesion", "Class methods are not cohesive"),
-            SmellType::ScatteredModule { .. } => Self::simple_explanation("Scattered Module", "Module exports are not related"),
-            SmellType::HighCoupling { .. } => Self::simple_explanation("High Coupling", "Module has too many dependencies"),
-            SmellType::PackageCycle { .. } => Self::simple_explanation("Package Cycle", "Circular dependency between packages"),
-            SmellType::SharedMutableState { .. } => Self::simple_explanation("Shared Mutable State", "Exported state that can be mutated"),
-            SmellType::DeepNesting { .. } => Self::simple_explanation("Deep Nesting", "Code is too deeply nested"),
-            SmellType::LongParameterList { .. } => Self::simple_explanation("Long Parameter List", "Function has too many parameters"),
-            SmellType::PrimitiveObsession { .. } => Self::simple_explanation("Primitive Obsession", "Too many primitive parameters"),
-            SmellType::OrphanType { .. } => Self::simple_explanation("Orphan Type", "Type is defined but never used"),
-            SmellType::CircularTypeDependency => Self::simple_explanation("Circular Type Dependency", "Circular dependency between types"),
-            SmellType::AbstractnessViolation => Self::simple_explanation("Abstractness Violation", "Module distance from main sequence is too high"),
-            SmellType::ScatteredConfiguration { .. } => Self::simple_explanation("Scattered Configuration", "Configuration is spread across many files"),
+            SmellType::BarrelFileAbuse => {
+                Self::simple_explanation("Barrel File Abuse", "Excessive re-exports in index file")
+            }
+            SmellType::VendorCoupling { .. } => Self::simple_explanation(
+                "Vendor Coupling",
+                "Direct usage of third-party package in many files",
+            ),
+            SmellType::SideEffectImport => {
+                Self::simple_explanation("Side-Effect Import", "Import that executes code on load")
+            }
+            SmellType::HubModule => {
+                Self::simple_explanation("Hub Module", "Module acting as a pass-through hub")
+            }
+            SmellType::LowCohesion { .. } => {
+                Self::simple_explanation("Low Cohesion", "Class methods are not cohesive")
+            }
+            SmellType::ScatteredModule { .. } => {
+                Self::simple_explanation("Scattered Module", "Module exports are not related")
+            }
+            SmellType::HighCoupling { .. } => {
+                Self::simple_explanation("High Coupling", "Module has too many dependencies")
+            }
+            SmellType::PackageCycle { .. } => {
+                Self::simple_explanation("Package Cycle", "Circular dependency between packages")
+            }
+            SmellType::SharedMutableState { .. } => Self::simple_explanation(
+                "Shared Mutable State",
+                "Exported state that can be mutated",
+            ),
+            SmellType::DeepNesting { .. } => {
+                Self::simple_explanation("Deep Nesting", "Code is too deeply nested")
+            }
+            SmellType::LongParameterList { .. } => {
+                Self::simple_explanation("Long Parameter List", "Function has too many parameters")
+            }
+            SmellType::PrimitiveObsession { .. } => {
+                Self::simple_explanation("Primitive Obsession", "Too many primitive parameters")
+            }
+            SmellType::OrphanType { .. } => {
+                Self::simple_explanation("Orphan Type", "Type is defined but never used")
+            }
+            SmellType::CircularTypeDependency => Self::simple_explanation(
+                "Circular Type Dependency",
+                "Circular dependency between types",
+            ),
+            SmellType::AbstractnessViolation => Self::simple_explanation(
+                "Abstractness Violation",
+                "Module distance from main sequence is too high",
+            ),
+            SmellType::ScatteredConfiguration { .. } => Self::simple_explanation(
+                "Scattered Configuration",
+                "Configuration is spread across many files",
+            ),
         }
     }
 
@@ -290,7 +327,9 @@ impl ExplainEngine {
         let internal_refs = smell.fan_out().unwrap_or(0);
 
         let envied_module = match &smell.smell_type {
-            SmellType::FeatureEnvy { most_envied_module } => most_envied_module.to_string_lossy().to_string(),
+            SmellType::FeatureEnvy { most_envied_module } => {
+                most_envied_module.to_string_lossy().to_string()
+            }
             _ => "unknown".to_string(),
         };
 
@@ -319,7 +358,12 @@ impl ExplainEngine {
     fn explain_shotgun_surgery(smell: &ArchSmell) -> Explanation {
         let avg_co_changes = smell.avg_co_changes().unwrap_or(0.0);
         let dependant_count = smell.dependant_count().unwrap_or(0);
-        let primary_file = smell.files.first().and_then(|f| f.file_name()).and_then(|n| n.to_str()).unwrap_or("this file");
+        let primary_file = smell
+            .files
+            .first()
+            .and_then(|f| f.file_name())
+            .and_then(|n| n.to_str())
+            .unwrap_or("this file");
 
         Explanation {
             problem: format!(

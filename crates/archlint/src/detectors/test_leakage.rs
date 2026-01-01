@@ -1,8 +1,8 @@
+use crate::config::Config;
 use crate::detectors::{ArchSmell, Detector, DetectorFactory, DetectorInfo};
 use crate::engine::AnalysisContext;
-use crate::config::Config;
-use std::path::Path;
 use inventory;
+use std::path::Path;
 
 pub fn init() {}
 
@@ -15,7 +15,8 @@ impl DetectorFactory for TestLeakageDetectorFactory {
         DetectorInfo {
             id: "test_leakage",
             name: "Test to Production Leakage Detector",
-            description: "Detects when production code imports test files, mocks, or test utilities",
+            description:
+                "Detects when production code imports test files, mocks, or test utilities",
             default_enabled: false,
             is_deep: false,
         }
@@ -54,7 +55,10 @@ impl Detector for TestLeakageDetector {
                         if let Some(to_path) = ctx.graph.get_file_path(to_node) {
                             // If the target file IS a test file
                             if self.is_test_file(to_path, test_patterns) {
-                                smells.push(ArchSmell::new_test_leakage(from_path.clone(), to_path.clone()));
+                                smells.push(ArchSmell::new_test_leakage(
+                                    from_path.clone(),
+                                    to_path.clone(),
+                                ));
                             }
                         }
                     }
@@ -91,24 +95,38 @@ impl TestLeakageDetector {
         }
 
         // Default logic if no patterns provided
-        if file_name.ends_with(".test.ts") || file_name.ends_with(".test.js") ||
-           file_name.ends_with(".spec.ts") || file_name.ends_with(".spec.js") ||
-           file_name.ends_with(".mock.ts") || file_name.ends_with(".mock.js") {
+        if file_name.ends_with(".test.ts")
+            || file_name.ends_with(".test.js")
+            || file_name.ends_with(".spec.ts")
+            || file_name.ends_with(".spec.js")
+            || file_name.ends_with(".mock.ts")
+            || file_name.ends_with(".mock.js")
+        {
             return true;
         }
 
-        if path_str.contains("/__tests__/") || path_str.contains("/__mocks__/") ||
-           path_str.contains("/test/") || path_str.contains("/tests/") ||
-           path_str.contains("/__fixtures__/") ||
-           path_str.ends_with("/__tests__") || path_str.ends_with("/__mocks__") ||
-           path_str.ends_with("/test") || path_str.ends_with("/tests") {
+        if path_str.contains("/__tests__/")
+            || path_str.contains("/__mocks__/")
+            || path_str.contains("/test/")
+            || path_str.contains("/tests/")
+            || path_str.contains("/__fixtures__/")
+            || path_str.ends_with("/__tests__")
+            || path_str.ends_with("/__mocks__")
+            || path_str.ends_with("/test")
+            || path_str.ends_with("/tests")
+        {
             return true;
         }
 
         // Also check if path parts contain these directories
         for component in path.components() {
             if let Some(s) = component.as_os_str().to_str() {
-                if s == "__tests__" || s == "__mocks__" || s == "test" || s == "tests" || s == "__fixtures__" {
+                if s == "__tests__"
+                    || s == "__mocks__"
+                    || s == "test"
+                    || s == "tests"
+                    || s == "__fixtures__"
+                {
                     return true;
                 }
             }

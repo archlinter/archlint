@@ -1,7 +1,7 @@
 use crate::config::Config;
 use crate::detectors::{ArchSmell, Detector, DetectorFactory, DetectorInfo};
-use crate::parser::SymbolKind;
 use crate::engine::AnalysisContext;
+use crate::parser::SymbolKind;
 use inventory;
 use std::collections::HashSet;
 

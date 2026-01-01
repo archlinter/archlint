@@ -12,10 +12,7 @@ pub struct SelectedDetectors {
 }
 
 impl DetectorSelector {
-    pub fn select(
-        user_config: &DetectorConfig,
-        presets: &[FrameworkPreset],
-    ) -> SelectedDetectors {
+    pub fn select(user_config: &DetectorConfig, presets: &[FrameworkPreset]) -> SelectedDetectors {
         let mut result = SelectedDetectors::default();
 
         // 1. User explicit list takes absolute priority

@@ -74,11 +74,18 @@ impl DependencyGraph {
         node
     }
 
-    pub fn add_dependency(&mut self, from: NodeIndex, to: NodeIndex, edge_data: EdgeData) -> EdgeIndex {
+    pub fn add_dependency(
+        &mut self,
+        from: NodeIndex,
+        to: NodeIndex,
+        edge_data: EdgeData,
+    ) -> EdgeIndex {
         if let Some(edge_idx) = self.graph.find_edge(from, to) {
             // Update existing edge
             if let Some(edge_weight) = self.graph.edge_weight_mut(edge_idx) {
-                edge_weight.imported_symbols.extend(edge_data.imported_symbols);
+                edge_weight
+                    .imported_symbols
+                    .extend(edge_data.imported_symbols);
             }
             edge_idx
         } else {
@@ -125,7 +132,9 @@ impl DependencyGraph {
     }
 
     pub fn edges(&self) -> impl Iterator<Item = (NodeIndex, NodeIndex)> + '_ {
-        self.graph.edge_indices().map(|e| self.graph.edge_endpoints(e).unwrap())
+        self.graph
+            .edge_indices()
+            .map(|e| self.graph.edge_endpoints(e).unwrap())
     }
 
     pub fn graph(&self) -> &DiGraph<FileNode, EdgeData> {
@@ -193,7 +202,12 @@ mod tests {
 
     #[test]
     fn test_edge_data_variants() {
-        let range = CodeRange { start_line: 1, start_column: 1, end_line: 1, end_column: 10 };
+        let range = CodeRange {
+            start_line: 1,
+            start_column: 1,
+            end_line: 1,
+            end_column: 10,
+        };
 
         let d1 = EdgeData::new(1);
         assert_eq!(d1.import_line, 1);
