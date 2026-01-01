@@ -34,7 +34,10 @@ if (fs.existsSync(packagesDir)) {
       if (pkgJson.optionalDependencies) {
         for (const dep in pkgJson.optionalDependencies) {
           if (dep.startsWith('@archlinter/')) {
-            pkgJson.optionalDependencies[dep] = version;
+            // Keep workspace:* or other workspace: protocols as is
+            if (!pkgJson.optionalDependencies[dep].startsWith('workspace:')) {
+              pkgJson.optionalDependencies[dep] = version;
+            }
           }
         }
       }
