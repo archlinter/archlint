@@ -1,259 +1,45 @@
 name: Release
 
 on:
-  release:
-    types: [published]
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Dry run (no publish)"
+        type: boolean
+        default: false
 
 permissions:
   contents: write
-  id-token: write
 
 jobs:
-  update-versions:
-    name: Update Versions
+  release:
+    name: Semantic Release
     runs-on: ubuntu-latest
-    outputs:
-      version: ${{ steps.version.outputs.VERSION }}
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
           token: ${{ secrets.GH_PAT }}
 
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v3
+      - uses: pnpm/action-setup@v3
         with:
           version: 9
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4
         with:
-          node-version: '20'
-          cache: 'pnpm'
+          node-version: "20"
+          cache: "pnpm"
 
       - name: Install dependencies
         run: pnpm install
 
-      - name: Get version from tag
-        id: version
-        run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
-
-      - name: Update version in all files
-        run: node scripts/sync-versions.cjs ${{ steps.version.outputs.VERSION }}
-
-      - name: Update CHANGELOG.md
-        run: |
-          VERSION="${{ steps.version.outputs.VERSION }}"
-          DATE=$(date +%Y-%m-%d)
-          RELEASE_BODY=$(cat <<'EOF'
-          ${{ github.event.release.body }}
-          EOF
-          )
-
-          # Create new changelog entry
-          NEW_ENTRY="## [$VERSION] - $DATE
-
-          $RELEASE_BODY
-          "
-
-          # Insert after the header
-          if [ -f CHANGELOG.md ]; then
-            # Find the first ## and insert before it
-            if grep -q "^## \[" CHANGELOG.md; then
-              sed -i "0,/^## \[/s//## [$VERSION] - $DATE\n\n$RELEASE_BODY\n\n## [/" CHANGELOG.md
-            else
-              echo -e "# Changelog\n\n$NEW_ENTRY" > CHANGELOG.md
-            fi
-          else
-            echo -e "# Changelog\n\n$NEW_ENTRY" > CHANGELOG.md
-          fi
-
-      - name: Commit version updates
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add -A
-          git commit -m "chore(release): ${{ steps.version.outputs.VERSION }} [skip ci]" || echo "No changes to commit"
-          git push origin HEAD:main
-
-  verify:
-    name: Verify
-    runs-on: ubuntu-latest
-    needs: [update-versions]
-    steps:
-      - uses: actions/checkout@v4
+      - name: Semantic Release
+        uses: cycjimmy/semantic-release-action@v4
         with:
-          ref: main
-
-      - name: Setup Rust
-        uses: dtolnay/rust-toolchain@stable
-        with:
-          components: rustfmt, clippy
-
-      - name: Cache cargo
-        uses: Swatinem/rust-cache@v2
-
-      - name: Check formatting
-        run: cargo fmt --all -- --check
-
-      - name: Clippy
-        run: cargo clippy --all-targets --all-features -- -D warnings
-
-      - name: Run tests
-        run: cargo test --workspace --all-features
-
-  build-cli:
-    name: Build CLI - ${{ matrix.target }}
-    runs-on: ${{ matrix.os }}
-    needs: [verify]
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - os: macos-latest
-            target: aarch64-apple-darwin
-            artifact: cli-darwin-arm64
-          - os: macos-latest
-            target: x86_64-apple-darwin
-            artifact: cli-darwin-x64
-          - os: ubuntu-latest
-            target: x86_64-unknown-linux-gnu
-            artifact: cli-linux-x64
-          - os: ubuntu-latest
-            target: x86_64-unknown-linux-musl
-            artifact: cli-linux-x64-musl
-          - os: ubuntu-latest
-            target: aarch64-unknown-linux-gnu
-            artifact: cli-linux-arm64
-          - os: windows-latest
-            target: x86_64-pc-windows-msvc
-            artifact: cli-win32-x64
-
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: main
-
-      - name: Setup Rust
-        uses: dtolnay/rust-toolchain@stable
-        with:
-          targets: ${{ matrix.target }}
-
-      - name: Install cross-compilation tools
-        if: matrix.target == 'aarch64-unknown-linux-gnu'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y gcc-aarch64-linux-gnu
-
-      - name: Install musl tools
-        if: matrix.target == 'x86_64-unknown-linux-musl'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y musl-tools
-
-      - name: Build
-        run: cargo build --release --target ${{ matrix.target }} -p archlint
+          dry_run: ${{ github.event.inputs.dry_run }}
+          extra_plugins: |
+            @semantic-release/changelog
+            @semantic-release/git
+            @semantic-release/exec
         env:
-          CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER: aarch64-linux-gnu-gcc
-
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: ${{ matrix.artifact }}
-          path: |
-            target/${{ matrix.target }}/release/archlint
-            target/${{ matrix.target }}/release/archlint.exe
-
-  publish:
-    name: Publish to npm
-    runs-on: ubuntu-latest
-    needs: [build-cli, update-versions]
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: main
-
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v3
-        with:
-          version: 9
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'pnpm'
-          registry-url: 'https://registry.npmjs.org'
-
-      - name: Install dependencies
-        run: pnpm install
-
-      - name: Download all artifacts
-        uses: actions/download-artifact@v4
-        with:
-          path: artifacts
-
-      - name: Replace workspace protocol with versions
-        run: node scripts/sync-versions.cjs ${{ needs.update-versions.outputs.version }} --publish
-
-      - name: Prepare CLI packages
-        run: |
-          for pkg in darwin-arm64 darwin-x64 linux-x64 linux-x64-musl linux-arm64 win32-x64; do
-            mkdir -p packages/cli-${pkg}/bin
-            if [ -f "artifacts/cli-${pkg}/archlint" ]; then
-              cp artifacts/cli-${pkg}/archlint packages/cli-${pkg}/bin/
-              chmod +x packages/cli-${pkg}/bin/archlint
-            elif [ -f "artifacts/cli-${pkg}/archlint.exe" ]; then
-              cp artifacts/cli-${pkg}/archlint.exe packages/cli-${pkg}/bin/
-            fi
-          done
-
-      - name: Publish platform CLI packages
-        run: |
-          for pkg in darwin-arm64 darwin-x64 linux-x64 linux-x64-musl linux-arm64 win32-x64; do
-            cd packages/cli-${pkg}
-            npm publish --access public --provenance
-            cd ../..
-          done
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-
-      - name: Publish @archlinter/cli
-        run: |
-          cd packages/cli
-          npm publish --access public --provenance
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-
-  attach-binaries:
-    name: Attach Binary Assets to Release
-    runs-on: ubuntu-latest
-    needs: [build-cli]
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Download all CLI artifacts
-        uses: actions/download-artifact@v4
-        with:
-          path: artifacts
-          pattern: cli-*
-
-      - name: Prepare release assets
-        run: |
-          mkdir -p release
-          for pkg in darwin-arm64 darwin-x64 linux-x64 linux-x64-musl linux-arm64; do
-            if [ -f "artifacts/cli-${pkg}/archlint" ]; then
-              tar -czvf "release/archlint-${pkg}.tar.gz" -C "artifacts/cli-${pkg}" archlint
-            fi
-          done
-          if [ -f "artifacts/cli-win32-x64/archlint.exe" ]; then
-            cd artifacts/cli-win32-x64
-            zip ../../release/archlint-win32-x64.zip archlint.exe
-            cd ../..
-          fi
-
-      - name: Upload binaries to release
-        uses: softprops/action-gh-release@v1
-        with:
-          tag_name: ${{ github.event.release.tag_name }}
-          files: release/*
+          GITHUB_TOKEN: ${{ secrets.GH_PAT }}
