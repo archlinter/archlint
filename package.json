@@ -7,7 +7,7 @@
   "author": "fixcik",
   "repository": {
     "type": "git",
-    "url": "https://github.com/archlinter/archlint"
+    "url": "git+https://github.com/archlinter/archlint.git"
   },
   "type": "module",
   "packageManager": "pnpm@9.15.0",
