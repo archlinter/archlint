@@ -1,3 +1,11 @@
+# [0.4.0](https://github.com/archlinter/archlint/compare/v0.3.1...v0.4.0) (2026-01-02)
+
+### Features
+
+- **cli:** add shell completions command ([05198d5](https://github.com/archlinter/archlint/commit/05198d535a99c578d7bfd5bcdeef93665ec6b9ce))
+- **core:** add platform packages and update CI for napi modules ([9cbc22e](https://github.com/archlinter/archlint/commit/9cbc22edf6613be80b3a0c29f49eaaac404b7ccd))
+- **core:** implement napi-rs bindings and initial tests ([1ace4de](https://github.com/archlinter/archlint/commit/1ace4dee4c3b3dfb3a0d64e1b21cd1496df8096d))
+
 # [0.3.0](https://github.com/archlinter/archlint/compare/v0.2.0...v0.3.0) (2026-01-02)
 
 ### Features
