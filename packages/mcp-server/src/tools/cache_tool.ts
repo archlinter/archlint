@@ -1,4 +1,4 @@
-import { scan } from '@archlinter/core';
+import { clearCache } from '@archlinter/core';
 import { ClearCacheInput } from '../schemas.js';
 import { mcpCache } from '../cache.js';
 
@@ -10,13 +10,13 @@ export async function archlintClearCache(
   if (path) {
     mcpCache.delete(path);
     if (level === 'full') {
-      await scan(path, { cache: false });
+      clearCache(path);
     }
   } else {
     if (level === 'full') {
       const paths = mcpCache.getAllPaths();
       for (const p of paths) {
-        await scan(p, { cache: false });
+        clearCache(p);
       }
     }
     mcpCache.clear();

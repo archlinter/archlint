@@ -67,7 +67,9 @@ export function formatSmellsMd(
 export function formatStatsMd(result: JsScanResult): string {
   let md = `## archlint Statistics\n\n`;
   md += `**Grade:** ${result.grade.level} (${result.grade.score}/100)\n`;
-  md += `**Density:** ${result.grade.density.toFixed(4)} smells per file\n\n`;
+  const density =
+    typeof result.grade.density === 'number' ? result.grade.density.toFixed(4) : '0.0000';
+  md += `**Density:** ${density} smells per file\n\n`;
 
   md += `| Metric | Value |\n`;
   md += `|--------|-------|\n`;

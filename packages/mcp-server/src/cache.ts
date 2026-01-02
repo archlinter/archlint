@@ -8,26 +8,44 @@ export interface CacheKeyOptions {
 
 class McpCache {
   private cache = new Map<string, JsScanResult>();
+  private readonly MAX_SIZE = 100;
+  private readonly DELIMITER = '\0';
 
   private generateKey(path: string, options?: CacheKeyOptions): string {
-    if (!options) return path;
-    const { detectors = [], excludeDetectors = [], minSeverity = '' } = options;
+    const { detectors = [], excludeDetectors = [], minSeverity = '' } = options || {};
     const optsKey = `${detectors.sort().join(',')}|${excludeDetectors.sort().join(',')}|${minSeverity}`;
-    return `${path}:${optsKey}`;
+    return `${path}${this.DELIMITER}${optsKey}`;
   }
 
   get(path: string, options?: CacheKeyOptions): JsScanResult | undefined {
-    return this.cache.get(this.generateKey(path, options));
+    const key = this.generateKey(path, options);
+    const result = this.cache.get(key);
+    if (result) {
+      // Refresh order for LRU
+      this.cache.delete(key);
+      this.cache.set(key, result);
+    }
+    return result;
   }
 
   set(path: string, result: JsScanResult, options?: CacheKeyOptions): void {
-    this.cache.set(this.generateKey(path, options), result);
+    const key = this.generateKey(path, options);
+    if (this.cache.has(key)) {
+      this.cache.delete(key);
+    } else if (this.cache.size >= this.MAX_SIZE) {
+      // Evict oldest (first inserted)
+      const oldestKey = this.cache.keys().next().value;
+      if (oldestKey !== undefined) {
+        this.cache.delete(oldestKey);
+      }
+    }
+    this.cache.set(key, result);
   }
 
   delete(path: string): void {
     // Delete all keys starting with this path
     for (const key of this.cache.keys()) {
-      if (key === path || key.startsWith(`${path}:`)) {
+      if (key === path || key.startsWith(`${path}${this.DELIMITER}`)) {
         this.cache.delete(key);
       }
     }
@@ -36,7 +54,7 @@ class McpCache {
   getAllPaths(): string[] {
     const paths = new Set<string>();
     for (const key of this.cache.keys()) {
-      paths.add(key.split(':')[0]);
+      paths.add(key.split(this.DELIMITER)[0]);
     }
     return Array.from(paths);
   }
