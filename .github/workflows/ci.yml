@@ -38,8 +38,8 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
-          cache: 'pnpm'
+          node-version: "20"
+          cache: "pnpm"
 
       - name: Install dependencies
         run: pnpm install
@@ -83,13 +83,13 @@ jobs:
             artifact: core-darwin-x64
           - os: ubuntu-latest
             target: x86_64-unknown-linux-gnu
-            artifact: core-linux-x64-gnu
+            artifact: core-linux-x64
           - os: ubuntu-latest
             target: x86_64-unknown-linux-musl
             artifact: core-linux-x64-musl
           - os: ubuntu-latest
             target: aarch64-unknown-linux-gnu
-            artifact: core-linux-arm64-gnu
+            artifact: core-linux-arm64
           - os: windows-latest
             target: x86_64-pc-windows-msvc
             artifact: core-win32-x64
@@ -114,8 +114,8 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
-          cache: 'pnpm'
+          node-version: "20"
+          cache: "pnpm"
 
       - name: Install dependencies
         run: pnpm install
@@ -219,7 +219,7 @@ jobs:
       matrix:
         include:
           - os: ubuntu-latest
-            artifact: core-linux-x64-gnu
+            artifact: core-linux-x64
           - os: macos-latest
             artifact: core-darwin-arm64
           - os: windows-latest
@@ -235,8 +235,8 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
-          cache: 'pnpm'
+          node-version: "20"
+          cache: "pnpm"
 
       - name: Install dependencies
         run: pnpm install

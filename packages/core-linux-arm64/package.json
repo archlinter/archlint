@@ -1,5 +1,5 @@
 {
-  "name": "@archlinter/core-linux-arm64-gnu",
+  "name": "@archlinter/core-linux-arm64",
   "version": "0.3.0",
   "description": "archlint native binding for Linux arm64 (glibc)",
   "license": "MIT",

@@ -24,9 +24,9 @@
   "optionalDependencies": {
     "@archlinter/core-darwin-arm64": "workspace:*",
     "@archlinter/core-darwin-x64": "workspace:*",
-    "@archlinter/core-linux-x64-gnu": "workspace:*",
+    "@archlinter/core-linux-x64": "workspace:*",
     "@archlinter/core-linux-x64-musl": "workspace:*",
-    "@archlinter/core-linux-arm64-gnu": "workspace:*",
+    "@archlinter/core-linux-arm64": "workspace:*",
     "@archlinter/core-win32-x64": "workspace:*"
   },
   "engines": {
