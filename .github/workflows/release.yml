@@ -1,32 +1,37 @@
 name: Release
 
 on:
-  release:
-    types: [published]
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Dry run (no publish)'
+        type: boolean
+        default: false
 
 permissions:
   contents: write
   id-token: write
 
 jobs:
-  update-versions:
-    name: Update Versions
+  release:
+    name: Semantic Release
     runs-on: ubuntu-latest
     outputs:
-      version: ${{ steps.version.outputs.VERSION }}
+      new_release_published: ${{ steps.semantic.outputs.new_release_published }}
+      new_release_version: ${{ steps.semantic.outputs.new_release_version }}
+      new_release_git_tag: ${{ steps.semantic.outputs.new_release_git_tag }}
+      commit_sha: ${{ steps.get_sha.outputs.sha }}
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
           token: ${{ secrets.GH_PAT }}
 
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v3
+      - uses: pnpm/action-setup@v3
         with:
           version: 9
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: 'pnpm'
@@ -34,82 +39,76 @@ jobs:
       - name: Install dependencies
         run: pnpm install
 
-      - name: Get version from tag
-        id: version
-        run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+      - name: Semantic Release
+        id: semantic
+        uses: cycjimmy/semantic-release-action@v4
+        with:
+          dry_run: ${{ github.event.inputs.dry_run }}
+          extra_plugins: |
+            @semantic-release/changelog
+            @semantic-release/git
+            @semantic-release/exec
+        env:
+          GITHUB_TOKEN: ${{ secrets.GH_PAT }}
 
-      - name: Update version in all files
-        run: node scripts/sync-versions.cjs ${{ steps.version.outputs.VERSION }}
+      - name: Get Commit SHA
+        id: get_sha
+        if: steps.semantic.outputs.new_release_published == 'true'
+        run: echo "sha=$(git rev-parse HEAD)" >> $GITHUB_OUTPUT
 
-      - name: Update CHANGELOG.md
-        run: |
-          VERSION="${{ steps.version.outputs.VERSION }}"
-          DATE=$(date +%Y-%m-%d)
-          RELEASE_BODY=$(cat <<'EOF'
-          ${{ github.event.release.body }}
-          EOF
-          )
-
-          # Create new changelog entry
-          NEW_ENTRY="## [$VERSION] - $DATE
-
-          $RELEASE_BODY
-          "
-
-          # Insert after the header
-          if [ -f CHANGELOG.md ]; then
-            # Find the first ## and insert before it
-            if grep -q "^## \[" CHANGELOG.md; then
-              sed -i "0,/^## \[/s//## [$VERSION] - $DATE\n\n$RELEASE_BODY\n\n## [/" CHANGELOG.md
-            else
-              echo -e "# Changelog\n\n$NEW_ENTRY" > CHANGELOG.md
-            fi
-          else
-            echo -e "# Changelog\n\n$NEW_ENTRY" > CHANGELOG.md
-          fi
-
-      - name: Commit version updates
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add -A
-          git commit -m "chore(release): ${{ steps.version.outputs.VERSION }} [skip ci]" || echo "No changes to commit"
-          git push origin HEAD:main
-
-  verify:
-    name: Verify
+  wait-ci:
+    name: Wait for CI
+    needs: release
+    if: needs.release.outputs.new_release_published == 'true' && github.event.inputs.dry_run != 'true'
     runs-on: ubuntu-latest
-    needs: [update-versions]
     steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: main
+      - name: Wait for CI to complete
+        run: |
+          echo "⏳ Waiting for CI to build artifacts for ${{ needs.release.outputs.commit_sha }}..."
 
-      - name: Setup Rust
-        uses: dtolnay/rust-toolchain@stable
-        with:
-          components: rustfmt, clippy
+          TIMEOUT=1800  # 30 minutes
+          ELAPSED=0
+          INTERVAL=30
 
-      - name: Cache cargo
-        uses: Swatinem/rust-cache@v2
+          while [ $ELAPSED -lt $TIMEOUT ]; do
+            # Check CI workflow status
+            CONCLUSION=$(gh api \
+              "/repos/${{ github.repository }}/actions/workflows/ci.yml/runs?head_sha=${{ needs.release.outputs.commit_sha }}&per_page=1" \
+              --jq '.workflow_runs[0].conclusion // "pending"')
+            
+            STATUS=$(gh api \
+              "/repos/${{ github.repository }}/actions/workflows/ci.yml/runs?head_sha=${{ needs.release.outputs.commit_sha }}&per_page=1" \
+              --jq '.workflow_runs[0].status // "queued"')
+            
+            echo "CI status: $STATUS, conclusion: $CONCLUSION"
+            
+            if [ "$CONCLUSION" == "success" ]; then
+              echo "✅ CI completed successfully!"
+              exit 0
+            elif [ "$CONCLUSION" == "failure" ] || [ "$CONCLUSION" == "cancelled" ]; then
+              echo "❌ CI failed or was cancelled"
+              exit 1
+            fi
+            
+            echo "⏳ CI still running... waiting ${INTERVAL}s (${ELAPSED}s elapsed)"
+            sleep $INTERVAL
+            ELAPSED=$((ELAPSED + INTERVAL))
+          done
 
-      - name: Check formatting
-        run: cargo fmt --all -- --check
-
-      - name: Clippy
-        run: cargo clippy --all-targets --all-features -- -D warnings
-
-      - name: Run tests
-        run: cargo test --workspace --all-features
+          echo "❌ Timeout waiting for CI"
+          exit 1
+        env:
+          GH_TOKEN: ${{ github.token }}
 
   publish:
     name: Publish to npm
+    needs: [release, wait-ci]
+    if: needs.release.outputs.new_release_published == 'true' && github.event.inputs.dry_run != 'true'
     runs-on: ubuntu-latest
-    needs: [update-versions, verify]
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: main
+          ref: ${{ needs.release.outputs.commit_sha }}
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v3
@@ -130,11 +129,11 @@ jobs:
         uses: dawidd6/action-download-artifact@v6
         with:
           workflow: ci.yml
-          commit: ${{ github.event.release.target_commitish }}
+          commit: ${{ needs.release.outputs.commit_sha }}
           path: artifacts
 
       - name: Replace workspace protocol with versions
-        run: node scripts/sync-versions.cjs ${{ needs.update-versions.outputs.version }} --publish
+        run: node scripts/sync-versions.cjs ${{ needs.release.outputs.new_release_version }} --publish
 
       - name: Prepare core packages
         run: |
@@ -192,7 +191,8 @@ jobs:
   attach-binaries:
     name: Attach Binary Assets to Release
     runs-on: ubuntu-latest
-    needs: [publish]
+    needs: [release, publish]
+    if: needs.release.outputs.new_release_published == 'true' && github.event.inputs.dry_run != 'true'
     steps:
       - uses: actions/checkout@v4
 
@@ -200,7 +200,7 @@ jobs:
         uses: dawidd6/action-download-artifact@v6
         with:
           workflow: ci.yml
-          commit: ${{ github.event.release.target_commitish }}
+          commit: ${{ needs.release.outputs.commit_sha }}
           path: artifacts
           name: cli-.*
           name_is_regexp: true
@@ -222,5 +222,5 @@ jobs:
       - name: Upload binaries to release
         uses: softprops/action-gh-release@v1
         with:
-          tag_name: ${{ github.event.release.tag_name }}
+          tag_name: ${{ needs.release.outputs.new_release_git_tag }}
           files: release/*
