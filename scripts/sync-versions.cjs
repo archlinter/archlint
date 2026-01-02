@@ -1,3 +1,4 @@
+/* eslint-disable */
 const fs = require('fs');
 const path = require('path');
 
@@ -19,6 +20,15 @@ if (fs.existsSync(cargoPath)) {
   );
   fs.writeFileSync(cargoPath, cargoContent);
   console.log(`✓ Updated Cargo.toml to ${version}`);
+}
+
+// Update root package.json
+const rootPackageJsonPath = path.join(__dirname, '..', 'package.json');
+if (fs.existsSync(rootPackageJsonPath)) {
+  const rootPackageJson = JSON.parse(fs.readFileSync(rootPackageJsonPath, 'utf8'));
+  rootPackageJson.version = version;
+  fs.writeFileSync(rootPackageJsonPath, JSON.stringify(rootPackageJson, null, 2) + '\n');
+  console.log(`✓ Updated package.json to ${version}`);
 }
 
 // Update all package.json files
