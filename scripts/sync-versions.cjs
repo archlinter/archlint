@@ -20,6 +20,19 @@ if (fs.existsSync(cargoPath)) {
   );
   fs.writeFileSync(cargoPath, cargoContent);
   console.log(`✓ Updated Cargo.toml to ${version}`);
+
+  // Update Cargo.lock (only workspace packages, without updating external dependencies)
+  const { execSync } = require('child_process');
+  try {
+    console.log('Updating Cargo.lock...');
+    execSync('cargo metadata --format-version 1 > /dev/null 2>&1', {
+      cwd: path.join(__dirname, '..'),
+      shell: true
+    });
+    console.log(`✓ Updated Cargo.lock`);
+  } catch (error) {
+    console.error('⚠ Failed to update Cargo.lock:', error.message);
+  }
 }
 
 // Update root package.json
@@ -72,6 +85,20 @@ if (fs.existsSync(packagesDir)) {
 
       fs.writeFileSync(pkgJsonPath, JSON.stringify(pkgJson, null, 2) + '\n');
       console.log(`✓ Updated packages/${pkg}/package.json to ${version}`);
+    }
+  }
+
+  // Update pnpm-lock.yaml after changing package.json files
+  if (!forPublish) {
+    const { execSync } = require('child_process');
+    try {
+      execSync('pnpm install --lockfile-only', {
+        cwd: path.join(__dirname, '..'),
+        stdio: 'inherit'
+      });
+      console.log(`✓ Updated pnpm-lock.yaml`);
+    } catch (error) {
+      console.error('⚠ Failed to update pnpm-lock.yaml:', error.message);
     }
   }
 }

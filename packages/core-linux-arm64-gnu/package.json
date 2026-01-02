@@ -3,6 +3,11 @@
   "version": "0.4.0",
   "description": "archlint native binding for Linux arm64 (glibc)",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/archlinter/archlint.git",
+    "directory": "packages/core-linux-arm64-gnu"
+  },
   "main": "archlint.linux-arm64-gnu.node",
   "files": [
     "archlint.linux-arm64-gnu.node"
