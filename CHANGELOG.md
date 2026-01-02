@@ -1,3 +1,9 @@
+## [0.4.1](https://github.com/archlinter/archlint/compare/v0.4.0...v0.4.1) (2026-01-02)
+
+### Bug Fixes
+
+- add repository field to core package for npm provenance ([a9b5d66](https://github.com/archlinter/archlint/commit/a9b5d6660a93180fa2a446e884505862f258b273))
+
 ## [0.4.0](https://github.com/archlinter/archlint/compare/v0.3.1...v0.4.0) (2026-01-02)
 
 ### Features
