@@ -13,7 +13,7 @@ class McpCache {
 
   private generateKey(path: string, options?: CacheKeyOptions): string {
     const { detectors = [], excludeDetectors = [], minSeverity = '' } = options || {};
-    const optsKey = `${detectors.sort().join(',')}|${excludeDetectors.sort().join(',')}|${minSeverity}`;
+    const optsKey = `${[...detectors].sort().join(',')}|${[...excludeDetectors].sort().join(',')}|${minSeverity}`;
     return `${path}${this.DELIMITER}${optsKey}`;
   }
 
