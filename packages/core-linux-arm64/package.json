@@ -3,9 +3,9 @@
   "version": "0.3.0",
   "description": "archlint native binding for Linux arm64 (glibc)",
   "license": "MIT",
-  "main": "archlint.linux-arm64-gnu.node",
+  "main": "archlint.linux-arm64.node",
   "files": [
-    "archlint.linux-arm64-gnu.node"
+    "archlint.linux-arm64.node"
   ],
   "os": [
     "linux"
