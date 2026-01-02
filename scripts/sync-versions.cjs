@@ -2,6 +2,8 @@ const fs = require('fs');
 const path = require('path');
 
 const version = process.argv[2];
+const forPublish = process.argv[3] === '--publish';
+
 if (!version) {
   console.error('Version required');
   process.exit(1);
@@ -34,8 +36,13 @@ if (fs.existsSync(packagesDir)) {
       if (pkgJson.optionalDependencies) {
         for (const dep in pkgJson.optionalDependencies) {
           if (dep.startsWith('@archlinter/')) {
-            // Replace workspace: protocol with actual version
-            pkgJson.optionalDependencies[dep] = version;
+            // For publish: replace workspace: with actual version
+            // For development: keep workspace:*
+            if (forPublish) {
+              pkgJson.optionalDependencies[dep] = version;
+            } else if (!pkgJson.optionalDependencies[dep].startsWith('workspace:')) {
+              pkgJson.optionalDependencies[dep] = 'workspace:*';
+            }
           }
         }
       }
