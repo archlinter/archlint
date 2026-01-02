@@ -73,6 +73,7 @@ jobs:
   build-napi:
     name: Build napi - ${{ matrix.target }}
     runs-on: ${{ matrix.os }}
+    needs: [lint, test]
     strategy:
       fail-fast: false
       matrix:
@@ -138,6 +139,7 @@ jobs:
   build-cli:
     name: Build CLI - ${{ matrix.target }}
     runs-on: ${{ matrix.os }}
+    needs: [lint, test]
     strategy:
       fail-fast: false
       matrix:
