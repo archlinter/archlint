@@ -70,6 +70,52 @@ jobs:
       - name: Run tests
         run: cargo test --workspace --all-features
 
+  build-napi:
+    name: Build napi - ${{ matrix.target }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-latest
+            target: aarch64-apple-darwin
+            artifact: core-darwin-arm64
+          - os: macos-latest
+            target: x86_64-apple-darwin
+            artifact: core-darwin-x64
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            artifact: core-linux-x64-gnu
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-musl
+            artifact: core-linux-x64-musl
+          - os: ubuntu-latest
+            target: aarch64-unknown-linux-gnu
+            artifact: core-linux-arm64-gnu
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            artifact: core-win32-x64
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+      - uses: pnpm/action-setup@v3
+        with:
+          version: 9
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+      - run: pnpm install
+      - name: Build napi
+        working-directory: packages/core
+        run: pnpm build --target ${{ matrix.target }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}
+          path: packages/core/*.node
+
   build-linux:
     name: Build CLI - Linux x64
     runs-on: ubuntu-latest
@@ -99,7 +145,7 @@ jobs:
   test-node:
     name: Test Node.js packages
     runs-on: ubuntu-latest
-    needs: [build-linux]
+    needs: [build-napi]
     steps:
       - uses: actions/checkout@v4
 
@@ -120,11 +166,8 @@ jobs:
       - name: Download Linux binary
         uses: actions/download-artifact@v4
         with:
-          name: cli-linux-x64
-          path: packages/cli-linux-x64/bin
-
-      - name: Make binary executable
-        run: chmod +x packages/cli-linux-x64/bin/archlint
+          name: core-linux-x64-gnu
+          path: packages/core
 
       - name: Run tests
         run: pnpm test

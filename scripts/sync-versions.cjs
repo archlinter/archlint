@@ -57,6 +57,19 @@ if (fs.existsSync(packagesDir)) {
         }
       }
 
+      // Update dependencies versions for internal packages
+      if (pkgJson.dependencies) {
+        for (const dep in pkgJson.dependencies) {
+          if (dep.startsWith('@archlinter/')) {
+            if (forPublish) {
+              pkgJson.dependencies[dep] = version;
+            } else if (!pkgJson.dependencies[dep].startsWith('workspace:')) {
+              pkgJson.dependencies[dep] = 'workspace:*';
+            }
+          }
+        }
+      }
+
       fs.writeFileSync(pkgJsonPath, JSON.stringify(pkgJson, null, 2) + '\n');
       console.log(`✓ Updated packages/${pkg}/package.json to ${version}`);
     }

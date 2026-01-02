@@ -1,0 +1,22 @@
+{
+  "name": "@archlinter/core-linux-x64-gnu",
+  "version": "0.3.0",
+  "description": "archlint native binding for Linux x64 (glibc)",
+  "license": "MIT",
+  "main": "archlint.linux-x64-gnu.node",
+  "files": [
+    "archlint.linux-x64-gnu.node"
+  ],
+  "os": [
+    "linux"
+  ],
+  "cpu": [
+    "x64"
+  ],
+  "libc": [
+    "glibc"
+  ],
+  "engines": {
+    "node": ">=18"
+  }
+}

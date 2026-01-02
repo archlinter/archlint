@@ -1,0 +1,19 @@
+{
+  "name": "@archlinter/core-win32-x64",
+  "version": "0.3.0",
+  "description": "archlint native binding for Windows x64",
+  "license": "MIT",
+  "main": "archlint.win32-x64-msvc.node",
+  "files": [
+    "archlint.win32-x64-msvc.node"
+  ],
+  "os": [
+    "win32"
+  ],
+  "cpu": [
+    "x64"
+  ],
+  "engines": {
+    "node": ">=18"
+  }
+}

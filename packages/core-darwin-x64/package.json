@@ -1,0 +1,19 @@
+{
+  "name": "@archlinter/core-darwin-x64",
+  "version": "0.3.0",
+  "description": "archlint native binding for macOS x64",
+  "license": "MIT",
+  "main": "archlint.darwin-x64.node",
+  "files": [
+    "archlint.darwin-x64.node"
+  ],
+  "os": [
+    "darwin"
+  ],
+  "cpu": [
+    "x64"
+  ],
+  "engines": {
+    "node": ">=18"
+  }
+}

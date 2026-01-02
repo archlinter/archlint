@@ -1,0 +1,22 @@
+{
+  "name": "@archlinter/core-linux-arm64-gnu",
+  "version": "0.3.0",
+  "description": "archlint native binding for Linux arm64 (glibc)",
+  "license": "MIT",
+  "main": "archlint.linux-arm64-gnu.node",
+  "files": [
+    "archlint.linux-arm64-gnu.node"
+  ],
+  "os": [
+    "linux"
+  ],
+  "cpu": [
+    "arm64"
+  ],
+  "libc": [
+    "glibc"
+  ],
+  "engines": {
+    "node": ">=18"
+  }
+}
