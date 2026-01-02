@@ -2,7 +2,7 @@ use crate::cache::hash::file_content_hash;
 use crate::cache::AnalysisCache;
 use crate::cli::{Language, ScanArgs};
 use crate::config::Config;
-use crate::detectors::{self, ConfigurableSmellType, Severity};
+use crate::detectors::{self, Severity};
 use crate::engine::AnalysisContext;
 use crate::framework::classifier::FileClassifier;
 use crate::framework::detector::FrameworkDetector;
@@ -33,16 +33,16 @@ pub struct AnalysisEngine {
 use std::str::FromStr;
 
 impl AnalysisEngine {
-    pub fn new(args: ScanArgs) -> Result<Self> {
+    pub fn new(args: ScanArgs, config: Config) -> Result<Self> {
         let target_path = args
             .path
             .canonicalize()
             .unwrap_or_else(|_| args.path.clone());
         let project_root = detect_project_root(&target_path);
 
-        let mut config = Config::load_or_default(args.config.as_deref(), Some(&project_root))?;
+        let mut config = config;
 
-        // CLI Overrides for detectors
+        // Overrides from args
         if let Some(ref detectors) = args.detectors {
             config.detectors.enabled =
                 Some(detectors.split(',').map(|s| s.trim().to_string()).collect());
@@ -54,7 +54,7 @@ impl AnalysisEngine {
                 .extend(exclude.split(',').map(|s| s.trim().to_string()));
         }
 
-        // CLI Overrides for severity
+        // Overrides for severity
         if let Some(ref min_sev) = args.min_severity {
             config.severity.minimum = Some(
                 Severity::from_str(min_sev).map_err(crate::error::AnalysisError::InvalidConfig)?,
@@ -63,20 +63,8 @@ impl AnalysisEngine {
         if let Some(min_score) = args.min_score {
             config.severity.minimum_score = Some(min_score);
         }
-        if let Some(ref overrides) = args.severity {
-            for part in overrides.split(',') {
-                let kv: Vec<&str> = part.split('=').collect();
-                if kv.len() == 2 {
-                    let smell_type = ConfigurableSmellType::from_str(kv[0].trim())
-                        .map_err(crate::error::AnalysisError::InvalidConfig)?;
-                    let severity = Severity::from_str(kv[1].trim())
-                        .map_err(crate::error::AnalysisError::InvalidConfig)?;
-                    config.severity.overrides.insert(smell_type, severity);
-                }
-            }
-        }
 
-        // CLI override for git
+        // Overrides for git
         if args.no_git {
             config.enable_git = false;
         }
@@ -87,6 +75,16 @@ impl AnalysisEngine {
             project_root,
             target_path,
         })
+    }
+
+    pub fn new_with_args(args: ScanArgs) -> Result<Self> {
+        let target_path = args
+            .path
+            .canonicalize()
+            .unwrap_or_else(|_| args.path.clone());
+        let project_root = detect_project_root(&target_path);
+        let config = Config::load_or_default(args.config.as_deref(), Some(&project_root))?;
+        Self::new(args, config)
     }
 
     pub fn run(&self) -> Result<AnalysisReport> {
@@ -557,7 +555,14 @@ impl AnalysisEngine {
             pb.finish_and_clear();
         }
 
-        let mut report = AnalysisReport::new(all_smells, Some(ctx.graph));
+        let mut report = AnalysisReport::new(
+            all_smells,
+            Some(ctx.graph),
+            ctx.file_symbols,
+            ctx.file_metrics,
+            ctx.function_complexity,
+            ctx.churn_map,
+        );
         report.set_files_analyzed(files.len());
         report.apply_severity_config(&self.config.severity);
 

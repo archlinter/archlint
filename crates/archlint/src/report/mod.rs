@@ -37,6 +37,7 @@ impl std::fmt::Display for GradeLevel {
     }
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ArchitectureGrade {
     pub score: f32,
     pub level: GradeLevel,
@@ -79,10 +80,30 @@ pub struct AnalysisReport {
     pub hub_dependencies: usize,
     pub smells: Vec<(ArchSmell, Explanation)>,
     pub graph: Option<DependencyGraph>,
+    pub file_symbols: std::collections::HashMap<std::path::PathBuf, crate::parser::FileSymbols>,
+    pub file_metrics:
+        std::collections::HashMap<std::path::PathBuf, crate::engine::context::FileMetrics>,
+    pub function_complexity:
+        std::collections::HashMap<std::path::PathBuf, Vec<crate::parser::FunctionComplexity>>,
+    pub churn_map: std::collections::HashMap<std::path::PathBuf, usize>,
 }
 
 impl AnalysisReport {
-    pub fn new(smells: Vec<ArchSmell>, graph: Option<DependencyGraph>) -> Self {
+    pub fn new(
+        smells: Vec<ArchSmell>,
+        graph: Option<DependencyGraph>,
+        file_symbols: std::collections::HashMap<std::path::PathBuf, crate::parser::FileSymbols>,
+        file_metrics: std::collections::HashMap<
+            std::path::PathBuf,
+            crate::engine::context::FileMetrics,
+        >,
+        function_complexity: std::collections::HashMap<
+            std::path::PathBuf,
+            Vec<crate::parser::FunctionComplexity>,
+        >,
+        churn_map: std::collections::HashMap<std::path::PathBuf, usize>,
+    ) -> Self {
+        // ... (rest of the logic stays same)
         let cyclic_dependencies = smells
             .iter()
             .filter(|s| {
@@ -176,6 +197,10 @@ impl AnalysisReport {
             hub_dependencies,
             smells: smells_with_explanations,
             graph,
+            file_symbols,
+            file_metrics,
+            function_complexity,
+            churn_map,
         }
     }
 

@@ -160,7 +160,7 @@ fn run(cli: cli::Cli) -> Result<()> {
         Some(cli::Command::Scan(args)) => {
             let args = resolve_scan_args(args)?;
             let start = Instant::now();
-            let engine = engine::AnalysisEngine::new(args.clone())?;
+            let engine = engine::AnalysisEngine::new_with_args(args.clone())?;
             let config = engine.config.clone();
             let report = engine.run()?;
 
@@ -243,7 +243,7 @@ fn run(cli: cli::Cli) -> Result<()> {
         None => {
             let args = resolve_scan_args(cli.to_scan_args())?;
             let start = Instant::now();
-            let engine = engine::AnalysisEngine::new(args.clone())?;
+            let engine = engine::AnalysisEngine::new_with_args(args.clone())?;
             let config = engine.config.clone();
             let report = engine.run()?;
 
@@ -324,7 +324,7 @@ fn run(cli: cli::Cli) -> Result<()> {
             }
         }
         Some(cli::Command::Watch(args)) => {
-            let engine = engine::AnalysisEngine::new(args.scan.clone())?;
+            let engine = engine::AnalysisEngine::new_with_args(args.scan.clone())?;
             let config = engine.config.clone();
 
             let debounce_ms = if args.debounce != 300 {
