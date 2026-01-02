@@ -66,6 +66,10 @@ jobs:
         run: |
           echo "⏳ Waiting for CI to build artifacts for ${{ needs.release.outputs.commit_sha }}..."
 
+          # Initial delay to allow CI workflow to start
+          echo "⏳ Waiting 10s for CI workflow to initialize..."
+          sleep 10
+
           TIMEOUT=1800  # 30 minutes
           ELAPSED=0
           INTERVAL=30
@@ -75,13 +79,13 @@ jobs:
             CONCLUSION=$(gh api \
               "/repos/${{ github.repository }}/actions/workflows/ci.yml/runs?head_sha=${{ needs.release.outputs.commit_sha }}&per_page=1" \
               --jq '.workflow_runs[0].conclusion // "pending"')
-            
+
             STATUS=$(gh api \
               "/repos/${{ github.repository }}/actions/workflows/ci.yml/runs?head_sha=${{ needs.release.outputs.commit_sha }}&per_page=1" \
               --jq '.workflow_runs[0].status // "queued"')
-            
+
             echo "CI status: $STATUS, conclusion: $CONCLUSION"
-            
+
             if [ "$CONCLUSION" == "success" ]; then
               echo "✅ CI completed successfully!"
               exit 0
@@ -89,7 +93,7 @@ jobs:
               echo "❌ CI failed or was cancelled"
               exit 1
             fi
-            
+
             echo "⏳ CI still running... waiting ${INTERVAL}s (${ELAPSED}s elapsed)"
             sleep $INTERVAL
             ELAPSED=$((ELAPSED + INTERVAL))
@@ -132,6 +136,43 @@ jobs:
           commit: ${{ needs.release.outputs.commit_sha }}
           path: artifacts
 
+      - name: Validate downloaded artifacts
+        run: |
+          echo "🔍 Validating downloaded artifacts..."
+          MISSING=0
+
+          for pkg in darwin-arm64 darwin-x64 linux-x64-gnu linux-x64-musl linux-arm64-gnu win32-x64; do
+            if [ ! -d "artifacts/core-${pkg}" ] || [ ! -f "artifacts/core-${pkg}/"*.node ]; then
+              echo "❌ Missing core artifact: core-${pkg}"
+              MISSING=1
+            else
+              echo "✅ Found core-${pkg}"
+            fi
+          done
+
+          for pkg in darwin-arm64 darwin-x64 linux-x64-gnu linux-x64-musl linux-arm64; do
+            if [ ! -d "artifacts/cli-${pkg}" ] || [ ! -f "artifacts/cli-${pkg}/archlint" ]; then
+              echo "❌ Missing CLI artifact: cli-${pkg}"
+              MISSING=1
+            else
+              echo "✅ Found cli-${pkg}"
+            fi
+          done
+
+          if [ ! -d "artifacts/cli-win32-x64" ] || [ ! -f "artifacts/cli-win32-x64/archlint.exe" ]; then
+            echo "❌ Missing CLI artifact: cli-win32-x64"
+            MISSING=1
+          else
+            echo "✅ Found cli-win32-x64"
+          fi
+
+          if [ $MISSING -eq 1 ]; then
+            echo "❌ Some artifacts are missing!"
+            exit 1
+          fi
+
+          echo "✅ All artifacts validated successfully!"
+
       - name: Replace workspace protocol with versions
         run: node scripts/sync-versions.cjs ${{ needs.release.outputs.new_release_version }} --publish
 
@@ -161,7 +202,7 @@ jobs:
 
       - name: Prepare CLI packages
         run: |
-          for pkg in darwin-arm64 darwin-x64 linux-x64 linux-x64-musl linux-arm64 win32-x64; do
+          for pkg in darwin-arm64 darwin-x64 linux-x64-gnu linux-x64-musl linux-arm64 win32-x64; do
             mkdir -p packages/cli-${pkg}/bin
             if [ -f "artifacts/cli-${pkg}/archlint" ]; then
               cp artifacts/cli-${pkg}/archlint packages/cli-${pkg}/bin/
@@ -173,7 +214,7 @@ jobs:
 
       - name: Publish platform CLI packages
         run: |
-          for pkg in darwin-arm64 darwin-x64 linux-x64 linux-x64-musl linux-arm64 win32-x64; do
+          for pkg in darwin-arm64 darwin-x64 linux-x64-gnu linux-x64-musl linux-arm64 win32-x64; do
             cd packages/cli-${pkg}
             npm publish --access public --provenance
             cd ../..
@@ -208,7 +249,7 @@ jobs:
       - name: Prepare release assets
         run: |
           mkdir -p release
-          for pkg in darwin-arm64 darwin-x64 linux-x64 linux-x64-musl linux-arm64; do
+          for pkg in darwin-arm64 darwin-x64 linux-x64-gnu linux-x64-musl linux-arm64; do
             if [ -f "artifacts/cli-${pkg}/archlint" ]; then
               tar -czvf "release/archlint-${pkg}.tar.gz" -C "artifacts/cli-${pkg}" archlint
             fi
