@@ -7,13 +7,13 @@
     [
       "@semantic-release/exec",
       {
-        "prepareCmd": "node scripts/sync-versions.cjs ${nextRelease.version}"
+        "prepareCmd": "node scripts/sync-versions.cjs ${nextRelease.version} && pnpm install --no-frozen-lockfile"
       }
     ],
     [
       "@semantic-release/git",
       {
-        "assets": ["CHANGELOG.md", "Cargo.toml", "packages/*/package.json"],
+        "assets": ["CHANGELOG.md", "Cargo.toml", "packages/*/package.json", "pnpm-lock.yaml"],
         "message": "chore(release): ${nextRelease.version} [skip ci]\n\n${nextRelease.notes}"
       }
     ],
