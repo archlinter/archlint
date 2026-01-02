@@ -123,6 +123,16 @@ pub enum Command {
 
     /// Watch for changes and re-run analysis
     Watch(WatchArgs),
+
+    /// Generate shell completions
+    Completions(CompletionsArgs),
+}
+
+#[derive(Parser, Debug)]
+pub struct CompletionsArgs {
+    /// Shell to generate completions for
+    #[arg(value_enum)]
+    pub shell: clap_complete::Shell,
 }
 
 #[derive(Parser, Debug, Clone)]

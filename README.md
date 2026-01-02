@@ -336,6 +336,39 @@ archlint detectors list                 # List all available detectors
 
 # Cache management
 archlint cache clear                    # Clear analysis cache
+
+# Shell completions
+archlint completions <shell>            # Generate completion script for bash, zsh, fish, powershell
+```
+
+## Shell Completions
+
+To enable command-line completions for `archlint`, you can generate a script for your shell:
+
+### Bash
+
+```bash
+archlint completions bash > ~/.local/share/bash-completion/completions/archlint
+```
+
+### Zsh
+
+```bash
+archlint completions zsh > ~/.zfunc/_archlint
+```
+
+Then add `fpath+=~/.zfunc` to your `.zshrc` before `autoload -Uz compinit && compinit`.
+
+### Fish
+
+```bash
+archlint completions fish > ~/.config/fish/completions/archlint.fish
+```
+
+### PowerShell
+
+```powershell
+archlint completions powershell | Out-String | Invoke-Expression
 ```
 
 ## Performance
