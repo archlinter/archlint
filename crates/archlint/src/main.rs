@@ -1,6 +1,6 @@
 use archlint::cli::{Language, ScanArgs};
 use archlint::*;
-use clap::Parser;
+use clap::{CommandFactory, Parser};
 use comfy_table::modifiers::UTF8_ROUND_CORNERS;
 use comfy_table::presets::UTF8_FULL;
 use comfy_table::{Attribute, Cell, Color, ContentArrangement, Table};
@@ -403,6 +403,10 @@ fn run(cli: cli::Cli) -> Result<()> {
                 info!("{}  Cache cleared successfully", style("✔").green());
             }
         },
+        Some(cli::Command::Completions(args)) => {
+            let mut cmd = cli::Cli::command();
+            clap_complete::generate(args.shell, &mut cmd, "archlint", &mut std::io::stdout());
+        }
     }
 
     Ok(())
