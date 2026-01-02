@@ -141,6 +141,7 @@ jobs:
           echo "🔍 Validating downloaded artifacts..."
           MISSING=0
 
+          # Validate core artifacts (use -gnu suffix)
           for pkg in darwin-arm64 darwin-x64 linux-x64-gnu linux-x64-musl linux-arm64-gnu win32-x64; do
             if [ ! -d "artifacts/core-${pkg}" ] || [ ! -f "artifacts/core-${pkg}/"*.node ]; then
               echo "❌ Missing core artifact: core-${pkg}"
@@ -150,7 +151,8 @@ jobs:
             fi
           done
 
-          for pkg in darwin-arm64 darwin-x64 linux-x64-gnu linux-x64-musl linux-arm64; do
+          # Validate CLI artifacts (NO -gnu suffix for glibc)
+          for pkg in darwin-arm64 darwin-x64 linux-x64 linux-x64-musl linux-arm64; do
             if [ ! -d "artifacts/cli-${pkg}" ] || [ ! -f "artifacts/cli-${pkg}/archlint" ]; then
               echo "❌ Missing CLI artifact: cli-${pkg}"
               MISSING=1
@@ -202,7 +204,7 @@ jobs:
 
       - name: Prepare CLI packages
         run: |
-          for pkg in darwin-arm64 darwin-x64 linux-x64-gnu linux-x64-musl linux-arm64 win32-x64; do
+          for pkg in darwin-arm64 darwin-x64 linux-x64 linux-x64-musl linux-arm64 win32-x64; do
             mkdir -p packages/cli-${pkg}/bin
             if [ -f "artifacts/cli-${pkg}/archlint" ]; then
               cp artifacts/cli-${pkg}/archlint packages/cli-${pkg}/bin/
@@ -214,7 +216,7 @@ jobs:
 
       - name: Publish platform CLI packages
         run: |
-          for pkg in darwin-arm64 darwin-x64 linux-x64-gnu linux-x64-musl linux-arm64 win32-x64; do
+          for pkg in darwin-arm64 darwin-x64 linux-x64 linux-x64-musl linux-arm64 win32-x64; do
             cd packages/cli-${pkg}
             npm publish --access public --provenance
             cd ../..
@@ -249,7 +251,7 @@ jobs:
       - name: Prepare release assets
         run: |
           mkdir -p release
-          for pkg in darwin-arm64 darwin-x64 linux-x64-gnu linux-x64-musl linux-arm64; do
+          for pkg in darwin-arm64 darwin-x64 linux-x64 linux-x64-musl linux-arm64; do
             if [ -f "artifacts/cli-${pkg}/archlint" ]; then
               tar -czvf "release/archlint-${pkg}.tar.gz" -C "artifacts/cli-${pkg}" archlint
             fi

@@ -6,35 +6,10 @@ on:
   pull_request:
     branches: [main]
 
-env:
-  CARGO_TERM_COLOR: always
-  RUST_BACKTRACE: 1
+permissions:
+  contents: read
 
 jobs:
-  commitlint:
-    name: Commit Lint
-    runs-on: ubuntu-latest
-    if: github.event_name == 'pull_request'
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - uses: pnpm/action-setup@v3
-        with:
-          version: 9
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'pnpm'
-
-      - name: Install dependencies
-        run: pnpm install
-
-      - name: Validate PR commits
-        run: npx commitlint --from ${{ github.event.pull_request.base.sha }} --to ${{ github.event.pull_request.head.sha }} --verbose
-
   lint:
     name: Lint
     runs-on: ubuntu-latest
@@ -55,8 +30,30 @@ jobs:
       - name: Clippy
         run: cargo clippy --all-targets --all-features -- -D warnings
 
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: 9
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Lint packages
+        run: pnpm lint
+
+      - name: Commitlint
+        if: github.event_name == 'pull_request'
+        run: |
+          pnpm exec commitlint --from ${{ github.event.pull_request.base.sha }} --to ${{ github.event.pull_request.head.sha }} --verbose
+
   test:
-    name: Test
+    name: Test Rust
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -98,16 +95,30 @@ jobs:
             artifact: core-win32-x64
     steps:
       - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@stable
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
         with:
           targets: ${{ matrix.target }}
-      - uses: pnpm/action-setup@v3
+
+      - name: Cache cargo
+        uses: Swatinem/rust-cache@v2
+        with:
+          key: ${{ matrix.target }}
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v3
         with:
           version: 9
-      - uses: actions/setup-node@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install
 
       - name: Install cross-compilation tools
         if: matrix.target == 'aarch64-unknown-linux-gnu'
@@ -121,17 +132,13 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y musl-tools
 
-      - run: pnpm install
-
-      - name: Build napi
-        working-directory: packages/core
-        run: pnpm build --target ${{ matrix.target }}
+      - name: Build
+        run: cd packages/core && pnpm build
         env:
           CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER: aarch64-linux-gnu-gcc
-          CC_aarch64_unknown_linux_gnu: aarch64-linux-gnu-gcc
-          CC_x86_64_unknown_linux_musl: musl-gcc
-          PKG_CONFIG_ALLOW_CROSS: '1'
-      - uses: actions/upload-artifact@v4
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.artifact }}
           path: packages/core/*.node
@@ -152,7 +159,7 @@ jobs:
             artifact: cli-darwin-x64
           - os: ubuntu-latest
             target: x86_64-unknown-linux-gnu
-            artifact: cli-linux-x64-gnu
+            artifact: cli-linux-x64
           - os: ubuntu-latest
             target: x86_64-unknown-linux-musl
             artifact: cli-linux-x64-musl
@@ -252,7 +259,7 @@ jobs:
       matrix:
         include:
           - os: ubuntu-latest
-            artifact: cli-linux-x64-gnu
+            artifact: cli-linux-x64
           - os: macos-latest
             artifact: cli-darwin-arm64
           - os: windows-latest
