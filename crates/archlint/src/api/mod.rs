@@ -20,11 +20,13 @@ pub use result::{ScanResult, SmellWithExplanation, Summary};
 /// Scan a project for architectural smells
 ///
 /// # Example
-/// ```
+/// ```no_run
 /// use archlint::{scan, ScanOptions};
-///
+/// # fn main() -> Result<(), Box<dyn std::error::Error>> {
 /// let result = scan("./my-project", ScanOptions::new())?;
 /// println!("Found {} smells", result.smells.len());
+/// # Ok(())
+/// # }
 /// ```
 pub fn scan<P: AsRef<Path>>(path: P, options: ScanOptions) -> Result<ScanResult> {
     let path_ref = path.as_ref();
