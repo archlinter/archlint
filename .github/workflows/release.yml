@@ -9,11 +9,81 @@ permissions:
   id-token: write
 
 jobs:
+  update-versions:
+    name: Update Versions
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.VERSION }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GH_PAT }}
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: 9
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Get version from tag
+        id: version
+        run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+
+      - name: Update version in all files
+        run: node scripts/sync-versions.cjs ${{ steps.version.outputs.VERSION }}
+
+      - name: Update CHANGELOG.md
+        run: |
+          VERSION="${{ steps.version.outputs.VERSION }}"
+          DATE=$(date +%Y-%m-%d)
+          RELEASE_BODY=$(cat <<'EOF'
+          ${{ github.event.release.body }}
+          EOF
+          )
+
+          # Create new changelog entry
+          NEW_ENTRY="## [$VERSION] - $DATE
+
+          $RELEASE_BODY
+          "
+
+          # Insert after the header
+          if [ -f CHANGELOG.md ]; then
+            # Find the first ## and insert before it
+            if grep -q "^## \[" CHANGELOG.md; then
+              sed -i "0,/^## \[/s//## [$VERSION] - $DATE\n\n$RELEASE_BODY\n\n## [/" CHANGELOG.md
+            else
+              echo -e "# Changelog\n\n$NEW_ENTRY" > CHANGELOG.md
+            fi
+          else
+            echo -e "# Changelog\n\n$NEW_ENTRY" > CHANGELOG.md
+          fi
+
+      - name: Commit version updates
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "chore(release): ${{ steps.version.outputs.VERSION }} [skip ci]" || echo "No changes to commit"
+          git push origin HEAD:main
+
   verify:
     name: Verify
     runs-on: ubuntu-latest
+    needs: [update-versions]
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: main
 
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
@@ -61,6 +131,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: main
 
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
@@ -95,9 +167,11 @@ jobs:
   publish:
     name: Publish to npm
     runs-on: ubuntu-latest
-    needs: [build-cli]
+    needs: [build-cli, update-versions]
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: main
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v3
@@ -119,12 +193,8 @@ jobs:
         with:
           path: artifacts
 
-      - name: Get version from tag
-        id: version
-        run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
-
       - name: Replace workspace protocol with versions
-        run: node scripts/sync-versions.cjs ${{ steps.version.outputs.VERSION }} --publish
+        run: node scripts/sync-versions.cjs ${{ needs.update-versions.outputs.version }} --publish
 
       - name: Prepare CLI packages
         run: |

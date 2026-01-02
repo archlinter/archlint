@@ -1,10 +1,10 @@
 # Release Flow
 
-This document describes the automated release process for archlint.
+This document describes the release process for archlint.
 
 ## Overview
 
-archlint uses **semantic-release** for fully automated versioning and publishing. Version numbers are determined automatically from commit messages following the [Conventional Commits](https://www.conventionalcommits.org/) specification.
+archlint uses **Release Drafter** to automatically create draft releases from pull requests. Version numbers and release notes are managed through PR labels and titles.
 
 ## Commit Message Format
 
@@ -20,19 +20,19 @@ All commits **must** follow the Conventional Commits format. This is enforced by
 <footer>
 ```
 
-### Types and Version Impact
+### Types
 
-| Type | Description | Version Bump | Example |
-|------|-------------|--------------|---------|
-| `feat` | New feature | **Minor** (0.x.0) | `feat: add barrel file detector` |
-| `fix` | Bug fix | **Patch** (0.0.x) | `fix: resolve false positive in cycles` |
-| `perf` | Performance improvement | **Patch** (0.0.x) | `perf: optimize graph traversal` |
-| `refactor` | Code refactoring | None | `refactor: simplify detector logic` |
-| `docs` | Documentation | None | `docs: update README` |
-| `test` | Tests | None | `test: add coverage for god module` |
-| `chore` | Maintenance | None | `chore: update dependencies` |
-| `ci` | CI/CD changes | None | `ci: add caching to workflows` |
-| `build` | Build system | None | `build: update Cargo.toml` |
+| Type       | Description             | Label           | Version Bump      |
+| ---------- | ----------------------- | --------------- | ----------------- |
+| `feat`     | New feature             | `feature`       | **Minor** (0.x.0) |
+| `fix`      | Bug fix                 | `fix`           | **Patch** (0.0.x) |
+| `perf`     | Performance improvement | `performance`   | **Patch** (0.0.x) |
+| `refactor` | Code refactoring        | `chore`         | None              |
+| `docs`     | Documentation           | `documentation` | None              |
+| `test`     | Tests                   | `chore`         | None              |
+| `chore`    | Maintenance             | `chore`         | None              |
+| `ci`       | CI/CD changes           | `chore`         | None              |
+| `build`    | Build system            | `chore`         | None              |
 
 ### Breaking Changes
 
@@ -63,7 +63,16 @@ git push origin feat/new-detector
 
 ### 2. Pull Request
 
-Create a PR to `main`. CI will:
+Create a PR to `main`. The PR will be automatically labeled based on the commit message:
+
+- `feat:` → `feature` label
+- `fix:` → `fix` label
+- `perf:` → `performance` label
+- `docs:` → `documentation` label
+- `feat!:` or `BREAKING CHANGE` → `breaking` label
+
+CI will:
+
 - ✅ Validate commit messages (commitlint)
 - ✅ Run linting (rustfmt, clippy)
 - ✅ Run tests
@@ -71,64 +80,66 @@ Create a PR to `main`. CI will:
 
 ### 3. Merge to Main
 
-When PR is merged, the `version.yml` workflow automatically:
+When PR is merged, **Release Drafter** automatically:
 
-1. **Analyzes commits** since the last release
-2. **Determines version** based on commit types:
-   - `feat` → minor bump (0.2.0)
-   - `fix`/`perf` → patch bump (0.1.1)
-   - `feat!` or `BREAKING CHANGE` → major bump (1.0.0)
-3. **Updates version** in:
-   - `Cargo.toml`
-   - All `packages/*/package.json`
-4. **Generates CHANGELOG.md** with all changes
-5. **Creates commit** with message `chore(release): vX.Y.Z [skip ci]`
-6. **Creates Git tag** `vX.Y.Z`
-7. **Pushes** commit and tag
+1. Creates or updates a **draft release** on GitHub
+2. Adds the PR to the release notes under the appropriate category
+3. Calculates the next version based on PR labels
 
-### 4. Automatic Release
+### 4. Review Draft Release
 
-Tag push triggers `release.yml` workflow:
+Go to [GitHub Releases](https://github.com/archlinter/archlint/releases) to see the draft:
 
-1. **Verify**: Run all tests and linting
-2. **Build**: Compile binaries for all platforms:
+- Review the generated release notes
+- Edit the version tag if needed (e.g., `v0.2.0`)
+- Make any adjustments to the description
+
+### 5. Publish Release
+
+Click **Publish release** to trigger the full release workflow:
+
+1. **Update Versions**: Updates `Cargo.toml`, `package.json`, and `CHANGELOG.md`
+2. **Commit**: Creates a commit `chore(release): X.Y.Z [skip ci]`
+3. **Verify**: Runs all tests and linting
+4. **Build**: Compiles binaries for all platforms:
    - macOS (ARM64, x64)
    - Linux (x64, x64-musl, ARM64)
    - Windows (x64)
-3. **Publish npm**:
+5. **Publish npm**:
    - Platform-specific packages (`@archlinter/cli-darwin-arm64`, etc.)
    - Main CLI package (`@archlinter/cli`)
-4. **GitHub Release**: Create release with standalone binaries
+6. **Attach Binaries**: Uploads standalone binaries to the GitHub release
 
 ## Version Numbers
 
 All packages share the same version (unified versioning):
+
 - `@archlinter/cli@0.2.0`
 - `@archlinter/cli-darwin-arm64@0.2.0`
 - `@archlinter/cli-linux-x64@0.2.0`
 - etc.
 
-**Source of truth**: Both `Cargo.toml` and `package.json` are synchronized automatically.
+**Source of truth**: The Git tag determines the version. Files are updated during the release workflow.
 
 ## Examples
 
 ### Feature Release (Minor)
 
 ```bash
-# Develop
+# Create PR with feat commit
 git commit -m "feat: add cyclomatic complexity threshold"
-
-# After merge to main
-# → Version: 0.1.0 → 0.2.0
+# PR gets 'feature' label automatically
+# After merge → draft release updated
+# Publish release → version 0.1.0 → 0.2.0
 ```
 
 ### Bug Fix (Patch)
 
 ```bash
 git commit -m "fix: correct false positive in dead code detection"
-
-# After merge to main
-# → Version: 0.2.0 → 0.2.1
+# PR gets 'fix' label automatically
+# After merge → draft release updated
+# Publish release → version 0.2.0 → 0.2.1
 ```
 
 ### Breaking Change (Major)
@@ -137,49 +148,10 @@ git commit -m "fix: correct false positive in dead code detection"
 git commit -m "feat!: redesign configuration API
 
 BREAKING CHANGE: Config structure changed from flat to nested"
-
-# After merge to main
-# → Version: 0.2.1 → 1.0.0
+# PR gets 'breaking' label automatically
+# After merge → draft release updated
+# Publish release → version 0.2.1 → 1.0.0
 ```
-
-### Multiple Commits
-
-If PR has multiple commits, the highest version bump wins:
-
-```bash
-git commit -m "fix: minor bug"      # patch
-git commit -m "feat: new detector"  # minor
-git commit -m "docs: update README" # none
-
-# After merge to main
-# → Version bumps by minor (highest)
-```
-
-## Manual Release (Emergency Only)
-
-For critical hotfixes that can't wait:
-
-```bash
-# Create and push tag manually
-git tag v0.2.2
-git push origin v0.2.2
-
-# This triggers the release workflow
-```
-
-⚠️ **Warning**: Manual tags should be rare. Prefer the automatic flow.
-
-## Pre-release Versions
-
-Tag with pre-release suffix for alpha/beta/rc:
-
-```bash
-git tag v1.0.0-alpha.1
-git tag v1.0.0-beta.1
-git tag v1.0.0-rc.1
-```
-
-GitHub Release will be marked as "pre-release" automatically.
 
 ## Checking Release Status
 
@@ -210,6 +182,7 @@ npx @archlinter/cli@latest --version
 ```
 
 **Fix**: Follow conventional commits format:
+
 ```bash
 git commit --amend -m "feat: correct commit message"
 ```
@@ -217,23 +190,24 @@ git commit --amend -m "feat: correct commit message"
 ### Release Workflow Failed
 
 Check:
+
 1. All tests passing?
 2. NPM_TOKEN secret configured?
-3. Version conflicts?
+3. GH_PAT secret configured?
+4. Version conflicts?
 
 View logs: GitHub Actions → Release workflow
 
-### Version Not Bumped
+### Draft Release Not Updated
 
 Possible reasons:
-1. Commit message doesn't trigger version (e.g., `docs:`, `chore:`)
-2. Commit contains `[skip ci]`
-3. No commits since last release
+
+1. PR was not merged (only closed)
+2. Release Drafter workflow failed
+3. No changes since last release
 
 ## Reference
 
 - [Conventional Commits](https://www.conventionalcommits.org/)
 - [Semantic Versioning](https://semver.org/)
-- [semantic-release](https://github.com/semantic-release/semantic-release)
-- [Plan 6: CI/CD](.cursor/docs/plans/plan-06-ci-cd.md)
-- [Plan 11: Release Process](.cursor/docs/plans/plan-11-release-process.md)
+- [Release Drafter](https://github.com/release-drafter/release-drafter)
