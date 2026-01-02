@@ -40,3 +40,8 @@ pub fn get_detectors() -> Vec<JsDetectorInfo> {
         .map(Into::into)
         .collect()
 }
+
+#[napi]
+pub fn clear_cache(path: String) -> Result<()> {
+    archlint::clear_cache(path).map_err(|e| Error::from_reason(e.to_string()))
+}

@@ -143,5 +143,6 @@ export declare function scanSync(
   path: string,
   options?: JsScanOptions | undefined | null
 ): JsScanResult;
+export declare function clearCache(path: string): void;
 export declare function loadConfig(path?: string | undefined | null): JsConfig;
 export declare function getDetectors(): Array<JsDetectorInfo>;
