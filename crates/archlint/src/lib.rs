@@ -21,7 +21,7 @@ pub mod watch;
 pub mod api;
 
 // Convenient re-exports for common use
-pub use api::{get_detectors, load_config, scan};
+pub use api::{clear_cache, get_detectors, load_config, scan};
 pub use api::{ExportInfo, ExportKind, FileInfo, FileMetrics, ImportInfo};
 pub use api::{ScanOptions, ScanResult, SmellWithExplanation, Summary};
 

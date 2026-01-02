@@ -20,6 +20,8 @@ Get detailed information about detected smells with filtering and pagination.
 - **path**: (required) Absolute path to the project.
 - **types**: (optional) Filter by smell type (e.g., ["CyclicDependency", "GodModule"]).
 - **severity**: (optional) Minimum severity (info, low, medium, high, critical).
+- **file**: (optional) Filter smells by file path.
+- **minScore**: (optional) Filter smells by minimum score.
 - **limit/offset**: (optional) For pagination.
 
 ### 4. archlint_list_detectors

@@ -15,6 +15,10 @@ class McpCache {
     this.cache.delete(path);
   }
 
+  getAllPaths(): string[] {
+    return Array.from(this.cache.keys());
+  }
+
   clear(): void {
     this.cache.clear();
   }

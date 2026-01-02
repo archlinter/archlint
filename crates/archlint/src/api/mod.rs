@@ -65,6 +65,11 @@ pub fn get_detectors() -> Vec<DetectorInfo> {
     DetectorRegistry::new().list_all()
 }
 
+/// Clear the analysis cache for a project
+pub fn clear_cache<P: AsRef<Path>>(path: P) -> Result<()> {
+    crate::cache::AnalysisCache::clear(path.as_ref())
+}
+
 fn build_scan_args(options: &ScanOptions, path: &Path) -> ScanArgs {
     ScanArgs {
         path: path.to_path_buf(),

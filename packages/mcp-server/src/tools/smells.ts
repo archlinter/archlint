@@ -2,12 +2,12 @@ import { scan } from '@archlinter/core';
 import { GetSmellsInput } from '../schemas.js';
 import { mcpCache } from '../cache.js';
 import { formatResult, formatSmellsMd } from '../formatters.js';
-import { SEVERITY_ORDER, Severity } from '../constants.js';
+import { SEVERITY_ORDER, SMELL_SCORES, Severity } from '../constants.js';
 
 export async function archlintGetSmells(
   input: GetSmellsInput
 ): Promise<{ content: { type: 'text'; text: string }[] }> {
-  const { path, types, severity, file, offset, limit, format } = input;
+  const { path, types, severity, file, minScore, offset, limit, format } = input;
 
   let result = mcpCache.get(path);
   if (!result) {
@@ -23,13 +23,21 @@ export async function archlintGetSmells(
 
   if (severity) {
     const minSevValue = SEVERITY_ORDER[severity as Severity];
-    filteredSmells = filteredSmells.filter(
-      (s) => SEVERITY_ORDER[s.smell.severity as Severity] <= minSevValue
-    );
+    filteredSmells = filteredSmells.filter((s) => {
+      const sev = s.smell.severity.toLowerCase() as Severity;
+      return SEVERITY_ORDER[sev] <= minSevValue;
+    });
   }
 
   if (file) {
     filteredSmells = filteredSmells.filter((s) => s.smell.files.some((f) => f.includes(file)));
+  }
+
+  if (minScore !== undefined) {
+    filteredSmells = filteredSmells.filter((s) => {
+      const score = SMELL_SCORES[s.smell.severity.toLowerCase() as Severity] || 0;
+      return score >= minScore;
+    });
   }
 
   const total = filteredSmells.length;
