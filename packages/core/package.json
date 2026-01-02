@@ -27,6 +27,7 @@
   },
   "scripts": {
     "build": "napi build --release --platform --cargo-cwd ../../crates/archlint-napi .",
+    "build:debug": "napi build --platform --cargo-cwd ../../crates/archlint-napi .",
     "prepublishOnly": "napi prepublish -t npm"
   },
   "devDependencies": {

@@ -284,6 +284,9 @@ if (!nativeBinding) {
   throw new Error(`Failed to load native binding`);
 }
 
-const { sum } = nativeBinding;
+const { scan, scanSync, loadConfig, getDetectors } = nativeBinding;
 
-module.exports.sum = sum;
+module.exports.scan = scan;
+module.exports.scanSync = scanSync;
+module.exports.loadConfig = loadConfig;
+module.exports.getDetectors = getDetectors;

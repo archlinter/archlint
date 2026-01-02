@@ -10,10 +10,11 @@ crate-type = ["cdylib"]
 
 [dependencies]
 archlint = { path = "../archlint" }
-napi = { version = "2", default-features = false, features = ["async", "serde-json", "napi4"] }
+napi = { version = "2", default-features = false, features = ["async", "serde-json", "napi4", "tokio_rt"] }
 napi-derive = "2"
-serde.workspace = true
-serde_json.workspace = true
+serde = { workspace = true, features = ["derive"] }
+serde_json = { workspace = true }
+tokio = { version = "1", features = ["rt-multi-thread"] }
 
 [build-dependencies]
 napi-build = "2"

@@ -123,6 +123,7 @@ dependencies = [
  "napi-derive",
  "serde",
  "serde_json",
+ "tokio",
 ]
 
 [[package]]
