@@ -3,6 +3,11 @@
   "version": "0.4.1",
   "description": "Model Context Protocol (MCP) server for archlint",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/archlinter/archlint.git",
+    "directory": "packages/mcp-server"
+  },
   "type": "module",
   "bin": {
     "archlint-mcp": "./dist/index.js"
