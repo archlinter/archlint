@@ -76,6 +76,25 @@ jobs:
           git commit -m "chore(release): ${{ steps.version.outputs.VERSION }} [skip ci]" || echo "No changes to commit"
           git push origin HEAD:main
 
+  get-ci-run:
+    name: Get CI Workflow Run
+    runs-on: ubuntu-latest
+    needs: [update-versions]
+    outputs:
+      run_id: ${{ steps.get-run.outputs.run_id }}
+    steps:
+      - name: Get latest successful CI run
+        id: get-run
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          RUN_ID=$(gh api \
+            -H "Accept: application/vnd.github+json" \
+            "/repos/${{ github.repository }}/actions/workflows/ci.yml/runs?branch=main&status=success&per_page=1" \
+            --jq '.workflow_runs[0].id')
+          echo "run_id=$RUN_ID" >> $GITHUB_OUTPUT
+          echo "Using CI workflow run: $RUN_ID"
+
   verify:
     name: Verify
     runs-on: ubuntu-latest
@@ -105,7 +124,7 @@ jobs:
   publish:
     name: Publish to npm
     runs-on: ubuntu-latest
-    needs: [update-versions, verify]
+    needs: [update-versions, verify, get-ci-run]
     steps:
       - uses: actions/checkout@v4
         with:
@@ -130,7 +149,7 @@ jobs:
         uses: dawidd6/action-download-artifact@v6
         with:
           workflow: ci.yml
-          branch: main
+          run_id: ${{ needs.get-ci-run.outputs.run_id }}
           path: artifacts
 
       - name: Replace workspace protocol with versions
@@ -192,7 +211,7 @@ jobs:
   attach-binaries:
     name: Attach Binary Assets to Release
     runs-on: ubuntu-latest
-    needs: [publish]
+    needs: [publish, get-ci-run]
     steps:
       - uses: actions/checkout@v4
 
@@ -200,7 +219,7 @@ jobs:
         uses: dawidd6/action-download-artifact@v6
         with:
           workflow: ci.yml
-          branch: main
+          run_id: ${{ needs.get-ci-run.outputs.run_id }}
           path: artifacts
           name: cli-.*
           name_is_regexp: true
