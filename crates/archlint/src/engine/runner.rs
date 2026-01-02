@@ -11,6 +11,7 @@ use crate::graph::{DependencyGraph, EdgeData};
 use crate::metrics::GitChurn;
 use crate::package_json;
 use crate::parser::{ImportParser, ParsedFile, ParserConfig};
+use crate::project_root::detect_project_root;
 use crate::report::AnalysisReport;
 use crate::resolver::PathResolver;
 use crate::scanner::FileScanner;
@@ -25,13 +26,21 @@ use std::path::PathBuf;
 pub struct AnalysisEngine {
     pub args: ScanArgs,
     pub config: Config,
+    pub project_root: PathBuf,
+    pub target_path: PathBuf,
 }
 
 use std::str::FromStr;
 
 impl AnalysisEngine {
     pub fn new(args: ScanArgs) -> Result<Self> {
-        let mut config = Config::load_or_default(args.config.as_deref(), Some(&args.path))?;
+        let target_path = args
+            .path
+            .canonicalize()
+            .unwrap_or_else(|_| args.path.clone());
+        let project_root = detect_project_root(&target_path);
+
+        let mut config = Config::load_or_default(args.config.as_deref(), Some(&project_root))?;
 
         // CLI Overrides for detectors
         if let Some(ref detectors) = args.detectors {
@@ -72,7 +81,12 @@ impl AnalysisEngine {
             config.enable_git = false;
         }
 
-        Ok(Self { args, config })
+        Ok(Self {
+            args,
+            config,
+            project_root,
+            target_path,
+        })
     }
 
     pub fn run(&self) -> Result<AnalysisReport> {
@@ -80,9 +94,14 @@ impl AnalysisEngine {
         let use_progress = is_tty && !self.args.is_quiet();
 
         info!(
-            "{} Scanning project at: {}",
+            "{} Scanning target: {}",
             style("🔍").cyan().bold(),
-            style(self.args.path.display()).bold()
+            style(self.target_path.display()).bold()
+        );
+        debug!(
+            "{} Project root: {}",
+            style("🏠").dim(),
+            style(self.project_root.display()).dim()
         );
 
         let extensions = match self.args.lang {
@@ -90,8 +109,34 @@ impl AnalysisEngine {
             Language::JavaScript => vec!["js".to_string(), "jsx".to_string()],
         };
 
-        let scanner = FileScanner::new(&self.args.path, extensions);
-        let files = scanner.scan(&self.config)?;
+        let files = if let Some(ref explicit_files) = self.args.files {
+            // Use explicit files (from glob expansion) and apply ignore patterns
+            explicit_files
+                .iter()
+                .filter(|f| {
+                    let is_excluded = if self.config.ignore.is_empty() {
+                        false
+                    } else {
+                        let rel_path = f
+                            .strip_prefix(&self.project_root)
+                            .unwrap_or(f)
+                            .to_string_lossy();
+                        self.config.ignore.iter().any(|p| {
+                            if let Ok(pattern) = glob::Pattern::new(p) {
+                                pattern.matches(&rel_path)
+                            } else {
+                                false
+                            }
+                        })
+                    };
+                    !is_excluded
+                })
+                .cloned()
+                .collect()
+        } else {
+            let scanner = FileScanner::new(&self.project_root, &self.target_path, extensions);
+            scanner.scan(&self.config)?
+        };
         info!(
             "{} Found {} files to analyze",
             style("📁").blue().bold(),
@@ -99,7 +144,7 @@ impl AnalysisEngine {
         );
 
         let detected_frameworks = if self.config.auto_detect_framework {
-            FrameworkDetector::detect(&self.args.path)
+            FrameworkDetector::detect(&self.project_root)
         } else {
             Vec::new()
         };
@@ -156,7 +201,7 @@ impl AnalysisEngine {
         }
 
         let parser = ImportParser::new()?;
-        let resolver = PathResolver::new(&self.args.path, &self.config);
+        let resolver = PathResolver::new(&self.project_root, &self.config);
 
         let registry = detectors::registry::DetectorRegistry::new();
         let selection =
@@ -201,7 +246,7 @@ impl AnalysisEngine {
 
         let mut cache = if !self.args.no_cache {
             debug!("Loading cache...");
-            Some(AnalysisCache::load(&self.args.path, &self.config)?)
+            Some(AnalysisCache::load(&self.project_root, &self.config)?)
         } else {
             None
         };
@@ -361,7 +406,7 @@ impl AnalysisEngine {
             debug!("Using cached churn map");
             cached_churn.clone()
         } else {
-            let git_churn = GitChurn::new(&self.args.path);
+            let git_churn = GitChurn::new(&self.project_root);
             if !git_churn.is_available() {
                 debug!("Git repository not found, skipping churn calculation");
                 HashMap::new()
@@ -435,10 +480,10 @@ impl AnalysisEngine {
             "{}  Analyzing configuration and scripts...",
             style("⚙️").dim().bold()
         );
-        let pkg_config = package_json::PackageJsonParser::parse(&self.args.path)?;
+        let pkg_config = package_json::PackageJsonParser::parse(&self.project_root)?;
 
         let ctx = AnalysisContext {
-            project_path: self.args.path.clone(),
+            project_path: self.project_root.clone(),
             graph,
             file_symbols: resolved_file_symbols,
             function_complexity,

@@ -1,3 +1,4 @@
+use archlint::cli::{Language, ScanArgs};
 use archlint::*;
 use clap::Parser;
 use comfy_table::modifiers::UTF8_ROUND_CORNERS;
@@ -116,9 +117,48 @@ fn determine_exit_code(report: &report::AnalysisReport, config: &config::Config)
     }
 }
 
+fn resolve_scan_args(args: ScanArgs) -> Result<ScanArgs> {
+    let path_str = args.path.to_string_lossy();
+
+    // If path exists as file or directory, use it as is
+    if args.path.exists() {
+        return Ok(args);
+    }
+
+    // If it contains glob characters, expand it
+    if path_str.contains('*') || path_str.contains('?') || path_str.contains('[') {
+        let extensions = match args.lang {
+            Language::TypeScript => vec!["ts", "tsx"],
+            Language::JavaScript => vec!["js", "jsx"],
+        };
+
+        let expansion = glob_expand::expand_glob(&path_str, &extensions)?;
+
+        if expansion.files.is_empty() {
+            return Err(AnalysisError::PathResolution(format!(
+                "No files found matching pattern: {}",
+                path_str
+            )));
+        }
+
+        return Ok(ScanArgs {
+            path: expansion.base_path,
+            files: Some(expansion.files),
+            ..args
+        });
+    }
+
+    // Otherwise error out
+    Err(AnalysisError::PathResolution(format!(
+        "Path does not exist: {}",
+        path_str
+    )))
+}
+
 fn run(cli: cli::Cli) -> Result<()> {
     match cli.command {
         Some(cli::Command::Scan(args)) => {
+            let args = resolve_scan_args(args)?;
             let start = Instant::now();
             let engine = engine::AnalysisEngine::new(args.clone())?;
             let config = engine.config.clone();
@@ -132,7 +172,7 @@ fn run(cli: cli::Cli) -> Result<()> {
                 args.output_format(),
                 args.no_diagram,
                 &config.severity,
-                Some(&args.path),
+                Some(&engine.project_root),
             )?;
 
             if let Some(path) = &args.report {
@@ -201,7 +241,7 @@ fn run(cli: cli::Cli) -> Result<()> {
             }
         }
         None => {
-            let args = cli.to_scan_args();
+            let args = resolve_scan_args(cli.to_scan_args())?;
             let start = Instant::now();
             let engine = engine::AnalysisEngine::new(args.clone())?;
             let config = engine.config.clone();
@@ -215,7 +255,7 @@ fn run(cli: cli::Cli) -> Result<()> {
                 args.output_format(),
                 args.no_diagram,
                 &config.severity,
-                Some(&args.path),
+                Some(&engine.project_root),
             )?;
 
             if let Some(path) = &args.report {

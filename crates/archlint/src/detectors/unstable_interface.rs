@@ -34,6 +34,9 @@ impl Detector for UnstableInterfaceDetector {
     fn detect(&self, ctx: &AnalysisContext) -> Vec<ArchSmell> {
         let thresholds = &ctx.config.thresholds.unstable_interface;
 
+        // Check if git churn information is available
+        let git_available = ctx.config.enable_git && !ctx.churn_map.is_empty();
+
         ctx.graph
             .nodes()
             .filter_map(|node| {
@@ -43,10 +46,11 @@ impl Detector for UnstableInterfaceDetector {
 
                 let score = churn * dependants;
 
-                if score >= thresholds.score_threshold
-                    && churn >= thresholds.min_churn
-                    && dependants >= thresholds.min_dependants
-                {
+                // If git is not available, we skip the churn and score threshold checks
+                let churn_ok = !git_available || churn >= thresholds.min_churn;
+                let score_ok = !git_available || score >= thresholds.score_threshold;
+
+                if churn_ok && score_ok && dependants >= thresholds.min_dependants {
                     Some(ArchSmell::new_unstable_interface(
                         path.clone(),
                         churn,

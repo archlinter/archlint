@@ -12,7 +12,7 @@ use comfy_table::modifiers::UTF8_ROUND_CORNERS;
 use comfy_table::presets::UTF8_FULL;
 use comfy_table::{Attribute, Cell, Color, ContentArrangement, Table};
 use console::style;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum GradeLevel {
@@ -382,7 +382,15 @@ impl AnalysisReport {
         sorted_smells.sort_by(|(a, _), (b, _)| b.severity.cmp(&a.severity));
 
         // Get canonical scan root for path comparison
-        let canonical_scan_root = scan_root.and_then(|p| p.canonicalize().ok());
+        let canonical_scan_root = scan_root.and_then(|p| {
+            let canonical = p.canonicalize().ok()?;
+            // If scan_root is a file, use its parent directory to keep paths relative to it
+            if canonical.is_file() {
+                canonical.parent().map(|p| p.to_path_buf())
+            } else {
+                Some(canonical)
+            }
+        });
 
         for (smell, _explanation) in sorted_smells {
             let (severity_text, color) = match smell.severity {
@@ -490,7 +498,15 @@ impl AnalysisReport {
                         // Try to make path relative to scan root
                         if let Some(ref root) = canonical_scan_root {
                             if let Ok(rel) = loc.file.strip_prefix(root) {
-                                loc_clone.file = rel.to_path_buf();
+                                if rel.as_os_str().is_empty() {
+                                    loc_clone.file = loc
+                                        .file
+                                        .file_name()
+                                        .map(PathBuf::from)
+                                        .unwrap_or_else(|| loc.file.clone());
+                                } else {
+                                    loc_clone.file = rel.to_path_buf();
+                                }
                             }
                         }
                         format_location_detail(&loc_clone)
@@ -506,7 +522,14 @@ impl AnalysisReport {
                         // Try to make path relative to scan root
                         if let Some(ref root) = canonical_scan_root {
                             if let Ok(rel) = f.strip_prefix(root) {
-                                display_path = rel.to_path_buf();
+                                if rel.as_os_str().is_empty() {
+                                    display_path = f
+                                        .file_name()
+                                        .map(PathBuf::from)
+                                        .unwrap_or_else(|| f.clone());
+                                } else {
+                                    display_path = rel.to_path_buf();
+                                }
                             }
                         }
                         ExplainEngine::format_file_path(&display_path)

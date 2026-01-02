@@ -105,6 +105,7 @@ impl Cli {
             severity: self.severity.clone(),
             no_cache: self.no_cache,
             no_git: self.no_git,
+            files: None,
         }
     }
 }
@@ -236,6 +237,10 @@ pub struct ScanArgs {
     /// Disable git integration (skip churn analysis)
     #[arg(long, default_value = "false")]
     pub no_git: bool,
+
+    /// Explicit list of files to scan (internal use for glob expansion)
+    #[arg(skip)]
+    pub files: Option<Vec<PathBuf>>,
 }
 
 impl ScanArgs {

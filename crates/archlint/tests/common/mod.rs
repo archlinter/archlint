@@ -26,6 +26,7 @@ pub fn analyze_fixture_with_config(name: &str, config: Config) -> AnalysisContex
     let resolver = PathResolver::new(&root, &config);
     let scanner = FileScanner::new(
         &root,
+        &root,
         vec![
             "ts".to_string(),
             "tsx".to_string(),
