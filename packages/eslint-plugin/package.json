@@ -1,6 +1,6 @@
 {
   "name": "@archlinter/eslint-plugin",
-  "version": "0.1.3",
+  "version": "0.2.0",
   "description": "ESLint plugin for architectural smell detection",
   "license": "MIT",
   "type": "module",

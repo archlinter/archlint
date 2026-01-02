@@ -1,3 +1,9 @@
+# [0.2.0](https://github.com/archlinter/archlint/compare/v0.1.3...v0.2.0) (2026-01-02)
+
+### Features
+
+- add glob expansion and project root detection ([0f6122e](https://github.com/archlinter/archlint/commit/0f6122e3fed148c6e4f3d4e319ed95fa417d1c79))
+
 ## [0.1.3](https://github.com/archlinter/archlint/compare/v0.1.2...v0.1.3) (2026-01-02)
 
 ### Bug Fixes
