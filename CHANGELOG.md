@@ -1,3 +1,9 @@
+# [0.3.0](https://github.com/archlinter/archlint/compare/v0.2.0...v0.3.0) (2026-01-02)
+
+### Features
+
+- **archlint:** implement public Rust API for programmatic use ([75e73a8](https://github.com/archlinter/archlint/commit/75e73a89ffd5a29880d9057efc049afba9a4339e))
+
 # [0.2.0](https://github.com/archlinter/archlint/compare/v0.1.3...v0.2.0) (2026-01-02)
 
 ### Features
