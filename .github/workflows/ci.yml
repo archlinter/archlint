@@ -4,7 +4,7 @@ on:
   push:
     branches: [main]
     tags:
-      - "v*"
+      - 'v*'
   pull_request:
     branches: [main]
 
@@ -28,8 +28,8 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: "20"
-          cache: "pnpm"
+          node-version: '20'
+          cache: 'pnpm'
 
       - name: Install dependencies
         run: pnpm install
@@ -110,8 +110,8 @@ jobs:
           version: 9
       - uses: actions/setup-node@v4
         with:
-          node-version: "20"
-          cache: "pnpm"
+          node-version: '20'
+          cache: 'pnpm'
 
       - name: Install cross-compilation tools
         if: matrix.target == 'aarch64-unknown-linux-gnu'
@@ -134,7 +134,7 @@ jobs:
           CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER: aarch64-linux-gnu-gcc
           CC_aarch64_unknown_linux_gnu: aarch64-linux-gnu-gcc
           CC_x86_64_unknown_linux_musl: musl-gcc
-          PKG_CONFIG_ALLOW_CROSS: "1"
+          PKG_CONFIG_ALLOW_CROSS: '1'
       - uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.artifact }}
@@ -230,8 +230,8 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "20"
-          cache: "pnpm"
+          node-version: '20'
+          cache: 'pnpm'
 
       - name: Install dependencies
         run: pnpm install
@@ -301,9 +301,9 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "20"
-          cache: "pnpm"
-          registry-url: "https://registry.npmjs.org"
+          node-version: '20'
+          cache: 'pnpm'
+          registry-url: 'https://registry.npmjs.org'
 
       - name: Install dependencies
         run: pnpm install
@@ -386,11 +386,12 @@ jobs:
       - name: Prepare CLI packages
         run: |
           for pkg in darwin-arm64 darwin-x64 linux-x64 linux-x64-musl linux-arm64; do
-            mkdir -p packages/cli-${pkg}
-            cp artifacts/cli-${pkg}/archlint packages/cli-${pkg}/
+            mkdir -p packages/cli-${pkg}/bin
+            cp artifacts/cli-${pkg}/archlint packages/cli-${pkg}/bin/
+            chmod +x packages/cli-${pkg}/bin/archlint
           done
-          mkdir -p packages/cli-win32-x64
-          cp artifacts/cli-win32-x64/archlint.exe packages/cli-win32-x64/
+          mkdir -p packages/cli-win32-x64/bin
+          cp artifacts/cli-win32-x64/archlint.exe packages/cli-win32-x64/bin/
 
       - name: Publish platform CLI packages
         run: |
