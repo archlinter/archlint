@@ -28,7 +28,8 @@ export function formatScanResultMd(result: JsScanResult): string {
   topSmells.forEach((s, i) => {
     md += `${i + 1}. **${s.smell.smellType}** [${s.smell.severity}]\n`;
     md += `   - Problem: ${s.explanation.problem}\n`;
-    md += `   - Recommendation: ${s.explanation.recommendations[0]}\n`;
+    const rec = s.explanation.recommendations[0] || 'No specific recommendation';
+    md += `   - Recommendation: ${rec}\n`;
     md += `   - Files: ${s.smell.files.map((f) => `\`${f}\``).join(', ')}\n\n`;
   });
 

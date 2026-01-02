@@ -9,10 +9,10 @@ export async function archlintGetSmells(
 ): Promise<{ content: { type: 'text'; text: string }[] }> {
   const { path, types, severity, file, minScore, offset, limit, format } = input;
 
-  let result = mcpCache.get(path);
+  let result = mcpCache.get(path, {}); // Use empty options for "full" result
   if (!result) {
     result = await scan(path);
-    mcpCache.set(path, result);
+    mcpCache.set(path, result, {});
   }
 
   let filteredSmells = result.smells;

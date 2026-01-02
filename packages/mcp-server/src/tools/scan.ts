@@ -13,7 +13,7 @@ export async function archlintScan(
   }
 
   // Check MCP cache first if not forced
-  const cached = mcpCache.get(path);
+  const cached = mcpCache.get(path, { detectors, excludeDetectors, minSeverity });
   if (cached && !force) {
     return {
       content: [
@@ -32,7 +32,7 @@ export async function archlintScan(
     cache: !force, // Use Rust cache unless forced
   });
 
-  mcpCache.set(path, result);
+  mcpCache.set(path, result, { detectors, excludeDetectors, minSeverity });
 
   return {
     content: [

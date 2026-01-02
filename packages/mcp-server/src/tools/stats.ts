@@ -8,10 +8,10 @@ export async function archlintGetStats(
 ): Promise<{ content: { type: 'text'; text: string }[] }> {
   const { path, format } = input;
 
-  let result = mcpCache.get(path);
+  let result = mcpCache.get(path, {}); // Use empty options for "full" result
   if (!result) {
     result = await scan(path);
-    mcpCache.set(path, result);
+    mcpCache.set(path, result, {});
   }
 
   return {

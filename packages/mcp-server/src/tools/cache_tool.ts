@@ -13,6 +13,12 @@ export async function archlintClearCache(
       await scan(path, { cache: false });
     }
   } else {
+    if (level === 'full') {
+      const paths = mcpCache.getAllPaths();
+      for (const p of paths) {
+        await scan(p, { cache: false });
+      }
+    }
     mcpCache.clear();
   }
 
