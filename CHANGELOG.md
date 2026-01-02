@@ -1,3 +1,9 @@
+## [0.5.0](https://github.com/archlinter/archlint/compare/v0.4.1...v0.5.0) (2026-01-02)
+
+### Features
+
+- **mcp:** implement model context protocol server ([#3](https://github.com/archlinter/archlint/issues/3)) ([8face1e](https://github.com/archlinter/archlint/commit/8face1eea265a26e0996e3d0df24d0c54631a5ca))
+
 ## [0.4.1](https://github.com/archlinter/archlint/compare/v0.4.0...v0.4.1) (2026-01-02)
 
 ### Bug Fixes
