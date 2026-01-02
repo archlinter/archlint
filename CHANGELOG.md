@@ -1,3 +1,9 @@
+## [0.1.3](https://github.com/archlinter/archlint/compare/v0.1.2...v0.1.3) (2026-01-02)
+
+### Bug Fixes
+
+- remove changeset ([1904811](https://github.com/archlinter/archlint/commit/1904811dde7b0c48776693c0dc171a1c3f83484b))
+
 ## [0.1.2](https://github.com/archlinter/archlint/compare/v0.1.1...v0.1.2) (2026-01-02)
 
 ### Bug Fixes
