@@ -1,3 +1,9 @@
+## [0.1.2](https://github.com/archlinter/archlint/compare/v0.1.1...v0.1.2) (2026-01-02)
+
+### Bug Fixes
+
+- include README in npm package ([2116344](https://github.com/archlinter/archlint/commit/211634405d337290be5debae86230de85a37bf51))
+
 ## [0.1.1](https://github.com/archlinter/archlint/compare/v0.1.0...v0.1.1) (2026-01-02)
 
 ### Bug Fixes
