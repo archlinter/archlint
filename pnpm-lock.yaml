@@ -54,23 +54,23 @@ importers:
   packages/cli:
     optionalDependencies:
       '@archlinter/cli-darwin-arm64':
-        specifier: 0.1.0
-        version: 0.1.0
+        specifier: workspace:*
+        version: link:../cli-darwin-arm64
       '@archlinter/cli-darwin-x64':
-        specifier: 0.1.0
-        version: 0.1.0
+        specifier: workspace:*
+        version: link:../cli-darwin-x64
       '@archlinter/cli-linux-arm64':
-        specifier: 0.1.0
-        version: 0.1.0
+        specifier: workspace:*
+        version: link:../cli-linux-arm64
       '@archlinter/cli-linux-x64':
-        specifier: 0.1.0
-        version: 0.1.0
+        specifier: workspace:*
+        version: link:../cli-linux-x64
       '@archlinter/cli-linux-x64-musl':
-        specifier: 0.1.0
-        version: 0.1.0
+        specifier: workspace:*
+        version: link:../cli-linux-x64-musl
       '@archlinter/cli-win32-x64':
-        specifier: 0.1.0
-        version: 0.1.0
+        specifier: workspace:*
+        version: link:../cli-win32-x64
 
   packages/cli-darwin-arm64: {}
 
@@ -116,36 +116,6 @@ importers:
         version: 5.9.3
 
 packages:
-
-  '@archlinter/cli-darwin-arm64@0.1.0':
-    resolution: {integrity: sha512-KbDISpBwjn3X+NyH9SotQEV/5ZeLdBJzW0At8WV2MrQYB/Ven6zGHJJNTqYJXvp/4A1VjAdzqujtnMsuZgENxg==}
-    cpu: [arm64]
-    os: [darwin]
-
-  '@archlinter/cli-darwin-x64@0.1.0':
-    resolution: {integrity: sha512-EQK31mHm6H0tUmgTbyU9c2d1UpVhvnH6/ycUPhg+DTSyErUtCXL5cYRjWJEWkFBqGFB8rZjNhNyd3es+LZ1uOQ==}
-    cpu: [x64]
-    os: [darwin]
-
-  '@archlinter/cli-linux-arm64@0.1.0':
-    resolution: {integrity: sha512-gRmqk+IpA0wBqFmU0KQDHHaWJlwHGqwNkadjo9HH0P80a2Ffy160PHm7H5L44u134aprv7jibr3AscBr6VCyiA==}
-    cpu: [arm64]
-    os: [linux]
-
-  '@archlinter/cli-linux-x64-musl@0.1.0':
-    resolution: {integrity: sha512-QzIXWDNAzRncbR40A6zmJh2OsWtM64aKC2w8AUdnK7v3PObpgxPyH5IzqozFiWwnHWG5qbIgj9nLK/ljdU2qew==}
-    cpu: [x64]
-    os: [linux]
-
-  '@archlinter/cli-linux-x64@0.1.0':
-    resolution: {integrity: sha512-NA52b2PnwVmfJ2B/b1HNhDwjEy495kKcpZtda60jmzspAS6DEYPPlPK+WThBLAzrXRIDgIeLdFpnlf1LNGNI0g==}
-    cpu: [x64]
-    os: [linux]
-
-  '@archlinter/cli-win32-x64@0.1.0':
-    resolution: {integrity: sha512-lCVbhyYJ6R/3ES8eVFRvU8p1JmykL3KUxvXXr06tTE3rSdy0w0o6W+G4Hah3dMvcmoBh1UlOPn/cQU8WQb9q5w==}
-    cpu: [x64]
-    os: [win32]
 
   '@babel/code-frame@7.27.1':
     resolution: {integrity: sha512-cjQ7ZlQ0Mv3b47hABuTevyTuYN4i+loJKGeV9flcCgIK37cCXRh+L1bd3iBHlynerhQ7BhCkn2BPbQUL+rGqFg==}
@@ -2374,24 +2344,6 @@ packages:
     engines: {node: '>=18'}
 
 snapshots:
-
-  '@archlinter/cli-darwin-arm64@0.1.0':
-    optional: true
-
-  '@archlinter/cli-darwin-x64@0.1.0':
-    optional: true
-
-  '@archlinter/cli-linux-arm64@0.1.0':
-    optional: true
-
-  '@archlinter/cli-linux-x64-musl@0.1.0':
-    optional: true
-
-  '@archlinter/cli-linux-x64@0.1.0':
-    optional: true
-
-  '@archlinter/cli-win32-x64@0.1.0':
-    optional: true
 
   '@babel/code-frame@7.27.1':
     dependencies:
