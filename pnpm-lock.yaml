@@ -101,12 +101,12 @@ importers:
       '@archlinter/core-darwin-x64':
         specifier: workspace:*
         version: link:../core-darwin-x64
-      '@archlinter/core-linux-arm64':
+      '@archlinter/core-linux-arm64-gnu':
         specifier: workspace:*
-        version: link:../core-linux-arm64
-      '@archlinter/core-linux-x64':
+        version: link:../core-linux-arm64-gnu
+      '@archlinter/core-linux-x64-gnu':
         specifier: workspace:*
-        version: link:../core-linux-x64
+        version: link:../core-linux-x64-gnu
       '@archlinter/core-linux-x64-musl':
         specifier: workspace:*
         version: link:../core-linux-x64-musl
@@ -122,9 +122,9 @@ importers:
 
   packages/core-darwin-x64: {}
 
-  packages/core-linux-arm64: {}
+  packages/core-linux-arm64-gnu: {}
 
-  packages/core-linux-x64: {}
+  packages/core-linux-x64-gnu: {}
 
   packages/core-linux-x64-musl: {}
 
