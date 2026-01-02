@@ -69,9 +69,9 @@ The workflow will:
 1. **Calculate Version**: `semantic-release` analyzes commits since the last release.
 2. **Update Files**: Automatically updates `Cargo.toml`, `package.json`, and `CHANGELOG.md`.
 3. **Commit & Tag**: Creates a new commit and Git tag for the release.
-4. **Wait for CI**: The workflow waits for the CI build (triggered by the new commit) to complete. This ensures binaries are built with the correct version.
-5. **Publish to npm**: Publishes all packages to the npm registry.
-6. **Attach Binaries**: Uploads standalone binaries to the GitHub Release.
+4. **Trigger CI**: The tag push triggers the CI workflow, which builds all binaries.
+5. **Publish to npm**: CI publishes all packages to the npm registry (only on tags).
+6. **Attach Binaries**: CI uploads standalone binaries to the GitHub Release.
 
 ## Version Numbers
 

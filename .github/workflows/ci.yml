@@ -3,6 +3,8 @@ name: CI
 on:
   push:
     branches: [main]
+    tags:
+      - 'v*'
   pull_request:
     branches: [main]
 
@@ -72,8 +74,8 @@ jobs:
       - name: Run tests
         run: cargo test --workspace --all-features
 
-  build-napi:
-    name: Build napi - ${{ matrix.target }}
+  build-core:
+    name: Build core - ${{ matrix.target }}
     runs-on: ${{ matrix.os }}
     needs: [lint, test]
     strategy:
@@ -203,10 +205,10 @@ jobs:
             target/${{ matrix.target }}/release/archlint.exe
           if-no-files-found: error
 
-  test-node:
-    name: Test Node.js - ${{ matrix.os }}
+  test-core:
+    name: Test core - ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
-    needs: [build-napi]
+    needs: [build-core]
     strategy:
       fail-fast: false
       matrix:
@@ -279,3 +281,165 @@ jobs:
 
       - name: Test scan
         run: ./bin/archlint${{ matrix.ext }} scan crates/archlint/test_data/cycles
+
+  publish:
+    name: Publish to npm
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [build-core, build-cli, test-core, test-cli]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: 9
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Validate downloaded artifacts
+        run: |
+          echo "🔍 Validating downloaded artifacts..."
+          MISSING=0
+
+          # Validate core artifacts (NO -gnu suffix for glibc)
+          for pkg in darwin-arm64 darwin-x64 linux-x64 linux-x64-musl linux-arm64 win32-x64; do
+            if [ ! -d "artifacts/core-${pkg}" ] || [ ! -f "artifacts/core-${pkg}/"*.node ]; then
+              echo "❌ Missing core artifact: core-${pkg}"
+              MISSING=1
+            else
+              echo "✅ Found core-${pkg}"
+            fi
+          done
+
+          # Validate CLI artifacts (NO -gnu suffix for glibc)
+          for pkg in darwin-arm64 darwin-x64 linux-x64 linux-x64-musl linux-arm64; do
+            if [ ! -d "artifacts/cli-${pkg}" ] || [ ! -f "artifacts/cli-${pkg}/archlint" ]; then
+              echo "❌ Missing CLI artifact: cli-${pkg}"
+              MISSING=1
+            else
+              echo "✅ Found cli-${pkg}"
+            fi
+          done
+
+          if [ ! -d "artifacts/cli-win32-x64" ] || [ ! -f "artifacts/cli-win32-x64/archlint.exe" ]; then
+            echo "❌ Missing CLI artifact: cli-win32-x64"
+            MISSING=1
+          else
+            echo "✅ Found cli-win32-x64"
+          fi
+
+          if [ $MISSING -eq 1 ]; then
+            echo "❌ Some artifacts are missing!"
+            exit 1
+          fi
+
+          echo "✅ All artifacts validated successfully!"
+
+      - name: Get version from tag
+        id: version
+        run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+
+      - name: Replace workspace protocol with versions
+        run: node scripts/sync-versions.cjs ${{ steps.version.outputs.VERSION }} --publish
+
+      - name: Prepare core packages
+        run: |
+          for pkg in darwin-arm64 darwin-x64 linux-x64 linux-x64-musl linux-arm64 win32-x64; do
+            mkdir -p packages/core-${pkg}
+            cp artifacts/core-${pkg}/*.node packages/core-${pkg}/
+          done
+
+      - name: Publish platform core packages
+        run: |
+          for pkg in darwin-arm64 darwin-x64 linux-x64 linux-x64-musl linux-arm64 win32-x64; do
+            cd packages/core-${pkg}
+            npm publish --access public --provenance
+            cd ../..
+          done
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Publish @archlinter/core
+        run: |
+          cd packages/core
+          npm publish --access public --provenance
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Prepare CLI packages
+        run: |
+          for pkg in darwin-arm64 darwin-x64 linux-x64 linux-x64-musl linux-arm64; do
+            mkdir -p packages/cli-${pkg}
+            cp artifacts/cli-${pkg}/archlint packages/cli-${pkg}/
+          done
+          mkdir -p packages/cli-win32-x64
+          cp artifacts/cli-win32-x64/archlint.exe packages/cli-win32-x64/
+
+      - name: Publish platform CLI packages
+        run: |
+          for pkg in darwin-arm64 darwin-x64 linux-x64 linux-x64-musl linux-arm64 win32-x64; do
+            cd packages/cli-${pkg}
+            npm publish --access public --provenance
+            cd ../..
+          done
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Publish @archlinter/cli
+        run: |
+          cd packages/cli
+          npm publish --access public --provenance
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+  attach-binaries:
+    name: Attach binaries to release
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [publish]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download CLI artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          pattern: cli-*
+
+      - name: Prepare release assets
+        run: |
+          mkdir -p release
+          for artifact in artifacts/cli-*; do
+            platform=$(basename "$artifact" | sed 's/^cli-//')
+            if [ -f "$artifact/archlint" ]; then
+              cp "$artifact/archlint" "release/archlint-${platform}"
+              chmod +x "release/archlint-${platform}"
+            fi
+            if [ -f "$artifact/archlint.exe" ]; then
+              cp "$artifact/archlint.exe" "release/archlint-${platform}.exe"
+            fi
+          done
+
+      - name: Upload binaries to release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: release/*
