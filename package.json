@@ -15,7 +15,7 @@
     "build": "pnpm -r build",
     "build:rust": "cargo build --release --workspace",
     "build:napi": "cd crates/archlint-napi && napi build --release",
-    "test": "pnpm -r test",
+    "test": "vitest run && pnpm test:rust",
     "test:rust": "cargo test --workspace",
     "lint": "pnpm -r lint && eslint .",
     "format": "prettier --write .",
