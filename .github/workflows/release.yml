@@ -52,7 +52,11 @@ jobs:
               const config = JSON.parse(fs.readFileSync('.releaserc.json', 'utf8'));
               config.branches = [
                 'main',
-                { name: '${BRANCH_NAME}', prerelease: '${{ github.event.inputs.channel }}', channel: '${{ github.event.inputs.channel }}' }
+                { 
+                  name: '${BRANCH_NAME}', 
+                  prerelease: '${{ github.event.inputs.channel }}', 
+                  channel: '${{ github.event.inputs.channel }}'
+                }
               ];
               fs.writeFileSync('.releaserc.json', JSON.stringify(config, null, 2));
             "
@@ -60,6 +64,26 @@ jobs:
           else
             echo "✓ Using stable configuration (main branch)"
           fi
+
+      - name: Debug prerelease tags for semantic-release
+        if: github.event.inputs.channel != 'stable'
+        run: |
+          echo "=== Debugging prerelease tags ==="
+          echo "Current branch: $(git rev-parse --abbrev-ref HEAD)"
+          echo "Current HEAD: $(git rev-parse HEAD)"
+          echo ""
+          echo "All prerelease tags for channel ${{ github.event.inputs.channel }}:"
+          git tag -l "v*-${{ github.event.inputs.channel }}.*" | sort -V | while read TAG; do
+            TAG_COMMIT=$(git rev-list -n 1 "$TAG" 2>/dev/null || echo "unknown")
+            if git merge-base --is-ancestor "$TAG_COMMIT" HEAD 2>/dev/null; then
+              echo "  ✓ $TAG -> $TAG_COMMIT (in branch history)"
+            else
+              echo "  ⚠ $TAG -> $TAG_COMMIT (NOT in branch history)"
+            fi
+          done
+          echo ""
+          echo "Tags reachable from HEAD:"
+          git tag --merged HEAD | grep -E "v.*-${{ github.event.inputs.channel }}" || echo "  (none found)"
 
       - name: Semantic Release
         uses: cycjimmy/semantic-release-action@v4
