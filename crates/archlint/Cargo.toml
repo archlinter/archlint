@@ -8,14 +8,19 @@ description = "Fast, AST-based architecture smell detector for TypeScript/JavaSc
 [[bin]]
 name = "archlint"
 path = "src/main.rs"
+required-features = ["cli"]
 
 [lib]
 name = "archlint"
 path = "src/lib.rs"
 
+[features]
+default = ["cli"]
+cli = ["dep:clap", "dep:clap_complete", "dep:indicatif", "dep:console", "dep:comfy-table"]
+
 [dependencies]
-clap.workspace = true
-clap_complete.workspace = true
+clap = { workspace = true, optional = true }
+clap_complete = { workspace = true, optional = true }
 serde.workspace = true
 serde_json.workspace = true
 serde_yaml.workspace = true
@@ -46,9 +51,9 @@ regex.workspace = true
 inventory.workspace = true
 sha2.workspace = true
 chrono.workspace = true
-indicatif.workspace = true
-console.workspace = true
-comfy-table.workspace = true
+indicatif = { workspace = true, optional = true }
+console = { workspace = true, optional = true }
+comfy-table = { workspace = true, optional = true }
 
 [dev-dependencies]
 tempfile.workspace = true

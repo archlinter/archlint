@@ -1,6 +1,6 @@
+use crate::args::{Language, ScanArgs};
 use crate::cache::hash::file_content_hash;
 use crate::cache::AnalysisCache;
-use crate::cli::{Language, ScanArgs};
 use crate::config::Config;
 use crate::detectors::{self, Severity};
 use crate::engine::AnalysisContext;
@@ -9,6 +9,10 @@ use crate::framework::detector::FrameworkDetector;
 use crate::framework::presets;
 use crate::graph::{DependencyGraph, EdgeData};
 use crate::metrics::GitChurn;
+#[cfg(not(feature = "cli"))]
+use crate::no_cli_mocks::console::{style, Term};
+#[cfg(not(feature = "cli"))]
+use crate::no_cli_mocks::indicatif::{ProgressBar, ProgressStyle};
 use crate::package_json;
 use crate::parser::{ImportParser, ParsedFile, ParserConfig};
 use crate::project_root::detect_project_root;
@@ -16,7 +20,9 @@ use crate::report::AnalysisReport;
 use crate::resolver::PathResolver;
 use crate::scanner::FileScanner;
 use crate::Result;
+#[cfg(feature = "cli")]
 use console::{style, Term};
+#[cfg(feature = "cli")]
 use indicatif::{ProgressBar, ProgressStyle};
 use log::{debug, info};
 use rayon::prelude::*;
@@ -364,7 +370,7 @@ impl AnalysisEngine {
                     let parsed = parser.parse_file_with_config(file, config)?;
                     pb.inc(1);
                     if let Some(name) = file.file_name() {
-                        pb.set_message(style(name.to_string_lossy().to_string()).dim().to_string());
+                        pb.set_message(name.to_string_lossy().to_string());
                     }
                     Ok((file.clone(), parsed))
                 })
@@ -483,7 +489,7 @@ impl AnalysisEngine {
         for file in runtime_files {
             if let Some(ref pb) = pb {
                 if let Some(name) = file.file_name() {
-                    pb.set_message(style(name.to_string_lossy().to_string()).dim().to_string());
+                    pb.set_message(name.to_string_lossy().to_string());
                 }
             }
             let from_node = graph.get_node(file).unwrap();
@@ -582,7 +588,7 @@ impl AnalysisEngine {
         for (file, symbols) in file_symbols {
             if let Some(ref pb) = pb {
                 if let Some(name) = file.file_name() {
-                    pb.set_message(style(name.to_string_lossy().to_string()).dim().to_string());
+                    pb.set_message(name.to_string_lossy().to_string());
                 }
             }
             let mut resolved_symbols = symbols.clone();
@@ -653,7 +659,7 @@ impl AnalysisEngine {
 
         for detector in final_detectors {
             if let Some(ref pb) = pb {
-                pb.set_message(style(detector.name()).dim().to_string());
+                pb.set_message(detector.name());
             }
             let smells = detector.detect(ctx);
 

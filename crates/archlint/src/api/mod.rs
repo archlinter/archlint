@@ -2,7 +2,7 @@
 //!
 //! This module provides the stable public interface for programmatic use.
 
-use crate::cli::{Language, OutputFormat, ScanArgs};
+use crate::args::{Language, OutputFormat, ScanArgs};
 use crate::config::Config;
 use crate::detectors::registry::{DetectorInfo, DetectorRegistry};
 use crate::engine::AnalysisEngine;

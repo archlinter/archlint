@@ -1,6 +1,6 @@
 use crate::api::options::ScanOptions;
 use crate::api::result::{IncrementalResult, ScanResult, SmellWithExplanation};
-use crate::cli::{Language, OutputFormat, ScanArgs};
+use crate::args::{Language, OutputFormat, ScanArgs};
 use crate::config::Config;
 use crate::detectors::DetectorRegistry;
 use crate::engine::context::AnalysisContext;

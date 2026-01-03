@@ -1,4 +1,6 @@
+pub mod args;
 pub mod cache;
+#[cfg(feature = "cli")]
 pub mod cli;
 pub mod config;
 pub mod detectors;
@@ -10,12 +12,15 @@ pub mod glob_expand;
 pub mod graph;
 pub mod incremental;
 pub mod metrics;
+#[cfg(not(feature = "cli"))]
+pub mod no_cli_mocks;
 pub mod package_json;
 pub mod parser;
 pub mod project_root;
 pub mod report;
 pub mod resolver;
 pub mod scanner;
+#[cfg(feature = "cli")]
 pub mod watch;
 
 // Public modules
@@ -28,6 +33,7 @@ pub use api::{
 };
 pub use api::{ExportInfo, ExportKind, FileInfo, FileMetrics, ImportInfo};
 
+pub use args::{Language, OutputFormat, ScanArgs};
 pub use config::Config;
 pub use detectors::registry::DetectorInfo;
 pub use detectors::{ArchSmell, CodeRange, CycleCluster, LocationDetail, Severity, SmellType};

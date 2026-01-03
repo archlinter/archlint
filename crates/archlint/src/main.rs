@@ -1,4 +1,4 @@
-use archlint::cli::{Language, ScanArgs};
+use archlint::args::{Language, OutputFormat, ScanArgs};
 use archlint::{
     cache, cli, config, detectors, engine, glob_expand, report, watch, AnalysisError, Result,
 };
@@ -183,7 +183,7 @@ fn run(cli: cli::Cli) -> Result<()> {
     }
 }
 
-fn handle_scan_command(args: cli::ScanArgs) -> Result<()> {
+fn handle_scan_command(args: ScanArgs) -> Result<()> {
     let args = resolve_scan_args(args)?;
     let start = Instant::now();
     let engine = engine::AnalysisEngine::new_with_args(args.clone())?;
@@ -215,8 +215,8 @@ fn handle_watch_command(args: cli::WatchArgs) -> Result<()> {
     ignore_patterns.extend(args.ignore.clone());
 
     let extensions = match args.scan.lang {
-        cli::Language::TypeScript => vec!["ts".to_string(), "tsx".to_string()],
-        cli::Language::JavaScript => vec!["js".to_string(), "jsx".to_string()],
+        Language::TypeScript => vec!["ts".to_string(), "tsx".to_string()],
+        Language::JavaScript => vec!["js".to_string(), "jsx".to_string()],
     };
 
     let watch_config = watch::WatchConfig {
@@ -276,7 +276,7 @@ fn print_scan_results(
     config: &config::Config,
     start: Instant,
 ) {
-    if !args.is_quiet() && args.output_format() == cli::OutputFormat::Table {
+    if !args.is_quiet() && args.output_format() == OutputFormat::Table {
         let duration = start.elapsed();
         info!(
             "\n{}  (in {:.2}s)",
