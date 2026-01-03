@@ -6,6 +6,19 @@
 
 ### Bug Fixes
 
+- **ci:** ignore npm publish errors for existing versions ([4dbeb70](https://github.com/archlinter/archlint/commit/4dbeb707d46acca27eedc6d967cd49e3207974cd))
+- **release:** add channel config and fetch-tags for prerelease detection ([fcbf2fd](https://github.com/archlinter/archlint/commit/fcbf2fd27a7eed84b84cb25a729e6ae451bab502))
+- **release:** add debug step and improve prerelease tag detection ([2a809d0](https://github.com/archlinter/archlint/commit/2a809d025f45566a77d64b7ac644376cd1b34c49))
+- **release:** clean up prerelease state before semantic-release ([0d307cf](https://github.com/archlinter/archlint/commit/0d307cf40cf8f00456caf4614f49e27a4fdce23e))
+
+## [0.6.0-alpha.1](https://github.com/archlinter/archlint/compare/v0.5.0...v0.6.0-alpha.1) (2026-01-03)
+
+### Features
+
+- **eslint-plugin:** implement architectural smell detection rules ([672aa37](https://github.com/archlinter/archlint/commit/672aa37d3ac1fdef1ecf5398ecefead8f5d274f5))
+
+### Bug Fixes
+
 - **release:** add channel config and fetch-tags for prerelease detection ([fcbf2fd](https://github.com/archlinter/archlint/commit/fcbf2fd27a7eed84b84cb25a729e6ae451bab502))
 
 ## [0.6.0-alpha.1](https://github.com/archlinter/archlint/compare/v0.5.0...v0.6.0-alpha.1) (2026-01-03)
