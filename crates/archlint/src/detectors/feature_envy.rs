@@ -28,8 +28,6 @@ inventory::submit! {
     &FeatureEnvyDetectorFactory as &dyn DetectorFactory
 }
 
-impl FeatureEnvyDetector {}
-
 impl Detector for FeatureEnvyDetector {
     fn name(&self) -> &'static str {
         "FeatureEnvy"
@@ -41,56 +39,80 @@ impl Detector for FeatureEnvyDetector {
         ctx.file_symbols
             .iter()
             .filter_map(|(path, symbols)| {
-                let mut internal_refs = 0;
-                for def in &symbols.local_definitions {
-                    if symbols.local_usages.contains(def) {
-                        internal_refs += 1;
-                    }
-                }
-                for exp in &symbols.exports {
-                    if symbols.local_usages.contains(&exp.name) {
-                        internal_refs += 1;
-                    }
-                }
-
-                let mut external_refs = 0;
-                let mut source_usages: HashMap<String, usize> = HashMap::new();
-
-                for import in &symbols.imports {
-                    let name_to_check = import.alias.as_ref().unwrap_or(&import.name);
-                    if symbols.local_usages.contains(name_to_check) {
-                        external_refs += 1;
-                        *source_usages.entry(import.source.to_string()).or_insert(0) += 1;
-                    }
-                }
-
-                let ratio = external_refs as f64 / (internal_refs as f64 + 1.0);
-
-                if ratio >= thresholds.ratio && external_refs > 0 {
-                    let (most_envied_source, _) =
-                        source_usages.into_iter().max_by_key(|&(_, count)| count)?;
-
-                    let most_envied_path = if most_envied_source.starts_with('.') {
-                        // Simple resolution, good enough for the report
-                        let mut p = path.parent()?.to_path_buf();
-                        p.push(most_envied_source);
-                        p
-                    } else {
-                        PathBuf::from(most_envied_source)
-                    };
-
-                    Some(ArchSmell::new_feature_envy(
-                        path.clone(),
-                        most_envied_path,
-                        ratio,
-                        internal_refs,
-                        external_refs,
-                    ))
-                } else {
-                    None
-                }
+                Self::analyze_file_for_envy(path.as_path(), symbols, thresholds)
             })
             .collect()
+    }
+}
+
+impl FeatureEnvyDetector {
+    fn analyze_file_for_envy(
+        path: &std::path::Path,
+        symbols: &crate::parser::FileSymbols,
+        thresholds: &crate::config::FeatureEnvyThresholds,
+    ) -> Option<ArchSmell> {
+        let internal_refs = Self::count_internal_refs(symbols);
+        let (external_refs, source_usages) = Self::count_external_refs(symbols);
+        let ratio = external_refs as f64 / (internal_refs as f64 + 1.0);
+
+        if ratio >= thresholds.ratio && external_refs > 0 {
+            let most_envied_path = Self::find_most_envied_path(path, source_usages)?;
+            Some(ArchSmell::new_feature_envy(
+                path.to_path_buf(),
+                most_envied_path,
+                ratio,
+                internal_refs,
+                external_refs,
+            ))
+        } else {
+            None
+        }
+    }
+
+    fn count_internal_refs(symbols: &crate::parser::FileSymbols) -> usize {
+        let def_refs = symbols
+            .local_definitions
+            .iter()
+            .filter(|def| symbols.local_usages.contains(def.as_str()))
+            .count();
+        let exp_refs = symbols
+            .exports
+            .iter()
+            .filter(|exp| symbols.local_usages.contains(exp.name.as_str()))
+            .count();
+        def_refs + exp_refs
+    }
+
+    fn count_external_refs(
+        symbols: &crate::parser::FileSymbols,
+    ) -> (usize, HashMap<String, usize>) {
+        let mut external_refs = 0;
+        let mut source_usages: HashMap<String, usize> = HashMap::new();
+
+        for import in &symbols.imports {
+            let name_to_check = import.alias.as_ref().unwrap_or(&import.name);
+            if symbols.local_usages.contains(name_to_check) {
+                external_refs += 1;
+                *source_usages.entry(import.source.to_string()).or_insert(0) += 1;
+            }
+        }
+
+        (external_refs, source_usages)
+    }
+
+    fn find_most_envied_path(
+        path: &std::path::Path,
+        source_usages: HashMap<String, usize>,
+    ) -> Option<PathBuf> {
+        let (most_envied_source, _) = source_usages.into_iter().max_by_key(|&(_, count)| count)?;
+
+        if most_envied_source.starts_with('.') {
+            let mut p = path.parent()?.to_path_buf();
+            p.push(most_envied_source);
+            Some(p)
+        } else {
+            Some(PathBuf::from(most_envied_source))
+        }
     }
 }
 

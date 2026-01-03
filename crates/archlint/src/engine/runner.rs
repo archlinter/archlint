@@ -21,7 +21,7 @@ use indicatif::{ProgressBar, ProgressStyle};
 use log::{debug, info};
 use rayon::prelude::*;
 use std::collections::{HashMap, HashSet};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 pub struct AnalysisEngine {
     pub args: ScanArgs,
@@ -91,6 +91,69 @@ impl AnalysisEngine {
         let is_tty = Term::stdout().is_term();
         let use_progress = is_tty && !self.args.is_quiet();
 
+        self.log_start();
+
+        let files = self.discover_files()?;
+        let detected_frameworks = self.detect_frameworks();
+        let file_types = self.classify_files(&files, &detected_frameworks);
+        let presets = presets::get_presets(&detected_frameworks);
+        let final_config = self.apply_presets(&presets);
+
+        let active_ids = self.get_active_detectors(&final_config, &presets);
+        let parser_config = self.create_parser_config(&active_ids);
+
+        let mut cache = self.load_cache()?;
+        let parsed_files = self.parse_files(&files, &parser_config, use_progress, &cache)?;
+        self.update_cache(&mut cache, &parsed_files)?;
+
+        let (file_symbols, function_complexity, file_metrics) =
+            self.extract_parsed_data(parsed_files);
+        let runtime_files = self.get_runtime_files(&file_symbols);
+
+        self.log_runtime_info(runtime_files.len(), files.len());
+
+        let graph = self.build_graph(&runtime_files, &file_symbols, use_progress)?;
+        let churn_map = self.get_churn_map(&files, use_progress, &mut cache);
+        let resolved_file_symbols = self.resolve_symbols(file_symbols, use_progress);
+
+        let pkg_config = package_json::PackageJsonParser::parse(&self.project_root)?;
+
+        let ctx = AnalysisContext {
+            project_path: self.project_root.clone(),
+            graph,
+            file_symbols: resolved_file_symbols,
+            function_complexity,
+            file_metrics,
+            churn_map,
+            config: final_config.clone(),
+            script_entry_points: pkg_config.entry_points,
+            dynamic_load_patterns: pkg_config.dynamic_load_patterns,
+            detected_frameworks,
+            file_types,
+        };
+
+        let all_smells = self.run_detectors(&ctx, use_progress, &presets)?;
+
+        let mut report = AnalysisReport::new(
+            all_smells,
+            Some(ctx.graph),
+            ctx.file_symbols,
+            ctx.file_metrics,
+            ctx.function_complexity,
+            ctx.churn_map,
+        );
+        report.set_files_analyzed(files.len());
+        report.apply_severity_config(&self.config.severity);
+
+        if let Some(c) = cache {
+            debug!("Saving cache...");
+            c.save()?;
+        }
+
+        Ok(report)
+    }
+
+    fn log_start(&self) {
         info!(
             "{} Scanning target: {}",
             style("🔍").cyan().bold(),
@@ -101,75 +164,85 @@ impl AnalysisEngine {
             style("🏠").dim(),
             style(self.project_root.display()).dim()
         );
+    }
 
+    fn discover_files(&self) -> Result<Vec<PathBuf>> {
         let extensions = match self.args.lang {
             Language::TypeScript => vec!["ts".to_string(), "tsx".to_string()],
             Language::JavaScript => vec!["js".to_string(), "jsx".to_string()],
         };
 
         let files = if let Some(ref explicit_files) = self.args.files {
-            // Use explicit files (from glob expansion) and apply ignore patterns
             explicit_files
                 .iter()
-                .filter(|f| {
-                    let is_excluded = if self.config.ignore.is_empty() {
-                        false
-                    } else {
-                        let rel_path = f
-                            .strip_prefix(&self.project_root)
-                            .unwrap_or(f)
-                            .to_string_lossy();
-                        self.config.ignore.iter().any(|p| {
-                            if let Ok(pattern) = glob::Pattern::new(p) {
-                                pattern.matches(&rel_path)
-                            } else {
-                                false
-                            }
-                        })
-                    };
-                    !is_excluded
-                })
+                .filter(|f| !self.is_file_ignored(f))
                 .cloned()
                 .collect()
         } else {
             let scanner = FileScanner::new(&self.project_root, &self.target_path, extensions);
             scanner.scan(&self.config)?
         };
+
         info!(
             "{} Found {} files to analyze",
             style("📁").blue().bold(),
             style(files.len()).yellow()
         );
+        Ok(files)
+    }
 
-        let detected_frameworks = if self.config.auto_detect_framework {
-            FrameworkDetector::detect(&self.project_root)
+    fn is_file_ignored(&self, path: &Path) -> bool {
+        if self.config.ignore.is_empty() {
+            return false;
+        }
+        let rel_path = path
+            .strip_prefix(&self.project_root)
+            .unwrap_or(path)
+            .to_string_lossy();
+        self.config.ignore.iter().any(|p| {
+            glob::Pattern::new(p)
+                .map(|pattern| pattern.matches(&rel_path))
+                .unwrap_or(false)
+        })
+    }
+
+    fn detect_frameworks(&self) -> Vec<crate::framework::Framework> {
+        if self.config.auto_detect_framework {
+            let frameworks = FrameworkDetector::detect(&self.project_root);
+            if !frameworks.is_empty() {
+                info!(
+                    "{}  Detected frameworks: {}",
+                    style("🛠️").magenta().bold(),
+                    style(
+                        frameworks
+                            .iter()
+                            .map(|f| format!("{:?}", f))
+                            .collect::<Vec<_>>()
+                            .join(", ")
+                    )
+                    .yellow()
+                );
+            }
+            frameworks
         } else {
             Vec::new()
-        };
-
-        if !detected_frameworks.is_empty() {
-            info!(
-                "{}  Detected frameworks: {}",
-                style("🛠️").magenta().bold(),
-                style(
-                    detected_frameworks
-                        .iter()
-                        .map(|f| format!("{:?}", f))
-                        .collect::<Vec<_>>()
-                        .join(", ")
-                )
-                .yellow()
-            );
         }
+    }
 
-        let file_types: HashMap<PathBuf, crate::framework::FileType> = files
+    fn classify_files(
+        &self,
+        files: &[PathBuf],
+        frameworks: &[crate::framework::Framework],
+    ) -> HashMap<PathBuf, crate::framework::FileType> {
+        files
             .iter()
-            .map(|f| (f.clone(), FileClassifier::classify(f, &detected_frameworks)))
-            .collect();
+            .map(|f| (f.clone(), FileClassifier::classify(f, frameworks)))
+            .collect()
+    }
 
-        let presets = presets::get_presets(&detected_frameworks);
+    fn apply_presets(&self, presets: &[presets::FrameworkPreset]) -> Config {
         let mut final_config = self.config.clone();
-        for preset in &presets {
+        for preset in presets {
             for ignore in &preset.vendor_ignore {
                 if !final_config
                     .thresholds
@@ -197,14 +270,18 @@ impl AnalysisEngine {
                 }
             }
         }
+        final_config
+    }
 
-        let parser = ImportParser::new()?;
-        let resolver = PathResolver::new(&self.project_root, &self.config);
-
+    fn get_active_detectors(
+        &self,
+        config: &Config,
+        presets: &[presets::FrameworkPreset],
+    ) -> HashSet<String> {
         let registry = detectors::registry::DetectorRegistry::new();
         let selection =
-            crate::framework::selector::DetectorSelector::select(&final_config.detectors, &presets);
-        let active_ids: HashSet<String> = if self.args.all_detectors {
+            crate::framework::selector::DetectorSelector::select(&config.detectors, presets);
+        if self.args.all_detectors {
             registry
                 .list_all()
                 .into_iter()
@@ -222,9 +299,11 @@ impl AnalysisEngine {
                 })
                 .map(|info| info.id.to_string())
                 .collect()
-        };
+        }
+    }
 
-        let parser_config = ParserConfig {
+    fn create_parser_config(&self, active_ids: &HashSet<String>) -> ParserConfig {
+        ParserConfig {
             collect_complexity: active_ids.iter().any(|id| {
                 matches!(
                     id.as_str(),
@@ -240,16 +319,27 @@ impl AnalysisEngine {
             collect_classes: active_ids.contains("lcom"),
             collect_env_vars: active_ids.contains("scattered_config"),
             collect_used_symbols: active_ids.contains("scattered_module"),
-        };
+        }
+    }
 
-        let mut cache = if !self.args.no_cache {
+    fn load_cache(&self) -> Result<Option<AnalysisCache>> {
+        if !self.args.no_cache {
             debug!("Loading cache...");
-            Some(AnalysisCache::load(&self.project_root, &self.config)?)
+            Ok(Some(AnalysisCache::load(&self.project_root, &self.config)?))
         } else {
-            None
-        };
+            Ok(None)
+        }
+    }
 
-        let parsed_files: HashMap<PathBuf, ParsedFile> = if use_progress {
+    fn parse_files(
+        &self,
+        files: &[PathBuf],
+        config: &ParserConfig,
+        use_progress: bool,
+        cache: &Option<AnalysisCache>,
+    ) -> Result<HashMap<PathBuf, ParsedFile>> {
+        let parser = ImportParser::new()?;
+        if use_progress {
             let pb = ProgressBar::new(files.len() as u64);
             pb.set_style(
                 ProgressStyle::default_bar()
@@ -270,7 +360,7 @@ impl AnalysisEngine {
                             return Ok((file.clone(), (*cached).clone()));
                         }
                     }
-                    let parsed = parser.parse_file_with_config(file, &parser_config)?;
+                    let parsed = parser.parse_file_with_config(file, config)?;
                     pb.inc(1);
                     if let Some(name) = file.file_name() {
                         pb.set_message(style(name.to_string_lossy().to_string()).dim().to_string());
@@ -279,7 +369,7 @@ impl AnalysisEngine {
                 })
                 .collect::<Result<HashMap<_, _>>>();
             pb.finish_and_clear();
-            result?
+            result
         } else {
             files
                 .par_iter()
@@ -291,52 +381,85 @@ impl AnalysisEngine {
                         }
                     }
                     debug!("Parsing: {}", file.display());
-                    let parsed = parser.parse_file_with_config(file, &parser_config)?;
+                    let parsed = parser.parse_file_with_config(file, config)?;
                     Ok((file.clone(), parsed))
                 })
-                .collect::<Result<HashMap<_, _>>>()?
-        };
+                .collect::<Result<HashMap<_, _>>>()
+        }
+    }
 
+    fn update_cache(
+        &self,
+        cache: &mut Option<AnalysisCache>,
+        parsed_files: &HashMap<PathBuf, ParsedFile>,
+    ) -> Result<()> {
         if let Some(ref mut c) = cache {
-            for (file, parsed) in &parsed_files {
+            for (file, parsed) in parsed_files {
                 let hash = file_content_hash(file)?;
                 c.insert(file.clone(), hash, (*parsed).clone());
             }
         }
+        Ok(())
+    }
 
-        let mut file_symbols = HashMap::new();
-        let mut function_complexity = HashMap::new();
-        let mut file_metrics = HashMap::new();
+    #[allow(clippy::type_complexity)]
+    fn extract_parsed_data(
+        &self,
+        parsed_files: HashMap<PathBuf, ParsedFile>,
+    ) -> (
+        HashMap<PathBuf, crate::parser::FileSymbols>,
+        HashMap<PathBuf, Vec<crate::parser::FunctionComplexity>>,
+        HashMap<PathBuf, crate::engine::context::FileMetrics>,
+    ) {
+        let mut symbols = HashMap::new();
+        let mut complexity = HashMap::new();
+        let mut metrics = HashMap::new();
         for (file, parsed) in parsed_files {
-            file_symbols.insert(file.clone(), parsed.symbols);
-            function_complexity.insert(file.clone(), parsed.functions);
-            file_metrics.insert(
+            symbols.insert(file.clone(), parsed.symbols);
+            complexity.insert(file.clone(), parsed.functions);
+            metrics.insert(
                 file,
                 crate::engine::context::FileMetrics {
                     lines: parsed.lines,
                 },
             );
         }
+        (symbols, complexity, metrics)
+    }
 
-        let runtime_files: HashSet<PathBuf> = file_symbols
+    fn get_runtime_files(
+        &self,
+        symbols: &HashMap<PathBuf, crate::parser::FileSymbols>,
+    ) -> HashSet<PathBuf> {
+        symbols
             .iter()
             .filter(|(_, s)| s.has_runtime_code)
             .map(|(p, _)| p.clone())
-            .collect();
+            .collect()
+    }
 
+    fn log_runtime_info(&self, runtime_count: usize, total_count: usize) {
         info!(
             "{} Runtime code found in {} files (skipped {} type-only)",
             style("💎").magenta().bold(),
-            style(runtime_files.len()).cyan(),
-            style(files.len() - runtime_files.len()).dim()
+            style(runtime_count).cyan(),
+            style(total_count - runtime_count).dim()
         );
+    }
 
+    fn build_graph(
+        &self,
+        runtime_files: &HashSet<PathBuf>,
+        file_symbols: &HashMap<PathBuf, crate::parser::FileSymbols>,
+        use_progress: bool,
+    ) -> Result<DependencyGraph> {
         info!(
             "{}  Building dependency graph...",
             style("🕸️").cyan().bold()
         );
+        let resolver = PathResolver::new(&self.project_root, &self.config);
         let mut graph = DependencyGraph::new();
-        for file in &runtime_files {
+        for file in runtime_files {
             graph.add_file(file);
         }
 
@@ -356,7 +479,7 @@ impl AnalysisEngine {
         };
 
         let mut resolved_count = 0;
-        for file in &runtime_files {
+        for file in runtime_files {
             if let Some(ref pb) = pb {
                 if let Some(name) = file.file_name() {
                     pb.set_message(style(name.to_string_lossy().to_string()).dim().to_string());
@@ -395,36 +518,50 @@ impl AnalysisEngine {
             style(graph.edge_count()).yellow(),
             style(resolved_count).dim()
         );
+        Ok(graph)
+    }
 
+    fn get_churn_map(
+        &self,
+        files: &[PathBuf],
+        use_progress: bool,
+        cache: &mut Option<AnalysisCache>,
+    ) -> HashMap<PathBuf, usize> {
         info!("{} Calculating metrics...", style("📊").blue().bold());
-        let churn_map = if !self.config.enable_git {
+        if !self.config.enable_git {
             debug!("Git integration disabled, skipping churn calculation");
-            HashMap::new()
-        } else if let Some(cached_churn) = cache.as_ref().and_then(|c| c.get_churn_map()) {
+            return HashMap::new();
+        }
+        if let Some(cached_churn) = cache.as_ref().and_then(|c| c.get_churn_map()) {
             debug!("Using cached churn map");
-            cached_churn.clone()
-        } else {
-            let git_churn = GitChurn::new(&self.project_root);
-            if !git_churn.is_available() {
-                debug!("Git repository not found, skipping churn calculation");
-                HashMap::new()
-            } else {
-                match git_churn.calculate_churn(&files, use_progress) {
-                    Ok(map) => {
-                        if let Some(ref mut c) = cache {
-                            c.insert_churn_map(map.clone());
-                        }
-                        map
-                    }
-                    Err(e) => {
-                        debug!("Git churn calculation failed: {}, skipping", e);
-                        HashMap::new()
-                    }
+            return cached_churn.clone();
+        }
+        let git_churn = GitChurn::new(&self.project_root);
+        if !git_churn.is_available() {
+            debug!("Git repository not found, skipping churn calculation");
+            return HashMap::new();
+        }
+        match git_churn.calculate_churn(files, use_progress) {
+            Ok(map) => {
+                if let Some(ref mut c) = cache {
+                    c.insert_churn_map(map.clone());
                 }
+                map
             }
-        };
+            Err(e) => {
+                debug!("Git churn calculation failed: {}, skipping", e);
+                HashMap::new()
+            }
+        }
+    }
 
+    fn resolve_symbols(
+        &self,
+        file_symbols: HashMap<PathBuf, crate::parser::FileSymbols>,
+        use_progress: bool,
+    ) -> HashMap<PathBuf, crate::parser::FileSymbols> {
         info!("{} Resolving symbols...", style("🔗").cyan().bold());
+        let resolver = PathResolver::new(&self.project_root, &self.config);
         let mut resolved_file_symbols = HashMap::new();
         let pb = if use_progress {
             let pb = ProgressBar::new(file_symbols.len() as u64);
@@ -441,7 +578,7 @@ impl AnalysisEngine {
             None
         };
 
-        for (file, symbols) in &file_symbols {
+        for (file, symbols) in file_symbols {
             if let Some(ref pb) = pb {
                 if let Some(name) = file.file_name() {
                     pb.set_message(style(name.to_string_lossy().to_string()).dim().to_string());
@@ -450,7 +587,7 @@ impl AnalysisEngine {
             let mut resolved_symbols = symbols.clone();
             for import in &mut resolved_symbols.imports {
                 if let Some(resolved) = resolver
-                    .resolve(import.source.as_str(), file)
+                    .resolve(import.source.as_str(), &file)
                     .ok()
                     .flatten()
                 {
@@ -459,12 +596,13 @@ impl AnalysisEngine {
             }
             for export in &mut resolved_symbols.exports {
                 if let Some(ref source) = export.source {
-                    if let Some(resolved) = resolver.resolve(source.as_str(), file).ok().flatten() {
+                    if let Some(resolved) = resolver.resolve(source.as_str(), &file).ok().flatten()
+                    {
                         export.source = Some(resolved.to_string_lossy().to_string().into());
                     }
                 }
             }
-            resolved_file_symbols.insert(file.clone(), resolved_symbols);
+            resolved_file_symbols.insert(file, resolved_symbols);
             if let Some(ref pb) = pb {
                 pb.inc(1);
             }
@@ -473,36 +611,23 @@ impl AnalysisEngine {
         if let Some(pb) = pb {
             pb.finish_and_clear();
         }
+        resolved_file_symbols
+    }
 
-        info!(
-            "{}  Analyzing configuration and scripts...",
-            style("⚙️").dim().bold()
-        );
-        let pkg_config = package_json::PackageJsonParser::parse(&self.project_root)?;
-
-        let ctx = AnalysisContext {
-            project_path: self.project_root.clone(),
-            graph,
-            file_symbols: resolved_file_symbols,
-            function_complexity,
-            file_metrics,
-            churn_map,
-            config: final_config.clone(),
-            script_entry_points: pkg_config.entry_points,
-            dynamic_load_patterns: pkg_config.dynamic_load_patterns,
-            detected_frameworks,
-            file_types,
-        };
-
+    fn run_detectors(
+        &self,
+        ctx: &AnalysisContext,
+        use_progress: bool,
+        presets: &[presets::FrameworkPreset],
+    ) -> Result<Vec<detectors::ArchSmell>> {
+        let registry = detectors::registry::DetectorRegistry::new();
         let (final_detectors, needs_deep) =
-            registry.get_enabled_with_presets(&final_config, &presets, self.args.all_detectors);
-
-        let is_deep = needs_deep;
+            registry.get_enabled_with_presets(&ctx.config, presets, self.args.all_detectors);
 
         info!(
             "{} Detecting architectural smells...{}",
             style("🧪").green().bold(),
-            if is_deep {
+            if needs_deep {
                 style(" (deep analysis enabled)").dim().to_string()
             } else {
                 "".to_string()
@@ -529,7 +654,7 @@ impl AnalysisEngine {
             if let Some(ref pb) = pb {
                 pb.set_message(style(detector.name()).dim().to_string());
             }
-            let smells = detector.detect(&ctx);
+            let smells = detector.detect(ctx);
 
             let status = format!(
                 "   {} {:<27} found: {}",
@@ -554,23 +679,6 @@ impl AnalysisEngine {
         if let Some(pb) = pb {
             pb.finish_and_clear();
         }
-
-        let mut report = AnalysisReport::new(
-            all_smells,
-            Some(ctx.graph),
-            ctx.file_symbols,
-            ctx.file_metrics,
-            ctx.function_complexity,
-            ctx.churn_map,
-        );
-        report.set_files_analyzed(files.len());
-        report.apply_severity_config(&self.config.severity);
-
-        if let Some(c) = cache {
-            debug!("Saving cache...");
-            c.save()?;
-        }
-
-        Ok(report)
+        Ok(all_smells)
     }
 }

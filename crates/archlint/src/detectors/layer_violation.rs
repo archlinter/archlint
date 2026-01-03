@@ -2,7 +2,8 @@ use crate::config::{Config, LayerConfig};
 use crate::detectors::{ArchSmell, Detector, DetectorFactory, DetectorInfo};
 use crate::engine::AnalysisContext;
 use inventory;
-use std::path::Path;
+use petgraph::graph::NodeIndex;
+use std::path::{Path, PathBuf};
 
 pub fn init() {}
 
@@ -36,34 +37,43 @@ impl Detector for LayerViolationDetector {
     }
 
     fn detect(&self, ctx: &AnalysisContext) -> Vec<ArchSmell> {
-        let mut smells = Vec::new();
         let layers = &ctx.config.thresholds.layer_violation.layers;
 
         if layers.is_empty() {
-            return smells;
+            return Vec::new();
         }
 
+        ctx.graph
+            .nodes()
+            .filter_map(|node| self.get_node_info(ctx, node, layers))
+            .flat_map(|from_info| {
+                Self::check_dependencies_for_violations(ctx, from_info, layers, self)
+            })
+            .collect()
+    }
+}
+
+impl LayerViolationDetector {
+    fn check_dependencies_for_violations(
+        ctx: &AnalysisContext,
+        from_info: (&PathBuf, &LayerConfig),
+        layers: &[LayerConfig],
+        detector: &LayerViolationDetector,
+    ) -> Vec<ArchSmell> {
+        let (from_path, _) = from_info;
+        let mut smells = Vec::new();
+
+        // Find node index for from_path
         for node in ctx.graph.nodes() {
-            if let Some(from_path) = ctx.graph.get_file_path(node) {
-                if let Some(from_layer) = self.find_layer(from_path, layers) {
-                    for to_node in ctx.graph.dependencies(node) {
-                        if let Some(to_path) = ctx.graph.get_file_path(to_node) {
-                            if let Some(to_layer) = self.find_layer(to_path, layers) {
-                                // Check if this import is allowed
-                                if from_layer.name != to_layer.name
-                                    && !from_layer.allowed_imports.contains(&to_layer.name)
-                                {
-                                    smells.push(ArchSmell::new_layer_violation(
-                                        from_path.clone(),
-                                        to_path.clone(),
-                                        from_layer.name.clone(),
-                                        to_layer.name.clone(),
-                                    ));
-                                }
-                            }
+            if ctx.graph.get_file_path(node) == Some(from_path) {
+                for to_node in ctx.graph.dependencies(node) {
+                    if let Some(to_info) = detector.get_node_info(ctx, to_node, layers) {
+                        if let Some(smell) = detector.check_violation(from_info, to_info) {
+                            smells.push(smell);
                         }
                     }
                 }
+                break;
             }
         }
 
@@ -88,20 +98,53 @@ impl LayerViolationDetector {
         let path_str = path.to_string_lossy();
 
         if pattern.contains("**") {
-            let cleaned = pattern.replace("**", "");
-            let parts: Vec<&str> = cleaned.split('*').filter(|p| !p.is_empty()).collect();
-            if parts.iter().all(|part| path_str.contains(part)) {
-                return true;
-            }
+            Self::matches_glob_pattern(&path_str, pattern, true)
         } else if pattern.contains('*') {
-            let parts: Vec<&str> = pattern.split('*').filter(|p| !p.is_empty()).collect();
-            if parts.iter().all(|part| path_str.contains(part)) {
-                return true;
-            }
-        } else if path_str.contains(pattern) {
-            return true;
+            Self::matches_glob_pattern(&path_str, pattern, false)
+        } else {
+            path_str.contains(pattern)
         }
+    }
 
-        false
+    fn matches_glob_pattern(path_str: &str, pattern: &str, double_star: bool) -> bool {
+        let cleaned = if double_star {
+            pattern.replace("**", "")
+        } else {
+            pattern.to_string()
+        };
+        let parts: Vec<&str> = cleaned.split('*').filter(|p| !p.is_empty()).collect();
+        parts.iter().all(|part| path_str.contains(part))
+    }
+
+    fn get_node_info<'a>(
+        &self,
+        ctx: &'a AnalysisContext,
+        node: NodeIndex,
+        layers: &'a [LayerConfig],
+    ) -> Option<(&'a PathBuf, &'a LayerConfig)> {
+        let path = ctx.graph.get_file_path(node)?;
+        let layer = self.find_layer(path, layers)?;
+        Some((path, layer))
+    }
+
+    fn check_violation(
+        &self,
+        from: (&PathBuf, &LayerConfig),
+        to: (&PathBuf, &LayerConfig),
+    ) -> Option<ArchSmell> {
+        let (from_path, from_layer) = from;
+        let (to_path, to_layer) = to;
+
+        if from_layer.name != to_layer.name && !from_layer.allowed_imports.contains(&to_layer.name)
+        {
+            Some(ArchSmell::new_layer_violation(
+                from_path.clone(),
+                to_path.clone(),
+                from_layer.name.clone(),
+                to_layer.name.clone(),
+            ))
+        } else {
+            None
+        }
     }
 }

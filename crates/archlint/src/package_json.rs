@@ -17,12 +17,14 @@ pub struct PackageConfig {
 impl PackageJsonParser {
     pub fn parse<P: AsRef<Path>>(root: P) -> Result<PackageConfig> {
         let root = root.as_ref();
-        let mut entry_points = HashSet::new();
-        let mut glob_patterns = Vec::new();
+        let mut config = PackageConfig {
+            entry_points: HashSet::new(),
+            dynamic_load_patterns: Vec::new(),
+        };
 
         let path_regex =
             Regex::new(r"(\S*[a-zA-Z0-9_\-\./]+\.(?:ts|js|tsx|jsx)|\bdist/\S+\b|\bbuild/\S+\b)")?;
-        let glob_pattern_regex =
+        let glob_regex =
             Regex::new(r"([^\s]*(?:/\*\*)?(?:/\*\*)?(?:/\*)?[^\s]*\.(?:ts|js|tsx|jsx|mjs|cjs))")?;
 
         let walker = WalkBuilder::new(root)
@@ -30,90 +32,100 @@ impl PackageJsonParser {
             .hidden(false)
             .build();
 
-        for entry in walker {
-            let entry = match entry {
-                Ok(e) => e,
-                Err(_) => continue,
-            };
-
+        for entry in walker.flatten() {
             let path = entry.path();
             if path.file_name().is_some_and(|n| n == "package.json") {
-                if let Ok(content) = fs::read_to_string(path) {
-                    if let Ok(json) = serde_json::from_str::<Value>(&content) {
-                        if let Some(scripts) = json.get("scripts").and_then(|s| s.as_object()) {
-                            let package_dir = path.parent().unwrap_or(root);
-
-                            for value in scripts.values() {
-                                if let Some(script_str) = value.as_str() {
-                                    // 1. Find script entry points
-                                    for cap in path_regex.captures_iter(script_str) {
-                                        let matched_path = &cap[1];
-                                        let mut candidates = vec![
-                                            package_dir.join(matched_path),
-                                            PathBuf::from(matched_path),
-                                        ];
-
-                                        if matched_path.contains("dist/")
-                                            || matched_path.contains("build/")
-                                        {
-                                            let src_path = matched_path
-                                                .replace("dist/", "src/")
-                                                .replace("build/", "src/");
-
-                                            if src_path.ends_with(".js") {
-                                                candidates.push(
-                                                    package_dir
-                                                        .join(src_path.replace(".js", ".ts")),
-                                                );
-                                            } else {
-                                                candidates.push(package_dir.join(&src_path));
-                                                candidates.push(
-                                                    package_dir.join(format!("{}.ts", src_path)),
-                                                );
-                                            }
-                                        }
-
-                                        for cand in candidates {
-                                            if let Ok(canonical) = cand.canonicalize() {
-                                                if canonical.is_file() {
-                                                    entry_points.insert(canonical);
-                                                }
-                                            }
-                                        }
-                                    }
-
-                                    // 2. Find dynamic load patterns
-                                    for cap in glob_pattern_regex.captures_iter(script_str) {
-                                        let pattern = &cap[1];
-                                        if !pattern.contains('*') {
-                                            continue;
-                                        }
-
-                                        let src_pattern = pattern
-                                            .replace("build/", "src/")
-                                            .replace("dist/", "src/")
-                                            .replace(".js", ".ts")
-                                            .replace(".jsx", ".tsx")
-                                            .replace(".mjs", ".ts")
-                                            .replace(".cjs", ".ts");
-
-                                        if src_pattern.contains('*')
-                                            && !glob_patterns.contains(&src_pattern)
-                                        {
-                                            glob_patterns.push(src_pattern);
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
+                let _ =
+                    Self::process_package_json(path, root, &mut config, &path_regex, &glob_regex);
             }
         }
 
-        Ok(PackageConfig {
-            entry_points,
-            dynamic_load_patterns: glob_patterns,
-        })
+        Ok(config)
+    }
+
+    fn process_package_json(
+        path: &Path,
+        root: &Path,
+        config: &mut PackageConfig,
+        path_regex: &Regex,
+        glob_regex: &Regex,
+    ) -> Result<()> {
+        let content = fs::read_to_string(path)?;
+        let json: Value = serde_json::from_str(&content)?;
+
+        if let Some(scripts) = json.get("scripts").and_then(|s| s.as_object()) {
+            let package_dir = path.parent().unwrap_or(root);
+            for value in scripts.values() {
+                if let Some(script_str) = value.as_str() {
+                    Self::parse_script(script_str, package_dir, config, path_regex, glob_regex);
+                }
+            }
+        }
+        Ok(())
+    }
+
+    fn parse_script(
+        script: &str,
+        package_dir: &Path,
+        config: &mut PackageConfig,
+        path_regex: &Regex,
+        glob_regex: &Regex,
+    ) {
+        // 1. Find script entry points
+        for cap in path_regex.captures_iter(script) {
+            Self::find_entry_point_candidates(&cap[1], package_dir, &mut config.entry_points);
+        }
+
+        // 2. Find dynamic load patterns
+        for cap in glob_regex.captures_iter(script) {
+            Self::add_dynamic_load_pattern(&cap[1], &mut config.dynamic_load_patterns);
+        }
+    }
+
+    fn find_entry_point_candidates(
+        matched_path: &str,
+        package_dir: &Path,
+        entry_points: &mut HashSet<PathBuf>,
+    ) {
+        let mut candidates = vec![package_dir.join(matched_path), PathBuf::from(matched_path)];
+
+        if matched_path.contains("dist/") || matched_path.contains("build/") {
+            let src_path = matched_path
+                .replace("dist/", "src/")
+                .replace("build/", "src/");
+
+            if src_path.ends_with(".js") {
+                candidates.push(package_dir.join(src_path.replace(".js", ".ts")));
+            } else {
+                candidates.push(package_dir.join(&src_path));
+                candidates.push(package_dir.join(format!("{}.ts", src_path)));
+            }
+        }
+
+        for cand in candidates {
+            if let Ok(canonical) = cand.canonicalize() {
+                if canonical.is_file() {
+                    entry_points.insert(canonical);
+                }
+            }
+        }
+    }
+
+    fn add_dynamic_load_pattern(pattern: &str, glob_patterns: &mut Vec<String>) {
+        if !pattern.contains('*') {
+            return;
+        }
+
+        let src_pattern = pattern
+            .replace("build/", "src/")
+            .replace("dist/", "src/")
+            .replace(".js", ".ts")
+            .replace(".jsx", ".tsx")
+            .replace(".mjs", ".ts")
+            .replace(".cjs", ".ts");
+
+        if src_pattern.contains('*') && !glob_patterns.contains(&src_pattern) {
+            glob_patterns.push(src_pattern);
+        }
     }
 }

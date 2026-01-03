@@ -7,33 +7,24 @@ pub struct GlobExpansion {
 }
 
 pub fn expand_glob(pattern: &str, extensions: &[&str]) -> Result<GlobExpansion> {
-    let mut files = Vec::new();
-
     // Find the base path (part before the first wildcard)
     let base_path = extract_base_path(pattern);
     let base_path = base_path.canonicalize().unwrap_or(base_path);
 
-    match glob::glob(pattern) {
-        Ok(paths) => {
-            for path in paths.flatten() {
-                if path.is_file() {
-                    if let Some(ext) = path.extension() {
-                        if extensions.iter().any(|e| *e == ext.to_string_lossy()) {
-                            if let Ok(canonical) = path.canonicalize() {
-                                files.push(canonical);
-                            }
-                        }
-                    }
-                }
-            }
-        }
-        Err(e) => {
-            return Err(crate::error::AnalysisError::PathResolution(format!(
-                "Invalid glob pattern: {}",
-                e
-            )));
-        }
-    }
+    let paths = glob::glob(pattern).map_err(|e| {
+        crate::error::AnalysisError::PathResolution(format!("Invalid glob pattern: {}", e))
+    })?;
+
+    let files = paths
+        .flatten()
+        .filter(|p| p.is_file())
+        .filter(|p| {
+            p.extension()
+                .map(|ext| extensions.iter().any(|e| *e == ext.to_string_lossy()))
+                .unwrap_or(false)
+        })
+        .filter_map(|p| p.canonicalize().ok())
+        .collect();
 
     Ok(GlobExpansion { base_path, files })
 }

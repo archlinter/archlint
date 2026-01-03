@@ -3,7 +3,7 @@ const { platform, arch } = process;
 
 function isMusl() {
   if (platform !== 'linux') return false;
-  const { execSync } = require('child_process');
+  const { execSync } = require('node:child_process');
   try {
     const output = execSync('ldd --version 2>&1 || true', { encoding: 'utf8' });
     return output.includes('musl');

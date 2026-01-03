@@ -4,7 +4,7 @@ use napi::bindgen_prelude::*;
 use napi_derive::napi;
 
 mod types;
-use types::*;
+use types::{JsConfig, JsDetectorInfo, JsScanOptions, JsScanResult};
 
 #[napi]
 pub async fn scan(path: String, options: Option<JsScanOptions>) -> Result<JsScanResult> {

@@ -8,7 +8,34 @@ impl FileClassifier {
         let filename = path.file_name().and_then(|f| f.to_str()).unwrap_or("");
         let path_str = path.to_str().unwrap_or("");
 
-        // 1. Test files (highest priority)
+        if let Some(file_type) = Self::classify_test_file(filename, path_str) {
+            return file_type;
+        }
+
+        if let Some(file_type) = Self::classify_nestjs(filename, path_str) {
+            return file_type;
+        }
+
+        if let Some(file_type) = Self::classify_nextjs(filename, path_str) {
+            return file_type;
+        }
+
+        if let Some(file_type) = Self::classify_common(filename, path_str) {
+            return file_type;
+        }
+
+        if let Some(file_type) = Self::classify_cli(path_str) {
+            return file_type;
+        }
+
+        if let Some(file_type) = Self::classify_frontend(filename) {
+            return file_type;
+        }
+
+        FileType::Unknown
+    }
+
+    fn classify_test_file(filename: &str, path_str: &str) -> Option<FileType> {
         if filename.ends_with(".test.ts")
             || filename.ends_with(".test.js")
             || filename.ends_with(".spec.ts")
@@ -17,136 +44,163 @@ impl FileClassifier {
             || path_str.contains("/tests/")
             || path_str.contains("/test/")
         {
-            return FileType::Test;
+            Some(FileType::Test)
+        } else {
+            None
         }
+    }
 
-        // 2. NestJS patterns
+    fn classify_nestjs(filename: &str, path_str: &str) -> Option<FileType> {
+        Self::check_nestjs_by_filename(filename)
+            .or_else(|| Self::check_nestjs_by_path(filename, path_str))
+    }
+
+    fn check_nestjs_by_filename(filename: &str) -> Option<FileType> {
+        Self::check_nestjs_controllers(filename)
+            .or_else(|| Self::check_nestjs_services(filename))
+            .or_else(|| Self::check_nestjs_other(filename))
+    }
+
+    fn check_nestjs_controllers(filename: &str) -> Option<FileType> {
         if filename.ends_with(".controller.ts") || filename.ends_with(".controller.js") {
-            return FileType::Controller;
+            Some(FileType::Controller)
+        } else {
+            None
         }
-        if filename.ends_with(".service.ts") || filename.ends_with(".service.js") {
-            return FileType::Service;
-        }
-        if filename.ends_with(".module.ts") || filename.ends_with(".module.js") {
-            return FileType::Module;
-        }
-        if filename.ends_with(".entity.ts")
-            || filename.ends_with(".entity.js")
-            || path_str.contains("/entities/")
-        {
-            return FileType::Entity;
-        }
-        if filename.ends_with(".repository.ts")
-            || filename.ends_with(".repository.js")
-            || path_str.contains("/repositories/")
-        {
-            return FileType::Repository;
-        }
-        if filename.ends_with(".dto.ts")
-            || filename.ends_with(".dto.js")
-            || path_str.contains("/dto/")
-            || path_str.contains("/dtos/")
-        {
-            return FileType::DTO;
-        }
-        if filename.ends_with(".guard.ts")
-            || filename.ends_with(".guard.js")
-            || path_str.contains("/guards/")
-        {
-            return FileType::Guard;
-        }
-        if filename.ends_with(".pipe.ts")
-            || filename.ends_with(".pipe.js")
-            || path_str.contains("/pipes/")
-        {
-            return FileType::Pipe;
-        }
-        if filename.ends_with(".middleware.ts")
-            || filename.ends_with(".middleware.js")
-            || path_str.contains("/middlewares/")
-        {
-            return FileType::Middleware;
-        }
-        if filename.ends_with(".decorator.ts")
-            || filename.ends_with(".decorator.js")
-            || path_str.contains("/decorators/")
-        {
-            return FileType::Decorator;
-        }
-        if filename.ends_with(".interceptor.ts")
-            || filename.ends_with(".interceptor.js")
-            || path_str.contains("/interceptors/")
-        {
-            return FileType::Interceptor;
-        }
+    }
 
-        // 3. Next.js patterns
+    fn check_nestjs_services(filename: &str) -> Option<FileType> {
+        if filename.ends_with(".service.ts") || filename.ends_with(".service.js") {
+            Some(FileType::Service)
+        } else if filename.ends_with(".module.ts") || filename.ends_with(".module.js") {
+            Some(FileType::Module)
+        } else {
+            None
+        }
+    }
+
+    fn check_nestjs_other(filename: &str) -> Option<FileType> {
+        if filename.ends_with(".entity.ts") || filename.ends_with(".entity.js") {
+            Some(FileType::Entity)
+        } else if filename.ends_with(".repository.ts") || filename.ends_with(".repository.js") {
+            Some(FileType::Repository)
+        } else if filename.ends_with(".dto.ts") || filename.ends_with(".dto.js") {
+            Some(FileType::DTO)
+        } else if filename.ends_with(".guard.ts") || filename.ends_with(".guard.js") {
+            Some(FileType::Guard)
+        } else if filename.ends_with(".pipe.ts") || filename.ends_with(".pipe.js") {
+            Some(FileType::Pipe)
+        } else if filename.ends_with(".middleware.ts") || filename.ends_with(".middleware.js") {
+            Some(FileType::Middleware)
+        } else if filename.ends_with(".decorator.ts") || filename.ends_with(".decorator.js") {
+            Some(FileType::Decorator)
+        } else if filename.ends_with(".interceptor.ts") || filename.ends_with(".interceptor.js") {
+            Some(FileType::Interceptor)
+        } else {
+            None
+        }
+    }
+
+    fn check_nestjs_by_path(_filename: &str, path_str: &str) -> Option<FileType> {
+        if path_str.contains("/entities/") {
+            return Some(FileType::Entity);
+        }
+        if path_str.contains("/repositories/") {
+            return Some(FileType::Repository);
+        }
+        if path_str.contains("/dto/") || path_str.contains("/dtos/") {
+            return Some(FileType::DTO);
+        }
+        if path_str.contains("/guards/") {
+            return Some(FileType::Guard);
+        }
+        if path_str.contains("/pipes/") {
+            return Some(FileType::Pipe);
+        }
+        if path_str.contains("/middlewares/") {
+            return Some(FileType::Middleware);
+        }
+        if path_str.contains("/decorators/") {
+            return Some(FileType::Decorator);
+        }
+        if path_str.contains("/interceptors/") {
+            return Some(FileType::Interceptor);
+        }
+        None
+    }
+
+    fn classify_nextjs(filename: &str, path_str: &str) -> Option<FileType> {
+        if filename == "route.ts" || filename == "route.js" {
+            return Some(FileType::ApiRoute);
+        }
         if filename == "page.tsx" || filename == "page.js" || path_str.contains("/pages/") {
             if !path_str.contains("/pages/api/") {
-                return FileType::Page;
+                return Some(FileType::Page);
             } else {
-                return FileType::ApiRoute;
+                return Some(FileType::ApiRoute);
             }
         }
-        if filename == "route.ts" || filename == "route.js" {
-            return FileType::ApiRoute;
-        }
+        None
+    }
 
-        // 4. Common patterns
+    fn classify_common(filename: &str, path_str: &str) -> Option<FileType> {
         if filename.ends_with(".interface.ts")
             || filename.ends_with(".interface.js")
             || path_str.contains("/interfaces/")
         {
-            return FileType::Interface;
+            return Some(FileType::Interface);
         }
         if filename.ends_with(".types.ts")
             || filename.ends_with(".types.js")
             || path_str.contains("/types/")
         {
-            return FileType::Types;
+            return Some(FileType::Types);
         }
         if filename.ends_with(".config.ts")
             || filename.ends_with(".config.js")
             || filename.ends_with(".config.json")
             || path_str.contains("/config/")
         {
-            return FileType::Config;
+            return Some(FileType::Config);
         }
         if filename.ends_with(".event.ts") || path_str.contains("/events/") {
-            return FileType::Event;
+            return Some(FileType::Event);
         }
         if filename.ends_with(".error.ts")
             || filename.ends_with(".exception.ts")
             || path_str.contains("/errors/")
             || path_str.contains("/exceptions/")
         {
-            return FileType::Exception;
+            return Some(FileType::Exception);
         }
         if filename.contains("migration") {
-            return FileType::Migration;
+            return Some(FileType::Migration);
         }
+        None
+    }
 
-        // 6. CLI patterns (oclif)
+    fn classify_cli(path_str: &str) -> Option<FileType> {
         if path_str.contains("/commands/") {
-            return FileType::CliCommand;
+            return Some(FileType::CliCommand);
         }
         if path_str.contains("/hooks/") {
-            return FileType::CliHook;
+            return Some(FileType::CliHook);
         }
+        None
+    }
 
-        // 5. Frontend patterns
+    fn classify_frontend(filename: &str) -> Option<FileType> {
         if filename.ends_with(".component.tsx")
             || filename.ends_with(".component.ts")
             || filename.ends_with(".component.js")
             || filename.ends_with(".component.jsx")
         {
-            return FileType::Component;
+            return Some(FileType::Component);
         }
         if filename.starts_with("use") && (filename.ends_with(".ts") || filename.ends_with(".js")) {
-            return FileType::Hook;
+            return Some(FileType::Hook);
         }
-
-        FileType::Unknown
+        None
     }
 }
 

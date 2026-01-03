@@ -84,7 +84,6 @@ impl ShotgunSurgeryDetector {
         };
 
         let mut revwalk = repo.revwalk()?;
-        // Skip if no HEAD (empty repository)
         if revwalk.push_head().is_err() {
             return Ok(HashMap::new());
         }
@@ -95,39 +94,56 @@ impl ShotgunSurgeryDetector {
         for oid in revwalk.take(lookback) {
             let oid = oid?;
             let commit = repo.find_commit(oid)?;
-            let changed_files = self.get_changed_files(&repo, &commit)?;
-
-            // Only consider source code files for co-change analysis
-            let source_files: HashSet<PathBuf> = changed_files
-                .into_iter()
-                .filter(|p| self.is_source_code(p))
-                .collect();
-
-            if source_files.len() > 1 && source_files.len() < 50 {
-                // Ignore giant commits
-                for file in &source_files {
-                    let entry = stats.entry(file.clone()).or_insert(CoChangeStats {
-                        total_co_changed: 0,
-                        commit_count: 0,
-                        frequently_co_changed: HashMap::new(),
-                    });
-
-                    entry.commit_count += 1;
-                    entry.total_co_changed += source_files.len() - 1;
-
-                    for other in &source_files {
-                        if file != other {
-                            *entry
-                                .frequently_co_changed
-                                .entry(other.clone())
-                                .or_insert(0) += 1;
-                        }
-                    }
-                }
-            }
+            Self::process_commit(&repo, &commit, &mut stats, self)?;
         }
 
         Ok(stats)
+    }
+
+    fn process_commit(
+        repo: &Repository,
+        commit: &Commit,
+        stats: &mut HashMap<PathBuf, CoChangeStats>,
+        detector: &ShotgunSurgeryDetector,
+    ) -> Result<(), git2::Error> {
+        let changed_files = detector.get_changed_files(repo, commit)?;
+        let source_files: HashSet<PathBuf> = changed_files
+            .into_iter()
+            .filter(|p| detector.is_source_code(p))
+            .collect();
+
+        if Self::should_process_commit(&source_files) {
+            Self::update_stats(stats, &source_files);
+        }
+
+        Ok(())
+    }
+
+    fn should_process_commit(source_files: &HashSet<PathBuf>) -> bool {
+        let count = source_files.len();
+        count > 1 && count < 50
+    }
+
+    fn update_stats(stats: &mut HashMap<PathBuf, CoChangeStats>, source_files: &HashSet<PathBuf>) {
+        for file in source_files {
+            let entry = stats.entry(file.clone()).or_insert(CoChangeStats {
+                total_co_changed: 0,
+                commit_count: 0,
+                frequently_co_changed: HashMap::new(),
+            });
+
+            entry.commit_count += 1;
+            entry.total_co_changed += source_files.len() - 1;
+
+            for other in source_files {
+                if file != other {
+                    *entry
+                        .frequently_co_changed
+                        .entry(other.clone())
+                        .or_insert(0) += 1;
+                }
+            }
+        }
     }
 }
 

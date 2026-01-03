@@ -36,51 +36,67 @@ impl Detector for SdpViolationDetector {
     }
 
     fn detect(&self, ctx: &AnalysisContext) -> Vec<ArchSmell> {
-        let mut smells = Vec::new();
         let thresholds = &ctx.config.thresholds.sdp_violation;
 
-        for node in ctx.graph.nodes() {
-            if let Some(path) = ctx.graph.get_file_path(node) {
-                if ctx.should_skip_detector(path, "sdp_violation") {
-                    continue;
-                }
+        ctx.graph
+            .nodes()
+            .filter(|&node| Self::should_check_node(ctx, node, thresholds))
+            .flat_map(|node| Self::check_node_violations(ctx, node, thresholds))
+            .collect()
+    }
+}
+
+impl SdpViolationDetector {
+    fn should_check_node(
+        ctx: &AnalysisContext,
+        node: NodeIndex,
+        thresholds: &crate::config::SdpThresholds,
+    ) -> bool {
+        if let Some(path) = ctx.graph.get_file_path(node) {
+            if ctx.should_skip_detector(path, "sdp_violation") {
+                return false;
             }
+        }
 
-            let from_i = self.calculate_instability(ctx, node);
+        let fan_in = ctx.graph.fan_in(node);
+        let fan_out = ctx.graph.fan_out(node);
+        fan_in + fan_out >= thresholds.min_fan_total
+    }
 
-            // Only check modules with enough fan-total to be meaningful
-            let fan_in = ctx.graph.fan_in(node);
-            let fan_out = ctx.graph.fan_out(node);
-            if fan_in + fan_out < thresholds.min_fan_total {
-                continue;
-            }
+    fn check_node_violations(
+        ctx: &AnalysisContext,
+        node: NodeIndex,
+        thresholds: &crate::config::SdpThresholds,
+    ) -> Vec<ArchSmell> {
+        let from_i = Self::calculate_instability_static(ctx, node);
+        let mut smells = Vec::new();
 
-            for to_node in ctx.graph.dependencies(node) {
-                let to_i = self.calculate_instability(ctx, to_node);
+        for to_node in ctx.graph.dependencies(node) {
+            let to_i = Self::calculate_instability_static(ctx, to_node);
 
-                // Stable module depends on unstable
-                if from_i < to_i && (to_i - from_i) > thresholds.instability_diff {
-                    if let (Some(from_path), Some(to_path)) = (
-                        ctx.graph.get_file_path(node),
-                        ctx.graph.get_file_path(to_node),
-                    ) {
-                        smells.push(ArchSmell::new_sdp_violation(
-                            from_path.clone(),
-                            to_path.clone(),
-                            from_i,
-                            to_i,
-                        ));
-                    }
+            if Self::is_violation(from_i, to_i, thresholds) {
+                if let (Some(from_path), Some(to_path)) = (
+                    ctx.graph.get_file_path(node),
+                    ctx.graph.get_file_path(to_node),
+                ) {
+                    smells.push(ArchSmell::new_sdp_violation(
+                        from_path.clone(),
+                        to_path.clone(),
+                        from_i,
+                        to_i,
+                    ));
                 }
             }
         }
 
         smells
     }
-}
 
-impl SdpViolationDetector {
-    fn calculate_instability(&self, ctx: &AnalysisContext, node: NodeIndex) -> f64 {
+    fn is_violation(from_i: f64, to_i: f64, thresholds: &crate::config::SdpThresholds) -> bool {
+        from_i < to_i && (to_i - from_i) > thresholds.instability_diff
+    }
+
+    fn calculate_instability_static(ctx: &AnalysisContext, node: NodeIndex) -> f64 {
         let fan_in = ctx.graph.fan_in(node);
         let fan_out = ctx.graph.fan_out(node);
         if fan_in + fan_out == 0 {

@@ -48,18 +48,14 @@ impl FileWatcher {
         loop {
             match rx.recv_timeout(Duration::from_millis(100)) {
                 Ok(event) => {
-                    for path in event.paths {
-                        if self.should_process(&path) {
-                            pending_changes.push(path);
-                            last_change = Instant::now();
-                        }
-                    }
+                    Self::process_event(event, &mut pending_changes, &mut last_change, self);
                 }
                 Err(_) => {
-                    // Timeout - check if debounce period passed
-                    if !pending_changes.is_empty()
-                        && last_change.elapsed() > Duration::from_millis(self.config.debounce_ms)
-                    {
+                    if Self::should_trigger_debounce(
+                        &pending_changes,
+                        last_change,
+                        self.config.debounce_ms,
+                    ) {
                         let changes = std::mem::take(&mut pending_changes);
                         on_change(changes)?;
                     }
@@ -69,19 +65,39 @@ impl FileWatcher {
     }
 
     fn should_process(&self, path: &Path) -> bool {
-        // Check file extension
-        let ext = path.extension().and_then(|e| e.to_str()).unwrap_or("");
-        if !self.config.extensions.iter().any(|e| e == ext) {
-            return false;
-        }
+        Self::has_valid_extension(path, &self.config.extensions)
+            && !Self::matches_ignore_pattern(path, &self.config.ignore_patterns)
+    }
 
-        // Check ignore patterns
-        for pattern in &self.config.ignore_patterns {
-            if path.to_string_lossy().contains(pattern) {
-                return false;
+    fn has_valid_extension(path: &Path, extensions: &[String]) -> bool {
+        let ext = path.extension().and_then(|e| e.to_str()).unwrap_or("");
+        extensions.iter().any(|e| e == ext)
+    }
+
+    fn matches_ignore_pattern(path: &Path, patterns: &[String]) -> bool {
+        let path_str = path.to_string_lossy();
+        patterns.iter().any(|pattern| path_str.contains(pattern))
+    }
+
+    fn process_event(
+        event: notify::Event,
+        pending_changes: &mut Vec<PathBuf>,
+        last_change: &mut Instant,
+        watcher: &FileWatcher,
+    ) {
+        for path in event.paths {
+            if watcher.should_process(&path) {
+                pending_changes.push(path);
+                *last_change = Instant::now();
             }
         }
+    }
 
-        true
+    fn should_trigger_debounce(
+        pending_changes: &[PathBuf],
+        last_change: Instant,
+        debounce_ms: u64,
+    ) -> bool {
+        !pending_changes.is_empty() && last_change.elapsed() > Duration::from_millis(debounce_ms)
     }
 }

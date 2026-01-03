@@ -7,7 +7,7 @@ export interface CacheKeyOptions {
 }
 
 class McpCache {
-  private cache = new Map<string, JsScanResult>();
+  private readonly cache = new Map<string, JsScanResult>();
   private readonly MAX_SIZE = 100;
   private readonly DELIMITER = '\0';
 

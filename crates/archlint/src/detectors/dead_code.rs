@@ -47,31 +47,50 @@ impl Detector for DeadCodeDetector {
             ctx.dynamic_load_patterns.clone(),
         );
 
-        let mut dead_files = Vec::new();
+        let symbol_imports = Self::build_symbol_imports_map(&ctx.file_symbols);
+        let reexport_map = Self::build_reexport_map(&ctx.file_symbols);
 
-        // Build a map of which files import which symbols from which files
+        let dead_files = Self::find_dead_files(ctx, &detector, &symbol_imports, &reexport_map);
+
+        dead_files
+            .into_iter()
+            .map(ArchSmell::new_dead_code)
+            .collect()
+    }
+}
+
+impl DeadCodeDetector {
+    fn build_symbol_imports_map(
+        file_symbols: &HashMap<PathBuf, crate::parser::FileSymbols>,
+    ) -> HashMap<(PathBuf, String), HashSet<PathBuf>> {
         let mut symbol_imports: HashMap<(PathBuf, String), HashSet<PathBuf>> = HashMap::new();
-        // Build a map of files that re-export from other files
-        let mut reexport_map: HashMap<PathBuf, HashSet<PathBuf>> = HashMap::new();
 
-        for (importer_path, symbols) in &ctx.file_symbols {
+        for (importer_path, symbols) in file_symbols {
             for import in &symbols.imports {
-                // Symbols are already resolved to absolute paths in AnalysisEngine
                 let source_path = PathBuf::from(import.source.as_str());
-                if ctx.file_symbols.contains_key(&source_path) {
+                if file_symbols.contains_key(&source_path) {
                     symbol_imports
                         .entry((source_path, import.name.to_string()))
                         .or_default()
                         .insert(importer_path.clone());
                 }
             }
+        }
 
-            // Check for re-exports
+        symbol_imports
+    }
+
+    fn build_reexport_map(
+        file_symbols: &HashMap<PathBuf, crate::parser::FileSymbols>,
+    ) -> HashMap<PathBuf, HashSet<PathBuf>> {
+        let mut reexport_map: HashMap<PathBuf, HashSet<PathBuf>> = HashMap::new();
+
+        for (importer_path, symbols) in file_symbols {
             for export in &symbols.exports {
                 if export.is_reexport {
                     if let Some(ref source) = export.source {
                         let reexported_file = PathBuf::from(source);
-                        if ctx.file_symbols.contains_key(&reexported_file) {
+                        if file_symbols.contains_key(&reexported_file) {
                             reexport_map
                                 .entry(reexported_file)
                                 .or_default()
@@ -82,30 +101,46 @@ impl Detector for DeadCodeDetector {
             }
         }
 
+        reexport_map
+    }
+
+    fn find_dead_files(
+        ctx: &AnalysisContext,
+        detector: &DeadCodeDetector,
+        symbol_imports: &HashMap<(PathBuf, String), HashSet<PathBuf>>,
+        reexport_map: &HashMap<PathBuf, HashSet<PathBuf>>,
+    ) -> Vec<PathBuf> {
+        let mut dead_files = Vec::new();
+
         for node in ctx.graph.nodes() {
             let fan_in = ctx.graph.fan_in(node);
 
             if let Some(path) = ctx.graph.get_file_path(node) {
-                if fan_in == 0
-                    && !ctx.is_framework_entry_point(path)
-                    && !detector.is_entry_point(path)
-                    && !detector.matches_dynamic_load_pattern(path)
-                    && !detector.has_used_exports(path, &ctx.file_symbols, &symbol_imports)
-                    && !detector.is_reexported(path, &ctx.file_symbols, &reexport_map)
-                {
+                if Self::is_dead_file(path, fan_in, ctx, detector, symbol_imports, reexport_map) {
                     dead_files.push(path.clone());
                 }
             }
         }
 
         dead_files
-            .into_iter()
-            .map(ArchSmell::new_dead_code)
-            .collect()
     }
-}
 
-impl DeadCodeDetector {
+    fn is_dead_file(
+        path: &Path,
+        fan_in: usize,
+        ctx: &AnalysisContext,
+        detector: &DeadCodeDetector,
+        symbol_imports: &HashMap<(PathBuf, String), HashSet<PathBuf>>,
+        reexport_map: &HashMap<PathBuf, HashSet<PathBuf>>,
+    ) -> bool {
+        fan_in == 0
+            && !ctx.is_framework_entry_point(path)
+            && !detector.is_entry_point(path)
+            && !detector.matches_dynamic_load_pattern(path)
+            && !detector.has_used_exports(path, &ctx.file_symbols, symbol_imports)
+            && !detector.is_reexported(path, &ctx.file_symbols, reexport_map)
+    }
+
     pub fn new_default(config: &Config) -> Self {
         Self::new(config, HashSet::new(), Vec::new())
     }
@@ -168,60 +203,83 @@ impl DeadCodeDetector {
         file_symbols: &HashMap<PathBuf, crate::parser::FileSymbols>,
         symbol_imports: &HashMap<(PathBuf, String), HashSet<PathBuf>>,
     ) -> bool {
-        if let Some(symbols) = file_symbols.get(path) {
-            if !symbols.exports.is_empty() {
-                let path_buf = path.to_path_buf();
-                let path_str = path.to_string_lossy();
-                let file_name = path.file_name().and_then(|n| n.to_str()).unwrap_or("");
+        let symbols = match file_symbols.get(path) {
+            Some(s) if !s.exports.is_empty() => s,
+            _ => return false,
+        };
 
-                for export in &symbols.exports {
-                    if export.is_reexport {
-                        continue;
-                    }
+        let path_str = path.to_string_lossy();
+        let file_name = path.file_name().and_then(|n| n.to_str()).unwrap_or("");
 
-                    if export.name != "default" && export.name != "*" {
-                        if let Some(importers) =
-                            symbol_imports.get(&(path_buf.clone(), export.name.to_string()))
-                        {
-                            if !importers.is_empty() {
-                                return true;
-                            }
-                        }
-                    }
-                }
+        Self::check_named_exports(symbols, path, symbol_imports)
+            || Self::check_default_imports(file_symbols, &path_str, file_name)
+            || Self::check_reexports(file_symbols, &path_str, file_name)
+            || Self::check_local_usages(symbols, file_symbols)
+    }
 
-                for fs in file_symbols.values() {
-                    for import in &fs.imports {
-                        if (import.name == "default" || import.name == "*")
-                            && (import.source == path_str.as_ref()
-                                || import.source.ends_with(file_name))
-                        {
-                            return true;
-                        }
+    fn check_named_exports(
+        symbols: &crate::parser::FileSymbols,
+        path: &Path,
+        symbol_imports: &HashMap<(PathBuf, String), HashSet<PathBuf>>,
+    ) -> bool {
+        let path_buf = path.to_path_buf();
+        for export in &symbols.exports {
+            if !export.is_reexport && export.name != "default" && export.name != "*" {
+                if let Some(importers) =
+                    symbol_imports.get(&(path_buf.clone(), export.name.to_string()))
+                {
+                    if !importers.is_empty() {
+                        return true;
                     }
                 }
+            }
+        }
+        false
+    }
 
-                for reexporter_symbols in file_symbols.values() {
-                    for export in &reexporter_symbols.exports {
-                        if export.is_reexport {
-                            if let Some(ref source) = export.source {
-                                if source == path_str.as_ref() || source.ends_with(file_name) {
-                                    return true;
-                                }
-                            }
-                        }
-                    }
-                }
+    fn check_default_imports(
+        file_symbols: &HashMap<PathBuf, crate::parser::FileSymbols>,
+        path_str: &str,
+        file_name: &str,
+    ) -> bool {
+        file_symbols.values().any(|fs| {
+            fs.imports.iter().any(|import| {
+                (import.name == "default" || import.name == "*")
+                    && (import.source == path_str || import.source.ends_with(file_name))
+            })
+        })
+    }
 
-                for export in &symbols.exports {
-                    if !export.is_reexport && export.name != "default" && export.name != "*" {
-                        for fs in file_symbols.values() {
-                            if fs.local_usages.contains(&export.name) {
-                                return true;
-                            }
-                        }
-                    }
-                }
+    fn check_reexports(
+        file_symbols: &HashMap<PathBuf, crate::parser::FileSymbols>,
+        path_str: &str,
+        file_name: &str,
+    ) -> bool {
+        file_symbols.values().any(|reexporter_symbols| {
+            reexporter_symbols.exports.iter().any(|export| {
+                export.is_reexport
+                    && export
+                        .source
+                        .as_ref()
+                        .map(|source| source == path_str || source.ends_with(file_name))
+                        .unwrap_or(false)
+            })
+        })
+    }
+
+    fn check_local_usages(
+        symbols: &crate::parser::FileSymbols,
+        file_symbols: &HashMap<PathBuf, crate::parser::FileSymbols>,
+    ) -> bool {
+        for export in &symbols.exports {
+            if !export.is_reexport
+                && export.name != "default"
+                && export.name != "*"
+                && file_symbols
+                    .values()
+                    .any(|fs| fs.local_usages.contains(&export.name))
+            {
+                return true;
             }
         }
         false
@@ -237,60 +295,85 @@ impl DeadCodeDetector {
         let path_str = path.to_string_lossy();
         let file_name = path.file_name().and_then(|n| n.to_str()).unwrap_or("");
 
-        if let Some(reexporters) = reexport_map.get(&path_buf) {
+        Self::check_reexport_map(self, path, &path_buf, file_symbols, reexport_map)
+            || Self::check_direct_reexports(self, file_symbols, &path_str, file_name)
+    }
+
+    fn check_reexport_map(
+        detector: &DeadCodeDetector,
+        _path: &Path,
+        path_buf: &PathBuf,
+        file_symbols: &HashMap<PathBuf, crate::parser::FileSymbols>,
+        reexport_map: &HashMap<PathBuf, HashSet<PathBuf>>,
+    ) -> bool {
+        if let Some(reexporters) = reexport_map.get(path_buf) {
             for reexporter in reexporters {
-                if self.is_entry_point(reexporter) {
+                if detector.is_entry_point(reexporter) {
                     return true;
                 }
 
-                for fs in file_symbols.values() {
-                    for import in &fs.imports {
-                        let import_path_str = import.source.as_str();
-                        if import_path_str == reexporter.to_string_lossy().as_ref()
-                            || import_path_str.ends_with(
-                                reexporter
-                                    .file_name()
-                                    .and_then(|n| n.to_str())
-                                    .unwrap_or(""),
-                            )
-                        {
-                            return true;
-                        }
-                    }
+                if Self::is_reexporter_imported(file_symbols, reexporter) {
+                    return true;
                 }
             }
         }
-
-        for (reexporter_path, symbols) in file_symbols {
-            let reexporter_used = self.is_entry_point(reexporter_path)
-                || file_symbols.iter().any(|(_, fs)| {
-                    fs.imports.iter().any(|i| {
-                        i.source == reexporter_path.to_string_lossy().as_ref()
-                            || i.source.ends_with(
-                                reexporter_path
-                                    .file_name()
-                                    .and_then(|n| n.to_str())
-                                    .unwrap_or(""),
-                            )
-                    })
-                });
-
-            if !reexporter_used {
-                continue;
-            }
-
-            for export in &symbols.exports {
-                if export.is_reexport {
-                    if let Some(ref source) = export.source {
-                        if source == path_str.as_ref() || source.ends_with(file_name) {
-                            return true;
-                        }
-                    }
-                }
-            }
-        }
-
         false
+    }
+
+    fn is_reexporter_imported(
+        file_symbols: &HashMap<PathBuf, crate::parser::FileSymbols>,
+        reexporter: &Path,
+    ) -> bool {
+        let reexporter_str = reexporter.to_string_lossy();
+        let reexporter_file_name = reexporter
+            .file_name()
+            .and_then(|n| n.to_str())
+            .unwrap_or("");
+
+        file_symbols.values().any(|fs| {
+            fs.imports.iter().any(|import| {
+                import.source == reexporter_str.as_ref()
+                    || import.source.ends_with(reexporter_file_name)
+            })
+        })
+    }
+
+    fn check_direct_reexports(
+        detector: &DeadCodeDetector,
+        file_symbols: &HashMap<PathBuf, crate::parser::FileSymbols>,
+        path_str: &str,
+        file_name: &str,
+    ) -> bool {
+        file_symbols
+            .iter()
+            .filter(|(reexporter_path, _)| {
+                Self::is_reexporter_used(detector, file_symbols, reexporter_path)
+            })
+            .any(|(_, symbols)| Self::has_reexport_to_path(symbols, path_str, file_name))
+    }
+
+    fn has_reexport_to_path(
+        symbols: &crate::parser::FileSymbols,
+        path_str: &str,
+        file_name: &str,
+    ) -> bool {
+        symbols.exports.iter().any(|export| {
+            export.is_reexport
+                && export
+                    .source
+                    .as_ref()
+                    .map(|source| source == path_str || source.ends_with(file_name))
+                    .unwrap_or(false)
+        })
+    }
+
+    fn is_reexporter_used(
+        detector: &DeadCodeDetector,
+        file_symbols: &HashMap<PathBuf, crate::parser::FileSymbols>,
+        reexporter_path: &Path,
+    ) -> bool {
+        detector.is_entry_point(reexporter_path)
+            || Self::is_reexporter_imported(file_symbols, reexporter_path)
     }
 
     fn matches_dynamic_load_pattern(&self, path: &Path) -> bool {

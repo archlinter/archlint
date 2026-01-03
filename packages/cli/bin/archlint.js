@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 
 const { platform, arch } = process;
-const { existsSync } = require('fs');
-const { join } = require('path');
-const { spawnSync } = require('child_process');
+const { existsSync } = require('node:fs');
+const { join } = require('node:path');
+const { spawnSync } = require('node:child_process');
 
 function getBinaryName() {
   return platform === 'win32' ? 'archlint.exe' : 'archlint';
@@ -12,12 +12,12 @@ function getBinaryName() {
 function isMusl() {
   if (platform !== 'linux') return false;
   try {
-    const { execSync } = require('child_process');
+    const { execSync } = require('node:child_process');
     const output = execSync('ldd --version 2>&1 || true', { encoding: 'utf8' });
     return output.includes('musl');
   } catch {
     try {
-      const os = require('fs').readFileSync('/etc/os-release', 'utf8');
+      const os = require('node:fs').readFileSync('/etc/os-release', 'utf8');
       return os.includes('Alpine');
     } catch {
       return false;
@@ -44,7 +44,7 @@ function getPlatformKey() {
   if (!platformArch) {
     throw new Error(
       `Unsupported platform: ${platform}-${arch}. ` +
-      `Supported: darwin-arm64, darwin-x64, linux-x64, linux-arm64, linux-x64-musl, win32-x64`
+        `Supported: darwin-arm64, darwin-x64, linux-x64, linux-arm64, linux-x64-musl, win32-x64`
     );
   }
 

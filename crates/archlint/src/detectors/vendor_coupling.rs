@@ -42,32 +42,14 @@ impl Detector for VendorCouplingDetector {
 
         for (path, symbols) in &ctx.file_symbols {
             for import in &symbols.imports {
-                if !import.source.starts_with('.') && !import.source.starts_with('/') {
+                if self.is_external_import(&import.source) {
                     let package = self.extract_package_name(&import.source);
 
-                    if self.is_builtin_package(&package)
-                        || thresholds.ignore_packages.iter().any(|pattern_str| {
-                            // Support @scope/* pattern for scoped packages
-                            if pattern_str.ends_with("/*") {
-                                let prefix = &pattern_str[..pattern_str.len() - 1];
-                                package.starts_with(prefix)
-                            } else if pattern_str.contains('*') {
-                                if let Ok(pattern) = glob::Pattern::new(pattern_str) {
-                                    pattern.matches(&package)
-                                } else {
-                                    false
-                                }
-                            } else {
-                                pattern_str == &package
-                            }
-                        })
-                    {
-                        continue;
-                    }
-
-                    let entries = package_usage.entry(package).or_default();
-                    if !entries.contains(path) {
-                        entries.push(path.clone());
+                    if !self.should_ignore_package(&package, thresholds) {
+                        let entries = package_usage.entry(package).or_default();
+                        if !entries.contains(path) {
+                            entries.push(path.clone());
+                        }
                     }
                 }
             }
@@ -82,6 +64,38 @@ impl Detector for VendorCouplingDetector {
 }
 
 impl VendorCouplingDetector {
+    fn is_external_import(&self, source: &str) -> bool {
+        !source.starts_with('.') && !source.starts_with('/')
+    }
+
+    fn should_ignore_package(
+        &self,
+        package: &str,
+        thresholds: &crate::config::VendorCouplingThresholds,
+    ) -> bool {
+        if self.is_builtin_package(package) {
+            return true;
+        }
+
+        thresholds
+            .ignore_packages
+            .iter()
+            .any(|pattern_str| self.matches_ignore_pattern(package, pattern_str))
+    }
+
+    fn matches_ignore_pattern(&self, package: &str, pattern_str: &str) -> bool {
+        if pattern_str.ends_with("/*") {
+            let prefix = &pattern_str[..pattern_str.len() - 1];
+            package.starts_with(prefix)
+        } else if pattern_str.contains('*') {
+            glob::Pattern::new(pattern_str)
+                .map(|pattern| pattern.matches(package))
+                .unwrap_or(false)
+        } else {
+            pattern_str == package
+        }
+    }
+
     fn is_builtin_package(&self, name: &str) -> bool {
         if name.starts_with("node:") {
             return true;

@@ -388,182 +388,20 @@ impl AnalysisReport {
 
     pub fn write_table(
         &self,
-        _severity_config: &SeverityConfig,
+        severity_config: &SeverityConfig,
         scan_root: Option<&Path>,
     ) -> Result<()> {
-        let mut table = Table::new();
-        table
-            .load_preset(UTF8_FULL)
-            .apply_modifier(UTF8_ROUND_CORNERS)
-            .set_content_arrangement(ContentArrangement::Dynamic)
-            .set_header(vec![
-                Cell::new("Severity").add_attribute(Attribute::Bold),
-                Cell::new("Smell").add_attribute(Attribute::Bold),
-                Cell::new("File").add_attribute(Attribute::Bold),
-                Cell::new("Score").add_attribute(Attribute::Bold),
-            ]);
-
+        let mut table = Self::create_table_header();
         let mut sorted_smells = self.smells.clone();
         sorted_smells.sort_by(|(a, _), (b, _)| b.severity.cmp(&a.severity));
 
-        // Get canonical scan root for path comparison
-        let canonical_scan_root = scan_root.and_then(|p| {
-            let canonical = p.canonicalize().ok()?;
-            // If scan_root is a file, use its parent directory to keep paths relative to it
-            if canonical.is_file() {
-                canonical.parent().map(|p| p.to_path_buf())
-            } else {
-                Some(canonical)
-            }
-        });
+        let canonical_scan_root = Self::get_canonical_scan_root(scan_root);
 
         for (smell, _explanation) in sorted_smells {
-            let (severity_text, color) = match smell.severity {
-                crate::detectors::Severity::Critical => ("🔴 CRITICAL", Color::Red),
-                crate::detectors::Severity::High => ("🟠 HIGH", Color::Red),
-                crate::detectors::Severity::Medium => ("🟡 MEDIUM", Color::Yellow),
-                crate::detectors::Severity::Low => ("🔵 LOW", Color::Cyan),
-            };
-
-            let mut severity_cell = Cell::new(severity_text).fg(color);
-            if smell.severity == crate::detectors::Severity::Critical {
-                severity_cell = severity_cell.add_attribute(Attribute::Bold);
-            }
-
-            let smell_type_str = match &smell.smell_type {
-                crate::detectors::SmellType::CyclicDependency => "Cyclic Dependency".to_string(),
-                crate::detectors::SmellType::CyclicDependencyCluster => "Cycle Cluster".to_string(),
-                crate::detectors::SmellType::GodModule => "God Module".to_string(),
-                crate::detectors::SmellType::DeadCode => "Dead Code".to_string(),
-                crate::detectors::SmellType::DeadSymbol { name, .. } => {
-                    format!("Dead Symbol\n({})", name)
-                }
-                crate::detectors::SmellType::HighComplexity { name, .. } => {
-                    format!("Complexity\n({})", name)
-                }
-                crate::detectors::SmellType::LargeFile => "Large File".to_string(),
-                crate::detectors::SmellType::UnstableInterface => "Unstable Interface".to_string(),
-                crate::detectors::SmellType::FeatureEnvy { .. } => "Feature Envy".to_string(),
-                crate::detectors::SmellType::ShotgunSurgery => "Shotgun Surgery".to_string(),
-                crate::detectors::SmellType::HubDependency { package } => {
-                    format!("Hub Dependency\n({})", package)
-                }
-                crate::detectors::SmellType::OrphanType { name } => {
-                    format!("Orphan Type\n({})", name)
-                }
-                crate::detectors::SmellType::TestLeakage { test_file } => {
-                    format!("Test Leakage\n({})", test_file.display())
-                }
-                crate::detectors::SmellType::LayerViolation {
-                    from_layer,
-                    to_layer,
-                } => {
-                    format!("Layer Violation\n({} -> {})", from_layer, to_layer)
-                }
-                crate::detectors::SmellType::SdpViolation => "SDP Violation".to_string(),
-                crate::detectors::SmellType::BarrelFileAbuse => "Barrel File Abuse".to_string(),
-                crate::detectors::SmellType::VendorCoupling { package } => {
-                    format!("Vendor Coupling\n({})", package)
-                }
-                crate::detectors::SmellType::SideEffectImport => "Side-Effect Import".to_string(),
-                crate::detectors::SmellType::HubModule => "Hub Module".to_string(),
-                crate::detectors::SmellType::LowCohesion { lcom } => {
-                    format!("Low Cohesion\n(LCOM: {})", lcom)
-                }
-                crate::detectors::SmellType::ScatteredModule { components } => {
-                    format!("Scattered Module\n({} components)", components)
-                }
-                crate::detectors::SmellType::HighCoupling { cbo } => {
-                    format!("High Coupling\n(CBO: {})", cbo)
-                }
-                crate::detectors::SmellType::PackageCycle { packages } => {
-                    format!("Package Cycle\n({} packages)", packages.len())
-                }
-                crate::detectors::SmellType::SharedMutableState { symbol } => {
-                    format!("Shared Mutable State\n({})", symbol)
-                }
-                crate::detectors::SmellType::DeepNesting { depth } => {
-                    format!("Deep Nesting\n(depth: {})", depth)
-                }
-                crate::detectors::SmellType::LongParameterList { count, function } => {
-                    format!("Long Parameter List\n({}: {} params)", function, count)
-                }
-                crate::detectors::SmellType::PrimitiveObsession {
-                    primitives,
-                    function,
-                } => {
-                    format!(
-                        "Primitive Obsession\n({}: {} primitives)",
-                        function, primitives
-                    )
-                }
-                crate::detectors::SmellType::CircularTypeDependency => {
-                    "Circular Type Dependency".to_string()
-                }
-                crate::detectors::SmellType::AbstractnessViolation => {
-                    "Abstractness Violation".to_string()
-                }
-                crate::detectors::SmellType::ScatteredConfiguration {
-                    env_var,
-                    files_count,
-                } => {
-                    format!(
-                        "Scattered Configuration\n({}: {} files)",
-                        env_var, files_count
-                    )
-                }
-            };
-
-            let locations_str = if !smell.locations.is_empty() {
-                smell
-                    .locations
-                    .iter()
-                    .map(|loc| {
-                        let mut loc_clone = loc.clone();
-                        // Try to make path relative to scan root
-                        if let Some(ref root) = canonical_scan_root {
-                            if let Ok(rel) = loc.file.strip_prefix(root) {
-                                if rel.as_os_str().is_empty() {
-                                    loc_clone.file = loc
-                                        .file
-                                        .file_name()
-                                        .map(PathBuf::from)
-                                        .unwrap_or_else(|| loc.file.clone());
-                                } else {
-                                    loc_clone.file = rel.to_path_buf();
-                                }
-                            }
-                        }
-                        format_location_detail(&loc_clone)
-                    })
-                    .collect::<Vec<_>>()
-                    .join("\n")
-            } else {
-                smell
-                    .files
-                    .iter()
-                    .map(|f| {
-                        let mut display_path = f.clone();
-                        // Try to make path relative to scan root
-                        if let Some(ref root) = canonical_scan_root {
-                            if let Ok(rel) = f.strip_prefix(root) {
-                                if rel.as_os_str().is_empty() {
-                                    display_path = f
-                                        .file_name()
-                                        .map(PathBuf::from)
-                                        .unwrap_or_else(|| f.clone());
-                                } else {
-                                    display_path = rel.to_path_buf();
-                                }
-                            }
-                        }
-                        ExplainEngine::format_file_path(&display_path)
-                    })
-                    .collect::<Vec<_>>()
-                    .join("\n")
-            };
-
-            let score = smell.score(_severity_config);
+            let severity_cell = Self::format_severity_cell(&smell.severity);
+            let smell_type_str = Self::format_smell_type(&smell.smell_type);
+            let locations_str = Self::format_file_paths(&smell, &canonical_scan_root);
+            let score = smell.score(severity_config);
 
             table.add_row(vec![
                 severity_cell,
@@ -580,6 +418,197 @@ impl AnalysisReport {
         );
 
         Ok(())
+    }
+
+    fn create_table_header() -> Table {
+        let mut table = Table::new();
+        table
+            .load_preset(UTF8_FULL)
+            .apply_modifier(UTF8_ROUND_CORNERS)
+            .set_content_arrangement(ContentArrangement::Dynamic)
+            .set_header(vec![
+                Cell::new("Severity").add_attribute(Attribute::Bold),
+                Cell::new("Smell").add_attribute(Attribute::Bold),
+                Cell::new("File").add_attribute(Attribute::Bold),
+                Cell::new("Score").add_attribute(Attribute::Bold),
+            ]);
+        table
+    }
+
+    fn get_canonical_scan_root(scan_root: Option<&Path>) -> Option<PathBuf> {
+        scan_root.and_then(|p| {
+            let canonical = p.canonicalize().ok()?;
+            if canonical.is_file() {
+                canonical.parent().map(|p| p.to_path_buf())
+            } else {
+                Some(canonical)
+            }
+        })
+    }
+
+    fn format_severity_cell(severity: &crate::detectors::Severity) -> Cell {
+        let (severity_text, color) = match severity {
+            crate::detectors::Severity::Critical => ("🔴 CRITICAL", Color::Red),
+            crate::detectors::Severity::High => ("🟠 HIGH", Color::Red),
+            crate::detectors::Severity::Medium => ("🟡 MEDIUM", Color::Yellow),
+            crate::detectors::Severity::Low => ("🔵 LOW", Color::Cyan),
+        };
+
+        let mut cell = Cell::new(severity_text).fg(color);
+        if *severity == crate::detectors::Severity::Critical {
+            cell = cell.add_attribute(Attribute::Bold);
+        }
+        cell
+    }
+
+    fn format_smell_type(smell_type: &crate::detectors::SmellType) -> String {
+        match smell_type {
+            crate::detectors::SmellType::CyclicDependency => "Cyclic Dependency".to_string(),
+            crate::detectors::SmellType::CyclicDependencyCluster => "Cycle Cluster".to_string(),
+            crate::detectors::SmellType::GodModule => "God Module".to_string(),
+            crate::detectors::SmellType::DeadCode => "Dead Code".to_string(),
+            crate::detectors::SmellType::DeadSymbol { name, .. } => {
+                format!("Dead Symbol\n({})", name)
+            }
+            crate::detectors::SmellType::HighComplexity { name, .. } => {
+                format!("Complexity\n({})", name)
+            }
+            crate::detectors::SmellType::LargeFile => "Large File".to_string(),
+            crate::detectors::SmellType::UnstableInterface => "Unstable Interface".to_string(),
+            crate::detectors::SmellType::FeatureEnvy { .. } => "Feature Envy".to_string(),
+            crate::detectors::SmellType::ShotgunSurgery => "Shotgun Surgery".to_string(),
+            crate::detectors::SmellType::HubDependency { package } => {
+                format!("Hub Dependency\n({})", package)
+            }
+            crate::detectors::SmellType::OrphanType { name } => {
+                format!("Orphan Type\n({})", name)
+            }
+            crate::detectors::SmellType::TestLeakage { test_file } => {
+                format!("Test Leakage\n({})", test_file.display())
+            }
+            crate::detectors::SmellType::LayerViolation {
+                from_layer,
+                to_layer,
+            } => {
+                format!("Layer Violation\n({} -> {})", from_layer, to_layer)
+            }
+            crate::detectors::SmellType::SdpViolation => "SDP Violation".to_string(),
+            crate::detectors::SmellType::BarrelFileAbuse => "Barrel File Abuse".to_string(),
+            crate::detectors::SmellType::VendorCoupling { package } => {
+                format!("Vendor Coupling\n({})", package)
+            }
+            crate::detectors::SmellType::SideEffectImport => "Side-Effect Import".to_string(),
+            crate::detectors::SmellType::HubModule => "Hub Module".to_string(),
+            crate::detectors::SmellType::LowCohesion { lcom } => {
+                format!("Low Cohesion\n(LCOM: {})", lcom)
+            }
+            crate::detectors::SmellType::ScatteredModule { components } => {
+                format!("Scattered Module\n({} components)", components)
+            }
+            crate::detectors::SmellType::HighCoupling { cbo } => {
+                format!("High Coupling\n(CBO: {})", cbo)
+            }
+            crate::detectors::SmellType::PackageCycle { packages } => {
+                format!("Package Cycle\n({} packages)", packages.len())
+            }
+            crate::detectors::SmellType::SharedMutableState { symbol } => {
+                format!("Shared Mutable State\n({})", symbol)
+            }
+            crate::detectors::SmellType::DeepNesting { depth } => {
+                format!("Deep Nesting\n(depth: {})", depth)
+            }
+            crate::detectors::SmellType::LongParameterList { count, function } => {
+                format!("Long Parameter List\n({}: {} params)", function, count)
+            }
+            crate::detectors::SmellType::PrimitiveObsession {
+                primitives,
+                function,
+            } => {
+                format!(
+                    "Primitive Obsession\n({}: {} primitives)",
+                    function, primitives
+                )
+            }
+            crate::detectors::SmellType::CircularTypeDependency => {
+                "Circular Type Dependency".to_string()
+            }
+            crate::detectors::SmellType::AbstractnessViolation => {
+                "Abstractness Violation".to_string()
+            }
+            crate::detectors::SmellType::ScatteredConfiguration {
+                env_var,
+                files_count,
+            } => {
+                format!(
+                    "Scattered Configuration\n({}: {} files)",
+                    env_var, files_count
+                )
+            }
+        }
+    }
+
+    fn format_file_paths(
+        smell: &crate::detectors::ArchSmell,
+        canonical_scan_root: &Option<PathBuf>,
+    ) -> String {
+        if !smell.locations.is_empty() {
+            Self::format_location_paths(&smell.locations, canonical_scan_root)
+        } else {
+            Self::format_simple_file_paths(&smell.files, canonical_scan_root)
+        }
+    }
+
+    fn format_location_paths(
+        locations: &[crate::detectors::LocationDetail],
+        canonical_scan_root: &Option<PathBuf>,
+    ) -> String {
+        locations
+            .iter()
+            .map(|loc| {
+                let mut loc_clone = loc.clone();
+                if let Some(ref root) = canonical_scan_root {
+                    if let Ok(rel) = loc.file.strip_prefix(root) {
+                        if rel.as_os_str().is_empty() {
+                            loc_clone.file = loc
+                                .file
+                                .file_name()
+                                .map(PathBuf::from)
+                                .unwrap_or_else(|| loc.file.clone());
+                        } else {
+                            loc_clone.file = rel.to_path_buf();
+                        }
+                    }
+                }
+                format_location_detail(&loc_clone)
+            })
+            .collect::<Vec<_>>()
+            .join("\n")
+    }
+
+    fn format_simple_file_paths(
+        files: &[PathBuf],
+        canonical_scan_root: &Option<PathBuf>,
+    ) -> String {
+        files
+            .iter()
+            .map(|f| {
+                let mut display_path = f.clone();
+                if let Some(ref root) = canonical_scan_root {
+                    if let Ok(rel) = f.strip_prefix(root) {
+                        if rel.as_os_str().is_empty() {
+                            display_path = f
+                                .file_name()
+                                .map(PathBuf::from)
+                                .unwrap_or_else(|| f.clone());
+                        } else {
+                            display_path = rel.to_path_buf();
+                        }
+                    }
+                }
+                ExplainEngine::format_file_path(&display_path)
+            })
+            .collect::<Vec<_>>()
+            .join("\n")
     }
 
     pub fn write_markdown<P: AsRef<Path>>(

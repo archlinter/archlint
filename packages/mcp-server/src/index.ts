@@ -11,8 +11,10 @@ async function main() {
   console.error('archlint MCP server running on stdio');
 }
 
-main().catch((error) => {
+try {
+  await main();
+} catch (error) {
   // eslint-disable-next-line no-console
   console.error('Fatal error in MCP server:', error);
   process.exit(1);
-});
+}

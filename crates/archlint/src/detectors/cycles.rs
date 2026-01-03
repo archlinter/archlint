@@ -102,77 +102,15 @@ impl CycleDetector {
     fn build_cluster(graph: &DependencyGraph, scc: &[NodeIndex]) -> CycleCluster {
         let scc_set: HashSet<_> = scc.iter().copied().collect();
 
-        // 1. Collect all files
-        let files: Vec<PathBuf> = scc
-            .iter()
-            .filter_map(|&node| graph.get_file_path(node).cloned())
-            .collect();
-
-        // 2. Calculate hotspots (in/out degree within SCC)
-        let mut hotspots = Vec::new();
-        for &node in scc {
-            if let Some(file_path) = graph.get_file_path(node) {
-                let in_degree = graph
-                    .graph()
-                    .neighbors_directed(node, petgraph::Direction::Incoming)
-                    .filter(|n| scc_set.contains(n))
-                    .count();
-
-                let out_degree = graph
-                    .dependencies(node)
-                    .filter(|n| scc_set.contains(n))
-                    .count();
-
-                hotspots.push(HotspotInfo {
-                    file: file_path.clone(),
-                    in_degree,
-                    out_degree,
-                });
-            }
-        }
-
-        // Sort hotspots by total degree (descending)
+        let files = Self::collect_cluster_files(graph, scc);
+        let mut hotspots = Self::calculate_hotspots(graph, scc, &scc_set);
         hotspots.sort_by(|a, b| {
             let a_total = a.in_degree + a.out_degree;
             let b_total = b.in_degree + b.out_degree;
             b_total.cmp(&a_total)
         });
 
-        // 3. Collect all internal edges
-        let mut internal_edges = Vec::new();
-        for &from_node in scc {
-            for to_node in graph.dependencies(from_node) {
-                if scc_set.contains(&to_node) {
-                    if let (Some(from_path), Some(to_path)) =
-                        (graph.get_file_path(from_node), graph.get_file_path(to_node))
-                    {
-                        if let Some(edge_data) = graph.get_edge_data(from_node, to_node) {
-                            let symbols_str = if edge_data.imported_symbols.is_empty() {
-                                String::new()
-                            } else {
-                                format!(" ({})", edge_data.imported_symbols.join(", "))
-                            };
-
-                            let mut detail = LocationDetail::new(
-                                from_path.clone(),
-                                edge_data.import_line,
-                                format!(
-                                    "imports from '{}'{}",
-                                    ExplainEngine::format_file_path(to_path),
-                                    symbols_str
-                                ),
-                            );
-                            if let Some(range) = edge_data.import_range {
-                                detail = detail.with_range(range);
-                            }
-                            internal_edges.push(detail);
-                        }
-                    }
-                }
-            }
-        }
-
-        // 4. Find critical edges (edges with high centrality/impact)
+        let internal_edges = Self::collect_internal_edges(graph, scc, &scc_set);
         let critical_edges = Self::find_critical_edges(graph, scc, &scc_set);
 
         CycleCluster {
@@ -181,6 +119,91 @@ impl CycleDetector {
             critical_edges,
             internal_edges,
         }
+    }
+
+    fn collect_cluster_files(graph: &DependencyGraph, scc: &[NodeIndex]) -> Vec<PathBuf> {
+        scc.iter()
+            .filter_map(|&node| graph.get_file_path(node).cloned())
+            .collect()
+    }
+
+    fn calculate_hotspots(
+        graph: &DependencyGraph,
+        scc: &[NodeIndex],
+        scc_set: &HashSet<NodeIndex>,
+    ) -> Vec<HotspotInfo> {
+        scc.iter()
+            .filter_map(|&node| {
+                graph.get_file_path(node).map(|file_path| {
+                    let in_degree = graph
+                        .graph()
+                        .neighbors_directed(node, petgraph::Direction::Incoming)
+                        .filter(|n| scc_set.contains(n))
+                        .count();
+
+                    let out_degree = graph
+                        .dependencies(node)
+                        .filter(|n| scc_set.contains(n))
+                        .count();
+
+                    HotspotInfo {
+                        file: file_path.clone(),
+                        in_degree,
+                        out_degree,
+                    }
+                })
+            })
+            .collect()
+    }
+
+    fn collect_internal_edges(
+        graph: &DependencyGraph,
+        scc: &[NodeIndex],
+        scc_set: &HashSet<NodeIndex>,
+    ) -> Vec<LocationDetail> {
+        let mut internal_edges = Vec::new();
+        for &from_node in scc {
+            for to_node in graph.dependencies(from_node) {
+                if scc_set.contains(&to_node) {
+                    if let Some(detail) = Self::create_edge_detail(graph, from_node, to_node) {
+                        internal_edges.push(detail);
+                    }
+                }
+            }
+        }
+        internal_edges
+    }
+
+    fn create_edge_detail(
+        graph: &DependencyGraph,
+        from_node: NodeIndex,
+        to_node: NodeIndex,
+    ) -> Option<LocationDetail> {
+        let (from_path, to_path) = (
+            graph.get_file_path(from_node)?,
+            graph.get_file_path(to_node)?,
+        );
+        let edge_data = graph.get_edge_data(from_node, to_node)?;
+
+        let symbols_str = if edge_data.imported_symbols.is_empty() {
+            String::new()
+        } else {
+            format!(" ({})", edge_data.imported_symbols.join(", "))
+        };
+
+        let mut detail = LocationDetail::new(
+            from_path.clone(),
+            edge_data.import_line,
+            format!(
+                "imports from '{}'{}",
+                ExplainEngine::format_file_path(to_path),
+                symbols_str
+            ),
+        );
+        if let Some(range) = edge_data.import_range {
+            detail = detail.with_range(range);
+        }
+        Some(detail)
     }
 
     fn find_critical_edges(

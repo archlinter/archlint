@@ -30,7 +30,8 @@ export function formatScanResultMd(result: JsScanResult): string {
     md += `   - Problem: ${s.explanation.problem}\n`;
     const rec = s.explanation.recommendations[0] || 'No specific recommendation';
     md += `   - Recommendation: ${rec}\n`;
-    md += `   - Files: ${s.smell.files.map((f) => `\`${f}\``).join(', ')}\n\n`;
+    const filesList = s.smell.files.map((f) => `\`${f}\``).join(', ');
+    md += `   - Files: ${filesList}\n\n`;
   });
 
   if (result.smells.length > 10) {
@@ -58,7 +59,8 @@ export function formatSmellsMd(
     md += `- **Problem:** ${s.explanation.problem}\n`;
     md += `- **Reason:** ${s.explanation.reason}\n`;
     md += `- **Recommendation:** ${s.explanation.recommendations.join('; ')}\n`;
-    md += `- **Files:** ${s.smell.files.map((f) => `\`${f}\``).join(', ')}\n\n`;
+    const filesList = s.smell.files.map((f) => `\`${f}\``).join(', ');
+    md += `- **Files:** ${filesList}\n\n`;
   });
 
   return md;
