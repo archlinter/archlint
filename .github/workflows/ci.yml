@@ -384,6 +384,12 @@ jobs:
       - name: Replace workspace protocol with versions
         run: node scripts/sync-versions.cjs ${{ steps.version.outputs.VERSION }} --publish
 
+      - name: Build additional JS packages
+        run: |
+          pnpm --filter "@archlinter/plugin-api" build
+          pnpm --filter "@archlinter/eslint-plugin" build
+          pnpm --filter "@archlinter/mcp-server" build
+
       - name: Prepare core packages
         run: |
           for pkg in darwin-arm64 darwin-x64 linux-x64-gnu linux-x64-musl linux-arm64-gnu win32-x64; do
@@ -432,6 +438,17 @@ jobs:
         run: |
           cd packages/cli
           npm publish --access public --provenance --tag ${{ steps.version.outputs.TAG }}
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Publish additional packages
+        run: |
+          for pkg in plugin-api eslint-plugin mcp-server; do
+            echo "📦 Publishing @archlinter/${pkg}..."
+            cd packages/${pkg}
+            npm publish --access public --provenance --tag ${{ steps.version.outputs.TAG }}
+            cd ../..
+          done
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
