@@ -401,7 +401,7 @@ jobs:
         run: |
           for pkg in darwin-arm64 darwin-x64 linux-x64-gnu linux-x64-musl linux-arm64-gnu win32-x64; do
             cd packages/core-${pkg}
-            npm publish --access public --provenance --tag ${{ steps.version.outputs.TAG }}
+            npm publish --access public --provenance --tag ${{ steps.version.outputs.TAG }} || echo "⚠️ Package may already exist, continuing..."
             cd ../..
           done
         env:
@@ -410,7 +410,7 @@ jobs:
       - name: Publish @archlinter/core
         run: |
           cd packages/core
-          npm publish --access public --provenance --tag ${{ steps.version.outputs.TAG }}
+          npm publish --access public --provenance --tag ${{ steps.version.outputs.TAG }} || echo "⚠️ Package may already exist, continuing..."
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
@@ -428,7 +428,7 @@ jobs:
         run: |
           for pkg in darwin-arm64 darwin-x64 linux-x64 linux-x64-musl linux-arm64 win32-x64; do
             cd packages/cli-${pkg}
-            npm publish --access public --provenance --tag ${{ steps.version.outputs.TAG }}
+            npm publish --access public --provenance --tag ${{ steps.version.outputs.TAG }} || echo "⚠️ Package may already exist, continuing..."
             cd ../..
           done
         env:
@@ -437,7 +437,7 @@ jobs:
       - name: Publish @archlinter/cli
         run: |
           cd packages/cli
-          npm publish --access public --provenance --tag ${{ steps.version.outputs.TAG }}
+          npm publish --access public --provenance --tag ${{ steps.version.outputs.TAG }} || echo "⚠️ Package may already exist, continuing..."
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
@@ -446,7 +446,7 @@ jobs:
           for pkg in plugin-api eslint-plugin mcp-server; do
             echo "📦 Publishing @archlinter/${pkg}..."
             cd packages/${pkg}
-            npm publish --access public --provenance --tag ${{ steps.version.outputs.TAG }}
+            npm publish --access public --provenance --tag ${{ steps.version.outputs.TAG }} || echo "⚠️ Package may already exist, continuing..."
             cd ../..
           done
         env:
