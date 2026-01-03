@@ -14,6 +14,16 @@
 
 - **eslint-plugin:** implement architectural smell detection rules ([672aa37](https://github.com/archlinter/archlint/commit/672aa37d3ac1fdef1ecf5398ecefead8f5d274f5))
 
+### Bug Fixes
+
+- **release:** add channel config and fetch-tags for prerelease detection ([fcbf2fd](https://github.com/archlinter/archlint/commit/fcbf2fd27a7eed84b84cb25a729e6ae451bab502))
+
+## [0.6.0-alpha.1](https://github.com/archlinter/archlint/compare/v0.5.0...v0.6.0-alpha.1) (2026-01-03)
+
+### Features
+
+- **eslint-plugin:** implement architectural smell detection rules ([672aa37](https://github.com/archlinter/archlint/commit/672aa37d3ac1fdef1ecf5398ecefead8f5d274f5))
+
 ## [0.5.0](https://github.com/archlinter/archlint/compare/v0.4.1...v0.5.0) (2026-01-02)
 
 ### Features
