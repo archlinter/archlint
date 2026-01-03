@@ -1,4 +1,3 @@
-import type { Rule } from 'eslint';
 import { getSmellsForFile, isAnalysisReady, AnalysisState } from '../utils/cache';
 import { getSmellLocationsForFile, type SmellLocationStrategy } from '../utils/smell-filter';
 import { findProjectRoot } from '../utils/project-root';
@@ -13,7 +12,7 @@ export interface RuleOptions {
   messages: Record<string, string>;
 }
 
-export function createArchlintRule(options: RuleOptions): Rule.RuleModule {
+export function createArchlintRule(options: RuleOptions): any {
   return {
     meta: {
       type: 'problem',
@@ -41,13 +40,13 @@ export function createArchlintRule(options: RuleOptions): Rule.RuleModule {
       },
     },
 
-    create(context) {
+    create(context: any) {
       const filename = context.filename ?? context.getFilename();
       const ruleOptions = context.options[0] ?? {};
       const projectRoot = ruleOptions.projectRoot ?? findProjectRoot(filename);
 
       return {
-        Program(node) {
+        Program(node: any) {
           const state = isAnalysisReady(filename, ruleOptions.projectRoot);
 
           if (state === AnalysisState.NotStarted) {
@@ -83,5 +82,6 @@ export function createArchlintRule(options: RuleOptions): Rule.RuleModule {
         },
       };
     },
-  };
+    defaultOptions: [],
+  } as any;
 }

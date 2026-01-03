@@ -142,6 +142,11 @@ export interface JsConfig {
   entryPoints: Array<string>;
   enableGit: boolean;
 }
+export interface JsStateStats {
+  filesCount: number;
+  graphNodes: number;
+  graphEdges: number;
+}
 export declare function scan(
   path: string,
   options?: JsScanOptions | undefined | null
@@ -159,4 +164,9 @@ export declare class ArchlintAnalyzer {
   scanIncremental(changedFiles: Array<string>): Promise<JsIncrementalResult>;
   scanSync(): JsScanResult;
   scanIncrementalSync(changedFiles: Array<string>): JsIncrementalResult;
+  invalidate(files: Array<string>): void;
+  rescan(): Promise<JsScanResult>;
+  rescanSync(): JsScanResult;
+  getAffectedFiles(changedFiles: Array<string>): Array<string>;
+  getStateStats(): JsStateStats;
 }

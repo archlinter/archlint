@@ -8,6 +8,7 @@ import { noSdpViolations } from './no-sdp-violations';
 import { noHubModules } from './no-hub-modules';
 import { noDeepNesting } from './no-deep-nesting';
 import { noLongParams } from './no-long-params';
+import { noHighComplexity } from './no-high-complexity';
 
 export const rules = {
   'no-cycles': noCycles,
@@ -20,4 +21,5 @@ export const rules = {
   'no-hub-modules': noHubModules,
   'no-deep-nesting': noDeepNesting,
   'no-long-params': noLongParams,
+  'no-high-complexity': noHighComplexity,
 };

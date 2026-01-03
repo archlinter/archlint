@@ -10,6 +10,7 @@ export const flatRecommended: Linter.Config = {
     '@archlinter/no-god-modules': 'warn',
     '@archlinter/no-dead-code': 'warn',
     '@archlinter/no-high-coupling': 'warn',
+    '@archlinter/no-high-complexity': 'warn',
     '@archlinter/no-layer-violations': 'error',
   },
 };
@@ -23,6 +24,7 @@ export const flatStrict: Linter.Config = {
     '@archlinter/no-god-modules': 'error',
     '@archlinter/no-dead-code': 'error',
     '@archlinter/no-high-coupling': 'error',
+    '@archlinter/no-high-complexity': 'warn',
     '@archlinter/no-barrel-abuse': 'error',
     '@archlinter/no-layer-violations': 'error',
     '@archlinter/no-sdp-violations': 'error',

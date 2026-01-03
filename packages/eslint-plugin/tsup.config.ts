@@ -8,4 +8,8 @@ export default defineConfig({
   splitting: false,
   sourcemap: true,
   external: ['@archlinter/core', 'eslint'],
+  footer: {
+    // Make default export the main export for CJS (ESLint 8 compatibility)
+    js: 'if (module.exports.default) { Object.assign(module.exports.default, module.exports); module.exports = module.exports.default; }',
+  },
 });
