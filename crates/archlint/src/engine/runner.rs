@@ -1,6 +1,6 @@
+use crate::args::{Language, ScanArgs};
 use crate::cache::hash::file_content_hash;
 use crate::cache::AnalysisCache;
-use crate::cli::{Language, ScanArgs};
 use crate::config::Config;
 use crate::detectors::{self, Severity};
 use crate::engine::AnalysisContext;
@@ -9,6 +9,10 @@ use crate::framework::detector::FrameworkDetector;
 use crate::framework::presets;
 use crate::graph::{DependencyGraph, EdgeData};
 use crate::metrics::GitChurn;
+#[cfg(not(feature = "cli"))]
+use crate::no_cli_mocks::console::{style, Term};
+#[cfg(not(feature = "cli"))]
+use crate::no_cli_mocks::indicatif::{ProgressBar, ProgressStyle};
 use crate::package_json;
 use crate::parser::{ImportParser, ParsedFile, ParserConfig};
 use crate::project_root::detect_project_root;
@@ -16,12 +20,15 @@ use crate::report::AnalysisReport;
 use crate::resolver::PathResolver;
 use crate::scanner::FileScanner;
 use crate::Result;
+#[cfg(feature = "cli")]
 use console::{style, Term};
+#[cfg(feature = "cli")]
 use indicatif::{ProgressBar, ProgressStyle};
 use log::{debug, info};
 use rayon::prelude::*;
 use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
+use std::sync::Arc;
 
 pub struct AnalysisEngine {
     pub args: ScanArgs,
@@ -120,10 +127,10 @@ impl AnalysisEngine {
 
         let ctx = AnalysisContext {
             project_path: self.project_root.clone(),
-            graph,
-            file_symbols: resolved_file_symbols,
-            function_complexity,
-            file_metrics,
+            graph: Arc::new(graph),
+            file_symbols: Arc::new(resolved_file_symbols),
+            function_complexity: Arc::new(function_complexity),
+            file_metrics: Arc::new(file_metrics),
             churn_map,
             config: final_config.clone(),
             script_entry_points: pkg_config.entry_points,
@@ -136,10 +143,10 @@ impl AnalysisEngine {
 
         let mut report = AnalysisReport::new(
             all_smells,
-            Some(ctx.graph),
-            ctx.file_symbols,
-            ctx.file_metrics,
-            ctx.function_complexity,
+            Some(Arc::try_unwrap(ctx.graph).unwrap_or_else(|arc| (*arc).clone())),
+            Arc::try_unwrap(ctx.file_symbols).unwrap_or_else(|arc| (*arc).clone()),
+            Arc::try_unwrap(ctx.file_metrics).unwrap_or_else(|arc| (*arc).clone()),
+            Arc::try_unwrap(ctx.function_complexity).unwrap_or_else(|arc| (*arc).clone()),
             ctx.churn_map,
         );
         report.set_files_analyzed(files.len());
@@ -363,7 +370,7 @@ impl AnalysisEngine {
                     let parsed = parser.parse_file_with_config(file, config)?;
                     pb.inc(1);
                     if let Some(name) = file.file_name() {
-                        pb.set_message(style(name.to_string_lossy().to_string()).dim().to_string());
+                        pb.set_message(name.to_string_lossy().to_string());
                     }
                     Ok((file.clone(), parsed))
                 })
@@ -482,7 +489,7 @@ impl AnalysisEngine {
         for file in runtime_files {
             if let Some(ref pb) = pb {
                 if let Some(name) = file.file_name() {
-                    pb.set_message(style(name.to_string_lossy().to_string()).dim().to_string());
+                    pb.set_message(name.to_string_lossy().to_string());
                 }
             }
             let from_node = graph.get_node(file).unwrap();
@@ -581,7 +588,7 @@ impl AnalysisEngine {
         for (file, symbols) in file_symbols {
             if let Some(ref pb) = pb {
                 if let Some(name) = file.file_name() {
-                    pb.set_message(style(name.to_string_lossy().to_string()).dim().to_string());
+                    pb.set_message(name.to_string_lossy().to_string());
                 }
             }
             let mut resolved_symbols = symbols.clone();
@@ -652,7 +659,7 @@ impl AnalysisEngine {
 
         for detector in final_detectors {
             if let Some(ref pb) = pb {
-                pb.set_message(style(detector.name()).dim().to_string());
+                pb.set_message(detector.name());
             }
             let smells = detector.detect(ctx);
 

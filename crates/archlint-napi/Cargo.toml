@@ -9,7 +9,7 @@ description = "Node.js bindings for archlint"
 crate-type = ["cdylib"]
 
 [dependencies]
-archlint = { path = "../archlint" }
+archlint = { path = "../archlint", default-features = false }
 napi = { version = "2", default-features = false, features = ["async", "serde-json", "napi4", "tokio_rt"] }
 napi-derive = "2"
 serde = { workspace = true, features = ["derive"] }

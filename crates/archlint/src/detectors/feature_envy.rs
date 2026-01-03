@@ -1,4 +1,5 @@
 use crate::config::Config;
+use crate::detectors::DetectorCategory;
 use crate::detectors::{ArchSmell, Detector, DetectorFactory, DetectorInfo};
 use crate::engine::AnalysisContext;
 use std::collections::HashMap;
@@ -16,6 +17,7 @@ impl DetectorFactory for FeatureEnvyDetectorFactory {
             description: "Detects modules that use more external symbols than internal ones",
             default_enabled: false,
             is_deep: false,
+            category: DetectorCategory::Global,
         }
     }
 

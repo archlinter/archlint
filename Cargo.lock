@@ -78,7 +78,7 @@ dependencies = [
 
 [[package]]
 name = "archlint"
-version = "0.5.0"
+version = "0.6.0-alpha.1"
 dependencies = [
  "chrono",
  "clap",
@@ -116,7 +116,7 @@ dependencies = [
 
 [[package]]
 name = "archlint-napi"
-version = "0.5.0"
+version = "0.6.0-alpha.1"
 dependencies = [
  "archlint",
  "napi",

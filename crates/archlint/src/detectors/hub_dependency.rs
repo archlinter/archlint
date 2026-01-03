@@ -1,4 +1,5 @@
 use crate::config::Config;
+use crate::detectors::DetectorCategory;
 use crate::detectors::{ArchSmell, Detector, DetectorFactory, DetectorInfo};
 use crate::engine::AnalysisContext;
 use std::collections::HashMap;
@@ -16,6 +17,7 @@ impl DetectorFactory for HubDependencyDetectorFactory {
             description: "Detects over-reliance on external packages",
             default_enabled: false,
             is_deep: false,
+            category: DetectorCategory::GraphBased,
         }
     }
 
@@ -115,7 +117,7 @@ impl HubDependencyDetector {
     ) -> HashMap<String, Vec<PathBuf>> {
         let mut package_usage: HashMap<String, Vec<PathBuf>> = HashMap::new();
 
-        for (file, symbols) in &ctx.file_symbols {
+        for (file, symbols) in ctx.file_symbols.as_ref() {
             for import in &symbols.imports {
                 if detector.is_external_package(&import.source) {
                     let package = detector.extract_package_name(&import.source);

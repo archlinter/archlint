@@ -5,7 +5,14 @@ export default [
   js.configs.recommended,
   ...tseslint.configs.recommended,
   {
-    ignores: ['**/dist/', '**/node_modules/', '**/*.d.ts', 'target/', 'crates/archlint/test_data/'],
+    ignores: [
+      '**/dist/',
+      '**/node_modules/',
+      '**/*.d.ts',
+      'target/',
+      'crates/archlint/test_data/',
+      '**/__tests__/fixtures/**',
+    ],
   },
   {
     files: ['**/*.{js,ts}'],

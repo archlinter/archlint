@@ -29,6 +29,25 @@ pub struct ScanResult {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
+pub struct IncrementalResult {
+    /// All detected smells with explanations (only for affected files)
+    pub smells: Vec<SmellWithExplanation>,
+
+    /// Files that were re-analyzed
+    pub affected_files: Vec<PathBuf>,
+
+    /// Number of files that changed
+    pub changed_count: usize,
+
+    /// Number of files affected
+    pub affected_count: usize,
+
+    /// Time taken for analysis in ms
+    pub analysis_time_ms: u64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct SmellWithExplanation {
     pub smell: ArchSmell,
     pub explanation: Explanation,

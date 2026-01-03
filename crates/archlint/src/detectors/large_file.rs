@@ -1,4 +1,5 @@
 use crate::config::Config;
+use crate::detectors::DetectorCategory;
 use crate::detectors::{ArchSmell, Detector, DetectorFactory, DetectorInfo};
 use crate::engine::AnalysisContext;
 use inventory;
@@ -17,6 +18,7 @@ impl DetectorFactory for LargeFileDetectorFactory {
             description: "Detects files that exceed the recommended line count",
             default_enabled: true,
             is_deep: false,
+            category: DetectorCategory::FileLocal,
         }
     }
 

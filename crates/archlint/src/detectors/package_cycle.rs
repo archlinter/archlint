@@ -1,4 +1,5 @@
 use crate::config::Config;
+use crate::detectors::DetectorCategory;
 use crate::detectors::{ArchSmell, Detector, DetectorFactory, DetectorInfo};
 use crate::engine::AnalysisContext;
 use inventory;
@@ -20,6 +21,7 @@ impl DetectorFactory for PackageCycleDetectorFactory {
             description: "Detects circular dependencies between logical folders (packages)",
             default_enabled: false,
             is_deep: false,
+            category: DetectorCategory::GraphBased,
         }
     }
 

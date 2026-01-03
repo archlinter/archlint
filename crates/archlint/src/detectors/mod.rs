@@ -75,6 +75,19 @@ pub trait Detector: Send + Sync {
     fn detect(&self, ctx: &AnalysisContext) -> Vec<ArchSmell>;
 }
 
+/// Category for incremental analysis optimization
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum DetectorCategory {
+    /// Only analyzes file contents (complexity, deep_nesting, long_params, etc.)
+    FileLocal,
+    /// Analyzes file imports (layer_violation, vendor_coupling, etc.)
+    ImportBased,
+    /// Analyzes dependency subgraph (cycles, hub_module, etc.)
+    GraphBased,
+    /// Requires full graph analysis (dead_code, god_module, etc.)
+    Global,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Hash)]
 pub enum SmellType {
     CyclicDependency,

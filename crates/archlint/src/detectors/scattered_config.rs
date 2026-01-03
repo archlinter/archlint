@@ -1,4 +1,5 @@
 use crate::config::Config;
+use crate::detectors::DetectorCategory;
 use crate::detectors::{ArchSmell, Detector, DetectorFactory, DetectorInfo};
 use crate::engine::AnalysisContext;
 use inventory;
@@ -20,6 +21,7 @@ impl DetectorFactory for ScatteredConfigDetectorFactory {
                 "Detects environment variables that are accessed from many different modules",
             default_enabled: false,
             is_deep: false,
+            category: DetectorCategory::Global,
         }
     }
 
@@ -41,7 +43,7 @@ impl Detector for ScatteredConfigDetector {
         let mut var_usage: HashMap<String, Vec<PathBuf>> = HashMap::new();
         let thresholds = &ctx.config.thresholds.scattered_config;
 
-        for (path, symbols) in &ctx.file_symbols {
+        for (path, symbols) in ctx.file_symbols.as_ref() {
             for var in &symbols.env_vars {
                 var_usage
                     .entry(var.to_string())

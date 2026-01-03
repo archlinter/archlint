@@ -2,20 +2,22 @@
 //!
 //! This module provides the stable public interface for programmatic use.
 
-use crate::cli::{Language, OutputFormat, ScanArgs};
+use crate::args::{Language, OutputFormat, ScanArgs};
 use crate::config::Config;
 use crate::detectors::registry::{DetectorInfo, DetectorRegistry};
 use crate::engine::AnalysisEngine;
 use crate::error::Result;
 use std::path::Path;
 
+pub mod analyzer;
 pub mod file_info;
 pub mod options;
 pub mod result;
 
+pub use analyzer::{Analyzer, StateStats};
 pub use file_info::{ExportInfo, ExportKind, FileInfo, FileMetrics, ImportInfo};
 pub use options::ScanOptions;
-pub use result::{ScanResult, SmellWithExplanation, Summary};
+pub use result::{IncrementalResult, ScanResult, SmellWithExplanation, Summary};
 
 /// Scan a project for architectural smells
 ///
@@ -99,7 +101,7 @@ fn build_scan_args(options: &ScanOptions, path: &Path) -> ScanArgs {
     }
 }
 
-fn build_file_info(
+pub(crate) fn build_file_info(
     report: &crate::report::AnalysisReport,
     project_path: &Path,
 ) -> Result<Vec<FileInfo>> {

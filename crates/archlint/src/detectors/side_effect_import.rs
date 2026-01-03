@@ -1,4 +1,5 @@
 use crate::config::Config;
+use crate::detectors::DetectorCategory;
 use crate::detectors::{ArchSmell, Detector, DetectorFactory, DetectorInfo};
 use crate::engine::AnalysisContext;
 use inventory;
@@ -17,6 +18,7 @@ impl DetectorFactory for SideEffectImportDetectorFactory {
             description: "Detects imports that execute code on load without binding any symbols",
             default_enabled: true,
             is_deep: false,
+            category: DetectorCategory::ImportBased,
         }
     }
 
@@ -37,7 +39,7 @@ impl Detector for SideEffectImportDetector {
     fn detect(&self, ctx: &AnalysisContext) -> Vec<ArchSmell> {
         let mut smells = Vec::new();
 
-        for (path, symbols) in &ctx.file_symbols {
+        for (path, symbols) in ctx.file_symbols.as_ref() {
             for import in &symbols.imports {
                 if import.name == "*" && import.alias.is_none() && !import.is_reexport {
                     // Check if it's a CSS file or similar (should be ignored)

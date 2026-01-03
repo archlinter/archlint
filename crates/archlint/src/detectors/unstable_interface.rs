@@ -1,4 +1,5 @@
 use crate::config::Config;
+use crate::detectors::DetectorCategory;
 use crate::detectors::{ArchSmell, Detector, DetectorFactory, DetectorInfo};
 use crate::engine::AnalysisContext;
 
@@ -14,6 +15,7 @@ impl DetectorFactory for UnstableInterfaceDetectorFactory {
             description: "Detects modules with high churn and many dependants",
             default_enabled: false,
             is_deep: false,
+            category: DetectorCategory::Global,
         }
     }
 

@@ -1,4 +1,5 @@
 use crate::config::{Config, LayerConfig};
+use crate::detectors::DetectorCategory;
 use crate::detectors::{ArchSmell, Detector, DetectorFactory, DetectorInfo};
 use crate::engine::AnalysisContext;
 use inventory;
@@ -19,6 +20,7 @@ impl DetectorFactory for LayerViolationDetectorFactory {
             description: "Detects violations of layered architecture rules",
             default_enabled: false,
             is_deep: false,
+            category: DetectorCategory::ImportBased,
         }
     }
 

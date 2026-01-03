@@ -1,4 +1,5 @@
 use crate::config::Config;
+use crate::detectors::DetectorCategory;
 use crate::detectors::{ArchSmell, Detector, DetectorFactory, DetectorInfo};
 use crate::engine::AnalysisContext;
 use inventory;
@@ -19,6 +20,7 @@ impl DetectorFactory for LcomDetectorFactory {
                 "Detects classes with low cohesion where methods don't share common fields",
             default_enabled: false,
             is_deep: false,
+            category: DetectorCategory::FileLocal,
         }
     }
 
@@ -40,7 +42,7 @@ impl Detector for LcomDetector {
         let mut smells = Vec::new();
         let thresholds = &ctx.config.thresholds.lcom;
 
-        for (path, symbols) in &ctx.file_symbols {
+        for (path, symbols) in ctx.file_symbols.as_ref() {
             if ctx.is_excluded(path, &thresholds.exclude_patterns)
                 || ctx.should_skip_detector(path, "lcom")
             {

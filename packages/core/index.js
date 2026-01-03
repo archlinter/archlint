@@ -284,10 +284,11 @@ if (!nativeBinding) {
   throw new Error(`Failed to load native binding`);
 }
 
-const { scan, scanSync, clearCache, loadConfig, getDetectors } = nativeBinding;
+const { scan, scanSync, loadConfig, getDetectors, clearCache, ArchlintAnalyzer } = nativeBinding;
 
 module.exports.scan = scan;
 module.exports.scanSync = scanSync;
-module.exports.clearCache = clearCache;
 module.exports.loadConfig = loadConfig;
 module.exports.getDetectors = getDetectors;
+module.exports.clearCache = clearCache;
+module.exports.ArchlintAnalyzer = ArchlintAnalyzer;

@@ -1,4 +1,5 @@
 use crate::config::Config;
+use crate::detectors::DetectorCategory;
 use crate::detectors::{ArchSmell, Detector, DetectorFactory, DetectorInfo};
 use crate::engine::AnalysisContext;
 use inventory;
@@ -23,6 +24,7 @@ impl DetectorFactory for DeadCodeDetectorFactory {
             description: "Detects unused files and modules",
             default_enabled: true,
             is_deep: false,
+            category: DetectorCategory::Global,
         }
     }
 
@@ -47,8 +49,8 @@ impl Detector for DeadCodeDetector {
             ctx.dynamic_load_patterns.clone(),
         );
 
-        let symbol_imports = Self::build_symbol_imports_map(&ctx.file_symbols);
-        let reexport_map = Self::build_reexport_map(&ctx.file_symbols);
+        let symbol_imports = Self::build_symbol_imports_map(ctx.file_symbols.as_ref());
+        let reexport_map = Self::build_reexport_map(ctx.file_symbols.as_ref());
 
         let dead_files = Self::find_dead_files(ctx, &detector, &symbol_imports, &reexport_map);
 
@@ -137,8 +139,8 @@ impl DeadCodeDetector {
             && !ctx.is_framework_entry_point(path)
             && !detector.is_entry_point(path)
             && !detector.matches_dynamic_load_pattern(path)
-            && !detector.has_used_exports(path, &ctx.file_symbols, symbol_imports)
-            && !detector.is_reexported(path, &ctx.file_symbols, reexport_map)
+            && !detector.has_used_exports(path, ctx.file_symbols.as_ref(), symbol_imports)
+            && !detector.is_reexported(path, ctx.file_symbols.as_ref(), reexport_map)
     }
 
     pub fn new_default(config: &Config) -> Self {

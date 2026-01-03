@@ -1,4 +1,5 @@
 use crate::config::Config;
+use crate::detectors::DetectorCategory;
 use crate::detectors::{ArchSmell, Detector, DetectorFactory, DetectorInfo};
 use crate::engine::AnalysisContext;
 use inventory;
@@ -19,6 +20,7 @@ impl DetectorFactory for BarrelFileAbuseDetectorFactory {
                 "Detects excessive use of barrel files (index.ts) that inflate the dependency graph",
             default_enabled: true,
             is_deep: false,
+            category: DetectorCategory::ImportBased,
         }
     }
 
@@ -40,7 +42,7 @@ impl Detector for BarrelFileAbuseDetector {
         let mut smells = Vec::new();
         let thresholds = &ctx.config.thresholds.barrel_file;
 
-        for (path, symbols) in &ctx.file_symbols {
+        for (path, symbols) in ctx.file_symbols.as_ref() {
             if ctx.should_skip_detector(path, "barrel_file_abuse") {
                 continue;
             }

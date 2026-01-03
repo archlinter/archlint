@@ -1,4 +1,5 @@
 use crate::config::Config;
+use crate::detectors::DetectorCategory;
 use crate::detectors::{ArchSmell, Detector, DetectorFactory, DetectorInfo};
 use crate::engine::AnalysisContext;
 use git2::{Commit, Repository};
@@ -17,6 +18,7 @@ impl DetectorFactory for ShotgunSurgeryDetectorFactory {
             description: "Detects files that frequently change together",
             default_enabled: false, // Git analysis can be slow
             is_deep: true,
+            category: DetectorCategory::Global,
         }
     }
 

@@ -1,4 +1,5 @@
 use crate::config::Config;
+use crate::detectors::DetectorCategory;
 use crate::detectors::{ArchSmell, Detector, DetectorFactory, DetectorInfo};
 use crate::engine::AnalysisContext;
 use inventory;
@@ -18,6 +19,7 @@ impl DetectorFactory for SdpViolationDetectorFactory {
             description: "Detects when stable modules depend on unstable ones",
             default_enabled: false,
             is_deep: false,
+            category: DetectorCategory::GraphBased,
         }
     }
 
