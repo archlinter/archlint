@@ -52,7 +52,7 @@ jobs:
               const config = JSON.parse(fs.readFileSync('.releaserc.json', 'utf8'));
               config.branches = [
                 'main',
-                { name: '${BRANCH_NAME}', prerelease: '${{ github.event.inputs.channel }}' }
+                { name: '${BRANCH_NAME}', prerelease: '${{ github.event.inputs.channel }}', channel: '${{ github.event.inputs.channel }}' }
               ];
               fs.writeFileSync('.releaserc.json', JSON.stringify(config, null, 2));
             "
