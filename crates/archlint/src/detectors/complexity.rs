@@ -1,4 +1,5 @@
 use crate::config::Config;
+use crate::detectors::DetectorCategory;
 use crate::detectors::{ArchSmell, Detector, DetectorFactory, DetectorInfo};
 use crate::engine::AnalysisContext;
 use crate::parser::FunctionComplexity;
@@ -19,6 +20,7 @@ impl DetectorFactory for ComplexityDetectorFactory {
             description: "Detects functions and files with high cyclomatic complexity",
             default_enabled: true,
             is_deep: false,
+            category: DetectorCategory::FileLocal,
         }
     }
 
@@ -40,7 +42,7 @@ impl Detector for ComplexityDetector {
         let mut smells = Vec::new();
         let thresholds = &ctx.config.thresholds.complexity;
 
-        for (file_path, functions) in &ctx.function_complexity {
+        for (file_path, functions) in ctx.function_complexity.as_ref() {
             for func in functions {
                 if func.complexity >= thresholds.function_threshold {
                     smells.push(ArchSmell::new_high_complexity(

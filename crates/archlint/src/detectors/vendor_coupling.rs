@@ -1,4 +1,5 @@
 use crate::config::Config;
+use crate::detectors::DetectorCategory;
 use crate::detectors::{ArchSmell, Detector, DetectorFactory, DetectorInfo};
 use crate::engine::AnalysisContext;
 use inventory;
@@ -19,6 +20,7 @@ impl DetectorFactory for VendorCouplingDetectorFactory {
             description: "Detects excessive coupling to third-party packages",
             default_enabled: false,
             is_deep: false,
+            category: DetectorCategory::ImportBased,
         }
     }
 
@@ -40,7 +42,7 @@ impl Detector for VendorCouplingDetector {
         let mut package_usage: HashMap<String, Vec<PathBuf>> = HashMap::new();
         let thresholds = &ctx.config.thresholds.vendor_coupling;
 
-        for (path, symbols) in &ctx.file_symbols {
+        for (path, symbols) in ctx.file_symbols.as_ref() {
             for import in &symbols.imports {
                 if self.is_external_import(&import.source) {
                     let package = self.extract_package_name(&import.source);

@@ -26,6 +26,13 @@ export interface JsScanResult {
   grade: JsArchitectureGrade;
   projectPath: string;
 }
+export interface JsIncrementalResult {
+  smells: Array<JsSmellWithExplanation>;
+  affectedFiles: Array<string>;
+  changedCount: number;
+  affectedCount: number;
+  analysisTimeMs: number;
+}
 export interface JsSmellWithExplanation {
   smell: JsSmell;
   explanation: JsExplanation;
@@ -143,6 +150,13 @@ export declare function scanSync(
   path: string,
   options?: JsScanOptions | undefined | null
 ): JsScanResult;
-export declare function clearCache(path: string): void;
 export declare function loadConfig(path?: string | undefined | null): JsConfig;
 export declare function getDetectors(): Array<JsDetectorInfo>;
+export declare function clearCache(path: string): void;
+export declare class ArchlintAnalyzer {
+  constructor(path: string, options?: JsScanOptions | undefined | null);
+  scan(): Promise<JsScanResult>;
+  scanIncremental(changedFiles: Array<string>): Promise<JsIncrementalResult>;
+  scanSync(): JsScanResult;
+  scanIncrementalSync(changedFiles: Array<string>): JsIncrementalResult;
+}

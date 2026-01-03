@@ -4,6 +4,7 @@ use crate::graph::DependencyGraph;
 use crate::parser::{FileSymbols, FunctionComplexity};
 use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
+use std::sync::Arc;
 
 #[derive(Debug, Clone)]
 pub struct FileMetrics {
@@ -12,10 +13,12 @@ pub struct FileMetrics {
 
 pub struct AnalysisContext {
     pub project_path: PathBuf,
-    pub graph: DependencyGraph,
-    pub file_symbols: HashMap<PathBuf, FileSymbols>,
-    pub function_complexity: HashMap<PathBuf, Vec<FunctionComplexity>>,
-    pub file_metrics: HashMap<PathBuf, FileMetrics>,
+    // Heavy structures wrapped in Arc
+    pub graph: Arc<DependencyGraph>,
+    pub file_symbols: Arc<HashMap<PathBuf, FileSymbols>>,
+    pub function_complexity: Arc<HashMap<PathBuf, Vec<FunctionComplexity>>>,
+    pub file_metrics: Arc<HashMap<PathBuf, FileMetrics>>,
+    // Small, keep owned
     pub churn_map: HashMap<PathBuf, usize>,
     pub config: Config,
     pub script_entry_points: HashSet<PathBuf>,
@@ -77,10 +80,10 @@ impl AnalysisContext {
     pub fn default_for_test() -> Self {
         Self {
             project_path: PathBuf::new(),
-            graph: DependencyGraph::new(),
-            file_symbols: HashMap::new(),
-            function_complexity: HashMap::new(),
-            file_metrics: HashMap::new(),
+            graph: Arc::new(DependencyGraph::new()),
+            file_symbols: Arc::new(HashMap::new()),
+            function_complexity: Arc::new(HashMap::new()),
+            file_metrics: Arc::new(HashMap::new()),
             churn_map: HashMap::new(),
             config: Config::default(),
             script_entry_points: HashSet::new(),
@@ -88,6 +91,22 @@ impl AnalysisContext {
             detected_frameworks: Vec::new(),
             file_types: HashMap::new(),
         }
+    }
+
+    pub fn graph_mut(&mut self) -> &mut DependencyGraph {
+        Arc::make_mut(&mut self.graph)
+    }
+
+    pub fn file_symbols_mut(&mut self) -> &mut HashMap<PathBuf, FileSymbols> {
+        Arc::make_mut(&mut self.file_symbols)
+    }
+
+    pub fn function_complexity_mut(&mut self) -> &mut HashMap<PathBuf, Vec<FunctionComplexity>> {
+        Arc::make_mut(&mut self.function_complexity)
+    }
+
+    pub fn file_metrics_mut(&mut self) -> &mut HashMap<PathBuf, FileMetrics> {
+        Arc::make_mut(&mut self.file_metrics)
     }
 }
 

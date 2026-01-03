@@ -7,6 +7,7 @@ use archlint::resolver::PathResolver;
 use archlint::scanner::FileScanner;
 use std::collections::{HashMap, HashSet};
 use std::path::PathBuf;
+use std::sync::Arc;
 
 pub fn fixture_path(name: &str) -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR"))
@@ -81,10 +82,10 @@ pub fn analyze_fixture_with_config(name: &str, config: Config) -> AnalysisContex
 
     AnalysisContext {
         project_path: root,
-        graph,
-        file_symbols,
-        function_complexity,
-        file_metrics,
+        graph: Arc::new(graph),
+        file_symbols: Arc::new(file_symbols),
+        function_complexity: Arc::new(function_complexity),
+        file_metrics: Arc::new(file_metrics),
         churn_map: HashMap::new(),
         config,
         script_entry_points,

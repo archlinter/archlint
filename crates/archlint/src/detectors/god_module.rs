@@ -1,4 +1,5 @@
 use crate::config::Config;
+use crate::detectors::DetectorCategory;
 use crate::detectors::{ArchSmell, Detector, DetectorFactory, DetectorInfo};
 use crate::engine::AnalysisContext;
 
@@ -14,6 +15,7 @@ impl DetectorFactory for GodModuleDetectorFactory {
             description: "Detects large modules with many incoming and outgoing dependencies",
             default_enabled: true,
             is_deep: false,
+            category: DetectorCategory::Global,
         }
     }
 

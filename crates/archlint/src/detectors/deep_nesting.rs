@@ -1,4 +1,5 @@
 use crate::config::Config;
+use crate::detectors::DetectorCategory;
 use crate::detectors::{ArchSmell, Detector, DetectorFactory, DetectorInfo};
 use crate::engine::AnalysisContext;
 use inventory;
@@ -17,6 +18,7 @@ impl DetectorFactory for DeepNestingDetectorFactory {
             description: "Detects functions with excessive nesting depth",
             default_enabled: true,
             is_deep: false,
+            category: DetectorCategory::FileLocal,
         }
     }
 
@@ -38,7 +40,7 @@ impl Detector for DeepNestingDetector {
         let mut smells = Vec::new();
         let thresholds = &ctx.config.thresholds.deep_nesting;
 
-        for (path, functions) in &ctx.function_complexity {
+        for (path, functions) in ctx.function_complexity.as_ref() {
             for func in functions {
                 if func.max_depth > thresholds.max_depth {
                     smells.push(ArchSmell::new_deep_nesting(

@@ -1,4 +1,5 @@
 use crate::config::Config;
+use crate::detectors::DetectorCategory;
 use crate::detectors::{ArchSmell, Detector, DetectorFactory, DetectorInfo};
 use crate::engine::AnalysisContext;
 use inventory;
@@ -19,6 +20,7 @@ impl DetectorFactory for TestLeakageDetectorFactory {
                 "Detects when production code imports test files, mocks, or test utilities",
             default_enabled: false,
             is_deep: false,
+            category: DetectorCategory::ImportBased,
         }
     }
 

@@ -22,6 +22,7 @@ use log::{debug, info};
 use rayon::prelude::*;
 use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
+use std::sync::Arc;
 
 pub struct AnalysisEngine {
     pub args: ScanArgs,
@@ -120,10 +121,10 @@ impl AnalysisEngine {
 
         let ctx = AnalysisContext {
             project_path: self.project_root.clone(),
-            graph,
-            file_symbols: resolved_file_symbols,
-            function_complexity,
-            file_metrics,
+            graph: Arc::new(graph),
+            file_symbols: Arc::new(resolved_file_symbols),
+            function_complexity: Arc::new(function_complexity),
+            file_metrics: Arc::new(file_metrics),
             churn_map,
             config: final_config.clone(),
             script_entry_points: pkg_config.entry_points,
@@ -136,10 +137,10 @@ impl AnalysisEngine {
 
         let mut report = AnalysisReport::new(
             all_smells,
-            Some(ctx.graph),
-            ctx.file_symbols,
-            ctx.file_metrics,
-            ctx.function_complexity,
+            Some(Arc::try_unwrap(ctx.graph).unwrap_or_else(|arc| (*arc).clone())),
+            Arc::try_unwrap(ctx.file_symbols).unwrap_or_else(|arc| (*arc).clone()),
+            Arc::try_unwrap(ctx.file_metrics).unwrap_or_else(|arc| (*arc).clone()),
+            Arc::try_unwrap(ctx.function_complexity).unwrap_or_else(|arc| (*arc).clone()),
             ctx.churn_map,
         );
         report.set_files_analyzed(files.len());

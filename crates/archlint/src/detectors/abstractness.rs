@@ -1,4 +1,5 @@
 use crate::config::Config;
+use crate::detectors::DetectorCategory;
 use crate::detectors::{ArchSmell, Detector, DetectorFactory, DetectorInfo};
 use crate::engine::AnalysisContext;
 use crate::parser::SymbolKind;
@@ -20,6 +21,7 @@ impl DetectorFactory for AbstractnessViolationDetectorFactory {
                 "Detects modules that are far from the Main Sequence (Zone of Pain or Uselessness)",
             default_enabled: false,
             is_deep: false,
+            category: DetectorCategory::Global,
         }
     }
 

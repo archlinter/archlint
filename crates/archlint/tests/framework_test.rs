@@ -24,7 +24,8 @@ fn test_lcom_skips_nestjs_controller() {
 
     let mut symbols = FileSymbols::default();
     symbols.classes.push(class);
-    ctx.file_symbols.insert(controller_path.clone(), symbols);
+    ctx.file_symbols_mut()
+        .insert(controller_path.clone(), symbols);
 
     let detector = LcomDetector;
     let smells = detector.detect(&ctx);
@@ -45,8 +46,8 @@ fn test_abstractness_skips_nestjs_dto() {
     // 2. Add symbols that would trigger abstractness violation
     // (DTO is usually 100% abstract but has no dependants, which puts it in Zone of Pain if it was a core module)
     let symbols = FileSymbols::default();
-    ctx.file_symbols.insert(dto_path.clone(), symbols);
-    ctx.graph.add_file(&dto_path);
+    ctx.file_symbols_mut().insert(dto_path.clone(), symbols);
+    ctx.graph_mut().add_file(&dto_path);
 
     let detector = AbstractnessViolationDetector;
     let smells = detector.detect(&ctx);

@@ -1,4 +1,5 @@
 use crate::config::Config;
+use crate::detectors::DetectorCategory;
 use crate::detectors::{ArchSmell, Detector, DetectorFactory, DetectorInfo};
 use crate::engine::AnalysisContext;
 use inventory;
@@ -17,6 +18,7 @@ impl DetectorFactory for LongParameterListDetectorFactory {
             description: "Detects functions with too many parameters",
             default_enabled: true,
             is_deep: false,
+            category: DetectorCategory::FileLocal,
         }
     }
 
@@ -38,7 +40,7 @@ impl Detector for LongParameterListDetector {
         let mut smells = Vec::new();
         let thresholds = &ctx.config.thresholds.long_params;
 
-        for (path, functions) in &ctx.function_complexity {
+        for (path, functions) in ctx.function_complexity.as_ref() {
             for func in functions {
                 if thresholds.ignore_constructors && func.is_constructor {
                     continue;

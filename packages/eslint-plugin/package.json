@@ -4,15 +4,24 @@
   "description": "ESLint plugin for architectural smell detection",
   "license": "MIT",
   "type": "module",
-  "main": "dist/index.js",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "main": "dist/index.cjs",
+  "module": "dist/index.js",
   "types": "dist/index.d.ts",
   "files": [
     "dist"
   ],
   "scripts": {
-    "build": "tsc",
+    "build": "tsup",
     "clean": "rm -rf dist",
-    "test": "vitest"
+    "test": "vitest",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@archlinter/core": "workspace:*"
@@ -21,8 +30,10 @@
     "eslint": ">=8.0.0"
   },
   "devDependencies": {
-    "@types/eslint": "^8.56.0",
+    "@types/eslint": "^9.6.0",
+    "@typescript-eslint/rule-tester": "^8.0.0",
     "eslint": "^9.17.0",
+    "tsup": "^8.0.0",
     "typescript": "^5.4.0",
     "vitest": "^1.4.0"
   },

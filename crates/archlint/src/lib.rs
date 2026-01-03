@@ -8,6 +8,7 @@ pub mod explain;
 pub mod framework;
 pub mod glob_expand;
 pub mod graph;
+pub mod incremental;
 pub mod metrics;
 pub mod package_json;
 pub mod parser;
@@ -22,8 +23,10 @@ pub mod api;
 
 // Convenient re-exports for common use
 pub use api::{clear_cache, get_detectors, load_config, scan};
+pub use api::{
+    Analyzer, IncrementalResult, ScanOptions, ScanResult, SmellWithExplanation, StateStats, Summary,
+};
 pub use api::{ExportInfo, ExportKind, FileInfo, FileMetrics, ImportInfo};
-pub use api::{ScanOptions, ScanResult, SmellWithExplanation, Summary};
 
 pub use config::Config;
 pub use detectors::registry::DetectorInfo;
