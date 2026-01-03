@@ -3,8 +3,17 @@ name: Release
 on:
   workflow_dispatch:
     inputs:
+      channel:
+        description: 'Release channel (stable uses main, others use current branch)'
+        required: true
+        type: choice
+        default: 'stable'
+        options:
+          - stable
+          - beta
+          - alpha
       dry_run:
-        description: "Dry run (no publish)"
+        description: 'Dry run (no publish)'
         type: boolean
         default: false
 
@@ -27,11 +36,29 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: "20"
-          cache: "pnpm"
+          node-version: '20'
+          cache: 'pnpm'
 
       - name: Install dependencies
         run: pnpm install
+
+      - name: Prepare dynamic semantic-release config
+        run: |
+          if [[ "${{ github.event.inputs.channel }}" != "stable" ]]; then
+            BRANCH_NAME=${GITHUB_REF#refs/heads/}
+            node -e "
+              const fs = require('fs');
+              const config = JSON.parse(fs.readFileSync('.releaserc.json', 'utf8'));
+              config.branches = [
+                'main',
+                { name: '${BRANCH_NAME}', prerelease: '${{ github.event.inputs.channel }}' }
+              ];
+              fs.writeFileSync('.releaserc.json', JSON.stringify(config, null, 2));
+            "
+            echo "✓ Configured for prerelease channel: ${{ github.event.inputs.channel }} on branch ${BRANCH_NAME}"
+          else
+            echo "✓ Using stable configuration (main branch)"
+          fi
 
       - name: Semantic Release
         uses: cycjimmy/semantic-release-action@v4
