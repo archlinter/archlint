@@ -140,16 +140,16 @@ importers:
         version: link:../core
     devDependencies:
       '@types/eslint':
-        specifier: ^8.56.0
-        version: 8.56.12
+        specifier: ^9.6.0
+        version: 9.6.1
       '@typescript-eslint/rule-tester':
-        specifier: ^8.51.0
+        specifier: ^8.0.0
         version: 8.51.0(eslint@9.39.2(jiti@2.6.1))(typescript@5.9.3)
       eslint:
         specifier: ^9.17.0
         version: 9.39.2(jiti@2.6.1)
       tsup:
-        specifier: ^8.5.1
+        specifier: ^8.0.0
         version: 8.5.1(jiti@2.6.1)(postcss@8.5.6)(typescript@5.9.3)
       typescript:
         specifier: ^5.4.0
@@ -777,8 +777,8 @@ packages:
   '@types/conventional-commits-parser@5.0.2':
     resolution: {integrity: sha512-BgT2szDXnVypgpNxOK8aL5SGjUdaQbC++WZNjF1Qge3Og2+zhHj+RWhmehLhYyvQwqAmvezruVfOf8+3m74W+g==}
 
-  '@types/eslint@8.56.12':
-    resolution: {integrity: sha512-03ruubjWyOHlmljCVoxSuNDdmfZDzsrrz0P2LeJsOXr+ZwFQ+0yQIwNCwt/GYhV7Z31fgtXJTAEs+FYlEL851g==}
+  '@types/eslint@9.6.1':
+    resolution: {integrity: sha512-FXx2pKgId/WyYo2jXw63kk7/+TY7u7AziEJxJAnSFzHlqTAS3Ync6SvgYAN/k4/PQpnnVuzoMuVnByKK2qp0ag==}
 
   '@types/estree@1.0.8':
     resolution: {integrity: sha512-dWHzHa2WqEXI/O1E9OjrocMTKJl2mSrEolh1Iomrv6U+JuNwaHXsXx9bLu5gG7BUWFIN0skIQJQ/L1rIex4X6w==}
@@ -3502,7 +3502,7 @@ snapshots:
     dependencies:
       '@types/node': 20.19.27
 
-  '@types/eslint@8.56.12':
+  '@types/eslint@9.6.1':
     dependencies:
       '@types/estree': 1.0.8
       '@types/json-schema': 7.0.15
