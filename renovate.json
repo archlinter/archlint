@@ -1,0 +1,41 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["config:recommended", ":semanticCommits", "helpers:pinGitHubActionDigests"],
+  "dependencyDashboard": true,
+  "rebaseWhen": "behind-base-branch",
+  "packageRules": [
+    {
+      "matchPackagePatterns": ["^oxc_"],
+      "groupName": "oxc dependencies",
+      "groupSlug": "oxc"
+    },
+    {
+      "matchPackageNames": ["eslint", "typescript"],
+      "matchPackagePatterns": ["^@typescript-eslint/", "^@eslint/"],
+      "groupName": "linting dependencies",
+      "groupSlug": "linting"
+    },
+    {
+      "matchPackageNames": ["vitest"],
+      "matchPackagePatterns": ["^@vitest/"],
+      "groupName": "testing dependencies",
+      "groupSlug": "testing"
+    },
+    {
+      "matchPackagePatterns": ["^@semantic-release/", "conventional-changelog-conventionalcommits"],
+      "matchPackageNames": ["semantic-release"],
+      "groupName": "semantic-release dependencies",
+      "groupSlug": "semantic-release"
+    },
+    {
+      "matchManagers": ["github-actions"],
+      "groupName": "github actions",
+      "groupSlug": "github-actions"
+    }
+  ],
+  "lockFileMaintenance": {
+    "enabled": true,
+    "automerge": true,
+    "schedule": ["at any time"]
+  }
+}
