@@ -1,11 +1,21 @@
-import {
-  ArchlintAnalyzer,
-  type JsScanResult,
-  type JsSmellWithExplanation,
-} from '@archlinter/core';
+import { ArchlintAnalyzer, type JsScanResult, type JsSmellWithExplanation } from '@archlinter/core';
 import { findProjectRoot } from './project-root';
 import { statSync, readFileSync } from 'fs';
-import { createHash } from 'crypto';
+import * as crypto from 'crypto';
+import xxhashInit from 'xxhash-wasm';
+
+const { createHash } = crypto;
+
+let xxhash: { h64: (str: string) => bigint } | null = null;
+
+// Start loading immediately (non-blocking)
+xxhashInit()
+  .then((h) => {
+    xxhash = h;
+  })
+  .catch(() => {
+    /* fallback to MD5 */
+  });
 
 // Debug mode - use DEBUG=archlint:* or DEBUG=archlint:cache (standard ESLint pattern)
 // Also supports legacy ARCHLINT_DEBUG=1
@@ -33,6 +43,14 @@ function debug(namespace: string, ...args: unknown[]): void {
  * Compute fast hash of content (for comparison, not security)
  */
 function computeHash(content: string): string {
+  if (xxhash) {
+    return xxhash.h64(content).toString(16);
+  }
+
+  // Fallback for first 1-2 calls before WASM loads or if it fails
+  if (typeof crypto.hash === 'function') {
+    return crypto.hash('md5', content, 'hex');
+  }
   return createHash('md5').update(content).digest('hex');
 }
 
@@ -40,6 +58,7 @@ function computeHash(content: string): string {
 interface DiskFileInfo {
   hash: string;
   mtime: number;
+  size: number;
 }
 const diskFileCache = new Map<string, DiskFileInfo>();
 
@@ -50,15 +69,16 @@ function getDiskFileHash(filePath: string): string | null {
   try {
     const stats = statSync(filePath);
     const mtime = stats.mtimeMs;
+    const size = stats.size;
     const cached = diskFileCache.get(filePath);
 
-    if (cached && cached.mtime === mtime) {
+    if (cached && cached.mtime === mtime && cached.size === size) {
       return cached.hash;
     }
 
     const content = readFileSync(filePath, 'utf8');
     const hash = computeHash(content);
-    diskFileCache.set(filePath, { hash, mtime });
+    diskFileCache.set(filePath, { hash, mtime, size });
     return hash;
   } catch {
     return null; // file doesn't exist
@@ -75,12 +95,7 @@ export function isUnsavedFile(filename: string, bufferText?: string): boolean {
   }
 
   // Virtual file patterns used by IDEs
-  if (
-    filename === '<input>' ||
-    filename === '<text>' ||
-    filename.startsWith('untitled:') ||
-    filename.includes('stdin')
-  ) {
+  if (isVirtualFile(filename)) {
     debug('cache', 'Virtual file detected:', filename);
     return true;
   }
@@ -97,11 +112,19 @@ export function isUnsavedFile(filename: string, bufferText?: string): boolean {
     return true;
   }
 
+  // FAST PATH: Check size first.
+  // diskFileCache was just populated by getDiskFileHash
+  const cached = diskFileCache.get(filename);
+  if (cached && Buffer.byteLength(bufferText, 'utf8') !== cached.size) {
+    debug('cache', 'Size mismatch detected:', filename);
+    return true;
+  }
+
   const bufferHash = computeHash(bufferText);
   const isUnsaved = bufferHash !== diskHash;
 
   if (isUnsaved) {
-    debug('cache', 'Unsaved file detected:', filename);
+    debug('cache', 'Unsaved file detected (hash mismatch):', filename);
   }
 
   return isUnsaved;
@@ -156,7 +179,11 @@ export interface AnalysisOptions {
 /**
  * Initialize analyzer and perform initial scan
  */
-function initializeProjectState(projectRoot: string, filePath: string, currentMtime: number): ProjectState {
+function initializeProjectState(
+  projectRoot: string,
+  filePath: string,
+  currentMtime: number
+): ProjectState {
   debug('cache', 'First scan for project:', projectRoot);
   const analyzer = new ArchlintAnalyzer(projectRoot, { cache: true, git: false });
   const state: ProjectState = {
@@ -435,4 +462,3 @@ export function clearAllCaches(): void {
   projectStates.clear();
   diskFileCache.clear();
 }
-
