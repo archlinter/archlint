@@ -57,7 +57,7 @@
     "*.{ts,js}": "eslint --fix",
     "*.rs": [
       "sh -c 'cargo clippy --workspace --all-targets --all-features --allow-dirty --allow-staged --fix -- -D warnings' --",
-      "rustfmt --edition 2021"
+      "sh -c 'cargo fmt --all' --"
     ]
   },
   "pnpm": {
