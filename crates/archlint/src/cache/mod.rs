@@ -156,6 +156,7 @@ impl AnalysisCache {
     }
 
     pub fn clear(project_root: &Path) -> Result<()> {
+        let _ = crate::git_cache::GitHistoryCache::clear(project_root);
         let locations = [
             project_root.join(Self::CACHE_DIR),
             project_root.join("node_modules/.cache/archlint"),

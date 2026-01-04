@@ -23,6 +23,12 @@ pub enum AnalysisError {
     #[error("Notify error: {0}")]
     Notify(#[from] notify::Error),
 
+    #[error("Storage error: {0}")]
+    Storage(String),
+
+    #[error("Internal error: {0}")]
+    Anyhow(#[from] anyhow::Error),
+
     #[error("Path resolution error: {0}")]
     PathResolution(String),
 

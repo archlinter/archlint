@@ -17,6 +17,7 @@ serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 serde_yaml = "0.9"
 thiserror = "1.0"
+anyhow = "1.0"
 log = "0.4"
 env_logger = "0.11"
 
@@ -54,6 +55,8 @@ chrono = { version = "0.4", features = ["serde"] }
 indicatif = "0.17"
 console = "0.15"
 comfy-table = "7.1"
+redb = "2.2.1"
+bincode = "1.3.3"
 
 # Dev
 tempfile = "3.2"

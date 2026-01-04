@@ -8,6 +8,7 @@ pub mod engine;
 pub mod error;
 pub mod explain;
 pub mod framework;
+pub mod git_cache;
 pub mod glob_expand;
 pub mod graph;
 pub mod incremental;

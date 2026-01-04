@@ -7,8 +7,8 @@ use crate::engine::AnalysisContext;
 use crate::framework::classifier::FileClassifier;
 use crate::framework::detector::FrameworkDetector;
 use crate::framework::presets;
+use crate::git_cache::GitHistoryCache;
 use crate::graph::{DependencyGraph, EdgeData};
-use crate::metrics::GitChurn;
 #[cfg(not(feature = "cli"))]
 use crate::no_cli_mocks::console::{style, Term};
 #[cfg(not(feature = "cli"))]
@@ -540,23 +540,24 @@ impl AnalysisEngine {
             return HashMap::new();
         }
         if let Some(cached_churn) = cache.as_ref().and_then(|c| c.get_churn_map()) {
-            debug!("Using cached churn map");
+            debug!("Using cached churn map from AnalysisCache");
             return cached_churn.clone();
         }
-        let git_churn = GitChurn::new(&self.project_root);
-        if !git_churn.is_available() {
-            debug!("Git repository not found, skipping churn calculation");
-            return HashMap::new();
-        }
-        match git_churn.calculate_churn(files, use_progress) {
-            Ok(map) => {
-                if let Some(ref mut c) = cache {
-                    c.insert_churn_map(map.clone());
+        match GitHistoryCache::open(&self.project_root) {
+            Ok(git_cache) => match git_cache.get_churn_map(files, use_progress) {
+                Ok(map) => {
+                    if let Some(ref mut c) = cache {
+                        c.insert_churn_map(map.clone());
+                    }
+                    map
                 }
-                map
-            }
+                Err(e) => {
+                    debug!("Git history cache calculation failed: {}, skipping", e);
+                    HashMap::new()
+                }
+            },
             Err(e) => {
-                debug!("Git churn calculation failed: {}, skipping", e);
+                debug!("Failed to open git history cache: {}, skipping churn calculation", e);
                 HashMap::new()
             }
         }
