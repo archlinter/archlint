@@ -1,4 +1,5 @@
 use crate::config::Config;
+use crate::detectors::DetectorCategory;
 use crate::detectors::{ArchSmell, Detector, DetectorFactory, DetectorInfo};
 use crate::engine::AnalysisContext;
 use inventory;
@@ -19,6 +20,7 @@ impl DetectorFactory for ScatteredModuleDetectorFactory {
             description: "Detects modules where exports are unrelated to each other",
             default_enabled: false,
             is_deep: false,
+            category: DetectorCategory::Global,
         }
     }
 
@@ -40,7 +42,7 @@ impl Detector for ScatteredModuleDetector {
         let mut smells = Vec::new();
         let thresholds = &ctx.config.thresholds.module_cohesion;
 
-        for (path, symbols) in &ctx.file_symbols {
+        for (path, symbols) in ctx.file_symbols.as_ref() {
             if ctx.should_skip_detector(path, "scattered_module") {
                 continue;
             }

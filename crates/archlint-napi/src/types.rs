@@ -33,6 +33,15 @@ pub struct JsScanResult {
 }
 
 #[napi(object)]
+pub struct JsIncrementalResult {
+    pub smells: Vec<JsSmellWithExplanation>,
+    pub affected_files: Vec<String>,
+    pub changed_count: u32,
+    pub affected_count: u32,
+    pub analysis_time_ms: u32,
+}
+
+#[napi(object)]
 pub struct JsSmellWithExplanation {
     pub smell: JsSmell,
     pub explanation: JsExplanation,
@@ -211,6 +220,22 @@ impl From<archlint::ScanResult> for JsScanResult {
             files: res.files.into_iter().map(Into::into).collect(),
             grade: res.grade.into(),
             project_path: res.project_path.to_string_lossy().to_string(),
+        }
+    }
+}
+
+impl From<archlint::IncrementalResult> for JsIncrementalResult {
+    fn from(res: archlint::IncrementalResult) -> Self {
+        Self {
+            smells: res.smells.into_iter().map(Into::into).collect(),
+            affected_files: res
+                .affected_files
+                .into_iter()
+                .map(|p: std::path::PathBuf| p.to_string_lossy().to_string())
+                .collect(),
+            changed_count: res.changed_count as u32,
+            affected_count: res.affected_count as u32,
+            analysis_time_ms: res.analysis_time_ms as u32,
         }
     }
 }
@@ -406,6 +431,25 @@ impl From<archlint::Config> for JsConfig {
                 .unwrap_or(serde_json::Value::Object(Default::default())),
             entry_points: c.entry_points,
             enable_git: c.enable_git,
+        }
+    }
+}
+
+// ============ State Stats ============
+
+#[napi(object)]
+pub struct JsStateStats {
+    pub files_count: u32,
+    pub graph_nodes: u32,
+    pub graph_edges: u32,
+}
+
+impl From<archlint::StateStats> for JsStateStats {
+    fn from(s: archlint::StateStats) -> Self {
+        Self {
+            files_count: s.files_count as u32,
+            graph_nodes: s.graph_nodes as u32,
+            graph_edges: s.graph_edges as u32,
         }
     }
 }

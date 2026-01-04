@@ -1,4 +1,5 @@
 use crate::config::Config;
+use crate::detectors::DetectorCategory;
 use crate::detectors::{ArchSmell, Detector, DetectorFactory, DetectorInfo};
 use crate::engine::AnalysisContext;
 use inventory;
@@ -19,6 +20,7 @@ impl DetectorFactory for CircularTypeDepsDetectorFactory {
             description: "Detects circular dependencies between modules that only involve types",
             default_enabled: false,
             is_deep: false,
+            category: DetectorCategory::GraphBased,
         }
     }
 
@@ -42,7 +44,7 @@ impl Detector for CircularTypeDepsDetector {
         let mut type_graph = DiGraph::<std::path::PathBuf, ()>::new();
         let mut path_to_node = HashMap::new();
 
-        for (path, symbols) in &ctx.file_symbols {
+        for (path, symbols) in ctx.file_symbols.as_ref() {
             let from_node = *path_to_node
                 .entry(path.clone())
                 .or_insert_with(|| type_graph.add_node(path.clone()));

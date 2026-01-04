@@ -246,7 +246,7 @@ impl ExplainEngine {
 
     fn explain_high_complexity(smell: &ArchSmell) -> Explanation {
         let (name, _line) = match &smell.smell_type {
-            SmellType::HighComplexity { name, line } => (name.clone(), *line),
+            SmellType::HighComplexity { name, line, .. } => (name.clone(), *line),
             _ => ("unknown".to_string(), 0),
         };
 

@@ -1,6 +1,6 @@
 {
   "name": "archlint",
-  "version": "0.5.0",
+  "version": "0.6.0-alpha.1",
   "private": true,
   "description": "Fast architecture smell detector for TypeScript/JavaScript",
   "license": "MIT",
@@ -18,7 +18,7 @@
     "test": "pnpm test:node && pnpm test:rust",
     "test:node": "vitest run",
     "test:rust": "cargo test --workspace",
-    "lint": "pnpm -r lint && eslint .",
+    "lint": "pnpm --filter @archlinter/eslint-plugin build && pnpm -r lint && eslint .",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "fmt": "cargo fmt",

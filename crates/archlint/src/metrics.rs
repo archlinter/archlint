@@ -1,5 +1,8 @@
+#[cfg(not(feature = "cli"))]
+use crate::no_cli_mocks::indicatif::{ProgressBar, ProgressStyle};
 use crate::Result;
 use git2::{DiffOptions, Repository};
+#[cfg(feature = "cli")]
 use indicatif::{ProgressBar, ProgressStyle};
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};

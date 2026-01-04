@@ -22,7 +22,7 @@ export async function archlintGetSmells(
   }
 
   if (severity) {
-    const minSevValue = SEVERITY_ORDER[severity as Severity];
+    const minSevValue = SEVERITY_ORDER[severity];
     filteredSmells = filteredSmells.filter((s) => {
       const sev = s.smell.severity.toLowerCase() as Severity;
       return SEVERITY_ORDER[sev] <= minSevValue;

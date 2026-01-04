@@ -1,4 +1,5 @@
 use crate::config::Config;
+use crate::detectors::DetectorCategory;
 use crate::detectors::{ArchSmell, Detector, DetectorFactory, DetectorInfo};
 use crate::engine::AnalysisContext;
 use inventory;
@@ -18,6 +19,7 @@ impl DetectorFactory for SdpViolationDetectorFactory {
             description: "Detects when stable modules depend on unstable ones",
             default_enabled: false,
             is_deep: false,
+            category: DetectorCategory::GraphBased,
         }
     }
 
@@ -79,11 +81,18 @@ impl SdpViolationDetector {
                     ctx.graph.get_file_path(node),
                     ctx.graph.get_file_path(to_node),
                 ) {
+                    let edge_data = ctx.graph.get_edge_data(node, to_node);
+                    let (import_line, import_range) = edge_data
+                        .map(|e| (e.import_line, e.import_range))
+                        .unwrap_or((0, None));
+
                     smells.push(ArchSmell::new_sdp_violation(
                         from_path.clone(),
                         to_path.clone(),
                         from_i,
                         to_i,
+                        import_line,
+                        import_range,
                     ));
                 }
             }

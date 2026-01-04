@@ -3,8 +3,17 @@ name: Release
 on:
   workflow_dispatch:
     inputs:
+      channel:
+        description: 'Release channel (stable uses main, others use current branch)'
+        required: true
+        type: choice
+        default: 'stable'
+        options:
+          - stable
+          - beta
+          - alpha
       dry_run:
-        description: "Dry run (no publish)"
+        description: 'Dry run (no publish)'
         type: boolean
         default: false
 
@@ -19,6 +28,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          fetch-tags: true
           token: ${{ secrets.GH_PAT }}
 
       - uses: pnpm/action-setup@v3
@@ -27,11 +37,62 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: "20"
-          cache: "pnpm"
+          node-version: '20'
+          cache: 'pnpm'
 
       - name: Install dependencies
         run: pnpm install
+
+      - name: Prepare dynamic semantic-release config
+        run: |
+          if [[ "${{ github.event.inputs.channel }}" != "stable" ]]; then
+            BRANCH_NAME=${GITHUB_REF#refs/heads/}
+            node -e "
+              const fs = require('fs');
+              const config = JSON.parse(fs.readFileSync('.releaserc.json', 'utf8'));
+              config.branches = [
+                'main',
+                { 
+                  name: '${BRANCH_NAME}', 
+                  prerelease: '${{ github.event.inputs.channel }}', 
+                  channel: '${{ github.event.inputs.channel }}'
+                }
+              ];
+              fs.writeFileSync('.releaserc.json', JSON.stringify(config, null, 2));
+            "
+            echo "✓ Configured for prerelease channel: ${{ github.event.inputs.channel }} on branch ${BRANCH_NAME}"
+          else
+            echo "✓ Using stable configuration (main branch)"
+          fi
+
+      - name: Clean up stale prerelease artifacts
+        if: github.event.inputs.channel != 'stable' && github.event.inputs.dry_run != 'true'
+        run: |
+          # Remove stale prerelease tags and releases BEFORE semantic-release runs
+          # This fixes issue where semantic-release doesn't recognize manually created releases
+          TAGS=$(git tag -l "v[0-9]*.[0-9]*.[0-9]*-${{ github.event.inputs.channel }}.*")
+          if [ -n "$TAGS" ]; then
+            echo "Cleaning up stale prerelease artifacts:"
+            for TAG in $TAGS; do
+              echo "  - Removing local tag: $TAG"
+              if ! git tag -d "$TAG" 2>&1; then
+                echo "    Warning: Local tag '$TAG' not found or could not be deleted"
+              fi
+              echo "  - Removing GitHub release: $TAG"
+              if ! gh release delete "$TAG" --yes 2>&1; then
+                echo "    Warning: Release '$TAG' not found or already deleted"
+              fi
+              echo "  - Removing remote tag: $TAG"
+              if ! git push origin ":refs/tags/$TAG" 2>&1; then
+                echo "    Warning: Remote tag '$TAG' not found or could not be deleted"
+              fi
+            done
+            echo "✓ Cleanup completed"
+          else
+            echo "✓ No stale prerelease artifacts found"
+          fi
+        env:
+          GH_TOKEN: ${{ secrets.GH_PAT }}
 
       - name: Semantic Release
         uses: cycjimmy/semantic-release-action@v4

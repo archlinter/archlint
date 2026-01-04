@@ -1,4 +1,5 @@
 use crate::config::Config;
+use crate::detectors::DetectorCategory;
 use crate::detectors::{ArchSmell, Detector, DetectorFactory, DetectorInfo};
 use crate::engine::AnalysisContext;
 use inventory;
@@ -17,6 +18,7 @@ impl DetectorFactory for PrimitiveObsessionDetectorFactory {
             description: "Detects functions with too many primitive parameters",
             default_enabled: false,
             is_deep: false,
+            category: DetectorCategory::FileLocal,
         }
     }
 
@@ -38,7 +40,7 @@ impl Detector for PrimitiveObsessionDetector {
         let mut smells = Vec::new();
         let thresholds = &ctx.config.thresholds.primitive_obsession;
 
-        for (path, functions) in &ctx.function_complexity {
+        for (path, functions) in ctx.function_complexity.as_ref() {
             for func in functions {
                 if func.primitive_params > thresholds.max_primitives {
                     smells.push(ArchSmell::new_primitive_obsession(

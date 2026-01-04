@@ -1,4 +1,4 @@
-export async function archlintHelp(): Promise<{ content: { type: 'text'; text: string }[] }> {
+export function archlintHelp(): { content: { type: 'text'; text: string }[] } {
   const helpText = `
 # archlint MCP Server Usage Guide
 

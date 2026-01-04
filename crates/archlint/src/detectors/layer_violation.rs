@@ -1,4 +1,5 @@
 use crate::config::{Config, LayerConfig};
+use crate::detectors::DetectorCategory;
 use crate::detectors::{ArchSmell, Detector, DetectorFactory, DetectorInfo};
 use crate::engine::AnalysisContext;
 use inventory;
@@ -19,6 +20,7 @@ impl DetectorFactory for LayerViolationDetectorFactory {
             description: "Detects violations of layered architecture rules",
             default_enabled: false,
             is_deep: false,
+            category: DetectorCategory::ImportBased,
         }
     }
 
@@ -64,16 +66,14 @@ impl LayerViolationDetector {
         let mut smells = Vec::new();
 
         // Find node index for from_path
-        for node in ctx.graph.nodes() {
-            if ctx.graph.get_file_path(node) == Some(from_path) {
-                for to_node in ctx.graph.dependencies(node) {
-                    if let Some(to_info) = detector.get_node_info(ctx, to_node, layers) {
-                        if let Some(smell) = detector.check_violation(from_info, to_info) {
-                            smells.push(smell);
-                        }
+        if let Some(node) = ctx.graph.get_node(from_path) {
+            for to_node in ctx.graph.dependencies(node) {
+                if let Some(to_info) = detector.get_node_info(ctx, to_node, layers) {
+                    let edge_data = ctx.graph.get_edge_data(node, to_node);
+                    if let Some(smell) = detector.check_violation(from_info, to_info, edge_data) {
+                        smells.push(smell);
                     }
                 }
-                break;
             }
         }
 
@@ -131,17 +131,24 @@ impl LayerViolationDetector {
         &self,
         from: (&PathBuf, &LayerConfig),
         to: (&PathBuf, &LayerConfig),
+        edge_data: Option<&crate::graph::EdgeData>,
     ) -> Option<ArchSmell> {
         let (from_path, from_layer) = from;
         let (to_path, to_layer) = to;
 
         if from_layer.name != to_layer.name && !from_layer.allowed_imports.contains(&to_layer.name)
         {
+            let (import_line, import_range) = edge_data
+                .map(|e| (e.import_line, e.import_range))
+                .unwrap_or((0, None));
+
             Some(ArchSmell::new_layer_violation(
                 from_path.clone(),
                 to_path.clone(),
                 from_layer.name.clone(),
                 to_layer.name.clone(),
+                import_line,
+                import_range,
             ))
         } else {
             None

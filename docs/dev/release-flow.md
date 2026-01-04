@@ -54,6 +54,10 @@ BREAKING CHANGE: This changes the public API"
 
 Develop features in feature branches and merge them into `main`.
 
+### Prerelease Branches
+
+The `.releaserc.json` file contains static branch configurations for `beta` and `alpha` channels. However, **prerelease branches are configured dynamically by CI** during the release workflow. The workflow automatically creates branch configurations based on the selected channel and current branch name, so the static entries in `.releaserc.json` are not used during actual releases.
+
 ### 2. Trigger Release
 
 When you are ready to release, manually trigger the Release workflow:

@@ -75,6 +75,19 @@ pub trait Detector: Send + Sync {
     fn detect(&self, ctx: &AnalysisContext) -> Vec<ArchSmell>;
 }
 
+/// Category for incremental analysis optimization
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum DetectorCategory {
+    /// Only analyzes file contents (complexity, deep_nesting, long_params, etc.)
+    FileLocal,
+    /// Analyzes file imports (layer_violation, vendor_coupling, etc.)
+    ImportBased,
+    /// Analyzes dependency subgraph (cycles, hub_module, etc.)
+    GraphBased,
+    /// Requires full graph analysis (dead_code, god_module, etc.)
+    Global,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Hash)]
 pub enum SmellType {
     CyclicDependency,
@@ -88,6 +101,7 @@ pub enum SmellType {
     HighComplexity {
         name: String,
         line: usize,
+        complexity: usize,
     },
     LargeFile,
     UnstableInterface,
@@ -673,13 +687,21 @@ impl ArchSmell {
         let mut locations = Vec::new();
         if let Some(r) = range {
             locations.push(
-                LocationDetail::new(file.clone(), line, format!("Function '{}'", name))
-                    .with_range(r),
+                LocationDetail::new(
+                    file.clone(),
+                    line,
+                    format!("Function '{}' (complexity: {})", name, complexity),
+                )
+                .with_range(r),
             );
         }
 
         Self {
-            smell_type: SmellType::HighComplexity { name, line },
+            smell_type: SmellType::HighComplexity {
+                name,
+                line,
+                complexity,
+            },
             severity,
             files: vec![file],
             metrics: vec![SmellMetric::Complexity(complexity)],
@@ -829,19 +851,30 @@ impl ArchSmell {
         }
     }
 
-    pub fn new_test_leakage(from: PathBuf, to: PathBuf) -> Self {
+    pub fn new_test_leakage(
+        from: PathBuf,
+        to: PathBuf,
+        import_line: usize,
+        import_range: Option<CodeRange>,
+    ) -> Self {
+        let mut location = LocationDetail::new(
+            from,
+            import_line,
+            format!("Imports test file: {}", to.display()),
+        );
+
+        if let Some(range) = import_range {
+            location = location.with_range(range);
+        }
+
         Self {
             smell_type: SmellType::TestLeakage {
                 test_file: to.clone(),
             },
             severity: Severity::High,
-            files: vec![from.clone()],
+            files: vec![location.file.clone()],
             metrics: Vec::new(),
-            locations: vec![LocationDetail::new(
-                from,
-                0,
-                format!("Imports test file: {}", to.display()),
-            )],
+            locations: vec![location],
             cluster: None,
         }
     }
@@ -851,47 +884,68 @@ impl ArchSmell {
         to: PathBuf,
         from_layer: String,
         to_layer: String,
+        import_line: usize,
+        import_range: Option<CodeRange>,
     ) -> Self {
+        let mut location = LocationDetail::new(
+            from,
+            import_line,
+            format!(
+                "Illegal import of layer '{}' from '{}'",
+                to_layer,
+                to.display()
+            ),
+        );
+
+        if let Some(range) = import_range {
+            location = location.with_range(range);
+        }
+
         Self {
             smell_type: SmellType::LayerViolation {
                 from_layer,
-                to_layer: to_layer.clone(),
+                to_layer,
             },
             severity: Severity::High,
-            files: vec![from.clone()],
+            files: vec![location.file.clone()],
             metrics: Vec::new(),
-            locations: vec![LocationDetail::new(
-                from,
-                0,
-                format!(
-                    "Illegal import of layer '{}' from '{}'",
-                    to_layer,
-                    to.display()
-                ),
-            )],
+            locations: vec![location],
             cluster: None,
         }
     }
 
-    pub fn new_sdp_violation(from: PathBuf, to: PathBuf, from_i: f64, to_i: f64) -> Self {
+    pub fn new_sdp_violation(
+        from: PathBuf,
+        to: PathBuf,
+        from_i: f64,
+        to_i: f64,
+        import_line: usize,
+        import_range: Option<CodeRange>,
+    ) -> Self {
+        let mut location = LocationDetail::new(
+            from,
+            import_line,
+            format!(
+                "Stable module (I={:.2}) depends on unstable module (I={:.2}) from {}",
+                from_i,
+                to_i,
+                to.display()
+            ),
+        );
+
+        if let Some(range) = import_range {
+            location = location.with_range(range);
+        }
+
         Self {
             smell_type: SmellType::SdpViolation,
             severity: Severity::Medium,
-            files: vec![from.clone()],
+            files: vec![location.file.clone()],
             metrics: vec![
                 SmellMetric::Instability(from_i),
                 SmellMetric::InstabilityDiff(to_i - from_i),
             ],
-            locations: vec![LocationDetail::new(
-                from,
-                0,
-                format!(
-                    "Stable module (I={:.2}) depends on unstable module (I={:.2}) from {}",
-                    from_i,
-                    to_i,
-                    to.display()
-                ),
-            )],
+            locations: vec![location],
             cluster: None,
         }
     }
@@ -1025,7 +1079,13 @@ impl ArchSmell {
         }
     }
 
-    pub fn new_deep_nesting(path: PathBuf, function: String, depth: usize) -> Self {
+    pub fn new_deep_nesting(
+        path: PathBuf,
+        function: String,
+        depth: usize,
+        line: usize,
+        range: CodeRange,
+    ) -> Self {
         Self {
             smell_type: SmellType::DeepNesting { depth },
             severity: Severity::Low,
@@ -1033,14 +1093,21 @@ impl ArchSmell {
             metrics: vec![SmellMetric::Depth(depth)],
             locations: vec![LocationDetail::new(
                 path,
-                0,
+                line,
                 format!("Function '{}' is too deeply nested", function),
-            )],
+            )
+            .with_range(range)],
             cluster: None,
         }
     }
 
-    pub fn new_long_params(path: PathBuf, function: String, count: usize) -> Self {
+    pub fn new_long_params(
+        path: PathBuf,
+        function: String,
+        count: usize,
+        line: usize,
+        range: CodeRange,
+    ) -> Self {
         Self {
             smell_type: SmellType::LongParameterList {
                 count,
@@ -1051,9 +1118,10 @@ impl ArchSmell {
             metrics: vec![SmellMetric::DependantCount(count)],
             locations: vec![LocationDetail::new(
                 path,
-                0,
+                line,
                 format!("Function '{}' has {} parameters", function, count),
-            )],
+            )
+            .with_range(range)],
             cluster: None,
         }
     }

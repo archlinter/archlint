@@ -1,4 +1,5 @@
 use crate::config::Config;
+use crate::detectors::DetectorCategory;
 use crate::detectors::{ArchSmell, Detector, DetectorFactory, DetectorInfo};
 use crate::engine::AnalysisContext;
 use inventory;
@@ -19,6 +20,7 @@ impl DetectorFactory for TestLeakageDetectorFactory {
                 "Detects when production code imports test files, mocks, or test utilities",
             default_enabled: false,
             is_deep: false,
+            category: DetectorCategory::ImportBased,
         }
     }
 
@@ -84,9 +86,16 @@ impl TestLeakageDetector {
         for to_node in ctx.graph.dependencies(node) {
             if let Some(to_path) = ctx.graph.get_file_path(to_node) {
                 if detector.is_test_file(to_path, test_patterns) {
+                    let edge_data = ctx.graph.get_edge_data(node, to_node);
+                    let (import_line, import_range) = edge_data
+                        .map(|e| (e.import_line, e.import_range))
+                        .unwrap_or((0, None));
+
                     smells.push(ArchSmell::new_test_leakage(
                         from_path.clone(),
                         to_path.clone(),
+                        import_line,
+                        import_range,
                     ));
                 }
             }

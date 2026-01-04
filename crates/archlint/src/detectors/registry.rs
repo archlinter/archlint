@@ -1,5 +1,5 @@
 use crate::config::Config;
-use crate::detectors::Detector;
+use crate::detectors::{Detector, DetectorCategory};
 use crate::framework::presets::FrameworkPreset;
 use crate::framework::selector::DetectorSelector;
 use inventory;
@@ -12,6 +12,7 @@ pub struct DetectorInfo {
     pub description: &'static str,
     pub default_enabled: bool,
     pub is_deep: bool,
+    pub category: DetectorCategory,
 }
 
 /// Factory for creating detector instances
@@ -19,6 +20,9 @@ pub trait DetectorFactory: Send + Sync {
     fn info(&self) -> DetectorInfo;
     fn create(&self, config: &Config) -> Box<dyn Detector>;
 }
+
+/// A detector with its unique ID
+pub type RegisteredDetector = (String, Box<dyn Detector>);
 
 // Submit a factory to the global registry
 inventory::collect!(&'static dyn DetectorFactory);
@@ -60,6 +64,16 @@ impl DetectorRegistry {
         presets: &[FrameworkPreset],
         all_detectors: bool,
     ) -> (Vec<Box<dyn Detector>>, bool) {
+        let (enabled, needs_deep) = self.get_enabled_full(config, presets, all_detectors);
+        (enabled.into_iter().map(|(_, d)| d).collect(), needs_deep)
+    }
+
+    pub fn get_enabled_full(
+        &self,
+        config: &Config,
+        presets: &[FrameworkPreset],
+        all_detectors: bool,
+    ) -> (Vec<RegisteredDetector>, bool) {
         let mut detectors = Vec::new();
         let mut needs_deep = false;
 
@@ -80,11 +94,15 @@ impl DetectorRegistry {
                 if info.is_deep {
                     needs_deep = true;
                 }
-                detectors.push(factory.create(config));
+                detectors.push((info.id.to_string(), factory.create(config)));
             }
         }
 
         (detectors, needs_deep)
+    }
+
+    pub fn get_info(&self, id: &str) -> Option<DetectorInfo> {
+        self.factories.get(id).map(|f| f.info())
     }
 }
 

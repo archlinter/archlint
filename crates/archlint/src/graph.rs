@@ -1,5 +1,6 @@
 use crate::detectors::CodeRange;
 use petgraph::graph::{DiGraph, EdgeIndex, NodeIndex};
+use petgraph::visit::EdgeRef;
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 
@@ -49,6 +50,7 @@ impl EdgeData {
     }
 }
 
+#[derive(Clone)]
 pub struct DependencyGraph {
     graph: DiGraph<FileNode, EdgeData>,
     path_to_node: HashMap<PathBuf, NodeIndex>,
@@ -144,6 +146,37 @@ impl DependencyGraph {
     pub fn dependencies(&self, node: NodeIndex) -> impl Iterator<Item = NodeIndex> + '_ {
         self.graph
             .neighbors_directed(node, petgraph::Direction::Outgoing)
+    }
+
+    pub fn remove_outgoing_edges(&mut self, node: NodeIndex) {
+        let edge_indices: Vec<_> = self
+            .graph
+            .edges_directed(node, petgraph::Direction::Outgoing)
+            .map(|e| e.id())
+            .collect();
+
+        for edge_idx in edge_indices {
+            self.graph.remove_edge(edge_idx);
+        }
+    }
+
+    pub fn remove_file(&mut self, path: &Path) {
+        if let Some(node) = self.path_to_node.remove(path) {
+            self.graph.remove_node(node);
+            // After remove_node, all indices might change if not using StableGraph.
+            // But path_to_node still has old indices.
+            // We need to rebuild path_to_node.
+            self.rebuild_path_index();
+        }
+    }
+
+    fn rebuild_path_index(&mut self) {
+        self.path_to_node.clear();
+        for node in self.graph.node_indices() {
+            if let Some(weight) = self.graph.node_weight(node) {
+                self.path_to_node.insert(weight.path.clone(), node);
+            }
+        }
     }
 }
 

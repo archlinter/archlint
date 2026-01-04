@@ -7,10 +7,22 @@ use crate::config::SeverityConfig;
 use crate::detectors::{ArchSmell, LocationDetail};
 use crate::explain::{ExplainEngine, Explanation};
 use crate::graph::DependencyGraph;
+#[cfg(not(feature = "cli"))]
+use crate::no_cli_mocks::comfy_table::modifiers::UTF8_ROUND_CORNERS;
+#[cfg(not(feature = "cli"))]
+use crate::no_cli_mocks::comfy_table::presets::UTF8_FULL;
+#[cfg(not(feature = "cli"))]
+use crate::no_cli_mocks::comfy_table::{Attribute, Cell, Color, ContentArrangement, Table};
+#[cfg(not(feature = "cli"))]
+use crate::no_cli_mocks::console::style;
 use crate::Result;
+#[cfg(feature = "cli")]
 use comfy_table::modifiers::UTF8_ROUND_CORNERS;
+#[cfg(feature = "cli")]
 use comfy_table::presets::UTF8_FULL;
+#[cfg(feature = "cli")]
 use comfy_table::{Attribute, Cell, Color, ContentArrangement, Table};
+#[cfg(feature = "cli")]
 use console::style;
 use std::path::{Path, PathBuf};
 
@@ -353,14 +365,14 @@ impl AnalysisReport {
     pub fn write(
         &self,
         path: Option<&Path>,
-        format: crate::cli::OutputFormat,
+        format: crate::args::OutputFormat,
         no_diagram: bool,
         severity_config: &SeverityConfig,
         scan_root: Option<&Path>,
     ) -> Result<()> {
         match format {
-            crate::cli::OutputFormat::Table => self.write_table(severity_config, scan_root),
-            crate::cli::OutputFormat::Markdown => {
+            crate::args::OutputFormat::Table => self.write_table(severity_config, scan_root),
+            crate::args::OutputFormat::Markdown => {
                 if let Some(path) = path {
                     self.write_markdown(path, self.graph.as_ref(), !no_diagram, severity_config)
                 } else {
@@ -374,7 +386,7 @@ impl AnalysisReport {
                     Ok(())
                 }
             }
-            crate::cli::OutputFormat::Json => {
+            crate::args::OutputFormat::Json => {
                 if let Some(path) = path {
                     self.write_json(path, severity_config)
                 } else {
@@ -470,8 +482,10 @@ impl AnalysisReport {
             crate::detectors::SmellType::DeadSymbol { name, .. } => {
                 format!("Dead Symbol\n({})", name)
             }
-            crate::detectors::SmellType::HighComplexity { name, .. } => {
-                format!("Complexity\n({})", name)
+            crate::detectors::SmellType::HighComplexity {
+                name, complexity, ..
+            } => {
+                format!("Complexity\n({}: {})", name, complexity)
             }
             crate::detectors::SmellType::LargeFile => "Large File".to_string(),
             crate::detectors::SmellType::UnstableInterface => "Unstable Interface".to_string(),

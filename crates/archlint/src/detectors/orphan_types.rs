@@ -1,4 +1,5 @@
 use crate::config::Config;
+use crate::detectors::DetectorCategory;
 use crate::detectors::{ArchSmell, Detector, DetectorFactory, DetectorInfo};
 use crate::engine::AnalysisContext;
 use crate::parser::SymbolKind;
@@ -19,6 +20,7 @@ impl DetectorFactory for OrphanTypesDetectorFactory {
             description: "Detects exported types or interfaces that are never used",
             default_enabled: true,
             is_deep: false,
+            category: DetectorCategory::Global,
         }
     }
 
@@ -41,7 +43,7 @@ impl Detector for OrphanTypesDetector {
 
         // 1. Collect all exported types/interfaces and where they are
         let mut type_definitions = Vec::new();
-        for (path, symbols) in &ctx.file_symbols {
+        for (path, symbols) in ctx.file_symbols.as_ref() {
             for export in &symbols.exports {
                 if export.kind == SymbolKind::Type || export.kind == SymbolKind::Interface {
                     type_definitions.push((path, &export.name));

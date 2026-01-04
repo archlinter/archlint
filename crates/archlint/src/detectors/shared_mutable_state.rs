@@ -1,4 +1,5 @@
 use crate::config::Config;
+use crate::detectors::DetectorCategory;
 use crate::detectors::{ArchSmell, Detector, DetectorFactory, DetectorInfo};
 use crate::engine::AnalysisContext;
 use crate::parser::SymbolKind;
@@ -19,6 +20,7 @@ impl DetectorFactory for SharedMutableStateDetectorFactory {
                 "Detects exported mutable state (let/var) that can be modified from multiple places",
             default_enabled: false,
             is_deep: false,
+            category: DetectorCategory::FileLocal,
         }
     }
 
@@ -39,7 +41,7 @@ impl Detector for SharedMutableStateDetector {
     fn detect(&self, ctx: &AnalysisContext) -> Vec<ArchSmell> {
         let mut smells = Vec::new();
 
-        for (path, symbols) in &ctx.file_symbols {
+        for (path, symbols) in ctx.file_symbols.as_ref() {
             for export in &symbols.exports {
                 if export.is_mutable && export.kind == SymbolKind::Variable {
                     smells.push(ArchSmell::new_shared_mutable_state(

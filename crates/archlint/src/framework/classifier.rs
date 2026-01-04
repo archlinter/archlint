@@ -80,25 +80,31 @@ impl FileClassifier {
     }
 
     fn check_nestjs_other(filename: &str) -> Option<FileType> {
-        if filename.ends_with(".entity.ts") || filename.ends_with(".entity.js") {
-            Some(FileType::Entity)
-        } else if filename.ends_with(".repository.ts") || filename.ends_with(".repository.js") {
-            Some(FileType::Repository)
-        } else if filename.ends_with(".dto.ts") || filename.ends_with(".dto.js") {
-            Some(FileType::DTO)
-        } else if filename.ends_with(".guard.ts") || filename.ends_with(".guard.js") {
-            Some(FileType::Guard)
-        } else if filename.ends_with(".pipe.ts") || filename.ends_with(".pipe.js") {
-            Some(FileType::Pipe)
-        } else if filename.ends_with(".middleware.ts") || filename.ends_with(".middleware.js") {
-            Some(FileType::Middleware)
-        } else if filename.ends_with(".decorator.ts") || filename.ends_with(".decorator.js") {
-            Some(FileType::Decorator)
-        } else if filename.ends_with(".interceptor.ts") || filename.ends_with(".interceptor.js") {
-            Some(FileType::Interceptor)
-        } else {
-            None
+        let patterns = [
+            (".entity.ts", FileType::Entity),
+            (".entity.js", FileType::Entity),
+            (".repository.ts", FileType::Repository),
+            (".repository.js", FileType::Repository),
+            (".dto.ts", FileType::DTO),
+            (".dto.js", FileType::DTO),
+            (".guard.ts", FileType::Guard),
+            (".guard.js", FileType::Guard),
+            (".pipe.ts", FileType::Pipe),
+            (".pipe.js", FileType::Pipe),
+            (".middleware.ts", FileType::Middleware),
+            (".middleware.js", FileType::Middleware),
+            (".decorator.ts", FileType::Decorator),
+            (".decorator.js", FileType::Decorator),
+            (".interceptor.ts", FileType::Interceptor),
+            (".interceptor.js", FileType::Interceptor),
+        ];
+
+        for (suffix, file_type) in patterns {
+            if filename.ends_with(suffix) {
+                return Some(file_type);
+            }
         }
+        None
     }
 
     fn check_nestjs_by_path(_filename: &str, path_str: &str) -> Option<FileType> {

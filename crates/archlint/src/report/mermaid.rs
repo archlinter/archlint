@@ -10,7 +10,32 @@ impl MermaidGenerator {
         smells: &[(ArchSmell, crate::explain::Explanation)],
         graph: &DependencyGraph,
     ) -> String {
-        // Collect all problematic files
+        let (problem_files, file_smells) = Self::collect_problem_data(smells);
+
+        if problem_files.is_empty() {
+            return String::new();
+        }
+
+        let mut output = String::from("```mermaid\nflowchart LR\n");
+
+        let node_ids = Self::generate_nodes(&mut output, &problem_files, &file_smells);
+        output.push('\n');
+
+        Self::generate_edges(&mut output, &problem_files, &node_ids, graph);
+
+        Self::append_class_definitions(&mut output);
+
+        output.push_str("```\n");
+
+        output
+    }
+
+    fn collect_problem_data(
+        smells: &[(ArchSmell, crate::explain::Explanation)],
+    ) -> (
+        HashSet<std::path::PathBuf>,
+        HashMap<std::path::PathBuf, Vec<&SmellType>>,
+    ) {
         let mut problem_files = HashSet::new();
         let mut file_smells: HashMap<std::path::PathBuf, Vec<&SmellType>> = HashMap::new();
 
@@ -24,19 +49,19 @@ impl MermaidGenerator {
             }
         }
 
-        if problem_files.is_empty() {
-            return String::new();
-        }
+        (problem_files, file_smells)
+    }
 
-        let mut output = String::from("```mermaid\nflowchart LR\n");
-
-        // Create nodes for problem files
+    fn generate_nodes(
+        output: &mut String,
+        problem_files: &HashSet<std::path::PathBuf>,
+        file_smells: &HashMap<std::path::PathBuf, Vec<&SmellType>>,
+    ) -> HashMap<std::path::PathBuf, String> {
         let mut node_ids = HashMap::new();
         for (idx, file) in problem_files.iter().enumerate() {
             let node_id = format!("file{}", idx);
             let file_name = Self::get_short_name(file);
 
-            // Determine CSS class based on smell types
             let classes =
                 Self::get_css_classes(file_smells.get(file).map(|v| v.as_slice()).unwrap_or(&[]));
 
@@ -48,31 +73,65 @@ impl MermaidGenerator {
 
             node_ids.insert(file.clone(), node_id);
         }
+        node_ids
+    }
 
-        output.push('\n');
-
-        // Add edges between problem files
+    fn generate_edges(
+        output: &mut String,
+        problem_files: &HashSet<std::path::PathBuf>,
+        node_ids: &HashMap<std::path::PathBuf, String>,
+        graph: &DependencyGraph,
+    ) {
         let mut added_edges = HashSet::new();
-        for file in &problem_files {
-            if let Some(source_idx) = graph.get_node(file) {
-                for target_idx in graph.dependencies(source_idx) {
-                    if let Some(target_file) = graph.get_file_path(target_idx) {
-                        if problem_files.contains(target_file) {
-                            let source_id = node_ids.get(file).unwrap();
-                            let target_id = node_ids.get(target_file).unwrap();
-                            let edge = (source_id.clone(), target_id.clone());
+        for file in problem_files {
+            Self::generate_file_edges(
+                output,
+                file,
+                problem_files,
+                node_ids,
+                graph,
+                &mut added_edges,
+            );
+        }
+    }
 
-                            if !added_edges.contains(&edge) {
-                                output.push_str(&format!("    {} --> {}\n", source_id, target_id));
-                                added_edges.insert(edge);
-                            }
-                        }
-                    }
-                }
+    fn generate_file_edges(
+        output: &mut String,
+        file: &std::path::PathBuf,
+        problem_files: &HashSet<std::path::PathBuf>,
+        node_ids: &HashMap<std::path::PathBuf, String>,
+        graph: &DependencyGraph,
+        added_edges: &mut HashSet<(String, String)>,
+    ) {
+        let source_idx = match graph.get_node(file) {
+            Some(idx) => idx,
+            None => return,
+        };
+
+        let source_id = match node_ids.get(file) {
+            Some(id) => id,
+            None => return,
+        };
+
+        for target_idx in graph.dependencies(source_idx) {
+            let target_file = match graph.get_file_path(target_idx) {
+                Some(f) if problem_files.contains(f) => f,
+                _ => continue,
+            };
+
+            let target_id = match node_ids.get(target_file) {
+                Some(id) => id,
+                None => continue,
+            };
+
+            let edge = (source_id.clone(), target_id.clone());
+            if added_edges.insert(edge) {
+                output.push_str(&format!("    {} --> {}\n", source_id, target_id));
             }
         }
+    }
 
-        // Add legend/styles
+    fn append_class_definitions(output: &mut String) {
         output.push_str("\n    classDef deadCode fill:#e0e0e0,stroke:#999,stroke-dasharray:5\n");
         output.push_str("    classDef deadSymbol fill:#f0f0f0,stroke:#bbb,stroke-dasharray:3\n");
         output.push_str("    classDef godModule fill:#ffcccc,stroke:#cc0000\n");
@@ -86,20 +145,14 @@ impl MermaidGenerator {
         output
             .push_str("    classDef layerViolation fill:#ff3333,stroke:#990000,stroke-width:3px\n");
         output.push_str("    classDef sdpViolation fill:#ffcc99,stroke:#ff6600\n");
-
-        output.push_str("```\n");
-
-        output
     }
 
     fn get_short_name(path: &Path) -> String {
-        // Get just the filename without full path
         let file_name = path
             .file_name()
             .and_then(|s| s.to_str())
             .unwrap_or("unknown");
 
-        // Sanitize for Mermaid (no special chars that break syntax)
         file_name.replace(['.', '-', ' '], "_")
     }
 
@@ -122,12 +175,10 @@ impl MermaidGenerator {
                 SmellType::TestLeakage { .. } => classes.push("testLeakage"),
                 SmellType::LayerViolation { .. } => classes.push("layerViolation"),
                 SmellType::SdpViolation => classes.push("sdpViolation"),
-
                 _ => {}
             }
         }
 
-        // Return first class (file can have multiple smells, but mermaid supports one class)
         classes.first().copied().unwrap_or("").to_string()
     }
 }

@@ -1,4 +1,5 @@
 use crate::config::Config;
+use crate::detectors::DetectorCategory;
 use crate::detectors::{
     ArchSmell, CriticalEdge, CycleCluster, Detector, DetectorFactory, DetectorInfo, HotspotInfo,
     LocationDetail,
@@ -26,6 +27,7 @@ impl DetectorFactory for CycleDetectorFactory {
             description: "Detects circular dependencies between modules",
             default_enabled: true,
             is_deep: false,
+            category: DetectorCategory::GraphBased,
         }
     }
 
@@ -53,7 +55,7 @@ impl Detector for CycleDetector {
         let cycle_sccs: Vec<_> = sccs
             .into_iter()
             .filter(|scc| scc.len() > 1)
-            .filter(|scc| !Self::is_false_positive_scc(&ctx.graph, scc))
+            .filter(|scc| !Self::is_false_positive_scc(ctx.graph.as_ref(), scc))
             .filter(|scc| {
                 // Check if any file in SCC is excluded by cycles.exclude_patterns
                 // or if it should be skipped due to framework context
@@ -71,7 +73,7 @@ impl Detector for CycleDetector {
         cycle_sccs
             .iter()
             .map(|scc| {
-                let cluster = Self::build_cluster(&ctx.graph, scc);
+                let cluster = Self::build_cluster(ctx.graph.as_ref(), scc);
                 ArchSmell::new_cycle_cluster(cluster)
             })
             .collect()

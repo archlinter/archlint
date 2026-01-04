@@ -1,4 +1,5 @@
 use crate::config::Config;
+use crate::detectors::DetectorCategory;
 use crate::detectors::{ArchSmell, Detector, DetectorFactory, DetectorInfo};
 use crate::engine::AnalysisContext;
 use crate::parser::{FileSymbols, SymbolKind};
@@ -20,6 +21,7 @@ impl DetectorFactory for DeadSymbolsDetectorFactory {
             description: "Detects unused functions, classes, and variables within files",
             default_enabled: true,
             is_deep: true,
+            category: DetectorCategory::Global,
         }
     }
 
@@ -38,7 +40,7 @@ impl Detector for DeadSymbolsDetector {
     }
 
     fn detect(&self, ctx: &AnalysisContext) -> Vec<ArchSmell> {
-        Self::detect_symbols(&ctx.file_symbols, &ctx.script_entry_points)
+        Self::detect_symbols(ctx.file_symbols.as_ref(), &ctx.script_entry_points)
     }
 }
 

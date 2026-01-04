@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+/* eslint-disable no-console */
 
 const { platform, arch } = process;
 const { existsSync } = require('node:fs');
