@@ -212,18 +212,15 @@ fn parse_history_period(period: &str) -> Option<i64> {
     }
 
     let now = chrono::Utc::now();
-    let duration = if period.ends_with('d') {
-        period[..period.len() - 1]
-            .parse::<i64>()
-            .ok()
-            .map(chrono::Duration::days)
-    } else if period.ends_with('m') {
-        period[..period.len() - 1]
+    let duration = if let Some(stripped) = period.strip_suffix('d') {
+        stripped.parse::<i64>().ok().map(chrono::Duration::days)
+    } else if let Some(stripped) = period.strip_suffix('m') {
+        stripped
             .parse::<i64>()
             .ok()
             .map(|m| chrono::Duration::days(m * 30))
-    } else if period.ends_with('y') {
-        period[..period.len() - 1]
+    } else if let Some(stripped) = period.strip_suffix('y') {
+        stripped
             .parse::<i64>()
             .ok()
             .map(|y| chrono::Duration::days(y * 365))
