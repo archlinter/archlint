@@ -2,7 +2,10 @@ use super::common::{append_explanation, SmellWithExplanation};
 use crate::config::SeverityConfig;
 use crate::explain::ExplainEngine;
 
-pub fn generate(unstable_interfaces: &[&SmellWithExplanation], severity_config: &SeverityConfig) -> String {
+pub fn generate(
+    unstable_interfaces: &[&SmellWithExplanation],
+    severity_config: &SeverityConfig,
+) -> String {
     if unstable_interfaces.is_empty() {
         return String::new();
     }

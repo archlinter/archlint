@@ -113,7 +113,10 @@ fn generate_cluster_files(output: &mut String, files: &[std::path::PathBuf]) {
     output.push_str("\n</details>\n\n");
 }
 
-fn generate_cluster_edges(output: &mut String, internal_edges: &[crate::detectors::LocationDetail]) {
+fn generate_cluster_edges(
+    output: &mut String,
+    internal_edges: &[crate::detectors::LocationDetail],
+) {
     if internal_edges.is_empty() {
         return;
     }
@@ -127,17 +130,14 @@ fn generate_cluster_edges(output: &mut String, internal_edges: &[crate::detector
     output.push_str("|----------|--------|\n");
     for loc in internal_edges {
         let location = format_location_detail(loc);
-        output.push_str(&format!(
-            "| `{}` | {} |\n",
-            location, loc.description
-        ));
+        output.push_str(&format!("| `{}` | {} |\n", location, loc.description));
     }
     output.push_str("\n</details>\n\n");
 }
 
 fn generate_legacy_cycles(output: &mut String, cycles: &[&SmellWithExplanation]) {
     output.push_str("## Cyclic Dependencies\n\n");
-    
+
     for (i, (smell, explanation)) in cycles.iter().enumerate() {
         output.push_str(&format!("### Cycle {}\n\n", i + 1));
 

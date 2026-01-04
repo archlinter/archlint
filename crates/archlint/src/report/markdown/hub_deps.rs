@@ -2,7 +2,10 @@ use super::common::{append_explanation, SmellWithExplanation};
 use crate::config::SeverityConfig;
 use crate::detectors::SmellType;
 
-pub fn generate(hub_dependencies: &[&SmellWithExplanation], severity_config: &SeverityConfig) -> String {
+pub fn generate(
+    hub_dependencies: &[&SmellWithExplanation],
+    severity_config: &SeverityConfig,
+) -> String {
     if hub_dependencies.is_empty() {
         return String::new();
     }

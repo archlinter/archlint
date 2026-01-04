@@ -91,7 +91,9 @@ pub fn filter_smells(smells: &[SmellWithExplanation]) -> FilteredSmells<'_> {
     }
 }
 
-pub fn group_files_by_directory(dead_smells: &[&SmellWithExplanation]) -> BTreeMap<String, Vec<String>> {
+pub fn group_files_by_directory(
+    dead_smells: &[&SmellWithExplanation],
+) -> BTreeMap<String, Vec<String>> {
     let mut grouped: BTreeMap<String, Vec<String>> = BTreeMap::new();
 
     for (smell, _) in dead_smells {

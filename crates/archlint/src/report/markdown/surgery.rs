@@ -2,7 +2,10 @@ use super::common::{append_explanation, SmellWithExplanation};
 use crate::config::SeverityConfig;
 use crate::explain::ExplainEngine;
 
-pub fn generate(shotgun_surgery: &[&SmellWithExplanation], severity_config: &SeverityConfig) -> String {
+pub fn generate(
+    shotgun_surgery: &[&SmellWithExplanation],
+    severity_config: &SeverityConfig,
+) -> String {
     if shotgun_surgery.is_empty() {
         return String::new();
     }

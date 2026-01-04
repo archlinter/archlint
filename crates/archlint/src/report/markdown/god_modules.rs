@@ -55,7 +55,9 @@ fn generate_dependencies(
     graph: Option<&DependencyGraph>,
 ) {
     let Some(graph) = graph else { return };
-    let Some(node_idx) = graph.get_node(file_path) else { return };
+    let Some(node_idx) = graph.get_node(file_path) else {
+        return;
+    };
 
     let mut incoming: Vec<_> = graph
         .graph()

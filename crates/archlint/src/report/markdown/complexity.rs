@@ -3,7 +3,10 @@ use crate::config::SeverityConfig;
 use crate::detectors::SmellType;
 use crate::report::format_location_detail;
 
-pub fn generate(high_complexity: &[&SmellWithExplanation], severity_config: &SeverityConfig) -> String {
+pub fn generate(
+    high_complexity: &[&SmellWithExplanation],
+    severity_config: &SeverityConfig,
+) -> String {
     if high_complexity.is_empty() {
         return String::new();
     }

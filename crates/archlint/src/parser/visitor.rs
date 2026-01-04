@@ -177,7 +177,7 @@ impl UnifiedVisitor {
                 is_reexport: true,
             });
         }
-        
+
         if it.specifiers.is_empty() && it.declaration.is_none() {
             let range = self.get_range(it.span);
             self.imports.push(ImportedSymbol {
@@ -196,7 +196,7 @@ impl UnifiedVisitor {
     fn handle_variable_export(&mut self, d: &oxc_ast::ast::VariableDeclaration<'_>) {
         self.has_runtime_code = true;
         let is_mutable = d.kind != oxc_ast::ast::VariableDeclarationKind::Const;
-        
+
         for decl in &d.declarations {
             if let oxc_ast::ast::BindingPatternKind::BindingIdentifier(id) = &decl.id.kind {
                 let range = self.get_range(decl.span);
@@ -223,7 +223,7 @@ impl UnifiedVisitor {
 
     fn handle_function_export(&mut self, d: &oxc_ast::ast::Function<'_>) {
         self.has_runtime_code = true;
-        
+
         if let Some(id) = &d.id {
             let range = self.get_range(d.span);
             let export_idx = self.exports.len();
@@ -248,7 +248,7 @@ impl UnifiedVisitor {
 
     fn handle_class_export(&mut self, d: &oxc_ast::ast::Class<'_>) {
         self.has_runtime_code = true;
-        
+
         if let Some(id) = &d.id {
             let range = self.get_range(d.span);
             let export_idx = self.exports.len();
@@ -300,7 +300,7 @@ impl UnifiedVisitor {
             used_symbols: SymbolSet::default(),
             is_mutable: false,
         });
-        
+
         if let Some(extends) = &d.extends {
             for heritage in extends {
                 self.visit_expression(&heritage.expression);
@@ -344,6 +344,38 @@ impl UnifiedVisitor {
                 used_symbols: SymbolSet::default(),
                 is_mutable: false,
             });
+        }
+    }
+
+    fn handle_static_member(&mut self, s: &oxc_ast::ast::StaticMemberExpression<'_>) {
+        let name = Self::atom_to_compact(&s.property.name);
+        self.local_usages.insert(name.clone());
+
+        if self.config.collect_used_symbols {
+            if let Expression::ThisExpression(_) = &s.object {
+                if let Some(method) = &mut self.current_method {
+                    method.used_fields.insert(name.clone());
+                    method.used_methods.insert(name.clone());
+                }
+            }
+            if let Some(idx) = self.current_top_level_export {
+                self.exports[idx].used_symbols.insert(name.clone());
+            }
+        }
+
+        if self.config.collect_env_vars && Self::is_env_object(&s.object) {
+            self.env_vars.insert(name);
+        }
+    }
+
+    fn handle_computed_member(&mut self, c: &oxc_ast::ast::ComputedMemberExpression<'_>) {
+        if let Expression::StringLiteral(s) = &c.expression {
+            let name = Self::atom_to_compact(&s.value);
+            self.local_usages.insert(name.clone());
+
+            if self.config.collect_env_vars && Self::is_env_object(&c.object) {
+                self.env_vars.insert(name);
+            }
         }
     }
 }
@@ -424,7 +456,6 @@ impl<'a> Visit<'a> for UnifiedVisitor {
         }
         oxc_ast::visit::walk::walk_import_declaration(self, it);
     }
-
 
     fn visit_export_named_declaration(&mut self, it: &oxc_ast::ast::ExportNamedDeclaration<'a>) {
         let source: Option<SymbolName> =
@@ -524,35 +555,10 @@ impl<'a> Visit<'a> for UnifiedVisitor {
     fn visit_member_expression(&mut self, it: &oxc_ast::ast::MemberExpression<'a>) {
         match it {
             oxc_ast::ast::MemberExpression::StaticMemberExpression(s) => {
-                let name = Self::atom_to_compact(&s.property.name);
-                self.local_usages.insert(name.clone());
-
-                if self.config.collect_used_symbols {
-                    if let Expression::ThisExpression(_) = &s.object {
-                        if let Some(method) = &mut self.current_method {
-                            method.used_fields.insert(name.clone());
-                            method.used_methods.insert(name.clone());
-                        }
-                    }
-                    if let Some(idx) = self.current_top_level_export {
-                        self.exports[idx].used_symbols.insert(name.clone());
-                    }
-                }
-
-                // Check for process.env.VAR or import.meta.env.VAR
-                if self.config.collect_env_vars && Self::is_env_object(&s.object) {
-                    self.env_vars.insert(name);
-                }
+                self.handle_static_member(s)
             }
             oxc_ast::ast::MemberExpression::ComputedMemberExpression(c) => {
-                if let Expression::StringLiteral(s) = &c.expression {
-                    let name = Self::atom_to_compact(&s.value);
-                    self.local_usages.insert(name.clone());
-
-                    if self.config.collect_env_vars && Self::is_env_object(&c.object) {
-                        self.env_vars.insert(name);
-                    }
-                }
+                self.handle_computed_member(c)
             }
             _ => {}
         }
@@ -579,19 +585,16 @@ impl<'a> Visit<'a> for UnifiedVisitor {
     }
 
     fn visit_ts_type_alias_declaration(&mut self, it: &oxc_ast::ast::TSTypeAliasDeclaration<'a>) {
-        // Walk the type to collect type references
         self.visit_ts_type(&it.type_annotation);
         oxc_ast::visit::walk::walk_ts_type_alias_declaration(self, it);
     }
 
     fn visit_ts_interface_declaration(&mut self, it: &oxc_ast::ast::TSInterfaceDeclaration<'a>) {
-        // Walk extends to collect type references
         if let Some(extends) = &it.extends {
             for heritage in extends {
                 self.visit_expression(&heritage.expression);
             }
         }
-        // Walk body to collect type references in properties
         self.visit_ts_interface_body(&it.body);
         oxc_ast::visit::walk::walk_ts_interface_declaration(self, it);
     }
@@ -741,7 +744,6 @@ impl<'a> Visit<'a> for UnifiedVisitor {
             (0, 0)
         };
 
-        // Use identifier span for position if available, otherwise use override or whole function span
         let span = it
             .id
             .as_ref()
@@ -790,7 +792,6 @@ impl<'a> Visit<'a> for UnifiedVisitor {
             (0, 0)
         };
 
-        // Use override span if available (e.g. from method definition or variable name)
         let span = self.current_span_override.take().unwrap_or(it.span);
         let line = self.get_line_number(span);
         let range = self.get_range(span);
@@ -838,7 +839,6 @@ mod tests {
 
     #[test]
     fn test_is_primitive_type() {
-        // Test most common primitives
         let code = "function test(a: string, b: number, c: boolean, d: bigint, e: any, f: undefined, g: symbol) {}";
         let visitor = parse_code(code);
         assert_eq!(visitor.functions[0].primitive_params, 7);
@@ -878,7 +878,6 @@ mod tests {
     #[test]
     fn test_export_variable_mutable() {
         let visitor = parse_code("export const a = 1; export let b = 2;");
-        // find a and b in exports
         let a = visitor.exports.iter().find(|e| e.name == "a").unwrap();
         let b = visitor.exports.iter().find(|e| e.name == "b").unwrap();
         assert!(!a.is_mutable);
@@ -890,7 +889,7 @@ mod tests {
         let visitor =
             parse_code("class A { constructor(private x: number) {} method() { this.x; } }");
         assert_eq!(visitor.classes.len(), 1);
-        assert_eq!(visitor.classes[0].methods.len(), 2); // constructor + method
+        assert_eq!(visitor.classes[0].methods.len(), 2);
         assert!(visitor.classes[0]
             .methods
             .iter()

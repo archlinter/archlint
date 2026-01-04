@@ -3,7 +3,10 @@ use crate::config::SeverityConfig;
 use crate::detectors::SmellType;
 use crate::explain::ExplainEngine;
 
-pub fn generate(feature_envy: &[&SmellWithExplanation], severity_config: &SeverityConfig) -> String {
+pub fn generate(
+    feature_envy: &[&SmellWithExplanation],
+    severity_config: &SeverityConfig,
+) -> String {
     if feature_envy.is_empty() {
         return String::new();
     }
