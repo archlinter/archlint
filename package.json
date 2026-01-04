@@ -54,7 +54,11 @@
   },
   "nano-staged": {
     "*.{ts,js,json,md,yml,yaml}": "prettier --write",
-    "*.{ts,js}": "eslint --fix"
+    "*.{ts,js}": "eslint --fix",
+    "*.rs": [
+      "sh -c 'cargo clippy --workspace --all-targets --all-features --allow-dirty --allow-staged --fix -- -D warnings' --",
+      "sh -c 'cargo fmt --all' --"
+    ]
   },
   "pnpm": {
     "overrides": {

@@ -5,6 +5,7 @@ resolver = "2"
 [workspace.package]
 version = "0.6.0"
 edition = "2021"
+rust-version = "1.75"
 license = "MIT"
 repository = "https://github.com/superprotocol/arch-smell-detector"
 authors = ["Super Protocol <support@superprotocol.com>"]
@@ -17,6 +18,7 @@ serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 serde_yaml = "0.9"
 thiserror = "1.0"
+anyhow = "1.0"
 log = "0.4"
 env_logger = "0.11"
 
@@ -54,6 +56,8 @@ chrono = { version = "0.4", features = ["serde"] }
 indicatif = "0.17"
 console = "0.15"
 comfy-table = "7.1"
+redb = "3.1.0"
+bincode = { version = "2.0.0-rc.3", features = ["serde"] }
 
 # Dev
 tempfile = "3.2"
