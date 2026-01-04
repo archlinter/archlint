@@ -6,7 +6,7 @@ use crate::parser::types::{
     SymbolKind, SymbolName, SymbolSet,
 };
 use compact_str::CompactString;
-use oxc_ast::ast::{Argument, Declaration, Expression, Function, TSType};
+use oxc_ast::ast::{Argument, Expression, Function, TSType};
 use oxc_ast::visit::Visit;
 use oxc_span::GetSpan;
 use oxc_syntax::scope::ScopeFlags;
@@ -158,6 +158,194 @@ impl UnifiedVisitor {
     fn export_name_to_compact(name: oxc_span::Atom) -> CompactString {
         CompactString::new(name.as_str())
     }
+
+    fn handle_reexport_specifiers(
+        &mut self,
+        it: &oxc_ast::ast::ExportNamedDeclaration<'_>,
+        source: &SymbolName,
+    ) {
+        for specifier in &it.specifiers {
+            let range = self.get_range(specifier.span);
+            self.imports.push(ImportedSymbol {
+                name: Self::export_name_to_compact(specifier.local.name()),
+                alias: Some(Self::export_name_to_compact(specifier.exported.name())),
+                source: source.clone(),
+                line: range.start_line,
+                column: range.start_column,
+                range,
+                is_type_only: it.export_kind.is_type(),
+                is_reexport: true,
+            });
+        }
+        
+        if it.specifiers.is_empty() && it.declaration.is_none() {
+            let range = self.get_range(it.span);
+            self.imports.push(ImportedSymbol {
+                name: interned::STAR.clone(),
+                alias: None,
+                source: source.clone(),
+                line: range.start_line,
+                column: range.start_column,
+                range,
+                is_type_only: it.export_kind.is_type(),
+                is_reexport: true,
+            });
+        }
+    }
+
+    fn handle_variable_export(&mut self, d: &oxc_ast::ast::VariableDeclaration<'_>) {
+        self.has_runtime_code = true;
+        let is_mutable = d.kind != oxc_ast::ast::VariableDeclarationKind::Const;
+        
+        for decl in &d.declarations {
+            if let oxc_ast::ast::BindingPatternKind::BindingIdentifier(id) = &decl.id.kind {
+                let range = self.get_range(decl.span);
+                let export_idx = self.exports.len();
+                self.exports.push(ExportedSymbol {
+                    name: Self::atom_to_compact(&id.name),
+                    kind: SymbolKind::Variable,
+                    is_reexport: false,
+                    source: None,
+                    line: range.start_line,
+                    column: range.start_column,
+                    range,
+                    used_symbols: SymbolSet::default(),
+                    is_mutable,
+                });
+
+                let old_top = self.current_top_level_export.take();
+                self.current_top_level_export = Some(export_idx);
+                self.visit_variable_declarator(decl);
+                self.current_top_level_export = old_top;
+            }
+        }
+    }
+
+    fn handle_function_export(&mut self, d: &oxc_ast::ast::Function<'_>) {
+        self.has_runtime_code = true;
+        
+        if let Some(id) = &d.id {
+            let range = self.get_range(d.span);
+            let export_idx = self.exports.len();
+            self.exports.push(ExportedSymbol {
+                name: Self::atom_to_compact(&id.name),
+                kind: SymbolKind::Function,
+                is_reexport: false,
+                source: None,
+                line: range.start_line,
+                column: range.start_column,
+                range,
+                used_symbols: SymbolSet::default(),
+                is_mutable: false,
+            });
+
+            let old_top = self.current_top_level_export.take();
+            self.current_top_level_export = Some(export_idx);
+            self.visit_function(d, ScopeFlags::Function);
+            self.current_top_level_export = old_top;
+        }
+    }
+
+    fn handle_class_export(&mut self, d: &oxc_ast::ast::Class<'_>) {
+        self.has_runtime_code = true;
+        
+        if let Some(id) = &d.id {
+            let range = self.get_range(d.span);
+            let export_idx = self.exports.len();
+            self.exports.push(ExportedSymbol {
+                name: Self::atom_to_compact(&id.name),
+                kind: SymbolKind::Class,
+                is_reexport: false,
+                source: None,
+                line: range.start_line,
+                column: range.start_column,
+                range,
+                used_symbols: SymbolSet::default(),
+                is_mutable: false,
+            });
+
+            let old_top = self.current_top_level_export.take();
+            self.current_top_level_export = Some(export_idx);
+            self.visit_class(d);
+            self.current_top_level_export = old_top;
+        }
+    }
+
+    fn handle_type_alias_export(&mut self, d: &oxc_ast::ast::TSTypeAliasDeclaration<'_>) {
+        let range = self.get_range(d.span);
+        self.exports.push(ExportedSymbol {
+            name: Self::atom_to_compact(&d.id.name),
+            kind: SymbolKind::Type,
+            is_reexport: false,
+            source: None,
+            line: range.start_line,
+            column: range.start_column,
+            range,
+            used_symbols: SymbolSet::default(),
+            is_mutable: false,
+        });
+        self.visit_ts_type(&d.type_annotation);
+    }
+
+    fn handle_interface_export(&mut self, d: &oxc_ast::ast::TSInterfaceDeclaration<'_>) {
+        let range = self.get_range(d.span);
+        self.exports.push(ExportedSymbol {
+            name: Self::atom_to_compact(&d.id.name),
+            kind: SymbolKind::Interface,
+            is_reexport: false,
+            source: None,
+            line: range.start_line,
+            column: range.start_column,
+            range,
+            used_symbols: SymbolSet::default(),
+            is_mutable: false,
+        });
+        
+        if let Some(extends) = &d.extends {
+            for heritage in extends {
+                self.visit_expression(&heritage.expression);
+            }
+        }
+        self.visit_ts_interface_body(&d.body);
+    }
+
+    fn handle_enum_export(&mut self, d: &oxc_ast::ast::TSEnumDeclaration<'_>) {
+        self.has_runtime_code = true;
+        let range = self.get_range(d.span);
+        self.exports.push(ExportedSymbol {
+            name: Self::atom_to_compact(&d.id.name),
+            kind: SymbolKind::Enum,
+            is_reexport: false,
+            source: None,
+            line: range.start_line,
+            column: range.start_column,
+            range,
+            used_symbols: SymbolSet::default(),
+            is_mutable: false,
+        });
+    }
+
+    fn handle_export_specifiers(
+        &mut self,
+        specifiers: &oxc_allocator::Vec<'_, oxc_ast::ast::ExportSpecifier<'_>>,
+        source: Option<SymbolName>,
+        span: oxc_span::Span,
+    ) {
+        for specifier in specifiers {
+            let range = self.get_range(span);
+            self.exports.push(ExportedSymbol {
+                name: Self::export_name_to_compact(specifier.exported.name()),
+                kind: SymbolKind::Unknown,
+                is_reexport: source.is_some(),
+                source: source.clone(),
+                line: range.start_line,
+                column: range.start_column,
+                range,
+                used_symbols: SymbolSet::default(),
+                is_mutable: false,
+            });
+        }
+    }
 }
 
 impl<'a> Visit<'a> for UnifiedVisitor {
@@ -237,187 +425,29 @@ impl<'a> Visit<'a> for UnifiedVisitor {
         oxc_ast::visit::walk::walk_import_declaration(self, it);
     }
 
+
     fn visit_export_named_declaration(&mut self, it: &oxc_ast::ast::ExportNamedDeclaration<'a>) {
         let source: Option<SymbolName> =
             it.source.as_ref().map(|s| Self::atom_to_compact(&s.value));
 
         if let Some(ref src) = source {
-            for specifier in &it.specifiers {
-                let range = self.get_range(specifier.span);
-                self.imports.push(ImportedSymbol {
-                    name: Self::export_name_to_compact(specifier.local.name()),
-                    alias: Some(Self::export_name_to_compact(specifier.exported.name())),
-                    source: src.clone(),
-                    line: range.start_line,
-                    column: range.start_column,
-                    range,
-                    is_type_only: it.export_kind.is_type(),
-                    is_reexport: true,
-                });
-            }
-            if it.specifiers.is_empty() && it.declaration.is_none() {
-                let range = self.get_range(it.span);
-                self.imports.push(ImportedSymbol {
-                    name: interned::STAR.clone(),
-                    alias: None,
-                    source: src.clone(),
-                    line: range.start_line,
-                    column: range.start_column,
-                    range,
-                    is_type_only: it.export_kind.is_type(),
-                    is_reexport: true,
-                });
-            }
+            self.handle_reexport_specifiers(it, src);
         }
 
         if let Some(decl) = &it.declaration {
+            use oxc_ast::ast::Declaration;
             match decl {
-                Declaration::VariableDeclaration(d) => {
-                    self.has_runtime_code = true;
-                    let is_mutable = d.kind != oxc_ast::ast::VariableDeclarationKind::Const;
-                    for decl in &d.declarations {
-                        if let oxc_ast::ast::BindingPatternKind::BindingIdentifier(id) =
-                            &decl.id.kind
-                        {
-                            let range = self.get_range(decl.span);
-                            let export_idx = self.exports.len();
-                            self.exports.push(ExportedSymbol {
-                                name: Self::atom_to_compact(&id.name),
-                                kind: SymbolKind::Variable,
-                                is_reexport: false,
-                                source: None,
-                                line: range.start_line,
-                                column: range.start_column,
-                                range,
-                                used_symbols: SymbolSet::default(),
-                                is_mutable,
-                            });
-
-                            let old_top = self.current_top_level_export.take();
-                            self.current_top_level_export = Some(export_idx);
-                            self.visit_variable_declarator(decl);
-                            self.current_top_level_export = old_top;
-                        }
-                    }
-                }
-                Declaration::FunctionDeclaration(d) => {
-                    self.has_runtime_code = true;
-                    if let Some(id) = &d.id {
-                        let range = self.get_range(d.span);
-                        let export_idx = self.exports.len();
-                        self.exports.push(ExportedSymbol {
-                            name: Self::atom_to_compact(&id.name),
-                            kind: SymbolKind::Function,
-                            is_reexport: false,
-                            source: None,
-                            line: range.start_line,
-                            column: range.start_column,
-                            range,
-                            used_symbols: SymbolSet::default(),
-                            is_mutable: false,
-                        });
-
-                        let old_top = self.current_top_level_export.take();
-                        self.current_top_level_export = Some(export_idx);
-                        self.visit_function(d, ScopeFlags::Function);
-                        self.current_top_level_export = old_top;
-                    }
-                }
-                Declaration::ClassDeclaration(d) => {
-                    self.has_runtime_code = true;
-                    if let Some(id) = &d.id {
-                        let range = self.get_range(d.span);
-                        let export_idx = self.exports.len();
-                        self.exports.push(ExportedSymbol {
-                            name: Self::atom_to_compact(&id.name),
-                            kind: SymbolKind::Class,
-                            is_reexport: false,
-                            source: None,
-                            line: range.start_line,
-                            column: range.start_column,
-                            range,
-                            used_symbols: SymbolSet::default(),
-                            is_mutable: false,
-                        });
-
-                        let old_top = self.current_top_level_export.take();
-                        self.current_top_level_export = Some(export_idx);
-                        self.visit_class(d);
-                        self.current_top_level_export = old_top;
-                    }
-                }
-                Declaration::TSTypeAliasDeclaration(d) => {
-                    let range = self.get_range(d.span);
-                    self.exports.push(ExportedSymbol {
-                        name: Self::atom_to_compact(&d.id.name),
-                        kind: SymbolKind::Type,
-                        is_reexport: false,
-                        source: None,
-                        line: range.start_line,
-                        column: range.start_column,
-                        range,
-                        used_symbols: SymbolSet::default(),
-                        is_mutable: false,
-                    });
-                    // Walk the type to collect type references
-                    self.visit_ts_type(&d.type_annotation);
-                }
-                Declaration::TSInterfaceDeclaration(d) => {
-                    let range = self.get_range(d.span);
-                    self.exports.push(ExportedSymbol {
-                        name: Self::atom_to_compact(&d.id.name),
-                        kind: SymbolKind::Interface,
-                        is_reexport: false,
-                        source: None,
-                        line: range.start_line,
-                        column: range.start_column,
-                        range,
-                        used_symbols: SymbolSet::default(),
-                        is_mutable: false,
-                    });
-                    // Walk extends to collect type references
-                    if let Some(extends) = &d.extends {
-                        for heritage in extends {
-                            // heritage.expression is the type name being extended
-                            self.visit_expression(&heritage.expression);
-                        }
-                    }
-                    // Walk body to collect type references in properties
-                    self.visit_ts_interface_body(&d.body);
-                }
-                Declaration::TSEnumDeclaration(d) => {
-                    self.has_runtime_code = true;
-                    let range = self.get_range(d.span);
-                    self.exports.push(ExportedSymbol {
-                        name: Self::atom_to_compact(&d.id.name),
-                        kind: SymbolKind::Enum,
-                        is_reexport: false,
-                        source: None,
-                        line: range.start_line,
-                        column: range.start_column,
-                        range,
-                        used_symbols: SymbolSet::default(),
-                        is_mutable: false,
-                    });
-                }
+                Declaration::VariableDeclaration(d) => self.handle_variable_export(d),
+                Declaration::FunctionDeclaration(d) => self.handle_function_export(d),
+                Declaration::ClassDeclaration(d) => self.handle_class_export(d),
+                Declaration::TSTypeAliasDeclaration(d) => self.handle_type_alias_export(d),
+                Declaration::TSInterfaceDeclaration(d) => self.handle_interface_export(d),
+                Declaration::TSEnumDeclaration(d) => self.handle_enum_export(d),
                 _ => {}
             }
         }
 
-        for specifier in &it.specifiers {
-            let range = self.get_range(specifier.span);
-            self.exports.push(ExportedSymbol {
-                name: Self::export_name_to_compact(specifier.exported.name()),
-                kind: SymbolKind::Unknown,
-                is_reexport: source.is_some(),
-                source: source.clone(),
-                line: range.start_line,
-                column: range.start_column,
-                range,
-                used_symbols: SymbolSet::default(),
-                is_mutable: false,
-            });
-        }
+        self.handle_export_specifiers(&it.specifiers, source, it.span);
     }
 
     fn visit_export_all_declaration(&mut self, it: &oxc_ast::ast::ExportAllDeclaration<'a>) {
