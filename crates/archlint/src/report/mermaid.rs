@@ -84,21 +84,49 @@ impl MermaidGenerator {
     ) {
         let mut added_edges = HashSet::new();
         for file in problem_files {
-            if let Some(source_idx) = graph.get_node(file) {
-                for target_idx in graph.dependencies(source_idx) {
-                    if let Some(target_file) = graph.get_file_path(target_idx) {
-                        if problem_files.contains(target_file) {
-                            let source_id = node_ids.get(file).unwrap();
-                            let target_id = node_ids.get(target_file).unwrap();
-                            let edge = (source_id.clone(), target_id.clone());
+            Self::generate_file_edges(
+                output,
+                file,
+                problem_files,
+                node_ids,
+                graph,
+                &mut added_edges,
+            );
+        }
+    }
 
-                            if !added_edges.contains(&edge) {
-                                output.push_str(&format!("    {} --> {}\n", source_id, target_id));
-                                added_edges.insert(edge);
-                            }
-                        }
-                    }
-                }
+    fn generate_file_edges(
+        output: &mut String,
+        file: &std::path::PathBuf,
+        problem_files: &HashSet<std::path::PathBuf>,
+        node_ids: &HashMap<std::path::PathBuf, String>,
+        graph: &DependencyGraph,
+        added_edges: &mut HashSet<(String, String)>,
+    ) {
+        let source_idx = match graph.get_node(file) {
+            Some(idx) => idx,
+            None => return,
+        };
+
+        let source_id = match node_ids.get(file) {
+            Some(id) => id,
+            None => return,
+        };
+
+        for target_idx in graph.dependencies(source_idx) {
+            let target_file = match graph.get_file_path(target_idx) {
+                Some(f) if problem_files.contains(f) => f,
+                _ => continue,
+            };
+
+            let target_id = match node_ids.get(target_file) {
+                Some(id) => id,
+                None => continue,
+            };
+
+            let edge = (source_id.clone(), target_id.clone());
+            if added_edges.insert(edge) {
+                output.push_str(&format!("    {} --> {}\n", source_id, target_id));
             }
         }
     }

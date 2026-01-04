@@ -61,12 +61,28 @@ jobs:
               fs.writeFileSync('.releaserc.json', JSON.stringify(config, null, 2));
             "
             echo "✓ Configured for prerelease channel: ${{ github.event.inputs.channel }} on branch ${BRANCH_NAME}"
+            # Validate channel matches branch name
+            if [[ "${BRANCH_NAME}" != "${{ github.event.inputs.channel }}" ]]; then
+              echo "❌ Error: Channel '${{ github.event.inputs.channel }}' does not match branch name '${BRANCH_NAME}'"
+              exit 1
+            fi
           else
             echo "✓ Using stable configuration (main branch)"
           fi
 
+      - name: Semantic Release
+        uses: cycjimmy/semantic-release-action@v4
+        with:
+          dry_run: ${{ github.event.inputs.dry_run }}
+          extra_plugins: |
+            @semantic-release/changelog
+            @semantic-release/git
+            @semantic-release/exec
+        env:
+          GITHUB_TOKEN: ${{ secrets.GH_PAT }}
+
       - name: Clean up prerelease state (allow semantic-release to recreate)
-        if: github.event.inputs.channel != 'stable'
+        if: github.event.inputs.channel != 'stable' && github.event.inputs.dry_run != 'true'
         run: |
           # Remove local prerelease tags AND GitHub releases
           # This fixes issue where semantic-release doesn't recognize manually created releases
@@ -84,14 +100,3 @@ jobs:
           fi
         env:
           GH_TOKEN: ${{ secrets.GH_PAT }}
-
-      - name: Semantic Release
-        uses: cycjimmy/semantic-release-action@v4
-        with:
-          dry_run: ${{ github.event.inputs.dry_run }}
-          extra_plugins: |
-            @semantic-release/changelog
-            @semantic-release/git
-            @semantic-release/exec
-        env:
-          GITHUB_TOKEN: ${{ secrets.GH_PAT }}

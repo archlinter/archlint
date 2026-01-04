@@ -23,7 +23,7 @@ export function getSmellLocationsForFile(
   strategy: SmellLocationStrategy,
   projectRoot: string
 ): FileSmellLocation[] {
-  const normalized = filePath.replace(/\\/g, '/');
+  const normalized = filePath.replaceAll('\\', '/');
 
   switch (strategy) {
     case 'critical-edges':
@@ -47,7 +47,7 @@ function getCriticalEdgeLocations(
   if (!cluster?.criticalEdges) return [];
 
   return cluster.criticalEdges
-    .filter((edge) => edge.from.replace(/\\/g, '/') === filePath)
+    .filter((edge) => edge.from.replaceAll('\\', '/') === filePath)
     .map((edge) => ({
       line: edge.line,
       column: edge.range?.startColumn ?? 0,
@@ -82,8 +82,8 @@ function getPrimaryFileLocation(
   const firstFile = smell.smell.files[0];
   if (!firstFile) return [];
 
-  const normalizedFirstFile = firstFile.replace(/\\/g, '/');
-  const normalizedPath = filePath.replace(/\\/g, '/');
+  const normalizedFirstFile = firstFile.replaceAll('\\', '/');
+  const normalizedPath = filePath.replaceAll('\\', '/');
   if (normalizedFirstFile !== normalizedPath) return [];
 
   const loc = smell.smell.locations[0];
@@ -95,7 +95,7 @@ function getSourceFileLocation(
   filePath: string
 ): FileSmellLocation[] {
   // Layer violation reports in the file that makes the illegal import
-  const sourceLoc = smell.smell.locations.find((l) => l.file.replace(/\\/g, '/') === filePath);
+  const sourceLoc = smell.smell.locations.find((l) => l.file.replaceAll('\\', '/') === filePath);
   if (!sourceLoc) return [];
 
   return [
@@ -112,7 +112,7 @@ function getSourceFileLocation(
 
 function getAllFileLocations(smell: JsSmellWithExplanation, filePath: string): FileSmellLocation[] {
   return smell.smell.locations
-    .filter((l) => l.file.replace(/\\/g, '/') === filePath)
+    .filter((l) => l.file.replaceAll('\\', '/') === filePath)
     .map((l) => ({
       line: l.line,
       column: l.column ?? 0,

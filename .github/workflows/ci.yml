@@ -366,7 +366,15 @@ jobs:
         run: |
           for pkg in darwin-arm64 darwin-x64 linux-x64-gnu linux-x64-musl linux-arm64-gnu win32-x64; do
             cd packages/core-${pkg}
-            npm publish --access public --provenance --tag ${{ steps.version.outputs.TAG }} || echo "⚠️ Package may already exist, continuing..."
+            npm publish --access public --provenance --tag ${{ steps.version.outputs.TAG }} 2>&1 | tee /tmp/publish.log || {
+              if grep -qE "EPUBLISHCONFLICT|409|already exists|You cannot publish over the previously published" /tmp/publish.log; then
+                echo "⚠️ Package version already exists, continuing..."
+              else
+                echo "❌ Publish failed with unexpected error"
+                cat /tmp/publish.log
+                exit 1
+              fi
+            }
             cd ../..
           done
         env:
@@ -375,7 +383,15 @@ jobs:
       - name: Publish @archlinter/core
         run: |
           cd packages/core
-          npm publish --access public --provenance --tag ${{ steps.version.outputs.TAG }} || echo "⚠️ Package may already exist, continuing..."
+          npm publish --access public --provenance --tag ${{ steps.version.outputs.TAG }} 2>&1 | tee /tmp/publish.log || {
+            if grep -qE "EPUBLISHCONFLICT|409|already exists|You cannot publish over the previously published" /tmp/publish.log; then
+              echo "⚠️ Package version already exists, continuing..."
+            else
+              echo "❌ Publish failed with unexpected error"
+              cat /tmp/publish.log
+              exit 1
+            fi
+          }
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 

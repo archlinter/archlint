@@ -145,6 +145,9 @@ importers:
       '@types/eslint':
         specifier: ^9.6.0
         version: 9.6.1
+      '@types/node':
+        specifier: ^20.0.0
+        version: 20.19.27
       '@typescript-eslint/rule-tester':
         specifier: ^8.0.0
         version: 8.51.0(eslint@9.39.2(jiti@2.6.1))(typescript@5.9.3)

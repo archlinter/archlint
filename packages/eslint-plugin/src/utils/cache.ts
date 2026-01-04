@@ -1,7 +1,7 @@
 import { ArchlintAnalyzer, type JsScanResult, type JsSmellWithExplanation } from '@archlinter/core';
 import { findProjectRoot } from './project-root';
-import { statSync, readFileSync } from 'fs';
-import * as crypto from 'crypto';
+import { statSync, readFileSync } from 'node:fs';
+import * as crypto from 'node:crypto';
 import xxhashInit from 'xxhash-wasm';
 
 const { createHash } = crypto;
@@ -12,6 +12,8 @@ let xxhash: { h64: (str: string) => bigint } | null = null;
 xxhashInit()
   .then((h) => {
     xxhash = h;
+    // Clear cache to prevent algorithm mismatch (MD5 vs xxHash)
+    diskFileCache.clear();
   })
   .catch(() => {
     /* fallback to MD5 */
@@ -249,9 +251,11 @@ function shouldRescanFile(state: ProjectState, filePath: string, currentMtime: n
 function handleFileChange(state: ProjectState, filePath: string, currentMtime: number): void {
   const lastMtime = state.fileMtimes.get(filePath);
   const fileChanged = lastMtime !== undefined && currentMtime > lastMtime;
+  
+  const needsRescan = shouldRescanFile(state, filePath, currentMtime);
   state.fileMtimes.set(filePath, currentMtime);
 
-  if (shouldRescanFile(state, filePath, currentMtime) && state.state === AnalysisState.Ready) {
+  if (needsRescan && state.state === AnalysisState.Ready) {
     performRescan(state, filePath);
   } else {
     debug('cache', 'Using cached', {
@@ -437,7 +441,7 @@ function filterSmellsByDetector(
   filePath: string,
   detectorId: string
 ): JsSmellWithExplanation[] {
-  const normalizedPath = filePath.replace(/\\/g, '/');
+  const normalizedPath = filePath.replaceAll('\\', '/');
 
   const filtered = smells.filter((s) => {
     // Filter by detector
@@ -445,7 +449,7 @@ function filterSmellsByDetector(
       return false;
     }
     // Filter by file
-    return s.smell.files.some((f) => f.replace(/\\/g, '/') === normalizedPath);
+    return s.smell.files.some((f) => f.replaceAll('\\', '/') === normalizedPath);
   });
 
   if (filtered.length > 0) {

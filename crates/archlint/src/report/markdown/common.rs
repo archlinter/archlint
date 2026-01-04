@@ -91,39 +91,41 @@ pub fn filter_smells(smells: &[SmellWithExplanation]) -> FilteredSmells<'_> {
     }
 }
 
+fn extract_short_directory(file_path: &std::path::PathBuf) -> String {
+    let path = std::path::Path::new(file_path);
+
+    let parent = match path.parent().and_then(|p| p.to_str()) {
+        Some(s) => s,
+        None => return ".".to_string(),
+    };
+
+    let components: Vec<_> = parent.split('/').collect();
+    let start = components.len().saturating_sub(3);
+    components[start..].join("/")
+}
+
+fn extract_filename(file_path: &std::path::PathBuf) -> String {
+    std::path::Path::new(file_path)
+        .file_name()
+        .and_then(|s| s.to_str())
+        .unwrap_or("unknown")
+        .to_string()
+}
+
 pub fn group_files_by_directory(
     dead_smells: &[&SmellWithExplanation],
 ) -> BTreeMap<String, Vec<String>> {
     let mut grouped: BTreeMap<String, Vec<String>> = BTreeMap::new();
 
     for (smell, _) in dead_smells {
-        if let Some(file_path) = smell.files.first() {
-            let path = std::path::Path::new(file_path);
+        let file_path = match smell.files.first() {
+            Some(f) => f,
+            None => continue,
+        };
 
-            let dir = if let Some(parent) = path.parent() {
-                if let Some(parent_str) = parent.to_str() {
-                    let components: Vec<_> = parent_str.split('/').collect();
-                    let start = if components.len() > 3 {
-                        components.len() - 3
-                    } else {
-                        0
-                    };
-                    components[start..].join("/")
-                } else {
-                    "unknown".to_string()
-                }
-            } else {
-                ".".to_string()
-            };
-
-            let filename = path
-                .file_name()
-                .and_then(|s| s.to_str())
-                .unwrap_or("unknown")
-                .to_string();
-
-            grouped.entry(dir).or_default().push(filename);
-        }
+        let dir = extract_short_directory(file_path);
+        let filename = extract_filename(file_path);
+        grouped.entry(dir).or_default().push(filename);
     }
 
     for files in grouped.values_mut() {

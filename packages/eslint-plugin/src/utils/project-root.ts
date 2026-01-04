@@ -27,7 +27,7 @@ export function findProjectRoot(filePath: string): string {
   let dir = dirname(filePath);
   let foundRoot: string | null = null;
 
-  while (dir !== '/' && dir !== '.') {
+  while (true) {
     for (const marker of PROJECT_ROOT_MARKERS) {
       if (existsSync(join(dir, marker))) {
         foundRoot = dir;
@@ -35,7 +35,9 @@ export function findProjectRoot(filePath: string): string {
         break;
       }
     }
-    dir = dirname(dir);
+    const parent = dirname(dir);
+    if (parent === dir) break; // Reached filesystem root
+    dir = parent;
   }
 
   const result = foundRoot ?? process.cwd();

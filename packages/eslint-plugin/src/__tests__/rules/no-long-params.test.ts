@@ -37,7 +37,7 @@ describe('no-long-params', () => {
           ],
         },
         explanation: {
-          reason: 'Functions should have fewer than 5 parameters',
+          reason: 'Function has 8 parameters',
         },
       },
     ]);

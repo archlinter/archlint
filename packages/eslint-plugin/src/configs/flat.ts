@@ -1,9 +1,9 @@
-import type { Linter } from 'eslint';
+import type { Linter, ESLint } from 'eslint';
 import { rules } from '../rules';
 
 export const flatRecommended: Linter.Config = {
   plugins: {
-    '@archlinter': { rules } as Linter.Plugin,
+    '@archlinter': { rules } as ESLint.Plugin,
   },
   rules: {
     '@archlinter/no-cycles': 'error',
@@ -17,7 +17,7 @@ export const flatRecommended: Linter.Config = {
 
 export const flatStrict: Linter.Config = {
   plugins: {
-    '@archlinter': { rules } as Linter.Plugin,
+    '@archlinter': { rules } as ESLint.Plugin,
   },
   rules: {
     '@archlinter/no-cycles': 'error',

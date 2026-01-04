@@ -109,21 +109,121 @@ impl Analyzer {
     }
 
     pub fn scan_incremental(&mut self, changed: Vec<PathBuf>) -> Result<IncrementalResult> {
-        let start = Instant::now();
+        self.scan_incremental_inner(changed, None)
+    }
 
-        // Check if config changed
+    /// Check if config changed and perform full rescan if needed
+    fn check_config_and_full_rescan(
+        &mut self,
+        start: &Instant,
+    ) -> Result<Option<IncrementalResult>> {
         let current_hash = compute_config_hash(&self.config);
-        if current_hash != self.state.config_hash {
-            log::info!("Config changed, triggering full rescan");
-            self.state.config_hash = current_hash;
-            let result = self.scan()?;
-            return Ok(IncrementalResult {
-                smells: result.smells,
-                affected_files: result.files.iter().map(|f| f.path.clone()).collect(),
-                changed_count: result.summary.files_analyzed,
-                affected_count: result.summary.files_analyzed,
-                analysis_time_ms: start.elapsed().as_millis() as u64,
-            });
+        if current_hash == self.state.config_hash {
+            return Ok(None);
+        }
+
+        log::info!("Config changed, triggering full rescan");
+        self.state.config_hash = current_hash;
+        let result = self.scan()?;
+        Ok(Some(IncrementalResult {
+            smells: result.smells,
+            affected_files: result.files.iter().map(|f| f.path.clone()).collect(),
+            changed_count: result.summary.files_analyzed,
+            affected_count: result.summary.files_analyzed,
+            analysis_time_ms: start.elapsed().as_millis() as u64,
+        }))
+    }
+
+    /// Create analysis context from current state
+    fn create_analysis_context(&self) -> AnalysisContext {
+        AnalysisContext {
+            project_path: self.project_root.clone(),
+            graph: Arc::clone(&self.state.graph),
+            file_symbols: Arc::clone(&self.state.file_symbols),
+            function_complexity: Arc::clone(&self.state.function_complexity),
+            file_metrics: Arc::clone(&self.state.file_metrics),
+            churn_map: self.state.churn_map.clone(),
+            config: self.config.clone(),
+            script_entry_points: self.state.script_entry_points.clone(),
+            dynamic_load_patterns: self.state.dynamic_load_patterns.clone(),
+            detected_frameworks: self.state.detected_frameworks.clone(),
+            file_types: self.state.file_types.clone(),
+        }
+    }
+
+    fn cache_file_local_smells(
+        &mut self,
+        detector_id: &str,
+        smells: &[crate::detectors::ArchSmell],
+    ) {
+        for smell in smells {
+            for file in &smell.files {
+                let cache_key = (detector_id.to_string(), file.clone());
+                self.state
+                    .file_local_cache
+                    .entry(cache_key)
+                    .or_default()
+                    .push(smell.clone());
+            }
+        }
+    }
+
+    /// Run detectors and filter results to affected files
+    fn run_detectors_incremental(
+        &mut self,
+        enabled_detectors: &[(String, Box<dyn crate::detectors::Detector>)],
+        registry: &DetectorRegistry,
+        ctx: &AnalysisContext,
+        affected: &HashSet<PathBuf>,
+        cache_file_local: bool,
+    ) -> Vec<SmellWithExplanation> {
+        let mut all_smells = Vec::new();
+
+        for (detector_id, detector) in enabled_detectors {
+            let info = registry.get_info(detector_id);
+            let is_file_local = info
+                .map(|i| i.category == crate::detectors::DetectorCategory::FileLocal)
+                .unwrap_or(false);
+
+            let smells = detector.detect(ctx);
+
+            // Cache FileLocal results if requested
+            if cache_file_local && is_file_local {
+                self.cache_file_local_smells(detector_id, &smells);
+            }
+
+            // Filter to affected files
+            for smell in smells {
+                if smell.files.iter().any(|f| affected.contains(f)) {
+                    let explanation = crate::explain::ExplainEngine::explain(&smell);
+                    all_smells.push(SmellWithExplanation { smell, explanation });
+                }
+            }
+        }
+
+        all_smells
+    }
+
+    pub fn scan_incremental_with_overlays(
+        &mut self,
+        changed: Vec<PathBuf>,
+        overlays: HashMap<PathBuf, String>,
+    ) -> Result<IncrementalResult> {
+        self.scan_incremental_inner(changed, Some(overlays))
+    }
+
+    /// Core incremental scan logic shared by both `scan_incremental` and `scan_incremental_with_overlays`
+    fn scan_incremental_inner(
+        &mut self,
+        changed: Vec<PathBuf>,
+        overlays: Option<HashMap<PathBuf, String>>,
+    ) -> Result<IncrementalResult> {
+        let start = Instant::now();
+        let use_overlays = overlays.is_some();
+
+        // Check if config changed - requires full rescan
+        if let Some(result) = self.check_config_and_full_rescan(&start)? {
+            return Ok(result);
         }
 
         // 1. Prepare parser and resolver
@@ -141,8 +241,19 @@ impl Analyzer {
         let parser_config = self.create_parser_config(&active_ids);
 
         // 2. Update state for changed files
-        self.state
-            .update_files(&changed, &parser, &parser_config, &resolver)?;
+        if let Some(ovl) = overlays {
+            self.state.update_files_with_overlays(
+                &changed,
+                &ovl,
+                &parser,
+                &parser_config,
+                &resolver,
+                true, // skip_hash_update = true for overlay files
+            )?;
+        } else {
+            self.state
+                .update_files(&changed, &parser, &parser_config, &resolver)?;
+        }
 
         // 3. Get affected files
         let affected = self.state.get_affected_files(&changed);
@@ -154,186 +265,16 @@ impl Analyzer {
             .file_local_cache
             .retain(|(_, f), _| !changed_set.contains(f));
 
-        // 5. Create context (Arc::clone is cheap)
-        let ctx = AnalysisContext {
-            project_path: self.project_root.clone(),
-            graph: Arc::clone(&self.state.graph),
-            file_symbols: Arc::clone(&self.state.file_symbols),
-            function_complexity: Arc::clone(&self.state.function_complexity),
-            file_metrics: Arc::clone(&self.state.file_metrics),
-            churn_map: self.state.churn_map.clone(),
-            config: self.config.clone(),
-            script_entry_points: self.state.script_entry_points.clone(),
-            dynamic_load_patterns: self.state.dynamic_load_patterns.clone(),
-            detected_frameworks: self.state.detected_frameworks.clone(),
-            file_types: self.state.file_types.clone(),
-        };
-
-        // 6. Run detectors by category
-        let mut all_smells = Vec::new();
-
-        for (detector_id, detector) in enabled_detectors {
-            let info = registry.get_info(&detector_id);
-            let category = info
-                .map(|i| i.category)
-                .unwrap_or(crate::detectors::DetectorCategory::Global);
-
-            match category {
-                crate::detectors::DetectorCategory::FileLocal => {
-                    // For FileLocal: run detector and cache per-file results
-                    let smells = detector.detect(&ctx);
-
-                    // Group smells by file and cache
-                    for smell in &smells {
-                        for file in &smell.files {
-                            let cache_key = (detector_id.clone(), file.clone());
-                            self.state
-                                .file_local_cache
-                                .entry(cache_key)
-                                .or_default()
-                                .push(smell.clone());
-                        }
-                    }
-
-                    // Filter to affected files
-                    for smell in smells {
-                        if smell.files.iter().any(|f| affected.contains(f)) {
-                            let explanation = crate::explain::ExplainEngine::explain(&smell);
-                            all_smells.push(SmellWithExplanation { smell, explanation });
-                        }
-                    }
-                }
-                crate::detectors::DetectorCategory::ImportBased
-                | crate::detectors::DetectorCategory::GraphBased
-                | crate::detectors::DetectorCategory::Global => {
-                    // Run detector and filter to affected files
-                    let smells = detector.detect(&ctx);
-                    for smell in smells {
-                        if smell.files.iter().any(|f| affected.contains(f)) {
-                            let explanation = crate::explain::ExplainEngine::explain(&smell);
-                            all_smells.push(SmellWithExplanation { smell, explanation });
-                        }
-                    }
-                }
-            }
-        }
-
-        Ok(IncrementalResult {
-            smells: all_smells,
-            affected_files: affected.into_iter().collect(),
-            changed_count: changed.len(),
-            affected_count,
-            analysis_time_ms: start.elapsed().as_millis() as u64,
-        })
-    }
-
-    pub fn scan_incremental_with_overlays(
-        &mut self,
-        changed: Vec<PathBuf>,
-        overlays: HashMap<PathBuf, String>,
-    ) -> Result<IncrementalResult> {
-        let start = Instant::now();
-
-        // Check if config changed
-        let current_hash = compute_config_hash(&self.config);
-        if current_hash != self.state.config_hash {
-            log::info!("Config changed, triggering full rescan");
-            self.state.config_hash = current_hash;
-            let result = self.scan()?;
-            return Ok(IncrementalResult {
-                smells: result.smells,
-                affected_files: result.files.iter().map(|f| f.path.clone()).collect(),
-                changed_count: result.summary.files_analyzed,
-                affected_count: result.summary.files_analyzed,
-                analysis_time_ms: start.elapsed().as_millis() as u64,
-            });
-        }
-
-        // 1. Prepare parser and resolver
-        let parser = ImportParser::new()?;
-        let resolver = PathResolver::new(&self.project_root, &self.config);
-
-        // Get active detectors to determine parser config
-        let presets = presets::get_presets(&self.state.detected_frameworks);
-        let registry = DetectorRegistry::new();
-        let (enabled_detectors, _needs_deep) =
-            registry.get_enabled_full(&self.config, &presets, self.args.all_detectors);
-
-        let active_ids: HashSet<String> =
-            enabled_detectors.iter().map(|(id, _)| id.clone()).collect();
-        let parser_config = self.create_parser_config(&active_ids);
-
-        // 2. Update state for changed files (with overlays, skipping hash update)
-        self.state.update_files_with_overlays(
-            &changed,
-            &overlays,
-            &parser,
-            &parser_config,
-            &resolver,
-            true, // skip_hash_update = true for overlay files
-        )?;
-
-        // 3. Get affected files
-        let affected = self.state.get_affected_files(&changed);
-        let affected_count = affected.len();
-        let changed_set: HashSet<PathBuf> = changed.iter().cloned().collect();
-
-        // 4. Invalidate cache for changed files
-        self.state
-            .file_local_cache
-            .retain(|(_, f), _| !changed_set.contains(f));
-
-        // 5. Create context (Arc::clone is cheap)
-        let ctx = AnalysisContext {
-            project_path: self.project_root.clone(),
-            graph: Arc::clone(&self.state.graph),
-            file_symbols: Arc::clone(&self.state.file_symbols),
-            function_complexity: Arc::clone(&self.state.function_complexity),
-            file_metrics: Arc::clone(&self.state.file_metrics),
-            churn_map: self.state.churn_map.clone(),
-            config: self.config.clone(),
-            script_entry_points: self.state.script_entry_points.clone(),
-            dynamic_load_patterns: self.state.dynamic_load_patterns.clone(),
-            detected_frameworks: self.state.detected_frameworks.clone(),
-            file_types: self.state.file_types.clone(),
-        };
-
-        // 6. Run detectors by category
-        let mut all_smells = Vec::new();
-
-        for (detector_id, detector) in enabled_detectors {
-            let info = registry.get_info(&detector_id);
-            let category = info
-                .map(|i| i.category)
-                .unwrap_or(crate::detectors::DetectorCategory::Global);
-
-            match category {
-                crate::detectors::DetectorCategory::FileLocal => {
-                    // For FileLocal: run detector and filter to affected files
-                    // We don't cache results for overlay files to avoid poisoning the cache
-                    let smells = detector.detect(&ctx);
-
-                    for smell in smells {
-                        if smell.files.iter().any(|f| affected.contains(f)) {
-                            let explanation = crate::explain::ExplainEngine::explain(&smell);
-                            all_smells.push(SmellWithExplanation { smell, explanation });
-                        }
-                    }
-                }
-                crate::detectors::DetectorCategory::ImportBased
-                | crate::detectors::DetectorCategory::GraphBased
-                | crate::detectors::DetectorCategory::Global => {
-                    // Run detector and filter to affected files
-                    let smells = detector.detect(&ctx);
-                    for smell in smells {
-                        if smell.files.iter().any(|f| affected.contains(f)) {
-                            let explanation = crate::explain::ExplainEngine::explain(&smell);
-                            all_smells.push(SmellWithExplanation { smell, explanation });
-                        }
-                    }
-                }
-            }
-        }
+        // 5. Create context and run detectors (don't cache for overlays)
+        let ctx = self.create_analysis_context();
+        let cache_file_local = !use_overlays;
+        let all_smells = self.run_detectors_incremental(
+            &enabled_detectors,
+            &registry,
+            &ctx,
+            &affected,
+            cache_file_local,
+        );
 
         Ok(IncrementalResult {
             smells: all_smells,

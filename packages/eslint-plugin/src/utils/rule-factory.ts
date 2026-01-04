@@ -21,7 +21,7 @@ function createRuleMeta(options: RuleOptions): Rule.RuleModule['meta'] {
       description: options.description,
       category: options.category,
       recommended: options.recommended,
-      url: `https://archlinter.dev/rules/${options.detectorId.replace(/_/g, '-')}`,
+      url: `https://archlinter.dev/rules/${options.detectorId.replaceAll('_', '-')}`,
     },
     schema: [
       {
@@ -40,30 +40,6 @@ function createRuleMeta(options: RuleOptions): Rule.RuleModule['meta'] {
       ...options.messages,
     },
   };
-}
-
-async function waitForAnalysisReady(
-  filename: string,
-  projectRoot: string | undefined,
-  maxWaitTime: number
-): Promise<AnalysisState> {
-  const startTime = Date.now();
-  const pollInterval = 10; // ms
-
-  let state: AnalysisState = isAnalysisReady(filename, {
-    projectRoot,
-    bufferText: undefined,
-  });
-
-  while (
-    (state === AnalysisState.NotStarted || state === AnalysisState.InProgress) &&
-    Date.now() - startTime < maxWaitTime
-  ) {
-    await new Promise((resolve) => setTimeout(resolve, pollInterval));
-    state = isAnalysisReady(filename, { projectRoot });
-  }
-
-  return state;
 }
 
 interface ReportLocation {
@@ -101,42 +77,6 @@ interface RuleOptionsConfig {
   projectRoot?: string;
 }
 
-function createProgramHandler(
-  options: RuleOptions,
-  filename: string,
-  projectRoot: string,
-  bufferText: string | undefined,
-  ruleOptions: RuleOptionsConfig
-) {
-  return async function Program(node: Rule.Node, context: Readonly<Rule.RuleContext>) {
-    if (isVirtualFile(filename)) {
-      return;
-    }
-
-    const state = await waitForAnalysisReady(filename, ruleOptions.projectRoot, 100);
-
-    if (state === AnalysisState.NotStarted) {
-      context.report({ node: node as any, messageId: 'analyzing' });
-      return;
-    }
-
-    if (state === AnalysisState.InProgress) {
-      return;
-    }
-
-    const smells = getSmellsForFile(
-      filename,
-      options.detectorId,
-      ruleOptions.projectRoot,
-      bufferText
-    );
-
-    for (const smell of smells) {
-      reportSmellLocations(context, smell, filename, options.strategy, projectRoot);
-    }
-  };
-}
-
 export function createArchlintRule(options: RuleOptions): Rule.RuleModule {
   return {
     meta: createRuleMeta(options),
@@ -147,16 +87,37 @@ export function createArchlintRule(options: RuleOptions): Rule.RuleModule {
       const sourceCode = context.sourceCode;
       const bufferText = sourceCode.text;
 
-      const programHandler = createProgramHandler(
-        options,
-        filename,
-        projectRoot,
-        bufferText,
-        ruleOptions
-      );
-
       return {
-        Program: programHandler as any,
+        Program(node) {
+          if (isVirtualFile(filename)) {
+            return;
+          }
+
+          const state = isAnalysisReady(filename, {
+            projectRoot: ruleOptions.projectRoot,
+            bufferText,
+          });
+
+          if (state === AnalysisState.NotStarted) {
+            context.report({ node, messageId: 'analyzing' });
+            return;
+          }
+
+          if (state === AnalysisState.InProgress) {
+            return;
+          }
+
+          const smells = getSmellsForFile(
+            filename,
+            options.detectorId,
+            ruleOptions.projectRoot,
+            bufferText
+          );
+
+          for (const smell of smells) {
+            reportSmellLocations(context, smell, filename, options.strategy, projectRoot);
+          }
+        },
       };
     },
   };
