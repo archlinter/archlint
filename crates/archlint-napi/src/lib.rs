@@ -2,6 +2,7 @@
 
 use napi::bindgen_prelude::*;
 use napi_derive::napi;
+use std::collections::HashMap;
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 
@@ -115,6 +116,49 @@ impl ArchlintAnalyzer {
             .scan_incremental(paths)
             .map(JsIncrementalResult::from)
             .map_err(|e: archlint::AnalysisError| Error::from_reason(e.to_string()))
+    }
+
+    #[napi]
+    pub fn scan_incremental_with_overlay_sync(
+        &self,
+        changed_files: Vec<String>,
+        overlays: HashMap<String, String>,
+    ) -> Result<JsIncrementalResult> {
+        let paths: Vec<PathBuf> = changed_files.into_iter().map(PathBuf::from).collect();
+        let overlay_map: HashMap<PathBuf, String> = overlays
+            .into_iter()
+            .map(|(k, v)| (PathBuf::from(k), v))
+            .collect();
+
+        let mut analyzer = self.inner.lock().unwrap();
+        analyzer
+            .scan_incremental_with_overlays(paths, overlay_map)
+            .map(JsIncrementalResult::from)
+            .map_err(|e: archlint::AnalysisError| Error::from_reason(e.to_string()))
+    }
+
+    #[napi]
+    pub async fn scan_incremental_with_overlay(
+        &self,
+        changed_files: Vec<String>,
+        overlays: HashMap<String, String>,
+    ) -> Result<JsIncrementalResult> {
+        let inner = self.inner.clone();
+        let paths: Vec<PathBuf> = changed_files.into_iter().map(PathBuf::from).collect();
+        let overlay_map: HashMap<PathBuf, String> = overlays
+            .into_iter()
+            .map(|(k, v)| (PathBuf::from(k), v))
+            .collect();
+
+        tokio::task::spawn_blocking(move || {
+            let mut analyzer = inner.lock().unwrap();
+            analyzer
+                .scan_incremental_with_overlays(paths, overlay_map)
+                .map(JsIncrementalResult::from)
+        })
+        .await
+        .map_err(|e| Error::from_reason(format!("Task execution failed: {}", e)))?
+        .map_err(|e: archlint::AnalysisError| Error::from_reason(e.to_string()))
     }
 
     #[napi]

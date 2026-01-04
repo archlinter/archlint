@@ -164,6 +164,14 @@ export declare class ArchlintAnalyzer {
   scanIncremental(changedFiles: Array<string>): Promise<JsIncrementalResult>;
   scanSync(): JsScanResult;
   scanIncrementalSync(changedFiles: Array<string>): JsIncrementalResult;
+  scanIncrementalWithOverlaySync(
+    changedFiles: Array<string>,
+    overlays: Record<string, string>
+  ): JsIncrementalResult;
+  scanIncrementalWithOverlay(
+    changedFiles: Array<string>,
+    overlays: Record<string, string>
+  ): Promise<JsIncrementalResult>;
   invalidate(files: Array<string>): void;
   rescan(): Promise<JsScanResult>;
   rescanSync(): JsScanResult;

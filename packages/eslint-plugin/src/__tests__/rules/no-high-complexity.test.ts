@@ -25,9 +25,16 @@ describe('no-high-complexity', () => {
     (getSmellsForFile as any).mockReturnValue([
       {
         smell: {
-          smellType: 'HighComplexity { name: "complexFunction", line: 10 }',
+          smellType: 'HighComplexity { name: "complexFunction", line: 10, complexity: 25 }',
           files: ['/project/complex.ts'],
-          locations: [{ file: '/project/complex.ts', line: 10, column: 0 }],
+          locations: [
+            {
+              file: '/project/complex.ts',
+              line: 10,
+              column: 0,
+              description: "Function 'complexFunction' (complexity: 25)",
+            },
+          ],
         },
         explanation: {
           reason: 'Function "complexFunction" has cyclomatic complexity of 25',
@@ -44,7 +51,7 @@ describe('no-high-complexity', () => {
           errors: [
             {
               messageId: 'smell',
-              data: { reason: 'Function "complexFunction" has cyclomatic complexity of 25' },
+              data: { reason: "Function 'complexFunction' (complexity: 25)" },
               line: 10,
             },
           ],

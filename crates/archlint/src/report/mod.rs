@@ -482,8 +482,10 @@ impl AnalysisReport {
             crate::detectors::SmellType::DeadSymbol { name, .. } => {
                 format!("Dead Symbol\n({})", name)
             }
-            crate::detectors::SmellType::HighComplexity { name, .. } => {
-                format!("Complexity\n({})", name)
+            crate::detectors::SmellType::HighComplexity {
+                name, complexity, ..
+            } => {
+                format!("Complexity\n({}: {})", name, complexity)
             }
             crate::detectors::SmellType::LargeFile => "Large File".to_string(),
             crate::detectors::SmellType::UnstableInterface => "Unstable Interface".to_string(),

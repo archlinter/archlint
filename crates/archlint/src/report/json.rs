@@ -17,7 +17,7 @@ pub fn generate_json(
                     crate::detectors::SmellType::GodModule => "god_module".to_string(),
                     crate::detectors::SmellType::DeadCode => "dead_code".to_string(),
                     crate::detectors::SmellType::DeadSymbol { name, kind } => format!("dead_symbol: {} ({})", name, kind),
-                    crate::detectors::SmellType::HighComplexity { name, line } => format!("high_complexity: {} at line {}", name, line),
+                    crate::detectors::SmellType::HighComplexity { name, line, complexity } => format!("high_complexity: {} at line {} (complexity: {})", name, line, complexity),
                     crate::detectors::SmellType::LargeFile => "large_file".to_string(),
                     crate::detectors::SmellType::UnstableInterface => "unstable_interface".to_string(),
                     crate::detectors::SmellType::FeatureEnvy { most_envied_module } => format!("feature_envy: envies {}", most_envied_module.display()),

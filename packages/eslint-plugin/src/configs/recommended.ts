@@ -1,24 +1,24 @@
-// Legacy configs (ESLint < 9)
-export const recommended: any = {
+// Legacy configs (ESLint < 9) - uses eslintrc format, not typed by ESLint 9
+export const recommended = {
   plugins: ['@archlinter'],
   rules: {
     '@archlinter/no-cycles': 'error',
     '@archlinter/no-god-modules': 'warn',
     '@archlinter/no-dead-code': 'warn',
     '@archlinter/no-high-coupling': 'warn',
-    '@archlinter/no-high-complexity': 'warn',
+    '@archlinter/no-high-complexity': 'error',
     '@archlinter/no-layer-violations': 'error',
   },
-};
+} as const;
 
-export const strict: any = {
+export const strict = {
   plugins: ['@archlinter'],
   rules: {
     '@archlinter/no-cycles': 'error',
     '@archlinter/no-god-modules': 'error',
     '@archlinter/no-dead-code': 'error',
     '@archlinter/no-high-coupling': 'error',
-    '@archlinter/no-high-complexity': 'warn',
+    '@archlinter/no-high-complexity': 'error',
     '@archlinter/no-barrel-abuse': 'error',
     '@archlinter/no-layer-violations': 'error',
     '@archlinter/no-sdp-violations': 'error',
@@ -26,4 +26,4 @@ export const strict: any = {
     '@archlinter/no-deep-nesting': 'error',
     '@archlinter/no-long-params': 'warn',
   },
-};
+} as const;

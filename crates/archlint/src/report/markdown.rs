@@ -459,7 +459,7 @@ pub fn generate_markdown(
             output.push_str("|----------|----------|------------|-------|\n");
 
             for (smell, _) in high_complexity {
-                if let SmellType::HighComplexity { name, line } = &smell.smell_type {
+                if let SmellType::HighComplexity { name, line, .. } = &smell.smell_type {
                     if let Some(file_path) = smell.files.first() {
                         // Use location from locations if available (has column info)
                         let location = smell

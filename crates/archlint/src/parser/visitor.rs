@@ -38,6 +38,7 @@ pub struct UnifiedVisitor {
     pub functions: Vec<FunctionComplexity>,
     pub config: ParserConfig,
     pub current_name_override: Option<SymbolName>,
+    pub current_span_override: Option<oxc_span::Span>,
     pub current_class: Option<SymbolName>,
 
     pub temp_fields: SymbolSet,
@@ -67,6 +68,7 @@ impl UnifiedVisitor {
             functions: Vec::with_capacity(estimated_functions),
             config,
             current_name_override: None,
+            current_span_override: None,
             current_class: None,
             temp_fields: SymbolSet::default(),
             temp_methods: SmallVec::new(),
@@ -644,6 +646,25 @@ impl<'a> Visit<'a> for UnifiedVisitor {
         self.current_class = old_class;
     }
 
+    fn visit_variable_declarator(&mut self, it: &oxc_ast::ast::VariableDeclarator<'a>) {
+        if let oxc_ast::ast::BindingPatternKind::BindingIdentifier(ref id) = it.id.kind {
+            if let Some(ref init) = it.init {
+                if matches!(
+                    init,
+                    Expression::ArrowFunctionExpression(_)
+                        | Expression::FunctionExpression(_)
+                        | Expression::ClassExpression(_)
+                ) {
+                    self.current_name_override = Some(Self::atom_to_compact(&id.name));
+                    self.current_span_override = Some(id.span);
+                }
+            }
+        }
+        oxc_ast::visit::walk::walk_variable_declarator(self, it);
+        self.current_name_override = None;
+        self.current_span_override = None;
+    }
+
     fn visit_method_definition(&mut self, it: &oxc_ast::ast::MethodDefinition<'a>) {
         let name = it
             .key
@@ -657,8 +678,10 @@ impl<'a> Visit<'a> for UnifiedVisitor {
         }
 
         self.current_name_override = Some(name);
+        self.current_span_override = Some(it.key.span());
         oxc_ast::visit::walk::walk_method_definition(self, it);
         self.current_name_override = None;
+        self.current_span_override = None;
 
         if self.config.collect_classes {
             if let Some(mut method) = self.current_method.take() {
@@ -687,8 +710,17 @@ impl<'a> Visit<'a> for UnifiedVisitor {
         } else {
             (0, 0)
         };
-        let line = self.get_line_number(it.span);
-        let range = self.get_range(it.span);
+
+        // Use identifier span for position if available, otherwise use override or whole function span
+        let span = it
+            .id
+            .as_ref()
+            .map(|id| id.span)
+            .or(self.current_span_override.take())
+            .unwrap_or(it.span);
+        let line = self.get_line_number(span);
+        let range = self.get_range(span);
+
         let param_count = it.params.items.len();
         let primitive_params = if self.config.collect_primitive_params {
             self.count_primitive_params(&it.params)
@@ -727,8 +759,12 @@ impl<'a> Visit<'a> for UnifiedVisitor {
         } else {
             (0, 0)
         };
-        let line = self.get_line_number(it.span);
-        let range = self.get_range(it.span);
+
+        // Use override span if available (e.g. from method definition or variable name)
+        let span = self.current_span_override.take().unwrap_or(it.span);
+        let line = self.get_line_number(span);
+        let range = self.get_range(span);
+
         let param_count = it.params.items.len();
         let primitive_params = if self.config.collect_primitive_params {
             self.count_primitive_params(&it.params)

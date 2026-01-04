@@ -6,9 +6,17 @@ use std::path::Path;
 
 pub fn file_content_hash(path: &Path) -> Result<String> {
     let content = fs::read(path)?;
+    Ok(content_hash_bytes(&content))
+}
+
+pub fn content_hash(content: &str) -> String {
+    content_hash_bytes(content.as_bytes())
+}
+
+fn content_hash_bytes(bytes: &[u8]) -> String {
     let mut hasher = Sha256::new();
-    hasher.update(&content);
-    Ok(format!("{:x}", hasher.finalize()))
+    hasher.update(bytes);
+    format!("{:x}", hasher.finalize())
 }
 
 pub fn config_hash(config: &Config) -> String {

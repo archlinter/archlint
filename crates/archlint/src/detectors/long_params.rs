@@ -51,6 +51,8 @@ impl Detector for LongParameterListDetector {
                         path.clone(),
                         func.name.to_string(),
                         func.param_count,
+                        func.line,
+                        func.range,
                     ));
                 }
             }

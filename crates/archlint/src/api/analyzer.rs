@@ -11,7 +11,7 @@ use crate::incremental::IncrementalState;
 use crate::parser::{ImportParser, ParserConfig};
 use crate::resolver::PathResolver;
 use sha2::{Digest, Sha256};
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::time::Instant;
@@ -227,6 +227,123 @@ impl Analyzer {
         })
     }
 
+    pub fn scan_incremental_with_overlays(
+        &mut self,
+        changed: Vec<PathBuf>,
+        overlays: HashMap<PathBuf, String>,
+    ) -> Result<IncrementalResult> {
+        let start = Instant::now();
+
+        // Check if config changed
+        let current_hash = compute_config_hash(&self.config);
+        if current_hash != self.state.config_hash {
+            log::info!("Config changed, triggering full rescan");
+            self.state.config_hash = current_hash;
+            let result = self.scan()?;
+            return Ok(IncrementalResult {
+                smells: result.smells,
+                affected_files: result.files.iter().map(|f| f.path.clone()).collect(),
+                changed_count: result.summary.files_analyzed,
+                affected_count: result.summary.files_analyzed,
+                analysis_time_ms: start.elapsed().as_millis() as u64,
+            });
+        }
+
+        // 1. Prepare parser and resolver
+        let parser = ImportParser::new()?;
+        let resolver = PathResolver::new(&self.project_root, &self.config);
+
+        // Get active detectors to determine parser config
+        let presets = presets::get_presets(&self.state.detected_frameworks);
+        let registry = DetectorRegistry::new();
+        let (enabled_detectors, _needs_deep) =
+            registry.get_enabled_full(&self.config, &presets, self.args.all_detectors);
+
+        let active_ids: HashSet<String> =
+            enabled_detectors.iter().map(|(id, _)| id.clone()).collect();
+        let parser_config = self.create_parser_config(&active_ids);
+
+        // 2. Update state for changed files (with overlays, skipping hash update)
+        self.state.update_files_with_overlays(
+            &changed,
+            &overlays,
+            &parser,
+            &parser_config,
+            &resolver,
+            true, // skip_hash_update = true for overlay files
+        )?;
+
+        // 3. Get affected files
+        let affected = self.state.get_affected_files(&changed);
+        let affected_count = affected.len();
+        let changed_set: HashSet<PathBuf> = changed.iter().cloned().collect();
+
+        // 4. Invalidate cache for changed files
+        self.state
+            .file_local_cache
+            .retain(|(_, f), _| !changed_set.contains(f));
+
+        // 5. Create context (Arc::clone is cheap)
+        let ctx = AnalysisContext {
+            project_path: self.project_root.clone(),
+            graph: Arc::clone(&self.state.graph),
+            file_symbols: Arc::clone(&self.state.file_symbols),
+            function_complexity: Arc::clone(&self.state.function_complexity),
+            file_metrics: Arc::clone(&self.state.file_metrics),
+            churn_map: self.state.churn_map.clone(),
+            config: self.config.clone(),
+            script_entry_points: self.state.script_entry_points.clone(),
+            dynamic_load_patterns: self.state.dynamic_load_patterns.clone(),
+            detected_frameworks: self.state.detected_frameworks.clone(),
+            file_types: self.state.file_types.clone(),
+        };
+
+        // 6. Run detectors by category
+        let mut all_smells = Vec::new();
+
+        for (detector_id, detector) in enabled_detectors {
+            let info = registry.get_info(&detector_id);
+            let category = info
+                .map(|i| i.category)
+                .unwrap_or(crate::detectors::DetectorCategory::Global);
+
+            match category {
+                crate::detectors::DetectorCategory::FileLocal => {
+                    // For FileLocal: run detector and filter to affected files
+                    // We don't cache results for overlay files to avoid poisoning the cache
+                    let smells = detector.detect(&ctx);
+
+                    for smell in smells {
+                        if smell.files.iter().any(|f| affected.contains(f)) {
+                            let explanation = crate::explain::ExplainEngine::explain(&smell);
+                            all_smells.push(SmellWithExplanation { smell, explanation });
+                        }
+                    }
+                }
+                crate::detectors::DetectorCategory::ImportBased
+                | crate::detectors::DetectorCategory::GraphBased
+                | crate::detectors::DetectorCategory::Global => {
+                    // Run detector and filter to affected files
+                    let smells = detector.detect(&ctx);
+                    for smell in smells {
+                        if smell.files.iter().any(|f| affected.contains(f)) {
+                            let explanation = crate::explain::ExplainEngine::explain(&smell);
+                            all_smells.push(SmellWithExplanation { smell, explanation });
+                        }
+                    }
+                }
+            }
+        }
+
+        Ok(IncrementalResult {
+            smells: all_smells,
+            affected_files: affected.into_iter().collect(),
+            changed_count: changed.len(),
+            affected_count,
+            analysis_time_ms: start.elapsed().as_millis() as u64,
+        })
+    }
+
     fn create_parser_config(&self, active_ids: &HashSet<String>) -> ParserConfig {
         ParserConfig {
             collect_complexity: active_ids.iter().any(|id| {
@@ -358,6 +475,36 @@ mod tests {
         assert_eq!(inc_result.changed_count, 1);
         // a.ts changed, b.ts imports a.ts -> both affected
         assert_eq!(inc_result.affected_count, 2);
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_scan_incremental_with_overlays() -> Result<()> {
+        let dir = tempdir()?;
+        let project_path = fs::canonicalize(dir.path())?;
+
+        let a_ts = project_path.join("a.ts");
+        fs::write(&a_ts, "export const a = 1;")?;
+
+        let mut analyzer = Analyzer::new(&project_path, ScanOptions::default())?;
+        analyzer.scan()?;
+
+        // Get initial hash
+        let initial_hash = analyzer.state.file_hashes.get(&a_ts).cloned();
+
+        // Analyze with overlay (different content)
+        let mut overlays = HashMap::new();
+        overlays.insert(a_ts.clone(), "export const a = 'changed';".to_string());
+
+        let result = analyzer.scan_incremental_with_overlays(vec![a_ts.clone()], overlays)?;
+
+        // Hash should NOT change (overlay doesn't affect cache)
+        assert_eq!(analyzer.state.file_hashes.get(&a_ts), initial_hash.as_ref());
+
+        // But analysis should work
+        assert_eq!(result.changed_count, 1);
+        assert_eq!(result.affected_count, 1);
 
         Ok(())
     }

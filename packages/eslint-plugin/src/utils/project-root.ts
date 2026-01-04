@@ -43,9 +43,3 @@ export function findProjectRoot(filePath: string): string {
   return result;
 }
 
-/**
- * Clear project root cache (for testing)
- */
-export function clearProjectRootCache(): void {
-  rootCache.clear();
-}

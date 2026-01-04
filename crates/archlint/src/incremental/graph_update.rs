@@ -1,9 +1,11 @@
 use super::state::IncrementalState;
-use crate::cache::hash::file_content_hash;
+use crate::cache::hash::content_hash;
 use crate::graph::EdgeData;
 use crate::parser::{ImportParser, ParserConfig};
 use crate::resolver::PathResolver;
 use crate::Result;
+use std::collections::HashMap;
+use std::fs;
 use std::path::{Path, PathBuf};
 
 impl IncrementalState {
@@ -15,15 +17,44 @@ impl IncrementalState {
         parser_config: &ParserConfig,
         resolver: &PathResolver,
     ) -> Result<()> {
+        self.update_files_with_overlays(
+            changed,
+            &HashMap::new(),
+            parser,
+            parser_config,
+            resolver,
+            false,
+        )
+    }
+
+    /// Update files using overlay content (for unsaved IDE buffers)
+    pub fn update_files_with_overlays(
+        &mut self,
+        changed: &[PathBuf],
+        overlays: &HashMap<PathBuf, String>,
+        parser: &ImportParser,
+        parser_config: &ParserConfig,
+        resolver: &PathResolver,
+        skip_hash_update: bool,
+    ) -> Result<()> {
         for file in changed {
             // 1. Remove old outgoing edges
             self.remove_outgoing_edges(file);
 
-            // 2. Parse file
-            let hash = file_content_hash(file)?;
-            let parsed = parser.parse_file_with_config(file, parser_config)?;
+            // 2. Get content and hash
+            let (content, hash) = if let Some(overlay_content) = overlays.get(file) {
+                let h = content_hash(overlay_content);
+                (overlay_content.clone(), h)
+            } else {
+                let content = fs::read_to_string(file)?;
+                let h = content_hash(&content);
+                (content, h)
+            };
 
-            // 3. Update symbols, metrics, and hash
+            // 3. Parse file
+            let parsed = parser.parse_code_with_config(&content, file, parser_config)?;
+
+            // 4. Update symbols, metrics, and hash
             self.file_symbols_mut()
                 .insert(file.clone(), parsed.symbols.clone());
             self.file_metrics_mut().insert(
@@ -34,15 +65,15 @@ impl IncrementalState {
             );
             self.function_complexity_mut()
                 .insert(file.clone(), parsed.functions);
-            self.file_hashes.insert(file.clone(), hash);
 
-            // 4. Update graph and reverse deps
+            if !skip_hash_update {
+                self.file_hashes.insert(file.clone(), hash);
+            }
+
+            // 5. Update graph and reverse deps
             let from_node = self.graph_mut().add_file(file);
             for import in &parsed.symbols.imports {
                 if let Some(resolved) = resolver.resolve(import.source.as_str(), file)? {
-                    // Only add to graph if it's a file we know about (runtime code)
-                    // Note: In initial scan, we filter by has_runtime_code.
-                    // For incremental, we should probably check if it was already in graph or if it has runtime code now.
                     let to_node = self.graph_mut().add_file(&resolved);
                     let edge_data = EdgeData::with_all(
                         import.line,

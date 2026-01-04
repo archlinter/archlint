@@ -7,22 +7,12 @@ export type SmellLocationStrategy =
   | 'critical-edges' // Report at critical edges (for cycles)
   | 'source-file'; // Report in source file (for layer violations)
 
-export const SMELL_STRATEGIES: Record<string, SmellLocationStrategy> = {
-  cycles: 'critical-edges',
-  god_module: 'primary-file',
-  dead_code: 'primary-file',
-  high_coupling: 'primary-file',
-  barrel_file_abuse: 'primary-file',
-  layer_violation: 'source-file',
-  sdp_violation: 'primary-file',
-  hub_module: 'primary-file',
-  deep_nesting: 'all-files',
-  long_params: 'all-files',
-};
 
 export interface FileSmellLocation {
   line: number;
   column?: number;
+  endLine?: number;
+  endColumn?: number;
   messageId: string;
   data?: Record<string, unknown>;
 }
@@ -60,7 +50,9 @@ function getCriticalEdgeLocations(
     .filter((edge) => edge.from.replace(/\\/g, '/') === filePath)
     .map((edge) => ({
       line: edge.line,
-      column: 0,
+      column: edge.range?.startColumn ?? 0,
+      endLine: edge.range?.endLine,
+      endColumn: edge.range?.endColumn,
       messageId: 'cycle',
       data: {
         target: relative(projectRoot, edge.to),
@@ -69,21 +61,33 @@ function getCriticalEdgeLocations(
     }));
 }
 
+function createLocationFromSmell(
+  loc: { line?: number; column?: number; range?: { endLine?: number; endColumn?: number } } | undefined,
+  reason: string
+): FileSmellLocation {
+  return {
+    line: loc?.line ?? 1,
+    column: loc?.column ?? 0,
+    endLine: loc?.range?.endLine,
+    endColumn: loc?.range?.endColumn,
+    messageId: 'smell',
+    data: { reason },
+  };
+}
+
 function getPrimaryFileLocation(
   smell: JsSmellWithExplanation,
   filePath: string
 ): FileSmellLocation[] {
   const firstFile = smell.smell.files[0];
-  if (!firstFile || firstFile.replace(/\\/g, '/') !== filePath) return [];
+  if (!firstFile) return [];
 
-  return [
-    {
-      line: smell.smell.locations[0]?.line ?? 1,
-      column: smell.smell.locations[0]?.column ?? 0,
-      messageId: 'smell',
-      data: { reason: smell.explanation.reason },
-    },
-  ];
+  const normalizedFirstFile = firstFile.replace(/\\/g, '/');
+  const normalizedPath = filePath.replace(/\\/g, '/');
+  if (normalizedFirstFile !== normalizedPath) return [];
+
+  const loc = smell.smell.locations[0];
+  return [createLocationFromSmell(loc, smell.explanation.reason)];
 }
 
 function getSourceFileLocation(
@@ -98,6 +102,8 @@ function getSourceFileLocation(
     {
       line: sourceLoc.line,
       column: sourceLoc.column ?? 0,
+      endLine: sourceLoc.range?.endLine,
+      endColumn: sourceLoc.range?.endColumn,
       messageId: 'violation',
       data: { reason: smell.explanation.reason },
     },
@@ -110,6 +116,8 @@ function getAllFileLocations(smell: JsSmellWithExplanation, filePath: string): F
     .map((l) => ({
       line: l.line,
       column: l.column ?? 0,
+      endLine: l.range?.endLine,
+      endColumn: l.range?.endColumn,
       messageId: 'smell',
       data: { reason: l.description || smell.explanation.reason },
     }));

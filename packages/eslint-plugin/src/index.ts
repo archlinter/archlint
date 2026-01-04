@@ -21,3 +21,6 @@ const plugin: ESLint.Plugin = {
 // Dual export for CJS and ESM compatibility
 export default plugin;
 export { rules, recommended, strict, flatRecommended, flatStrict };
+
+// Export test utilities
+export { notifyFileChanged, clearAllCaches } from './utils/cache';

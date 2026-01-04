@@ -1,6 +1,7 @@
+import type { Rule } from 'eslint';
 import { createArchlintRule } from '../utils/rule-factory';
 
-export const noLayerViolations = createArchlintRule({
+export const noLayerViolations: Rule.RuleModule = createArchlintRule({
   detectorId: 'layer_violation',
   messageId: 'violation',
   description: 'Disallow violations of defined architecture layers',

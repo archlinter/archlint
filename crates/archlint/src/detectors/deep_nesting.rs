@@ -47,6 +47,8 @@ impl Detector for DeepNestingDetector {
                         path.clone(),
                         func.name.to_string(),
                         func.max_depth,
+                        func.line,
+                        func.range,
                     ));
                 }
             }

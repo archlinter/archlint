@@ -1,4 +1,5 @@
 // Postinstall script for @archlinter/cli
+/* eslint-disable no-console */
 const { getPlatformKey } = require('./platform');
 
 const platformKey = getPlatformKey();

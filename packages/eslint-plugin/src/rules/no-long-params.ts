@@ -1,6 +1,7 @@
+import type { Rule } from 'eslint';
 import { createArchlintRule } from '../utils/rule-factory';
 
-export const noLongParams = createArchlintRule({
+export const noLongParams: Rule.RuleModule = createArchlintRule({
   detectorId: 'long_params',
   messageId: 'smell',
   description: 'Disallow functions with too many parameters',

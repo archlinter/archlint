@@ -2,9 +2,9 @@ import { getDetectors } from '@archlinter/core';
 import { ListDetectorsInput } from '../schemas.js';
 import { formatResult, formatDetectorsMd } from '../formatters.js';
 
-export async function archlintListDetectors(
+export function archlintListDetectors(
   input: ListDetectorsInput
-): Promise<{ content: { type: 'text'; text: string }[] }> {
+): { content: { type: 'text'; text: string }[] } {
   const { format } = input;
   const detectors = getDetectors();
 

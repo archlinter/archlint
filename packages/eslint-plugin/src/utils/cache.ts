@@ -1,10 +1,123 @@
 import {
   ArchlintAnalyzer,
-  clearCache as coreClearCache,
   type JsScanResult,
   type JsSmellWithExplanation,
 } from '@archlinter/core';
 import { findProjectRoot } from './project-root';
+import { statSync, readFileSync } from 'fs';
+import { createHash } from 'crypto';
+
+// Debug mode - use DEBUG=archlint:* or DEBUG=archlint:cache (standard ESLint pattern)
+// Also supports legacy ARCHLINT_DEBUG=1
+const DEBUG_PATTERN = process.env.DEBUG || '';
+const DEBUG =
+  process.env.ARCHLINT_DEBUG === '1' ||
+  DEBUG_PATTERN.includes('archlint:') ||
+  DEBUG_PATTERN === '*';
+
+// Force rescan on every check - set ARCHLINT_FORCE_RESCAN=1 to enable
+const FORCE_RESCAN = process.env.ARCHLINT_FORCE_RESCAN === '1';
+
+// Disable buffer detection (always treat files as saved) - useful for CI/CLI
+const NO_BUFFER_CHECK = process.env.ARCHLINT_NO_BUFFER_CHECK === '1';
+
+function debug(namespace: string, ...args: unknown[]): void {
+  if (DEBUG) {
+    const ts = new Date().toISOString().split('T')[1].slice(0, 12);
+    // eslint-disable-next-line no-console
+    console.error(`  ${ts} archlint:${namespace}`, ...args);
+  }
+}
+
+/**
+ * Compute fast hash of content (for comparison, not security)
+ */
+function computeHash(content: string): string {
+  return createHash('md5').update(content).digest('hex');
+}
+
+// Cache disk content hashes to avoid re-reading files
+interface DiskFileInfo {
+  hash: string;
+  mtime: number;
+}
+const diskFileCache = new Map<string, DiskFileInfo>();
+
+/**
+ * Get disk file hash (cached by mtime)
+ */
+function getDiskFileHash(filePath: string): string | null {
+  try {
+    const stats = statSync(filePath);
+    const mtime = stats.mtimeMs;
+    const cached = diskFileCache.get(filePath);
+
+    if (cached && cached.mtime === mtime) {
+      return cached.hash;
+    }
+
+    const content = readFileSync(filePath, 'utf8');
+    const hash = computeHash(content);
+    diskFileCache.set(filePath, { hash, mtime });
+    return hash;
+  } catch {
+    return null; // file doesn't exist
+  }
+}
+
+/**
+ * Check if file is unsaved (buffer differs from disk)
+ * Virtual files (untitled, stdin) are always considered unsaved
+ */
+export function isUnsavedFile(filename: string, bufferText?: string): boolean {
+  if (NO_BUFFER_CHECK) {
+    return false; // Disabled - treat all files as saved
+  }
+
+  // Virtual file patterns used by IDEs
+  if (
+    filename === '<input>' ||
+    filename === '<text>' ||
+    filename.startsWith('untitled:') ||
+    filename.includes('stdin')
+  ) {
+    debug('cache', 'Virtual file detected:', filename);
+    return true;
+  }
+
+  // No buffer text provided - assume saved
+  if (!bufferText) {
+    return false;
+  }
+
+  const diskHash = getDiskFileHash(filename);
+  if (diskHash === null) {
+    // File doesn't exist on disk (new file)
+    debug('cache', 'New file (not on disk):', filename);
+    return true;
+  }
+
+  const bufferHash = computeHash(bufferText);
+  const isUnsaved = bufferHash !== diskHash;
+
+  if (isUnsaved) {
+    debug('cache', 'Unsaved file detected:', filename);
+  }
+
+  return isUnsaved;
+}
+
+/**
+ * Check if file is virtual (no real path on disk)
+ */
+export function isVirtualFile(filename: string): boolean {
+  return (
+    filename === '<input>' ||
+    filename === '<text>' ||
+    filename.startsWith('untitled:') ||
+    filename.includes('stdin')
+  );
+}
 
 export enum AnalysisState {
   NotStarted = 'not_started',
@@ -18,47 +131,150 @@ interface ProjectState {
   result: JsScanResult | null;
   state: AnalysisState;
   lastScanTime: number;
+  fileMtimes: Map<string, number>; // Track file modification times
 }
 
 // Global analyzers and results map
 const projectStates = new Map<string, ProjectState>();
 
 /**
- * Check if analysis is ready for the project.
- * If not ready, performs synchronous analysis (blocks until complete).
+ * Get file mtime in ms
  */
-export function isAnalysisReady(filePath: string, projectRootOverride?: string): AnalysisState {
-  const projectRoot = projectRootOverride ?? findProjectRoot(filePath);
-  let state = projectStates.get(projectRoot);
+function getFileMtime(filePath: string): number {
+  try {
+    return statSync(filePath).mtimeMs;
+  } catch {
+    return 0;
+  }
+}
 
-  if (!state) {
-    // Initialize analyzer and run synchronous scan
-    const analyzer = new ArchlintAnalyzer(projectRoot, { cache: true, git: false });
-    state = {
-      analyzer,
-      result: null,
-      state: AnalysisState.InProgress,
-      lastScanTime: 0,
-    };
-    projectStates.set(projectRoot, state);
+export interface AnalysisOptions {
+  projectRoot?: string;
+  bufferText?: string;
+}
 
-    try {
-      // Synchronous scan - blocks until complete
-      state.result = analyzer.scanSync();
-      state.state = AnalysisState.Ready;
-      state.lastScanTime = Date.now();
-    } catch (error) {
-      state.state = AnalysisState.Error;
-      // eslint-disable-next-line no-console
-      console.error('[archlint] Analysis failed:', error);
-    }
+/**
+ * Initialize analyzer and perform initial scan
+ */
+function initializeProjectState(projectRoot: string, filePath: string, currentMtime: number): ProjectState {
+  debug('cache', 'First scan for project:', projectRoot);
+  const analyzer = new ArchlintAnalyzer(projectRoot, { cache: true, git: false });
+  const state: ProjectState = {
+    analyzer,
+    result: null,
+    state: AnalysisState.InProgress,
+    lastScanTime: 0,
+    fileMtimes: new Map(),
+  };
+  projectStates.set(projectRoot, state);
+
+  try {
+    const start = Date.now();
+    state.result = analyzer.scanSync();
+    state.state = AnalysisState.Ready;
+    state.lastScanTime = Date.now();
+    state.fileMtimes.set(filePath, currentMtime);
+    debug('cache', 'Initial scan complete', {
+      duration: Date.now() - start,
+      smellCount: state.result?.smells?.length,
+    });
+  } catch (error) {
+    state.state = AnalysisState.Error;
+    // eslint-disable-next-line no-console
+    console.error('[archlint] Analysis failed:', error);
   }
 
+  return state;
+}
+
+/**
+ * Perform incremental rescan for changed file
+ */
+function performRescan(state: ProjectState, filePath: string): void {
+  debug('cache', 'Triggering rescan', { filePath });
+  try {
+    state.analyzer.invalidate([filePath]);
+    const start = Date.now();
+    state.result = state.analyzer.rescanSync();
+    state.lastScanTime = Date.now();
+    debug('cache', 'Rescan complete', {
+      duration: Date.now() - start,
+      smellCount: state.result?.smells?.length,
+    });
+  } catch (error) {
+    debug('cache', 'Rescan error', error);
+  }
+}
+
+/**
+ * Check if file needs rescan based on modification time
+ */
+function shouldRescanFile(state: ProjectState, filePath: string, currentMtime: number): boolean {
+  const lastMtime = state.fileMtimes.get(filePath);
+  const fileChanged = lastMtime !== undefined && currentMtime > lastMtime;
+  const isNewFile = lastMtime === undefined;
+  return fileChanged || (FORCE_RESCAN && isNewFile);
+}
+
+/**
+ * Handle file change tracking and rescan logic
+ */
+function handleFileChange(state: ProjectState, filePath: string, currentMtime: number): void {
+  const lastMtime = state.fileMtimes.get(filePath);
+  const fileChanged = lastMtime !== undefined && currentMtime > lastMtime;
+  state.fileMtimes.set(filePath, currentMtime);
+
+  if (shouldRescanFile(state, filePath, currentMtime) && state.state === AnalysisState.Ready) {
+    performRescan(state, filePath);
+  } else {
+    debug('cache', 'Using cached', {
+      file: filePath.split('/').pop(),
+      lastMtime: lastMtime ?? 'new',
+      fileChanged,
+    });
+  }
+}
+
+/**
+ * Check if analysis is ready for the project.
+ * If not ready, performs synchronous analysis (blocks until complete).
+ * If file changed since last scan (and is saved), triggers incremental rescan.
+ *
+ * For unsaved files (buffer differs from disk), returns cached results without rescan.
+ * This prevents stale project graph from IDE buffers.
+ */
+export function isAnalysisReady(filePath: string, options?: AnalysisOptions): AnalysisState {
+  const { projectRoot: projectRootOverride, bufferText } = options ?? {};
+  const projectRoot = projectRootOverride ?? findProjectRoot(filePath);
+  let state = projectStates.get(projectRoot);
+  const currentMtime = getFileMtime(filePath);
+  const unsaved = isUnsavedFile(filePath, bufferText);
+
+  debug('cache', 'isAnalysisReady', {
+    filePath,
+    projectRoot,
+    currentMtime,
+    hasState: !!state,
+    unsaved,
+  });
+
+  if (!state) {
+    state = initializeProjectState(projectRoot, filePath, currentMtime);
+    return state.state;
+  }
+
+  if (unsaved) {
+    debug('cache', 'Unsaved file - using cached results', { file: filePath.split('/').pop() });
+    return state.state;
+  }
+
+  handleFileChange(state, filePath, currentMtime);
   return state.state;
 }
 
 /**
  * Notify that a file has changed - triggers re-scan on next check
+ * @public API function for external use
  */
 export function notifyFileChanged(filePath: string, projectRootOverride?: string): void {
   const projectRoot = projectRootOverride ?? findProjectRoot(filePath);
@@ -87,6 +303,43 @@ export function getAnalysis(filePath: string, projectRootOverride?: string): JsS
   }
 
   return state.result;
+}
+
+/**
+ * Analyze file with overlay content (for unsaved IDE buffers)
+ * Does NOT affect the cache - results are temporary
+ */
+export function analyzeWithOverlay(
+  filePath: string,
+  content: string,
+  projectRootOverride?: string
+): JsSmellWithExplanation[] {
+  const projectRoot = projectRootOverride ?? findProjectRoot(filePath);
+  const state = projectStates.get(projectRoot);
+
+  if (!state || state.state !== AnalysisState.Ready) {
+    debug('overlay', 'Analysis not ready, skipping overlay analysis');
+    return [];
+  }
+
+  try {
+    const start = Date.now();
+    // Call new NAPI method
+    const result = state.analyzer.scanIncrementalWithOverlaySync([filePath], {
+      [filePath]: content,
+    });
+
+    debug('overlay', 'Overlay analysis complete', {
+      file: filePath.split('/').pop(),
+      duration: Date.now() - start,
+      smellCount: result.smells.length,
+    });
+
+    return result.smells;
+  } catch (error) {
+    debug('overlay', 'Overlay analysis failed', error);
+    return [];
+  }
 }
 
 /**
@@ -122,18 +375,44 @@ function matchesSmellType(smellType: string, detectorId: string): boolean {
 
 /**
  * Get smells for specific file and detector
+ * If bufferText provided and differs from disk, uses overlay analysis
  */
 export function getSmellsForFile(
   filePath: string,
   detectorId: string,
-  projectRootOverride?: string
+  projectRootOverride?: string,
+  bufferText?: string
 ): JsSmellWithExplanation[] {
-  const result = getAnalysis(filePath, projectRootOverride);
-  if (!result) return [];
+  const projectRoot = projectRootOverride ?? findProjectRoot(filePath);
 
+  // Check if we need overlay analysis
+  if (bufferText && isUnsavedFile(filePath, bufferText)) {
+    debug('smell', 'Using overlay analysis for unsaved file', filePath.split('/').pop());
+    const allSmells = analyzeWithOverlay(filePath, bufferText, projectRoot);
+    return filterSmellsByDetector(allSmells, filePath, detectorId);
+  }
+
+  // Normal analysis (from cache)
+  const result = getAnalysis(filePath, projectRoot);
+  if (!result) {
+    debug('smell', 'no result for', filePath);
+    return [];
+  }
+
+  return filterSmellsByDetector(result.smells, filePath, detectorId);
+}
+
+/**
+ * Filter smells by detector and file path
+ */
+function filterSmellsByDetector(
+  smells: JsSmellWithExplanation[],
+  filePath: string,
+  detectorId: string
+): JsSmellWithExplanation[] {
   const normalizedPath = filePath.replace(/\\/g, '/');
 
-  return result.smells.filter((s) => {
+  const filtered = smells.filter((s) => {
     // Filter by detector
     if (!matchesSmellType(s.smell.smellType, detectorId)) {
       return false;
@@ -141,19 +420,19 @@ export function getSmellsForFile(
     // Filter by file
     return s.smell.files.some((f) => f.replace(/\\/g, '/') === normalizedPath);
   });
+
+  if (filtered.length > 0) {
+    debug('smell', `${detectorId}: ${filtered.length} smells for`, filePath.split('/').pop());
+  }
+  return filtered;
 }
 
 /**
  * Clear all caches
+ * Used in tests
  */
 export function clearAllCaches(): void {
   projectStates.clear();
+  diskFileCache.clear();
 }
 
-/**
- * Invalidate cache for specific project
- */
-export function invalidateProject(projectRoot: string): void {
-  projectStates.delete(projectRoot);
-  coreClearCache(projectRoot);
-}

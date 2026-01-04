@@ -1,6 +1,7 @@
+import type { Rule } from 'eslint';
 import { createArchlintRule } from '../utils/rule-factory';
 
-export const noBarrelAbuse = createArchlintRule({
+export const noBarrelAbuse: Rule.RuleModule = createArchlintRule({
   detectorId: 'barrel_file_abuse',
   messageId: 'smell',
   description: 'Disallow abuse of barrel files',

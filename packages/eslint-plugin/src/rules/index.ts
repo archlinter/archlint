@@ -1,3 +1,4 @@
+import type { Rule } from 'eslint';
 import { noCycles } from './no-cycles';
 import { noGodModules } from './no-god-modules';
 import { noDeadCode } from './no-dead-code';
@@ -10,7 +11,7 @@ import { noDeepNesting } from './no-deep-nesting';
 import { noLongParams } from './no-long-params';
 import { noHighComplexity } from './no-high-complexity';
 
-export const rules = {
+export const rules: Record<string, Rule.RuleModule> = {
   'no-cycles': noCycles,
   'no-god-modules': noGodModules,
   'no-dead-code': noDeadCode,
