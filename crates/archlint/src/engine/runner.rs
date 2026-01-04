@@ -557,7 +557,10 @@ impl AnalysisEngine {
                 }
             },
             Err(e) => {
-                debug!("Failed to open git history cache: {}, skipping churn calculation", e);
+                debug!(
+                    "Failed to open git history cache: {}, skipping churn calculation",
+                    e
+                );
                 HashMap::new()
             }
         }
