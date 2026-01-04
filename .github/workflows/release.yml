@@ -61,14 +61,38 @@ jobs:
               fs.writeFileSync('.releaserc.json', JSON.stringify(config, null, 2));
             "
             echo "✓ Configured for prerelease channel: ${{ github.event.inputs.channel }} on branch ${BRANCH_NAME}"
-            # Validate channel matches branch name
-            if [[ "${BRANCH_NAME}" != "${{ github.event.inputs.channel }}" ]]; then
-              echo "❌ Error: Channel '${{ github.event.inputs.channel }}' does not match branch name '${BRANCH_NAME}'"
-              exit 1
-            fi
           else
             echo "✓ Using stable configuration (main branch)"
           fi
+
+      - name: Clean up stale prerelease artifacts
+        if: github.event.inputs.channel != 'stable' && github.event.inputs.dry_run != 'true'
+        run: |
+          # Remove stale prerelease tags and releases BEFORE semantic-release runs
+          # This fixes issue where semantic-release doesn't recognize manually created releases
+          TAGS=$(git tag -l "v[0-9]*.[0-9]*.[0-9]*-${{ github.event.inputs.channel }}.*")
+          if [ -n "$TAGS" ]; then
+            echo "Cleaning up stale prerelease artifacts:"
+            for TAG in $TAGS; do
+              echo "  - Removing local tag: $TAG"
+              if ! git tag -d "$TAG" 2>&1; then
+                echo "    Warning: Local tag '$TAG' not found or could not be deleted"
+              fi
+              echo "  - Removing GitHub release: $TAG"
+              if ! gh release delete "$TAG" --yes 2>&1; then
+                echo "    Warning: Release '$TAG' not found or already deleted"
+              fi
+              echo "  - Removing remote tag: $TAG"
+              if ! git push origin ":refs/tags/$TAG" 2>&1; then
+                echo "    Warning: Remote tag '$TAG' not found or could not be deleted"
+              fi
+            done
+            echo "✓ Cleanup completed"
+          else
+            echo "✓ No stale prerelease artifacts found"
+          fi
+        env:
+          GH_TOKEN: ${{ secrets.GH_PAT }}
 
       - name: Semantic Release
         uses: cycjimmy/semantic-release-action@v4
@@ -80,23 +104,3 @@ jobs:
             @semantic-release/exec
         env:
           GITHUB_TOKEN: ${{ secrets.GH_PAT }}
-
-      - name: Clean up prerelease state (allow semantic-release to recreate)
-        if: github.event.inputs.channel != 'stable' && github.event.inputs.dry_run != 'true'
-        run: |
-          # Remove local prerelease tags AND GitHub releases
-          # This fixes issue where semantic-release doesn't recognize manually created releases
-          TAGS=$(git tag -l "v*-${{ github.event.inputs.channel }}.*")
-          if [ -n "$TAGS" ]; then
-            echo "Cleaning up prerelease state:"
-            for TAG in $TAGS; do
-              echo "  - Removing local tag: $TAG"
-              git tag -d "$TAG" 2>/dev/null || true
-              echo "  - Removing GitHub release: $TAG"
-              gh release delete "$TAG" --yes 2>/dev/null || true
-              echo "  - Removing remote tag: $TAG"
-              git push origin ":refs/tags/$TAG" 2>/dev/null || true
-            done
-          fi
-        env:
-          GH_TOKEN: ${{ secrets.GH_PAT }}
