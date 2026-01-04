@@ -54,7 +54,8 @@
   },
   "nano-staged": {
     "*.{ts,js,json,md,yml,yaml}": "prettier --write",
-    "*.{ts,js}": "eslint --fix"
+    "*.{ts,js}": "eslint --fix",
+    "*.rs": "rustfmt --edition 2021"
   },
   "pnpm": {
     "overrides": {
