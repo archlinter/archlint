@@ -1,0 +1,10 @@
+{
+  "extends": "./.releaserc.json",
+  "branches": [
+    {
+      "name": "main",
+      "prerelease": "canary",
+      "channel": "canary"
+    }
+  ]
+}

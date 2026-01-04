@@ -1,7 +1,10 @@
 name: Canary Release
 
 on:
-  push:
+  workflow_run:
+    workflows: ["CI"]
+    types:
+      - completed
     branches:
       - main
 
@@ -12,6 +15,7 @@ jobs:
   canary:
     name: Canary Release
     runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -31,30 +35,8 @@ jobs:
       - name: Install dependencies
         run: pnpm install
 
-      - name: Prepare canary semantic-release config
-        run: |
-          node -e "
-            const fs = require('fs');
-            const config = JSON.parse(fs.readFileSync('.releaserc.json', 'utf8'));
-            config.branches = [
-              { 
-                name: 'main', 
-                prerelease: 'canary',
-                channel: 'canary'
-              }
-            ];
-            fs.writeFileSync('.releaserc-canary.json', JSON.stringify(config, null, 2));
-          "
-          echo "✓ Configured for canary release"
-
       - name: Semantic Release (Canary)
-        uses: cycjimmy/semantic-release-action@v4
-        with:
-          config_file: .releaserc-canary.json
-          extra_plugins: |
-            @semantic-release/changelog
-            @semantic-release/git
-            @semantic-release/exec
+        run: npx semantic-release --extends ./.releaserc-canary.json
         env:
           GITHUB_TOKEN: ${{ secrets.GH_PAT }}
           NPM_CONFIG_TAG: canary
