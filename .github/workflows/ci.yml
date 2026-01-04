@@ -338,7 +338,9 @@ jobs:
         run: |
           VERSION=${GITHUB_REF#refs/tags/v}
           echo "VERSION=${VERSION}" >> $GITHUB_OUTPUT
-          if [[ $VERSION == *"beta"* ]]; then
+          if [[ $VERSION == *"canary"* ]]; then
+            echo "TAG=canary" >> $GITHUB_OUTPUT
+          elif [[ $VERSION == *"beta"* ]]; then
             echo "TAG=beta" >> $GITHUB_OUTPUT
           elif [[ $VERSION == *"alpha"* ]]; then
             echo "TAG=alpha" >> $GITHUB_OUTPUT

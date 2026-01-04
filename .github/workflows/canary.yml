@@ -1,0 +1,60 @@
+name: Canary Release
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write
+
+jobs:
+  canary:
+    name: Canary Release
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+          token: ${{ secrets.GH_PAT }}
+
+      - uses: pnpm/action-setup@v3
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Prepare canary semantic-release config
+        run: |
+          node -e "
+            const fs = require('fs');
+            const config = JSON.parse(fs.readFileSync('.releaserc.json', 'utf8'));
+            config.branches = [
+              { 
+                name: 'main', 
+                prerelease: 'canary',
+                channel: 'canary'
+              }
+            ];
+            fs.writeFileSync('.releaserc-canary.json', JSON.stringify(config, null, 2));
+          "
+          echo "✓ Configured for canary release"
+
+      - name: Semantic Release (Canary)
+        uses: cycjimmy/semantic-release-action@v4
+        with:
+          config_file: .releaserc-canary.json
+          extra_plugins: |
+            @semantic-release/changelog
+            @semantic-release/git
+            @semantic-release/exec
+        env:
+          GITHUB_TOKEN: ${{ secrets.GH_PAT }}
+          NPM_CONFIG_TAG: canary
