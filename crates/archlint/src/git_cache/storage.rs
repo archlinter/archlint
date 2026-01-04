@@ -1,5 +1,9 @@
 use crate::Result;
-use redb::{Database, TableDefinition};
+use bincode::{
+    config,
+    serde::{decode_from_slice, encode_to_vec},
+};
+use redb::{Database, ReadableDatabase, TableDefinition};
 use serde::{Deserialize, Serialize};
 use std::path::Path;
 
@@ -49,9 +53,11 @@ impl GitStorage {
         })?;
 
         if let Some(bytes) = value {
-            let data: CommitData = bincode::deserialize(bytes.value()).map_err(|e| {
-                crate::AnalysisError::Storage(format!("Failed to deserialize: {}", e))
-            })?;
+            let bytes_value: &[u8] = bytes.value();
+            let (data, _): (CommitData, usize) = decode_from_slice(bytes_value, config::standard())
+                .map_err(|e| {
+                    crate::AnalysisError::Storage(format!("Failed to deserialize: {}", e))
+                })?;
             Ok(Some(data))
         } else {
             Ok(None)
@@ -66,7 +72,7 @@ impl GitStorage {
             let mut table = write_txn.open_table(COMMITS_TABLE).map_err(|e| {
                 crate::AnalysisError::Storage(format!("Failed to open table: {}", e))
             })?;
-            let bytes = bincode::serialize(data).map_err(|e| {
+            let bytes = encode_to_vec(data, config::standard()).map_err(|e| {
                 crate::AnalysisError::Storage(format!("Failed to serialize: {}", e))
             })?;
             table
