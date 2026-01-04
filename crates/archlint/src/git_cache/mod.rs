@@ -68,8 +68,12 @@ impl GitHistoryCache {
             let oid = oid?;
 
             if let Some(cutoff) = cutoff_time {
-                let commit = self.repo.find_commit(oid)?;
-                if commit.time().seconds() < cutoff {
+                if let Ok(commit) = self.repo.find_commit(oid) {
+                    if commit.time().seconds() < cutoff {
+                        continue;
+                    }
+                } else {
+                    // Skip commits that cannot be fetched, mirroring create_progress_bar behavior
                     continue;
                 }
             }
