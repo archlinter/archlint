@@ -1,3 +1,9 @@
+## [0.6.0](https://github.com/archlinter/archlint/compare/v0.5.0...v0.6.0) (2026-01-04)
+
+### Features
+
+- **eslint-plugin:** implement architectural smell detection rules ([#4](https://github.com/archlinter/archlint/issues/4)) ([117d401](https://github.com/archlinter/archlint/commit/117d401b4b268eb8da8dd7dda44a67fc6dac7bad))
+
 ## [0.6.0-alpha.1](https://github.com/archlinter/archlint/compare/v0.5.0...v0.6.0-alpha.1) (2026-01-04)
 
 ### Features

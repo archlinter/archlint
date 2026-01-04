@@ -1,6 +1,6 @@
 {
   "name": "@archlinter/core-linux-x64-gnu",
-  "version": "0.6.0-alpha.1",
+  "version": "0.6.0",
   "description": "archlint native binding for Linux x64 (glibc)",
   "license": "MIT",
   "repository": {
