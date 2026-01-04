@@ -1,7 +1,6 @@
-import type { Rule } from 'eslint';
 import { createArchlintRule } from '../utils/rule-factory';
 
-export const noCycles: Rule.RuleModule = createArchlintRule({
+export const noCycles = createArchlintRule({
   detectorId: 'cycles',
   messageId: 'cycle',
   description: 'Disallow cyclic dependencies between files',

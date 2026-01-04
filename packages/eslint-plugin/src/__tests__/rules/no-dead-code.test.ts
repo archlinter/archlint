@@ -25,7 +25,7 @@ describe('no-dead-code', () => {
     (getSmellsForFile as any).mockReturnValue([
       {
         smell: {
-          smellType: 'dead_code',
+          smellType: 'DeadCode',
           files: ['/project/unused.ts'],
           locations: [{ file: '/project/unused.ts', line: 5, column: 0 }],
         },

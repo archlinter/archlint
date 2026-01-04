@@ -25,7 +25,7 @@ describe('no-barrel-abuse', () => {
     (getSmellsForFile as any).mockReturnValue([
       {
         smell: {
-          smellType: 'barrel_file_abuse',
+          smellType: 'BarrelFileAbuse',
           files: ['/project/index.ts'],
           locations: [{ file: '/project/index.ts', line: 1, column: 0 }],
         },

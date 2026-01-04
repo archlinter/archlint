@@ -1,7 +1,6 @@
-import type { Rule } from 'eslint';
 import { createArchlintRule } from '../utils/rule-factory';
 
-export const noDeepNesting: Rule.RuleModule = createArchlintRule({
+export const noDeepNesting = createArchlintRule({
   detectorId: 'deep_nesting',
   messageId: 'smell',
   description: 'Disallow excessively deep directory nesting',

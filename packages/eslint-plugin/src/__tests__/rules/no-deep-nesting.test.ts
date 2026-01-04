@@ -25,7 +25,7 @@ describe('no-deep-nesting', () => {
     (getSmellsForFile as any).mockReturnValue([
       {
         smell: {
-          smellType: 'deep_nesting',
+          smellType: 'DeepNesting { depth: 5 }',
           files: ['/project/nested.ts'],
           locations: [
             { file: '/project/nested.ts', line: 10, column: 4, description: 'Nested level 6' },

@@ -25,7 +25,7 @@ describe('no-long-params', () => {
     (getSmellsForFile as any).mockReturnValue([
       {
         smell: {
-          smellType: 'long_params',
+          smellType: 'LongParameterList { count: 8, function: "f" }',
           files: ['/project/params.ts'],
           locations: [
             {

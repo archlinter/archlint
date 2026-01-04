@@ -25,7 +25,7 @@ describe('no-layer-violations', () => {
     (getSmellsForFile as any).mockReturnValue([
       {
         smell: {
-          smellType: 'layer_violation',
+          smellType: 'LayerViolation { from_layer: "A", to_layer: "B" }',
           files: ['/project/src/domain/entity.ts', '/project/src/infra/db.ts'],
           locations: [{ file: '/project/src/domain/entity.ts', line: 2, column: 0 }],
         },

@@ -1,7 +1,6 @@
-import type { Rule } from 'eslint';
 import { createArchlintRule } from '../utils/rule-factory';
 
-export const noGodModules: Rule.RuleModule = createArchlintRule({
+export const noGodModules = createArchlintRule({
   detectorId: 'god_module',
   messageId: 'smell',
   description: 'Disallow overly large and complex modules (God Modules)',

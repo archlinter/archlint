@@ -14,7 +14,7 @@ describe('ESLint Plugin Integration', () => {
     const fileA = path.join(fixtureDir, 'a.ts');
 
     // Synchronous analysis - should be Ready immediately
-    const state = isAnalysisReady(fileA, fixtureDir);
+    const state = isAnalysisReady(fileA, { projectRoot: fixtureDir });
     expect(state).toBe(AnalysisState.Ready);
 
     // Run the rule - it should find the cycle
@@ -41,7 +41,7 @@ describe('ESLint Plugin Integration', () => {
     const fileB = path.join(fixtureDir, 'b.ts');
 
     // Ensure we are ready
-    expect(isAnalysisReady(fileA, fixtureDir)).toBe(AnalysisState.Ready);
+    expect(isAnalysisReady(fileA, { projectRoot: fixtureDir })).toBe(AnalysisState.Ready);
 
     // Break the cycle in file b
     const originalContentB = "// @ts-nocheck\nimport { a } from './a';\nexport const b = a + 1;";

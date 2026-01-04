@@ -16,11 +16,11 @@ use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::time::Instant;
 
-fn compute_config_hash(config: &Config) -> String {
-    let serialized = serde_json::to_string(config).unwrap_or_default();
+fn compute_config_hash(config: &Config) -> Result<String> {
+    let serialized = serde_json::to_string(config)?;
     let mut hasher = Sha256::new();
     hasher.update(serialized.as_bytes());
-    format!("{:x}", hasher.finalize())[..16].to_string()
+    Ok(format!("{:x}", hasher.finalize())[..16].to_string())
 }
 
 pub struct Analyzer {
@@ -41,7 +41,7 @@ impl Analyzer {
 
         let project_root = crate::project_root::detect_project_root(path_ref);
         let args = build_scan_args(&options, path_ref);
-        let config_hash = compute_config_hash(&config);
+        let config_hash = compute_config_hash(&config)?;
 
         Ok(Self {
             state: IncrementalState::new(project_root.clone(), config_hash),
@@ -117,7 +117,7 @@ impl Analyzer {
         &mut self,
         start: &Instant,
     ) -> Result<Option<IncrementalResult>> {
-        let current_hash = compute_config_hash(&self.config);
+        let current_hash = compute_config_hash(&self.config)?;
         if current_hash == self.state.config_hash {
             return Ok(None);
         }

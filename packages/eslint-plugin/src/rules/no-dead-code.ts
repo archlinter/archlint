@@ -1,7 +1,6 @@
-import type { Rule } from 'eslint';
 import { createArchlintRule } from '../utils/rule-factory';
 
-export const noDeadCode: Rule.RuleModule = createArchlintRule({
+export const noDeadCode = createArchlintRule({
   detectorId: 'dead_code',
   messageId: 'smell',
   description: 'Disallow dead code and unused exports',

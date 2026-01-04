@@ -25,7 +25,7 @@ describe('no-sdp-violations', () => {
     (getSmellsForFile as any).mockReturnValue([
       {
         smell: {
-          smellType: 'sdp_violation',
+          smellType: 'SdpViolation',
           files: ['/project/stable.ts'],
           locations: [{ file: '/project/stable.ts', line: 1, column: 0 }],
         },

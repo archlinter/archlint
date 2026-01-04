@@ -1,7 +1,6 @@
-import type { Rule } from 'eslint';
 import { createArchlintRule } from '../utils/rule-factory';
 
-export const noHighComplexity: Rule.RuleModule = createArchlintRule({
+export const noHighComplexity = createArchlintRule({
   detectorId: 'high_complexity',
   messageId: 'smell',
   description: 'Disallow functions with high cyclomatic complexity',

@@ -25,7 +25,7 @@ describe('no-god-modules', () => {
     (getSmellsForFile as any).mockReturnValue([
       {
         smell: {
-          smellType: 'god_module',
+          smellType: 'GodModule',
           files: ['/project/god.ts'],
           locations: [{ file: '/project/god.ts', line: 1, column: 0 }],
         },

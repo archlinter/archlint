@@ -25,7 +25,7 @@ describe('no-cycles', () => {
     (getSmellsForFile as any).mockReturnValue([
       {
         smell: {
-          smellType: 'cycles',
+          smellType: 'CyclicDependency',
           files: ['/project/a.ts', '/project/b.ts'],
           locations: [
             { file: '/project/a.ts', line: 1, column: 0 },

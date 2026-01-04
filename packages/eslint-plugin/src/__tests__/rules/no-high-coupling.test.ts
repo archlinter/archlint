@@ -25,7 +25,7 @@ describe('no-high-coupling', () => {
     (getSmellsForFile as any).mockReturnValue([
       {
         smell: {
-          smellType: 'high_coupling',
+          smellType: 'HighCoupling { cbo: 15 }',
           files: ['/project/coupled.ts'],
           locations: [{ file: '/project/coupled.ts', line: 1, column: 0 }],
         },

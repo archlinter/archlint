@@ -1,7 +1,6 @@
-import type { Rule } from 'eslint';
 import { createArchlintRule } from '../utils/rule-factory';
 
-export const noHighCoupling: Rule.RuleModule = createArchlintRule({
+export const noHighCoupling = createArchlintRule({
   detectorId: 'high_coupling',
   messageId: 'smell',
   description: 'Disallow modules with excessively high coupling',

@@ -25,7 +25,7 @@ describe('no-hub-modules', () => {
     (getSmellsForFile as any).mockReturnValue([
       {
         smell: {
-          smellType: 'hub_module',
+          smellType: 'HubModule',
           files: ['/project/hub.ts'],
           locations: [{ file: '/project/hub.ts', line: 1, column: 0 }],
         },
