@@ -45,11 +45,7 @@ impl GitHistoryCache {
         files: &[PathBuf],
         show_progress: bool,
     ) -> Result<HashMap<PathBuf, usize>> {
-        let mut churn_map = HashMap::new();
-        // Initialize churn map with 0 for all files
-        for file in files {
-            churn_map.insert(file.clone(), 0);
-        }
+        let mut churn_map: HashMap<PathBuf, usize> = files.iter().map(|f| (f.clone(), 0)).collect();
 
         let mut revwalk = self.repo.revwalk()?;
         if revwalk.push_head().is_err() {
@@ -66,30 +62,7 @@ impl GitHistoryCache {
 
         for oid in revwalk {
             let oid = oid?;
-            let oid_bytes: [u8; 20] = oid.as_bytes().try_into().map_err(|_| {
-                crate::AnalysisError::Anyhow(anyhow::anyhow!("Failed to convert OID to bytes"))
-            })?;
-
-            if let Some(ref pb) = pb {
-                pb.inc(1);
-            }
-
-            let commit_data = if let Some(data) = self.storage.get_commit_data(&oid_bytes)? {
-                data
-            } else {
-                let data = self.process_commit(oid)?;
-                self.storage.insert_commit_data(&oid_bytes, &data)?;
-                data
-            };
-
-            for file_path_str in commit_data.files_changed {
-                let full_path = workdir.join(file_path_str);
-                if let Ok(canonical_path) = full_path.canonicalize() {
-                    if let Some(count) = churn_map.get_mut(&canonical_path) {
-                        *count += 1;
-                    }
-                }
-            }
+            self.process_single_oid(oid, &mut churn_map, workdir, pb.as_ref())?;
         }
 
         if let Some(pb) = pb {
@@ -97,6 +70,41 @@ impl GitHistoryCache {
         }
 
         Ok(churn_map)
+    }
+
+    fn process_single_oid(
+        &self,
+        oid: git2::Oid,
+        churn_map: &mut HashMap<PathBuf, usize>,
+        workdir: &Path,
+        pb: Option<&ProgressBar>,
+    ) -> Result<()> {
+        let oid_bytes: [u8; 20] = oid.as_bytes().try_into().map_err(|_| {
+            crate::AnalysisError::Anyhow(anyhow::anyhow!("Failed to convert OID to bytes"))
+        })?;
+
+        if let Some(pb) = pb {
+            pb.inc(1);
+        }
+
+        let commit_data = if let Some(data) = self.storage.get_commit_data(&oid_bytes)? {
+            data
+        } else {
+            let data = self.process_commit(oid)?;
+            self.storage.insert_commit_data(&oid_bytes, &data)?;
+            data
+        };
+
+        for file_path_str in commit_data.files_changed {
+            let full_path = workdir.join(file_path_str);
+            if let Ok(canonical_path) = full_path.canonicalize() {
+                if let Some(count) = churn_map.get_mut(&canonical_path) {
+                    *count += 1;
+                }
+            }
+        }
+
+        Ok(())
     }
 
     fn process_commit(&self, oid: git2::Oid) -> Result<CommitData> {
