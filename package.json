@@ -56,7 +56,7 @@
     "*.{ts,js,json,md,yml,yaml}": "prettier --write",
     "*.{ts,js}": "eslint --fix",
     "*.rs": [
-      "cargo clippy --workspace --fix --allow-dirty --allow-staged",
+      "sh -c 'cargo clippy --workspace --all-targets --all-features --allow-dirty --allow-staged --fix -- -D warnings' --",
       "rustfmt --edition 2021"
     ]
   },
