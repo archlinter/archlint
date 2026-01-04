@@ -1,6 +1,10 @@
 use crate::config::Config;
 use crate::parser::ParsedFile;
 use crate::Result;
+use bincode::{
+    config,
+    serde::{decode_from_slice, encode_to_vec},
+};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fs;
@@ -39,8 +43,8 @@ pub struct AnalysisCache {
 
 impl AnalysisCache {
     const CACHE_DIR: &'static str = ".archlint-cache";
-    const CACHE_FILE: &'static str = "cache.json";
-    const VERSION: &'static str = "2"; // v2: Added type reference tracking in interfaces/type aliases
+    const CACHE_FILE: &'static str = "cache.bin";
+    const VERSION: &'static str = "3"; // v3: Migrated to binary format (bincode)
     const APP_VERSION: &'static str = env!("CARGO_PKG_VERSION");
 
     fn resolve_cache_dir(project_root: &Path) -> PathBuf {
@@ -57,9 +61,9 @@ impl AnalysisCache {
         let cache_file = cache_dir.join(Self::CACHE_FILE);
 
         let data = if cache_file.exists() {
-            let content = fs::read_to_string(&cache_file)?;
-            match serde_json::from_str::<CacheData>(&content) {
-                Ok(mut data)
+            let content = fs::read(&cache_file)?;
+            match decode_from_slice::<CacheData, _>(&content, config::standard()) {
+                Ok((mut data, _))
                     if data.meta.version == Self::VERSION
                         && data.meta.app_version == Self::APP_VERSION
                         && data.meta.config_hash == config_hash(config) =>
@@ -150,8 +154,10 @@ impl AnalysisCache {
             fs::create_dir_all(parent)?;
         }
 
-        let content = serde_json::to_string_pretty(&self.data)?;
-        fs::write(&self.cache_file, content)?;
+        let bytes = encode_to_vec(&self.data, config::standard()).map_err(|e| {
+            crate::AnalysisError::Storage(format!("Failed to serialize cache: {}", e))
+        })?;
+        fs::write(&self.cache_file, bytes)?;
         Ok(())
     }
 
