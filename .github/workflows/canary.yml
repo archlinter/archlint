@@ -19,24 +19,43 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
+          ref: main
           fetch-depth: 0
           fetch-tags: true
           token: ${{ secrets.GH_PAT }}
 
-      - uses: pnpm/action-setup@v3
-        with:
-          version: 9
+      - name: Create canary tag
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
 
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'pnpm'
+          # Get latest stable version tag
+          LATEST_TAG=$(git tag -l 'v[0-9]*.[0-9]*.[0-9]*' --sort=-v:refname | grep -v canary | head -n1)
+          if [ -z "$LATEST_TAG" ]; then
+            LATEST_TAG="v0.0.0"
+          fi
+          echo "Latest stable tag: $LATEST_TAG"
 
-      - name: Install dependencies
-        run: pnpm install
+          # Extract version without 'v' prefix
+          VERSION=${LATEST_TAG#v}
 
-      - name: Semantic Release (Canary)
-        run: npx semantic-release --extends ./.releaserc-canary.json
-        env:
-          GITHUB_TOKEN: ${{ secrets.GH_PAT }}
-          NPM_CONFIG_TAG: canary
+          # Count canary releases for this version
+          CANARY_COUNT=$(git tag -l "v${VERSION}-canary.*" | wc -l | tr -d ' ')
+          NEXT_CANARY=$((CANARY_COUNT + 1))
+
+          # Create new canary tag
+          NEW_TAG="v${VERSION}-canary.${NEXT_CANARY}"
+          echo "Creating tag: $NEW_TAG"
+
+          # Check if there are new commits since last tag
+          LAST_TAG=$(git tag -l 'v*' --sort=-v:refname | head -n1)
+          COMMITS_SINCE=$(git rev-list ${LAST_TAG}..HEAD --count 2>/dev/null || echo "999")
+
+          if [ "$COMMITS_SINCE" = "0" ]; then
+            echo "No new commits since $LAST_TAG, skipping canary release"
+            exit 0
+          fi
+
+          git tag -a "$NEW_TAG" -m "Canary release $NEW_TAG"
+          git push origin "$NEW_TAG"
+          echo "✅ Created and pushed tag $NEW_TAG"

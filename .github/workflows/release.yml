@@ -35,12 +35,6 @@ jobs:
         run: pnpm install
 
       - name: Semantic Release
-        uses: cycjimmy/semantic-release-action@v4
-        with:
-          dry_run: ${{ github.event.inputs.dry_run }}
-          extra_plugins: |
-            @semantic-release/changelog
-            @semantic-release/git
-            @semantic-release/exec
+        run: npx semantic-release ${{ github.event.inputs.dry_run == 'true' && '--dry-run' || '' }}
         env:
           GITHUB_TOKEN: ${{ secrets.GH_PAT }}

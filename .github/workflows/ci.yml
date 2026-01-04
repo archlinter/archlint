@@ -44,6 +44,7 @@ jobs:
   sonarqube:
     name: SonarQube
     runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request' || startsWith(github.ref, 'refs/tags/v')
     steps:
       - uses: actions/checkout@v4
         with:
