@@ -1,3 +1,22 @@
+## [0.6.0-alpha.1](https://github.com/archlinter/archlint/compare/v0.5.0...v0.6.0-alpha.1) (2026-01-04)
+
+### Features
+
+- add incremental scan with overlays support ([cc53e14](https://github.com/archlinter/archlint/commit/cc53e14be7675c2d7d5ca8291c8ab4d872a1203d))
+- **eslint-plugin:** implement architectural smell detection rules ([672aa37](https://github.com/archlinter/archlint/commit/672aa37d3ac1fdef1ecf5398ecefead8f5d274f5))
+
+### Bug Fixes
+
+- **ci:** ignore npm publish errors for existing versions ([4dbeb70](https://github.com/archlinter/archlint/commit/4dbeb707d46acca27eedc6d967cd49e3207974cd))
+- **eslint-plugin:** prevent hash algorithm desync ([c3466fb](https://github.com/archlinter/archlint/commit/c3466fb7894ec4e85fcfa2de7ed4c805e5b85f07))
+- **release:** add channel config and fetch-tags for prerelease detection ([fcbf2fd](https://github.com/archlinter/archlint/commit/fcbf2fd27a7eed84b84cb25a729e6ae451bab502))
+- **release:** add debug step and improve prerelease tag detection ([2a809d0](https://github.com/archlinter/archlint/commit/2a809d025f45566a77d64b7ac644376cd1b34c49))
+- **release:** clean up prerelease state before semantic-release ([0d307cf](https://github.com/archlinter/archlint/commit/0d307cf40cf8f00456caf4614f49e27a4fdce23e))
+
+### Performance Improvements
+
+- **eslint-plugin:** optimize file hashing with xxhash-wasm and size checks ([ab1ef50](https://github.com/archlinter/archlint/commit/ab1ef5094d89bbe4bcf216d09129e56b8a421036))
+
 ## [0.6.0-alpha.1](https://github.com/archlinter/archlint/compare/v0.5.0...v0.6.0-alpha.1) (2026-01-03)
 
 ### Features
@@ -32,6 +51,7 @@
 - **release:** add channel config and fetch-tags for prerelease detection ([fcbf2fd](https://github.com/archlinter/archlint/commit/fcbf2fd27a7eed84b84cb25a729e6ae451bab502))
 
 ## [0.5.0](https://github.com/archlinter/archlint/compare/v0.4.1...v0.5.0) (2026-01-02)
+
 ## [0.5.0](https://github.com/archlinter/archlint/compare/v0.4.1...v0.5.0) (2026-01-02)
 
 ### Features
