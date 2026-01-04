@@ -36,6 +36,27 @@ pub struct Config {
 
     #[serde(default = "default_true")]
     pub enable_git: bool,
+
+    #[serde(default)]
+    pub git: GitConfig,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct GitConfig {
+    #[serde(default = "default_history_period")]
+    pub history_period: String,
+}
+
+impl Default for GitConfig {
+    fn default() -> Self {
+        Self {
+            history_period: default_history_period(),
+        }
+    }
+}
+
+fn default_history_period() -> String {
+    "1y".to_string()
 }
 
 fn default_true() -> bool {
@@ -761,6 +782,7 @@ impl Default for Config {
             framework: None,
             auto_detect_framework: true,
             enable_git: true,
+            git: GitConfig::default(),
         }
     }
 }

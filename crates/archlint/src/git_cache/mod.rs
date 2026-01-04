@@ -1,6 +1,7 @@
 mod storage;
 
 use crate::Result;
+use chrono;
 use git2::{DiffOptions, Repository};
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
@@ -44,6 +45,7 @@ impl GitHistoryCache {
         &self,
         files: &[PathBuf],
         show_progress: bool,
+        history_period: &str,
     ) -> Result<HashMap<PathBuf, usize>> {
         let mut churn_map: HashMap<PathBuf, usize> = files.iter().map(|f| (f.clone(), 0)).collect();
 
@@ -52,8 +54,10 @@ impl GitHistoryCache {
             return Ok(churn_map);
         }
 
+        let cutoff_time = parse_history_period(history_period);
+
         let pb = if show_progress {
-            self.create_progress_bar()?
+            self.create_progress_bar(cutoff_time)?
         } else {
             None
         };
@@ -62,6 +66,14 @@ impl GitHistoryCache {
 
         for oid in revwalk {
             let oid = oid?;
+
+            if let Some(cutoff) = cutoff_time {
+                let commit = self.repo.find_commit(oid)?;
+                if commit.time().seconds() < cutoff {
+                    continue;
+                }
+            }
+
             self.process_single_oid(oid, &mut churn_map, workdir, pb.as_ref())?;
         }
 
@@ -142,12 +154,25 @@ impl GitHistoryCache {
         Ok(CommitData { files_changed })
     }
 
-    fn create_progress_bar(&self) -> Result<Option<ProgressBar>> {
+    fn create_progress_bar(&self, cutoff_time: Option<i64>) -> Result<Option<ProgressBar>> {
         let mut count_revwalk = self.repo.revwalk()?;
         if count_revwalk.push_head().is_err() {
             return Ok(None);
         }
-        let total_commits = count_revwalk.count();
+
+        let total_commits = if let Some(cutoff) = cutoff_time {
+            let mut count = 0;
+            for oid in count_revwalk.flatten() {
+                if let Ok(commit) = self.repo.find_commit(oid) {
+                    if commit.time().seconds() >= cutoff {
+                        count += 1;
+                    }
+                }
+            }
+            count
+        } else {
+            count_revwalk.count()
+        };
 
         let pb = ProgressBar::new(total_commits as u64);
         pb.set_style(
@@ -179,4 +204,32 @@ fn resolve_cache_dir(project_root: &Path) -> PathBuf {
     } else {
         project_root.join(".archlint-cache")
     }
+}
+
+fn parse_history_period(period: &str) -> Option<i64> {
+    if period == "all" {
+        return None;
+    }
+
+    let now = chrono::Utc::now();
+    let duration = if period.ends_with('d') {
+        period[..period.len() - 1]
+            .parse::<i64>()
+            .ok()
+            .map(chrono::Duration::days)
+    } else if period.ends_with('m') {
+        period[..period.len() - 1]
+            .parse::<i64>()
+            .ok()
+            .map(|m| chrono::Duration::days(m * 30))
+    } else if period.ends_with('y') {
+        period[..period.len() - 1]
+            .parse::<i64>()
+            .ok()
+            .map(|y| chrono::Duration::days(y * 365))
+    } else {
+        Some(chrono::Duration::days(365)) // Default to 1 year if parsing fails
+    };
+
+    duration.map(|d| (now - d).timestamp())
 }

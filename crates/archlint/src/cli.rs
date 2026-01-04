@@ -76,6 +76,10 @@ pub struct Cli {
     /// Disable git integration (skip churn analysis)
     #[arg(long, action = clap::ArgAction::SetTrue)]
     pub no_git: bool,
+
+    /// Git history analysis period (e.g. "90d", "1y", "all")
+    #[arg(long, value_name = "PERIOD")]
+    pub git_history_period: Option<String>,
 }
 
 impl Cli {
@@ -106,6 +110,7 @@ impl Cli {
             severity: self.severity.clone(),
             no_cache: self.no_cache,
             no_git: self.no_git,
+            git_history_period: self.git_history_period.clone(),
             files: None,
         }
     }
