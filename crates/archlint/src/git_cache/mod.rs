@@ -54,7 +54,7 @@ impl GitHistoryCache {
             return Ok(churn_map);
         }
 
-        let cutoff_time = parse_history_period(history_period);
+        let cutoff_time = parse_history_period(history_period)?;
 
         let pb = if show_progress {
             self.create_progress_bar(cutoff_time)?
@@ -206,27 +206,60 @@ fn resolve_cache_dir(project_root: &Path) -> PathBuf {
     }
 }
 
-fn parse_history_period(period: &str) -> Option<i64> {
+fn parse_history_period(period: &str) -> crate::Result<Option<i64>> {
     if period == "all" {
-        return None;
+        return Ok(None);
     }
 
     let now = chrono::Utc::now();
     let duration = if let Some(stripped) = period.strip_suffix('d') {
-        stripped.parse::<i64>().ok().map(chrono::Duration::days)
+        let val = stripped.parse::<i64>().map_err(|_| {
+            crate::AnalysisError::InvalidConfig(format!(
+                "Invalid number in git history period '{}'. Expected positive integer followed by 'd', 'm', or 'y'.",
+                period
+            ))
+        })?;
+        if val <= 0 {
+            return Err(crate::AnalysisError::InvalidConfig(format!(
+                "Git history period value must be positive, got '{}'",
+                period
+            )));
+        }
+        chrono::Duration::days(val)
     } else if let Some(stripped) = period.strip_suffix('m') {
-        stripped
-            .parse::<i64>()
-            .ok()
-            .map(|m| chrono::Duration::days(m * 30))
+        let val = stripped.parse::<i64>().map_err(|_| {
+            crate::AnalysisError::InvalidConfig(format!(
+                "Invalid number in git history period '{}'. Expected positive integer followed by 'd', 'm', or 'y'.",
+                period
+            ))
+        })?;
+        if val <= 0 {
+            return Err(crate::AnalysisError::InvalidConfig(format!(
+                "Git history period value must be positive, got '{}'",
+                period
+            )));
+        }
+        chrono::Duration::days(val * 30)
     } else if let Some(stripped) = period.strip_suffix('y') {
-        stripped
-            .parse::<i64>()
-            .ok()
-            .map(|y| chrono::Duration::days(y * 365))
+        let val = stripped.parse::<i64>().map_err(|_| {
+            crate::AnalysisError::InvalidConfig(format!(
+                "Invalid number in git history period '{}'. Expected positive integer followed by 'd', 'm', or 'y'.",
+                period
+            ))
+        })?;
+        if val <= 0 {
+            return Err(crate::AnalysisError::InvalidConfig(format!(
+                "Git history period value must be positive, got '{}'",
+                period
+            )));
+        }
+        chrono::Duration::days(val * 365)
     } else {
-        Some(chrono::Duration::days(365)) // Default to 1 year if parsing fails
+        return Err(crate::AnalysisError::InvalidConfig(format!(
+            "Invalid git history period '{}'. Expected format like '90d', '6m', '1y' or 'all'.",
+            period
+        )));
     };
 
-    duration.map(|d| (now - d).timestamp())
+    Ok(Some((now - duration).timestamp()))
 }
