@@ -4,3 +4,9 @@ node_modules
 pnpm-lock.yaml
 target
 packages/core/index*
+*.ts
+*.js
+*.cjs
+*.mjs
+*.tsx
+*.jsx

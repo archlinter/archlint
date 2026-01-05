@@ -19,8 +19,8 @@
     "test:node": "vitest run",
     "test:rust": "cargo test --workspace",
     "lint": "eslint .",
-    "format": "prettier --write .",
-    "format:check": "prettier --check .",
+    "format": "prettier --write \"**/*.{json,md,yml,yaml}\"",
+    "format:check": "prettier --check \"**/*.{json,md,yml,yaml}\"",
     "fmt": "cargo fmt",
     "clippy": "cargo clippy --workspace --all-targets --all-features -- -D warnings",
     "clippy:lib": "cargo clippy --workspace --all-targets --no-default-features -- -D warnings",
@@ -55,7 +55,7 @@
   },
   "nano-staged": {
     "*.{ts,js,cjs,mjs}": "eslint --fix",
-    "*.{ts,js,cjs,mjs,json,md,yml,yaml}": "prettier --write",
+    "*.{json,md,yml,yaml}": "prettier --write",
     ".prettierrc": "prettier --write",
     "*.rs": [
       "bash -c 'pnpm clippy:fix'",
