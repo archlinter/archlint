@@ -97,12 +97,25 @@ fn test_diff_json_output() {
     run_archlint_snapshot(&project_path, &baseline);
 
     let mut cmd2 = Command::new(cargo_bin!("archlint"));
-    cmd2.arg("diff")
+    let output = cmd2
+        .arg("diff")
         .arg(&baseline)
         .arg("--json")
         .arg("-p")
         .arg(&project_path)
-        .assert()
-        .success()
-        .stdout(predicate::str::contains("hasRegressions"));
+        .output()
+        .unwrap();
+
+    let stdout = String::from_utf8(output.stdout).unwrap();
+    let json: serde_json::Value =
+        serde_json::from_str(&stdout).expect("Output should be valid JSON");
+
+    assert!(
+        json.get("hasRegressions").is_some(),
+        "JSON should contain hasRegressions field"
+    );
+    assert!(
+        json.get("regressions").is_some(),
+        "JSON should contain regressions array"
+    );
 }

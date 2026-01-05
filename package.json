@@ -24,7 +24,7 @@
     "fmt": "cargo fmt",
     "clippy": "cargo clippy --workspace --all-targets --all-features -- -D warnings",
     "clippy:lib": "cargo clippy --workspace --all-targets --no-default-features -- -D warnings",
-    "clippy:fix": "cargo clippy --workspace --all-targets --all-features --allow-dirty --fix -- -D warnings",
+    "clippy:fix": "cargo clippy --workspace --all-targets --all-features --fix -- -D warnings",
     "prepare": "simple-git-hooks",
     "clean": "pnpm -r clean && cargo clean",
     "copy-bins": "node scripts/copy-binaries.cjs",
@@ -58,7 +58,7 @@
     "*.{ts,js,cjs,mjs,json,md,yml,yaml}": "prettier --write",
     ".prettierrc": "prettier --write",
     "*.rs": [
-      "bash -c 'pnpm clippy'",
+      "bash -c 'pnpm clippy:fix'",
       "bash -c 'pnpm clippy:lib'",
       "bash -c 'pnpm fmt'"
     ]

@@ -97,11 +97,11 @@ fn parse_severity_threshold(fail_on: &str) -> i32 {
 }
 
 fn get_severity_score(severity: &str) -> i32 {
-    match severity {
-        "Low" => 0,
-        "Medium" => 1,
-        "High" => 2,
-        "Critical" => 3,
+    match severity.to_lowercase().as_str() {
+        "low" => 0,
+        "medium" => 1,
+        "high" => 2,
+        "critical" => 3,
         _ => 0,
     }
 }

@@ -536,8 +536,9 @@ pub struct JsSnapshotSmell {
     pub smell_type: String,
     pub severity: String,
     pub files: Vec<String>,
-    #[napi(ts_type = "Record<string, number>")]
+    #[napi(ts_type = "Record<string, unknown>")]
     pub metrics: serde_json::Value,
+    #[napi(ts_type = "unknown")]
     pub details: Option<serde_json::Value>,
 }
 
@@ -649,12 +650,12 @@ impl From<archlint::diff::ImprovementType> for JsImprovementType {
 impl From<archlint::diff::DiffSummary> for JsDiffSummary {
     fn from(s: archlint::diff::DiffSummary) -> Self {
         Self {
-            new_smells: s.new_smells as u32,
-            fixed_smells: s.fixed_smells as u32,
-            worsened_smells: s.worsened_smells as u32,
-            improved_smells: s.improved_smells as u32,
-            total_regressions: s.total_regressions as u32,
-            total_improvements: s.total_improvements as u32,
+            new_smells: s.new_smells.try_into().unwrap_or(u32::MAX),
+            fixed_smells: s.fixed_smells.try_into().unwrap_or(u32::MAX),
+            worsened_smells: s.worsened_smells.try_into().unwrap_or(u32::MAX),
+            improved_smells: s.improved_smells.try_into().unwrap_or(u32::MAX),
+            total_regressions: s.total_regressions.try_into().unwrap_or(u32::MAX),
+            total_improvements: s.total_improvements.try_into().unwrap_or(u32::MAX),
         }
     }
 }

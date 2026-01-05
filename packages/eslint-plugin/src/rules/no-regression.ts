@@ -6,6 +6,10 @@ import * as path from 'node:path';
 
 // Cache to run diff only once per project
 const diffCache = new Map<string, JsDiffResult>();
+const firstFiles = new Set<string>();
+
+// Simple run stamp to clear cache per ESLint run (for watch mode)
+let lastRunStamp = 0;
 
 interface RuleOptions {
   baseline?: string;
@@ -43,6 +47,14 @@ export const noRegression: Rule.RuleModule = {
   },
 
   create(context) {
+    // Clear cache if this is a new run (e.g. in watch mode)
+    const currentRunStamp = Date.now();
+    if (currentRunStamp - lastRunStamp > 5000) {
+      diffCache.clear();
+      firstFiles.clear();
+    }
+    lastRunStamp = currentRunStamp;
+
     const { baseline, failOn } = getOptions(context);
     const projectRoot = findProjectRoot(context.filename);
 
@@ -201,7 +213,6 @@ function formatMetricWorseningMessage(
   return `Architectural metric worsened: ${smellType} ${metric} ${from} → ${to} (+${(changePercent ?? 0).toFixed(0)}%)`;
 }
 
-const firstFiles = new Set<string>();
 function isFirstFile(context: Rule.RuleContext, projectRoot: string): boolean {
   if (!firstFiles.has(projectRoot)) {
     firstFiles.add(projectRoot);

@@ -209,10 +209,11 @@ export interface JsSnapshotSmell {
   smellType: string
   severity: string
   files: Array<string>
-  metrics: Record<string, number>
-  details?: any
+  metrics: Record<string, unknown>
+  details?: unknown
 }
 export declare function runDiff(options: JsDiffOptions): JsDiffResult
+export declare function runDiffAsync(options: JsDiffOptions): Promise<JsDiffResult>
 export declare function scan(path: string, options?: JsScanOptions | undefined | null): Promise<JsScanResult>
 export declare function scanSync(path: string, options?: JsScanOptions | undefined | null): JsScanResult
 export declare function loadConfig(path?: string | undefined | null): JsConfig

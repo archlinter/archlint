@@ -310,9 +310,10 @@ if (!nativeBinding) {
   throw new Error(`Failed to load native binding`)
 }
 
-const { runDiff, scan, scanSync, loadConfig, getDetectors, clearCache, ArchlintAnalyzer } = nativeBinding
+const { runDiff, runDiffAsync, scan, scanSync, loadConfig, getDetectors, clearCache, ArchlintAnalyzer } = nativeBinding
 
 module.exports.runDiff = runDiff
+module.exports.runDiffAsync = runDiffAsync
 module.exports.scan = scan
 module.exports.scanSync = scanSync
 module.exports.loadConfig = loadConfig

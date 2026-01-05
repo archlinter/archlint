@@ -195,6 +195,46 @@ impl SnapshotGenerator {
                 line: *line,
             }),
 
+            SmellType::FeatureEnvy { most_envied_module } => Some(SmellDetails::FeatureEnvy {
+                most_envied_module: most_envied_module.to_string_lossy().to_string(),
+            }),
+
+            SmellType::TestLeakage { test_file } => Some(SmellDetails::TestLeakage {
+                test_file: test_file.to_string_lossy().to_string(),
+            }),
+
+            SmellType::VendorCoupling { package } => Some(SmellDetails::VendorCoupling {
+                package: package.clone(),
+            }),
+
+            SmellType::PackageCycle { packages } => Some(SmellDetails::PackageCycle {
+                packages: packages.clone(),
+            }),
+
+            SmellType::SharedMutableState { symbol } => Some(SmellDetails::SharedMutableState {
+                symbol: symbol.clone(),
+            }),
+
+            SmellType::LongParameterList { function, .. } => {
+                Some(SmellDetails::LongParameterList {
+                    function: function.clone(),
+                })
+            }
+
+            SmellType::PrimitiveObsession { function, .. } => {
+                Some(SmellDetails::PrimitiveObsession {
+                    function: function.clone(),
+                })
+            }
+
+            SmellType::OrphanType { name } => Some(SmellDetails::OrphanType { name: name.clone() }),
+
+            SmellType::ScatteredConfiguration { env_var, .. } => {
+                Some(SmellDetails::ScatteredConfiguration {
+                    env_var: env_var.clone(),
+                })
+            }
+
             _ => None,
         }
     }

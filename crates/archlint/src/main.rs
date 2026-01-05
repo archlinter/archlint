@@ -62,10 +62,8 @@ fn set_initial_log_level(builder: &mut env_logger::Builder, cli: &cli::Cli) {
                 builder.filter_level(log::LevelFilter::Error);
             }
         }
-        Some(cli::Command::Snapshot(args)) => {
-            if args.path.is_none() {
-                // handle_snapshot_command will use current dir
-            }
+        Some(cli::Command::Snapshot(_)) => {
+            // Default log level is handled by the common initialization
         }
         Some(cli::Command::Diff(args)) => {
             if args.json {

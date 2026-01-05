@@ -1,7 +1,5 @@
 use crate::detectors::{ArchSmell, SmellType};
 use log::debug;
-use std::collections::hash_map::DefaultHasher;
-use std::hash::{Hash, Hasher};
 use std::path::{Path, PathBuf};
 
 /// Generate stable, deterministic ID for a smell
@@ -159,17 +157,13 @@ fn id_generic(smell_type: &str, files: &[PathBuf], extra: &str, project_root: &P
 }
 
 fn short_hash(content: &str) -> String {
-    let mut hasher = DefaultHasher::new();
-    content.hash(&mut hasher);
-    let hash = hasher.finish();
+    use sha2::{Digest, Sha256};
+    let mut hasher = Sha256::new();
+    hasher.update(content.as_bytes());
+    let result = hasher.finalize();
 
-    // Take first 6 hex chars
-    let hash_str = format!("{:x}", hash);
-    if hash_str.len() > 6 {
-        hash_str[..6].to_string()
-    } else {
-        hash_str
-    }
+    // Take first 8 hex chars for better stability/collision resistance than 6
+    format!("{:x}", result)[..8].to_string()
 }
 
 #[cfg(test)]

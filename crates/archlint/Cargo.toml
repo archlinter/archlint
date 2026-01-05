@@ -52,7 +52,6 @@ regex.workspace = true
 inventory.workspace = true
 sha2.workspace = true
 chrono.workspace = true
-tempfile.workspace = true
 indicatif = { workspace = true, optional = true }
 console = { workspace = true, optional = true }
 comfy-table = { workspace = true, optional = true }

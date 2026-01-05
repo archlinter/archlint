@@ -109,6 +109,33 @@ pub enum SmellDetails {
         function_name: String,
         line: usize,
     },
+    FeatureEnvy {
+        most_envied_module: String,
+    },
+    TestLeakage {
+        test_file: String,
+    },
+    VendorCoupling {
+        package: String,
+    },
+    PackageCycle {
+        packages: Vec<String>,
+    },
+    SharedMutableState {
+        symbol: String,
+    },
+    LongParameterList {
+        function: String,
+    },
+    PrimitiveObsession {
+        function: String,
+    },
+    OrphanType {
+        name: String,
+    },
+    ScatteredConfiguration {
+        env_var: String,
+    },
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]

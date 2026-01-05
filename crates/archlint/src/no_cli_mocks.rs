@@ -6,6 +6,23 @@ pub mod console {
             self.0.fmt(f)
         }
     }
+    pub enum Attribute {
+        Bold,
+        Italic,
+        Underlined,
+        Dim,
+    }
+    pub enum Color {
+        Red,
+        Green,
+        Yellow,
+        Blue,
+        Magenta,
+        Cyan,
+        White,
+        Black,
+    }
+
     impl<T> MockStyled<T> {
         pub fn red(self) -> Self {
             self
@@ -28,10 +45,10 @@ pub mod console {
         pub fn white(self) -> Self {
             self
         }
-        pub fn attr(self, _: super::comfy_table::Attribute) -> Self {
+        pub fn attr(self, _: Attribute) -> Self {
             self
         }
-        pub fn fg(self, _: super::comfy_table::Color) -> Self {
+        pub fn fg(self, _: Color) -> Self {
             self
         }
         pub fn for_stderr(self) -> Self {

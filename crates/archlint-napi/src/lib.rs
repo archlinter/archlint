@@ -43,6 +43,13 @@ pub fn run_diff(options: JsDiffOptions) -> Result<JsDiffResult> {
 }
 
 #[napi]
+pub async fn run_diff_async(options: JsDiffOptions) -> Result<JsDiffResult> {
+    tokio::task::spawn_blocking(move || run_diff(options))
+        .await
+        .map_err(|e| Error::from_reason(format!("Task execution failed: {}", e)))?
+}
+
+#[napi]
 pub async fn scan(path: String, options: Option<JsScanOptions>) -> Result<JsScanResult> {
     let opts: archlint::ScanOptions = options.map(Into::into).unwrap_or_default();
 
