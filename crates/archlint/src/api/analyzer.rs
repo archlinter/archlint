@@ -238,7 +238,7 @@ impl Analyzer {
 
         let active_ids: HashSet<String> =
             enabled_detectors.iter().map(|(id, _)| id.clone()).collect();
-        let parser_config = self.create_parser_config(&active_ids);
+        let parser_config = ParserConfig::from_active_detectors(&active_ids);
 
         // 2. Update state for changed files
         if let Some(ovl) = overlays {
@@ -283,26 +283,6 @@ impl Analyzer {
             affected_count,
             analysis_time_ms: start.elapsed().as_millis() as u64,
         })
-    }
-
-    fn create_parser_config(&self, active_ids: &HashSet<String>) -> ParserConfig {
-        ParserConfig {
-            collect_complexity: active_ids.iter().any(|id| {
-                matches!(
-                    id.as_str(),
-                    "complexity"
-                        | "deep_nesting"
-                        | "long_params"
-                        | "hub_module"
-                        | "god_module"
-                        | "hub_dependency"
-                )
-            }),
-            collect_primitive_params: active_ids.contains("primitive_obsession"),
-            collect_classes: active_ids.contains("lcom") || active_ids.contains("dead_symbols"),
-            collect_env_vars: active_ids.contains("scattered_config"),
-            collect_used_symbols: active_ids.contains("scattered_module"),
-        }
     }
 
     /// Invalidate files (e.g., deleted files)

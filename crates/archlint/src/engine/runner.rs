@@ -110,7 +110,7 @@ impl AnalysisEngine {
         let final_config = self.apply_presets(&presets);
 
         let active_ids = self.get_active_detectors(&final_config, &presets);
-        let parser_config = self.create_parser_config(&active_ids);
+        let parser_config = ParserConfig::from_active_detectors(&active_ids);
 
         let mut cache = self.load_cache()?;
         let parsed_files = self.parse_files(&files, &parser_config, use_progress, &cache)?;
@@ -309,26 +309,6 @@ impl AnalysisEngine {
                 })
                 .map(|info| info.id.to_string())
                 .collect()
-        }
-    }
-
-    fn create_parser_config(&self, active_ids: &HashSet<String>) -> ParserConfig {
-        ParserConfig {
-            collect_complexity: active_ids.iter().any(|id| {
-                matches!(
-                    id.as_str(),
-                    "complexity"
-                        | "deep_nesting"
-                        | "long_params"
-                        | "hub_module"
-                        | "god_module"
-                        | "hub_dependency"
-                )
-            }),
-            collect_primitive_params: active_ids.contains("primitive_obsession"),
-            collect_classes: active_ids.contains("lcom") || active_ids.contains("dead_symbols"),
-            collect_env_vars: active_ids.contains("scattered_config"),
-            collect_used_symbols: active_ids.contains("scattered_module"),
         }
     }
 

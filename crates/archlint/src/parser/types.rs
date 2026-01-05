@@ -3,6 +3,7 @@ use compact_str::CompactString;
 use rustc_hash::FxHashSet;
 use serde::{Deserialize, Serialize};
 use smallvec::SmallVec;
+use std::collections::HashSet;
 
 /// Compact string type for symbol names (inline up to 24 bytes, no heap allocation for short strings)
 pub type SymbolName = CompactString;
@@ -175,6 +176,26 @@ impl ParserConfig {
             collect_classes: false,
             collect_env_vars: false,
             collect_used_symbols: false,
+        }
+    }
+
+    pub fn from_active_detectors(active_ids: &HashSet<String>) -> Self {
+        Self {
+            collect_complexity: active_ids.iter().any(|id| {
+                matches!(
+                    id.as_str(),
+                    "complexity"
+                        | "deep_nesting"
+                        | "long_params"
+                        | "hub_module"
+                        | "god_module"
+                        | "hub_dependency"
+                )
+            }),
+            collect_primitive_params: active_ids.contains("primitive_obsession"),
+            collect_classes: active_ids.contains("lcom") || active_ids.contains("dead_symbols"),
+            collect_env_vars: active_ids.contains("scattered_config"),
+            collect_used_symbols: active_ids.contains("scattered_module"),
         }
     }
 }
