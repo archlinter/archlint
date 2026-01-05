@@ -52,6 +52,7 @@ regex.workspace = true
 inventory.workspace = true
 sha2.workspace = true
 chrono.workspace = true
+tempfile.workspace = true
 indicatif = { workspace = true, optional = true }
 console = { workspace = true, optional = true }
 comfy-table = { workspace = true, optional = true }
@@ -59,4 +60,6 @@ redb.workspace = true
 bincode.workspace = true
 
 [dev-dependencies]
+assert_cmd = "2.0"
+predicates = "3.1"
 tempfile.workspace = true

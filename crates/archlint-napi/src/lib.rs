@@ -8,8 +8,39 @@ use std::sync::{Arc, Mutex};
 
 mod types;
 use types::{
-    JsConfig, JsDetectorInfo, JsIncrementalResult, JsScanOptions, JsScanResult, JsStateStats,
+    JsConfig, JsDetectorInfo, JsDiffOptions, JsDiffResult, JsIncrementalResult, JsScanOptions,
+    JsScanResult, JsStateStats,
 };
+
+#[napi]
+pub fn run_diff(options: JsDiffOptions) -> Result<JsDiffResult> {
+    let baseline = archlint::snapshot::read_snapshot(std::path::Path::new(&options.baseline_path))
+        .map_err(|e| Error::from_reason(e.to_string()))?;
+
+    let current = if let Some(path) = options.current_path {
+        archlint::snapshot::read_snapshot(std::path::Path::new(&path))
+            .map_err(|e| Error::from_reason(e.to_string()))?
+    } else {
+        // Analyze current state
+        let mut analyzer = archlint::Analyzer::new(
+            options.project_path.clone(),
+            archlint::ScanOptions::default(),
+        )
+        .map_err(|e| Error::from_reason(e.to_string()))?;
+
+        let scan_result = analyzer
+            .scan()
+            .map_err(|e| Error::from_reason(e.to_string()))?;
+
+        archlint::snapshot::SnapshotGenerator::new(options.project_path.into())
+            .generate(&scan_result)
+    };
+
+    let engine = archlint::diff::DiffEngine::default();
+    let result = engine.diff_with_explain(&baseline, &current);
+
+    Ok(result.into())
+}
 
 #[napi]
 pub async fn scan(path: String, options: Option<JsScanOptions>) -> Result<JsScanResult> {

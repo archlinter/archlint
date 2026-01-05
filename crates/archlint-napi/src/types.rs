@@ -456,3 +456,228 @@ impl From<archlint::StateStats> for JsStateStats {
         }
     }
 }
+
+// ============ Diff ============
+
+#[napi(object)]
+pub struct JsDiffOptions {
+    pub baseline_path: String,
+    pub project_path: String,
+    pub current_path: Option<String>,
+}
+
+#[napi(object)]
+pub struct JsDiffResult {
+    pub has_regressions: bool,
+    pub regressions: Vec<JsRegression>,
+    pub improvements: Vec<JsImprovement>,
+    pub summary: JsDiffSummary,
+    pub baseline_commit: Option<String>,
+    pub current_commit: Option<String>,
+}
+
+#[napi(object)]
+pub struct JsRegression {
+    pub id: String,
+    pub regression_type: JsRegressionType,
+    pub smell: JsSnapshotSmell,
+    pub message: String,
+    pub explain: Option<JsExplainBlock>,
+}
+
+#[napi(object)]
+pub struct JsRegressionType {
+    pub r#type: String,
+    pub from: Option<String>,
+    pub to: Option<String>,
+    pub metric: Option<String>,
+    pub from_val: Option<f64>,
+    pub to_val: Option<f64>,
+    pub change_percent: Option<f64>,
+}
+
+#[napi(object)]
+pub struct JsImprovement {
+    pub id: String,
+    pub improvement_type: JsImprovementType,
+    pub message: String,
+}
+
+#[napi(object)]
+pub struct JsImprovementType {
+    pub r#type: String,
+    pub from: Option<String>,
+    pub to: Option<String>,
+    pub metric: Option<String>,
+    pub from_val: Option<f64>,
+    pub to_val: Option<f64>,
+}
+
+#[napi(object)]
+pub struct JsDiffSummary {
+    pub new_smells: u32,
+    pub fixed_smells: u32,
+    pub worsened_smells: u32,
+    pub improved_smells: u32,
+    pub total_regressions: u32,
+    pub total_improvements: u32,
+}
+
+#[napi(object)]
+pub struct JsExplainBlock {
+    pub why_bad: String,
+    pub consequences: String,
+    pub how_to_fix: String,
+}
+
+#[napi(object)]
+pub struct JsSnapshotSmell {
+    pub id: String,
+    pub smell_type: String,
+    pub severity: String,
+    pub files: Vec<String>,
+    #[napi(ts_type = "Record<string, number>")]
+    pub metrics: serde_json::Value,
+    pub details: Option<serde_json::Value>,
+}
+
+impl From<archlint::diff::DiffResult> for JsDiffResult {
+    fn from(res: archlint::diff::DiffResult) -> Self {
+        Self {
+            has_regressions: res.has_regressions,
+            regressions: res.regressions.into_iter().map(Into::into).collect(),
+            improvements: res.improvements.into_iter().map(Into::into).collect(),
+            summary: res.summary.into(),
+            baseline_commit: res.baseline_commit,
+            current_commit: res.current_commit,
+        }
+    }
+}
+
+impl From<archlint::diff::Regression> for JsRegression {
+    fn from(r: archlint::diff::Regression) -> Self {
+        Self {
+            id: r.id,
+            regression_type: r.regression_type.into(),
+            smell: r.smell.into(),
+            message: r.message,
+            explain: r.explain.map(Into::into),
+        }
+    }
+}
+
+impl From<archlint::diff::RegressionType> for JsRegressionType {
+    fn from(rt: archlint::diff::RegressionType) -> Self {
+        match rt {
+            archlint::diff::RegressionType::NewSmell => Self {
+                r#type: "NewSmell".into(),
+                from: None,
+                to: None,
+                metric: None,
+                from_val: None,
+                to_val: None,
+                change_percent: None,
+            },
+            archlint::diff::RegressionType::SeverityIncrease { from, to } => Self {
+                r#type: "SeverityIncrease".into(),
+                from: Some(from),
+                to: Some(to),
+                metric: None,
+                from_val: None,
+                to_val: None,
+                change_percent: None,
+            },
+            archlint::diff::RegressionType::MetricWorsening {
+                metric,
+                from,
+                to,
+                change_percent,
+            } => Self {
+                r#type: "MetricWorsening".into(),
+                from: None,
+                to: None,
+                metric: Some(metric),
+                from_val: Some(from),
+                to_val: Some(to),
+                change_percent: Some(change_percent),
+            },
+        }
+    }
+}
+
+impl From<archlint::diff::Improvement> for JsImprovement {
+    fn from(i: archlint::diff::Improvement) -> Self {
+        Self {
+            id: i.id,
+            improvement_type: i.improvement_type.into(),
+            message: i.message,
+        }
+    }
+}
+
+impl From<archlint::diff::ImprovementType> for JsImprovementType {
+    fn from(it: archlint::diff::ImprovementType) -> Self {
+        match it {
+            archlint::diff::ImprovementType::Fixed => Self {
+                r#type: "Fixed".into(),
+                from: None,
+                to: None,
+                metric: None,
+                from_val: None,
+                to_val: None,
+            },
+            archlint::diff::ImprovementType::SeverityDecrease { from, to } => Self {
+                r#type: "SeverityDecrease".into(),
+                from: Some(from),
+                to: Some(to),
+                metric: None,
+                from_val: None,
+                to_val: None,
+            },
+            archlint::diff::ImprovementType::MetricImprovement { metric, from, to } => Self {
+                r#type: "MetricImprovement".into(),
+                from: None,
+                to: None,
+                metric: Some(metric),
+                from_val: Some(from),
+                to_val: Some(to),
+            },
+        }
+    }
+}
+
+impl From<archlint::diff::DiffSummary> for JsDiffSummary {
+    fn from(s: archlint::diff::DiffSummary) -> Self {
+        Self {
+            new_smells: s.new_smells as u32,
+            fixed_smells: s.fixed_smells as u32,
+            worsened_smells: s.worsened_smells as u32,
+            improved_smells: s.improved_smells as u32,
+            total_regressions: s.total_regressions as u32,
+            total_improvements: s.total_improvements as u32,
+        }
+    }
+}
+
+impl From<archlint::diff::ExplainBlock> for JsExplainBlock {
+    fn from(e: archlint::diff::ExplainBlock) -> Self {
+        Self {
+            why_bad: e.why_bad,
+            consequences: e.consequences,
+            how_to_fix: e.how_to_fix,
+        }
+    }
+}
+
+impl From<archlint::snapshot::SnapshotSmell> for JsSnapshotSmell {
+    fn from(s: archlint::snapshot::SnapshotSmell) -> Self {
+        Self {
+            id: s.id,
+            smell_type: s.smell_type,
+            severity: s.severity,
+            files: s.files,
+            metrics: serde_json::to_value(&s.metrics).unwrap_or(serde_json::Value::Null),
+            details: s.details.and_then(|d| serde_json::to_value(&d).ok()),
+        }
+    }
+}

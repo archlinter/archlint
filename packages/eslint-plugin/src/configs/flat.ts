@@ -33,5 +33,6 @@ export const flatStrict: Linter.Config = {
     '@archlinter/no-hub-modules': 'warn',
     '@archlinter/no-deep-nesting': 'error',
     '@archlinter/no-long-params': 'warn',
+    '@archlinter/no-regression': ['error', { failOn: 'medium' }],
   },
 };

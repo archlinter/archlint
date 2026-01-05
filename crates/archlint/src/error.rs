@@ -34,6 +34,15 @@ pub enum AnalysisError {
 
     #[error("Invalid configuration: {0}")]
     InvalidConfig(String),
+
+    #[error("Snapshot error: {0}")]
+    Snapshot(#[from] crate::snapshot::SnapshotError),
+
+    #[error("Git command error: {0}")]
+    GitCommand(String),
+
+    #[error("No project path provided")]
+    NoProjectPath,
 }
 
 pub type Result<T> = std::result::Result<T, AnalysisError>;

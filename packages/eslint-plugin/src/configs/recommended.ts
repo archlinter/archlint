@@ -27,5 +27,6 @@ export const strict = {
     '@archlinter/no-hub-modules': 'warn',
     '@archlinter/no-deep-nesting': 'error',
     '@archlinter/no-long-params': 'warn',
+    '@archlinter/no-regression': ['error', { failOn: 'medium' }],
   },
 } as const;

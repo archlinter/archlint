@@ -132,6 +132,53 @@ pub enum Command {
 
     /// Generate shell completions
     Completions(CompletionsArgs),
+
+    /// Generate architectural snapshot
+    Snapshot(SnapshotArgs),
+
+    /// Compare two snapshots for regressions
+    Diff(DiffArgs),
+}
+
+#[derive(Parser, Debug, Clone)]
+pub struct SnapshotArgs {
+    /// Output file path
+    #[arg(short, long, default_value = ".archlint-snapshot.json")]
+    pub output: PathBuf,
+
+    /// Include git commit in snapshot
+    #[arg(long, default_value = "true")]
+    pub include_commit: bool,
+
+    /// Project path to analyze
+    #[arg(short, long)]
+    pub path: Option<PathBuf>,
+}
+
+#[derive(Parser, Debug, Clone)]
+pub struct DiffArgs {
+    /// Baseline snapshot (file path or git ref)
+    pub baseline: String,
+
+    /// Current snapshot (file path or git ref, default: analyze current)
+    #[arg(default_value = "")]
+    pub current: String,
+
+    /// Show detailed explanations
+    #[arg(long)]
+    pub explain: bool,
+
+    /// Output as JSON
+    #[arg(long)]
+    pub json: bool,
+
+    /// Minimum severity to fail on (low, medium, high, critical)
+    #[arg(long, default_value = "low")]
+    pub fail_on: String,
+
+    /// Project path
+    #[arg(short, long)]
+    pub path: Option<PathBuf>,
 }
 
 #[derive(Parser, Debug)]

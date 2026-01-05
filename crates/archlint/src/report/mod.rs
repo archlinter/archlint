@@ -26,8 +26,9 @@ use comfy_table::{Attribute, Cell, Color, ContentArrangement, Table};
 use console::style;
 use std::path::{Path, PathBuf};
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub enum GradeLevel {
+    #[default]
     Excellent,
     Good,
     Fair,
@@ -49,7 +50,7 @@ impl std::fmt::Display for GradeLevel {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct ArchitectureGrade {
     pub score: f32,
     pub level: GradeLevel,

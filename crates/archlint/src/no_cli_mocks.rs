@@ -25,6 +25,15 @@ pub mod console {
         pub fn cyan(self) -> Self {
             self
         }
+        pub fn attr(self, _: super::comfy_table::Attribute) -> Self {
+            self
+        }
+        pub fn fg(self, _: super::comfy_table::Color) -> Self {
+            self
+        }
+        pub fn for_stderr(self) -> Self {
+            self
+        }
         pub fn dim(self) -> Self {
             self
         }

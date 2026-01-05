@@ -62,6 +62,16 @@ fn set_initial_log_level(builder: &mut env_logger::Builder, cli: &cli::Cli) {
                 builder.filter_level(log::LevelFilter::Error);
             }
         }
+        Some(cli::Command::Snapshot(args)) => {
+            if args.path.is_none() {
+                // handle_snapshot_command will use current dir
+            }
+        }
+        Some(cli::Command::Diff(args)) => {
+            if args.json {
+                builder.filter_level(log::LevelFilter::Error);
+            }
+        }
         _ => {}
     }
 }
@@ -79,6 +89,14 @@ fn set_final_log_level(builder: &mut env_logger::Builder, cli: &cli::Cli) {
         }
         Some(cli::Command::Watch(args)) if args.scan.verbose => {
             builder.filter_level(log::LevelFilter::Debug)
+        }
+        Some(cli::Command::Snapshot(_)) => builder.filter_level(log::LevelFilter::Info),
+        Some(cli::Command::Diff(args)) => {
+            if args.json {
+                builder.filter_level(log::LevelFilter::Error)
+            } else {
+                builder.filter_level(log::LevelFilter::Info)
+            }
         }
         None => {
             let args = cli.to_scan_args();
@@ -179,8 +197,30 @@ fn run(cli: cli::Cli) -> Result<()> {
         Some(cli::Command::Detectors(args)) => handle_detectors_command(args),
         Some(cli::Command::Cache(args)) => handle_cache_command(args),
         Some(cli::Command::Completions(args)) => handle_completions_command(args),
+        Some(cli::Command::Snapshot(args)) => handle_snapshot_command(args),
+        Some(cli::Command::Diff(args)) => handle_diff_command(args),
         None => handle_default_command(cli),
     }
+}
+
+fn handle_snapshot_command(args: cli::SnapshotArgs) -> Result<()> {
+    archlint::commands::run_snapshot(args.output, args.include_commit, args.path)
+}
+
+fn handle_diff_command(args: cli::DiffArgs) -> Result<()> {
+    let exit_code = archlint::commands::run_diff(
+        args.baseline,
+        args.current,
+        args.explain,
+        args.json,
+        args.fail_on,
+        args.path,
+    )?;
+
+    if exit_code != 0 {
+        process::exit(exit_code);
+    }
+    Ok(())
 }
 
 fn handle_scan_command(args: ScanArgs) -> Result<()> {

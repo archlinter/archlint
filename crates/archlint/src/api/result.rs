@@ -54,7 +54,7 @@ pub struct SmellWithExplanation {
 }
 
 /// Summary statistics matching current JSON output
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 #[serde(rename_all = "camelCase")]
 pub struct Summary {
     pub files_analyzed: usize,
