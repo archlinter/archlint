@@ -1,4 +1,5 @@
 use crate::detectors::{ArchSmell, SmellType};
+use log::debug;
 use std::collections::hash_map::DefaultHasher;
 use std::hash::{Hash, Hasher};
 use std::path::{Path, PathBuf};
@@ -98,10 +99,11 @@ pub fn generate_smell_id(smell: &ArchSmell, project_root: &Path) -> String {
 }
 
 fn relative_path(path: &Path, project_root: &Path) -> String {
-    path.strip_prefix(project_root)
-        .unwrap_or(path)
-        .to_string_lossy()
-        .replace('\\', "/")
+    let rel = path.strip_prefix(project_root).unwrap_or_else(|_| {
+        debug!("Failed to strip prefix {:?} from {:?}", project_root, path);
+        path
+    });
+    rel.to_string_lossy().replace('\\', "/")
 }
 
 fn id_for_cycle(files: &[PathBuf], project_root: &Path) -> String {

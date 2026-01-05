@@ -6,6 +6,7 @@ use crate::snapshot::{Snapshot, SnapshotGenerator};
 use crate::Result;
 #[cfg(feature = "cli")]
 use console::style;
+use log::debug;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
@@ -100,6 +101,8 @@ pub fn generate_snapshot_from_git_ref(
     // Analyze the worktree
     let mut analyzer = Analyzer::new(worktree.path(), ScanOptions::default())?;
     let scan_result = analyzer.scan()?;
+
+    debug!("Worktree path: {:?}", worktree.path());
 
     // Generate snapshot (paths relative to worktree)
     let snapshot = SnapshotGenerator::new(worktree.path().to_path_buf())

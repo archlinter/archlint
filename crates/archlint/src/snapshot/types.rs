@@ -51,6 +51,19 @@ pub struct SnapshotSmell {
     /// Type-specific details (optional)
     #[serde(skip_serializing_if = "Option::is_none")]
     pub details: Option<SmellDetails>,
+
+    /// Specific locations with line/column information
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub locations: Vec<Location>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct Location {
+    pub file: String,
+    pub line: usize,
+    pub column: Option<usize>,
+    pub description: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -204,6 +217,7 @@ mod tests {
                     files: vec![],
                     metrics: HashMap::new(),
                     details: None,
+                    locations: vec![],
                 },
                 SnapshotSmell {
                     id: "dup".into(),
@@ -212,6 +226,7 @@ mod tests {
                     files: vec![],
                     metrics: HashMap::new(),
                     details: None,
+                    locations: vec![],
                 },
             ],
             summary: SnapshotSummary::default(),

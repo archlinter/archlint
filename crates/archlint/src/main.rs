@@ -70,6 +70,8 @@ fn set_initial_log_level(builder: &mut env_logger::Builder, cli: &cli::Cli) {
         Some(cli::Command::Diff(args)) => {
             if args.json {
                 builder.filter_level(log::LevelFilter::Error);
+            } else if args.verbose {
+                builder.filter_level(log::LevelFilter::Debug);
             }
         }
         _ => {}
@@ -94,6 +96,8 @@ fn set_final_log_level(builder: &mut env_logger::Builder, cli: &cli::Cli) {
         Some(cli::Command::Diff(args)) => {
             if args.json {
                 builder.filter_level(log::LevelFilter::Error)
+            } else if args.verbose {
+                builder.filter_level(log::LevelFilter::Debug)
             } else {
                 builder.filter_level(log::LevelFilter::Info)
             }

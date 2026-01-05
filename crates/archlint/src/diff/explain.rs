@@ -231,6 +231,7 @@ mod tests {
             files: vec!["test.ts".to_string()],
             metrics: HashMap::new(),
             details: None,
+            locations: vec![],
         }
     }
 

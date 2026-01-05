@@ -1,6 +1,7 @@
 use super::metrics::MetricComparator;
 use super::types::*;
 use crate::snapshot::{Snapshot, SnapshotSmell};
+use log::debug;
 use std::collections::{HashMap, HashSet};
 
 pub struct DiffEngine {
@@ -50,9 +51,16 @@ impl DiffEngine {
         let mut regressions = Vec::new();
         let mut improvements = Vec::new();
 
+        debug!(
+            "Diffing baseline ({} smells) with current ({} smells)",
+            baseline_ids.len(),
+            current_ids.len()
+        );
+
         // 1. New smells = regressions
         for id in current_ids.difference(&baseline_ids) {
             let smell = current_map[id];
+            debug!("New smell detected: {} ({})", id, smell.smell_type);
             regressions.push(Regression {
                 id: id.to_string(),
                 regression_type: RegressionType::NewSmell,
@@ -69,6 +77,7 @@ impl DiffEngine {
         // 2. Fixed smells = improvements
         for id in baseline_ids.difference(&current_ids) {
             let smell = baseline_map[id];
+            debug!("Fixed smell: {} ({})", id, smell.smell_type);
             improvements.push(Improvement {
                 id: id.to_string(),
                 improvement_type: ImprovementType::Fixed,
@@ -182,6 +191,7 @@ mod tests {
             files: vec!["test.ts".to_string()],
             metrics: HashMap::new(),
             details: None,
+            locations: vec![],
         }
     }
 

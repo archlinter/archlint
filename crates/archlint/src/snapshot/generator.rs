@@ -15,6 +15,7 @@ pub struct SnapshotGenerator {
 
 impl SnapshotGenerator {
     pub fn new(project_root: PathBuf) -> Self {
+        let project_root = project_root.canonicalize().unwrap_or(project_root);
         Self {
             project_root,
             include_commit: true,
@@ -70,7 +71,33 @@ impl SnapshotGenerator {
             files,
             metrics,
             details,
+            locations: self.extract_locations(smell),
         }
+    }
+
+    fn extract_locations(&self, smell: &ArchSmell) -> Vec<crate::snapshot::types::Location> {
+        smell
+            .locations
+            .iter()
+            .map(|loc| {
+                let file = loc
+                    .file
+                    .strip_prefix(&self.project_root)
+                    .map(|p| p.to_string_lossy().replace('\\', "/"))
+                    .unwrap_or_else(|_| loc.file.to_string_lossy().replace('\\', "/"));
+
+                crate::snapshot::types::Location {
+                    file,
+                    line: loc.line,
+                    column: loc.column,
+                    description: if loc.description.is_empty() {
+                        None
+                    } else {
+                        Some(loc.description.clone())
+                    },
+                }
+            })
+            .collect()
     }
 
     fn extract_metrics(&self, smell: &ArchSmell) -> HashMap<String, MetricValue> {

@@ -179,6 +179,10 @@ pub struct DiffArgs {
     /// Project path
     #[arg(short, long)]
     pub path: Option<PathBuf>,
+
+    /// Verbose output
+    #[arg(short, long, action = clap::ArgAction::SetTrue)]
+    pub verbose: bool,
 }
 
 #[derive(Parser, Debug)]
