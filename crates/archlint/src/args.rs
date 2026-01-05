@@ -74,6 +74,10 @@ pub struct ScanArgs {
     #[cfg_attr(feature = "cli", arg(long, default_value = "false"))]
     pub no_git: bool,
 
+    /// Git history analysis period (e.g. "90d", "1y", "all")
+    #[cfg_attr(feature = "cli", arg(long, value_name = "PERIOD"))]
+    pub git_history_period: Option<String>,
+
     /// Explicit list of files to scan (internal use for glob expansion)
     #[cfg_attr(feature = "cli", arg(skip))]
     pub files: Option<Vec<PathBuf>>,

@@ -75,6 +75,9 @@ impl AnalysisEngine {
         if args.no_git {
             config.enable_git = false;
         }
+        if let Some(ref period) = args.git_history_period {
+            config.git.history_period = period.clone();
+        }
 
         Ok(Self {
             args,
@@ -544,18 +547,21 @@ impl AnalysisEngine {
             return cached_churn.clone();
         }
         match GitHistoryCache::open(&self.project_root) {
-            Ok(git_cache) => match git_cache.get_churn_map(files, use_progress) {
-                Ok(map) => {
-                    if let Some(ref mut c) = cache {
-                        c.insert_churn_map(map.clone());
+            Ok(git_cache) => {
+                match git_cache.get_churn_map(files, use_progress, &self.config.git.history_period)
+                {
+                    Ok(map) => {
+                        if let Some(ref mut c) = cache {
+                            c.insert_churn_map(map.clone());
+                        }
+                        map
                     }
-                    map
+                    Err(e) => {
+                        debug!("Git history cache calculation failed: {}, skipping", e);
+                        HashMap::new()
+                    }
                 }
-                Err(e) => {
-                    debug!("Git history cache calculation failed: {}, skipping", e);
-                    HashMap::new()
-                }
-            },
+            }
             Err(e) => {
                 debug!(
                     "Failed to open git history cache: {}, skipping churn calculation",
