@@ -161,13 +161,29 @@ impl DeadSymbolsDetector {
         symbol_usages: &HashMap<(PathBuf, String), HashSet<PathBuf>>,
         ctx: &AnalysisContext,
     ) -> Vec<ArchSmell> {
+        let ignored_methods = Self::build_ignored_methods_set(ctx);
         let mut smells = Vec::new();
 
-        // 1. Start with base ignored methods
+        for (file_path, symbols) in file_symbols {
+            for class in &symbols.classes {
+                smells.extend(Self::check_class_methods(
+                    file_path,
+                    class,
+                    symbols,
+                    file_symbols,
+                    symbol_usages,
+                    &ignored_methods,
+                ));
+            }
+        }
+
+        smells
+    }
+
+    fn build_ignored_methods_set(ctx: &AnalysisContext) -> HashSet<String> {
         let mut ignored_methods: HashSet<String> =
             ["constructor".to_string()].into_iter().collect();
 
-        // 2. Add methods from detected framework presets
         let presets = crate::framework::presets::get_presets(&ctx.detected_frameworks);
         for preset in presets {
             for method in preset.ignore_methods {
@@ -175,72 +191,124 @@ impl DeadSymbolsDetector {
             }
         }
 
-        // 3. Add methods from user config
         for method in &ctx.config.thresholds.dead_symbols.ignore_methods {
             ignored_methods.insert(method.clone());
         }
 
-        for (file_path, symbols) in file_symbols {
-            for class in &symbols.classes {
-                for method in &class.methods {
-                    if ignored_methods.contains(method.name.as_str())
-                        || method.has_decorators
-                        || method.is_accessor
-                    {
-                        continue;
-                    }
+        ignored_methods
+    }
 
-                    let mut is_used = false;
+    fn check_class_methods(
+        file_path: &PathBuf,
+        class: &crate::parser::ClassSymbol,
+        symbols: &FileSymbols,
+        file_symbols: &HashMap<PathBuf, FileSymbols>,
+        symbol_usages: &HashMap<(PathBuf, String), HashSet<PathBuf>>,
+        ignored_methods: &HashSet<String>,
+    ) -> Vec<ArchSmell> {
+        let mut smells = Vec::new();
 
-                    // 1. Check if used locally in the same file
-                    if symbols.local_usages.contains(method.name.as_str()) {
-                        is_used = true;
-                    }
+        for method in &class.methods {
+            if Self::should_skip_method(method, ignored_methods) {
+                continue;
+            }
 
-                    // 2. If not used locally, check if it's a private method
-                    // (if private and not used locally, it's definitely dead)
-                    if !is_used && method.accessibility != Some(MethodAccessibility::Private) {
-                        // 3. For non-private methods, check if any file that imports this class uses the method
-                        let mut all_importers = HashSet::new();
-                        if let Some(importers) =
-                            symbol_usages.get(&(file_path.clone(), class.name.to_string()))
-                        {
-                            all_importers.extend(importers);
-                        }
-                        // Also check namespace imports (*)
-                        if let Some(importers) =
-                            symbol_usages.get(&(file_path.clone(), "*".to_string()))
-                        {
-                            all_importers.extend(importers);
-                        }
-
-                        for importer_path in all_importers {
-                            if let Some(importer_symbols) = file_symbols.get(importer_path) {
-                                if importer_symbols.local_usages.contains(method.name.as_str()) {
-                                    is_used = true;
-                                    break;
-                                }
-                            }
-                        }
-                    }
-
-                    if !is_used {
-                        let mut smell = ArchSmell::new_dead_symbol_with_line(
-                            file_path.clone(),
-                            format!("{}.{}", class.name, method.name),
-                            "Class Method".to_string(),
-                            method.line,
-                        );
-                        if let Some(loc) = smell.locations.first_mut() {
-                            *loc = loc.clone().with_range(method.range);
-                        }
-                        smells.push(smell);
-                    }
-                }
+            if !Self::is_method_used(
+                method,
+                file_path,
+                class,
+                symbols,
+                file_symbols,
+                symbol_usages,
+            ) {
+                smells.push(Self::create_dead_method_smell(file_path, class, method));
             }
         }
 
         smells
+    }
+
+    fn should_skip_method(
+        method: &crate::parser::MethodSymbol,
+        ignored_methods: &HashSet<String>,
+    ) -> bool {
+        ignored_methods.contains(method.name.as_str())
+            || method.has_decorators
+            || method.is_accessor
+    }
+
+    fn is_method_used(
+        method: &crate::parser::MethodSymbol,
+        file_path: &PathBuf,
+        class: &crate::parser::ClassSymbol,
+        symbols: &FileSymbols,
+        file_symbols: &HashMap<PathBuf, FileSymbols>,
+        symbol_usages: &HashMap<(PathBuf, String), HashSet<PathBuf>>,
+    ) -> bool {
+        if symbols.local_usages.contains(method.name.as_str()) {
+            return true;
+        }
+
+        if method.accessibility == Some(MethodAccessibility::Private) {
+            return false;
+        }
+
+        Self::is_method_used_in_importers(method, file_path, class, file_symbols, symbol_usages)
+    }
+
+    fn is_method_used_in_importers(
+        method: &crate::parser::MethodSymbol,
+        file_path: &PathBuf,
+        class: &crate::parser::ClassSymbol,
+        file_symbols: &HashMap<PathBuf, FileSymbols>,
+        symbol_usages: &HashMap<(PathBuf, String), HashSet<PathBuf>>,
+    ) -> bool {
+        let all_importers = Self::collect_class_importers(file_path, class, symbol_usages);
+
+        for importer_path in all_importers {
+            if let Some(importer_symbols) = file_symbols.get(&importer_path) {
+                if importer_symbols.local_usages.contains(method.name.as_str()) {
+                    return true;
+                }
+            }
+        }
+
+        false
+    }
+
+    fn collect_class_importers(
+        file_path: &PathBuf,
+        class: &crate::parser::ClassSymbol,
+        symbol_usages: &HashMap<(PathBuf, String), HashSet<PathBuf>>,
+    ) -> HashSet<PathBuf> {
+        let mut all_importers = HashSet::new();
+
+        if let Some(importers) = symbol_usages.get(&(file_path.clone(), class.name.to_string())) {
+            all_importers.extend(importers.iter().cloned());
+        }
+
+        if let Some(importers) = symbol_usages.get(&(file_path.clone(), "*".to_string())) {
+            all_importers.extend(importers.iter().cloned());
+        }
+
+        all_importers
+    }
+
+    fn create_dead_method_smell(
+        file_path: &PathBuf,
+        class: &crate::parser::ClassSymbol,
+        method: &crate::parser::MethodSymbol,
+    ) -> ArchSmell {
+        let mut smell = ArchSmell::new_dead_symbol_with_line(
+            file_path.clone(),
+            format!("{}.{}", class.name, method.name),
+            "Class Method".to_string(),
+            method.line,
+        );
+        if let Some(loc) = smell.locations.first_mut() {
+            *loc = loc.clone().with_range(method.range);
+        }
+        smell
     }
 
     fn check_dead_exports(
