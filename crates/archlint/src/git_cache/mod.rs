@@ -1,7 +1,7 @@
 mod storage;
 
 use crate::Result;
-use chrono::{Duration, Utc};
+use chrono::{Datelike, Duration, Utc};
 use git2::{DiffOptions, Repository};
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
@@ -74,14 +74,20 @@ impl GitHistoryCache {
         let mut revwalk = self.repo.revwalk()?;
         if revwalk.push_head().is_err() {
             log::warn!("Could not find HEAD for git history analysis; returning empty commit list");
+            return Ok(Vec::new());
         }
 
         let mut oids = Vec::new();
         for oid in revwalk.flatten() {
             if let Some(cutoff) = cutoff_time {
-                if let Ok(commit) = self.repo.find_commit(oid) {
-                    if commit.time().seconds() >= cutoff {
-                        oids.push(oid);
+                match self.repo.find_commit(oid) {
+                    Ok(commit) => {
+                        if commit.time().seconds() >= cutoff {
+                            oids.push(oid);
+                        }
+                    }
+                    Err(e) => {
+                        log::debug!("Failed to find commit {}: {}", oid, e);
                     }
                 }
             } else {
@@ -205,54 +211,38 @@ fn parse_history_period(period: &str) -> crate::Result<Option<i64>> {
     }
 
     let now = Utc::now();
-    let duration = if let Some(stripped) = period.strip_suffix('d') {
-        let val = stripped.parse::<i64>().map_err(|_| {
-            crate::AnalysisError::InvalidConfig(format!(
-                "Invalid number in git history period '{}'. Expected positive integer followed by 'd', 'm', or 'y'.",
-                period
-            ))
-        })?;
-        if val <= 0 {
-            return Err(crate::AnalysisError::InvalidConfig(format!(
-                "Git history period value must be positive, got '{}'",
-                period
-            )));
-        }
-        Duration::days(val)
-    } else if let Some(stripped) = period.strip_suffix('m') {
-        let val = stripped.parse::<i64>().map_err(|_| {
-            crate::AnalysisError::InvalidConfig(format!(
-                "Invalid number in git history period '{}'. Expected positive integer followed by 'd', 'm', or 'y'.",
-                period
-            ))
-        })?;
-        if val <= 0 {
-            return Err(crate::AnalysisError::InvalidConfig(format!(
-                "Git history period value must be positive, got '{}'",
-                period
-            )));
-        }
-        Duration::days(val * 30)
-    } else if let Some(stripped) = period.strip_suffix('y') {
-        let val = stripped.parse::<i64>().map_err(|_| {
-            crate::AnalysisError::InvalidConfig(format!(
-                "Invalid number in git history period '{}'. Expected positive integer followed by 'd', 'm', or 'y'.",
-                period
-            ))
-        })?;
-        if val <= 0 {
-            return Err(crate::AnalysisError::InvalidConfig(format!(
-                "Git history period value must be positive, got '{}'",
-                period
-            )));
-        }
-        Duration::days(val * 365)
-    } else {
+    let (val_str, suffix) = period.split_at(period.len().saturating_sub(1));
+    let val = val_str.parse::<i64>().map_err(|_| {
+        crate::AnalysisError::InvalidConfig(format!(
+            "Invalid number in git history period '{}'. Expected positive integer followed by 'd', 'm', or 'y'.",
+            period
+        ))
+    })?;
+
+    if val <= 0 {
         return Err(crate::AnalysisError::InvalidConfig(format!(
-            "Invalid git history period '{}'. Expected format like '90d', '6m', '1y' or 'all'.",
+            "Git history period value must be positive, got '{}'",
             period
         )));
+    }
+
+    let cutoff = match suffix {
+        "d" => (now - Duration::days(val)).timestamp(),
+        "m" => now
+            .checked_sub_months(chrono::Months::new(val as u32))
+            .map(|dt| dt.timestamp())
+            .unwrap_or(0),
+        "y" => now
+            .with_year(now.year() - val as i32)
+            .map(|dt| dt.timestamp())
+            .unwrap_or(0),
+        _ => {
+            return Err(crate::AnalysisError::InvalidConfig(format!(
+                "Invalid git history period '{}'. Expected format like '90d', '6m', '1y' or 'all'.",
+                period
+            )));
+        }
     };
 
-    Ok(Some((now - duration).timestamp()))
+    Ok(Some(cutoff))
 }
