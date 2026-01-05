@@ -462,7 +462,7 @@ jobs:
 
   attach-binaries:
     name: Attach binaries to release
-    if: startsWith(github.ref, 'refs/tags/v')
+    if: startsWith(github.ref, 'refs/tags/v') && !contains(github.ref, 'canary')
     needs: [publish]
     runs-on: ubuntu-latest
     permissions:
