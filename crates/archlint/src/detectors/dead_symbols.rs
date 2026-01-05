@@ -199,7 +199,7 @@ impl DeadSymbolsDetector {
     }
 
     fn check_class_methods(
-        file_path: &PathBuf,
+        file_path: &Path,
         class: &crate::parser::ClassSymbol,
         symbols: &FileSymbols,
         file_symbols: &HashMap<PathBuf, FileSymbols>,
@@ -239,7 +239,7 @@ impl DeadSymbolsDetector {
 
     fn is_method_used(
         method: &crate::parser::MethodSymbol,
-        file_path: &PathBuf,
+        file_path: &Path,
         class: &crate::parser::ClassSymbol,
         symbols: &FileSymbols,
         file_symbols: &HashMap<PathBuf, FileSymbols>,
@@ -258,7 +258,7 @@ impl DeadSymbolsDetector {
 
     fn is_method_used_in_importers(
         method: &crate::parser::MethodSymbol,
-        file_path: &PathBuf,
+        file_path: &Path,
         class: &crate::parser::ClassSymbol,
         file_symbols: &HashMap<PathBuf, FileSymbols>,
         symbol_usages: &HashMap<(PathBuf, String), HashSet<PathBuf>>,
@@ -277,17 +277,19 @@ impl DeadSymbolsDetector {
     }
 
     fn collect_class_importers(
-        file_path: &PathBuf,
+        file_path: &Path,
         class: &crate::parser::ClassSymbol,
         symbol_usages: &HashMap<(PathBuf, String), HashSet<PathBuf>>,
     ) -> HashSet<PathBuf> {
         let mut all_importers = HashSet::new();
+        let file_path_buf = file_path.to_path_buf();
 
-        if let Some(importers) = symbol_usages.get(&(file_path.clone(), class.name.to_string())) {
+        if let Some(importers) = symbol_usages.get(&(file_path_buf.clone(), class.name.to_string()))
+        {
             all_importers.extend(importers.iter().cloned());
         }
 
-        if let Some(importers) = symbol_usages.get(&(file_path.clone(), "*".to_string())) {
+        if let Some(importers) = symbol_usages.get(&(file_path_buf.clone(), "*".to_string())) {
             all_importers.extend(importers.iter().cloned());
         }
 
@@ -295,12 +297,12 @@ impl DeadSymbolsDetector {
     }
 
     fn create_dead_method_smell(
-        file_path: &PathBuf,
+        file_path: &Path,
         class: &crate::parser::ClassSymbol,
         method: &crate::parser::MethodSymbol,
     ) -> ArchSmell {
         let mut smell = ArchSmell::new_dead_symbol_with_line(
-            file_path.clone(),
+            file_path.to_path_buf(),
             format!("{}.{}", class.name, method.name),
             "Class Method".to_string(),
             method.line,

@@ -65,7 +65,7 @@ impl IncrementalState {
         }
     }
 
-    fn resolve_symbols_paths(symbols: &mut FileSymbols, file: &PathBuf, resolver: &PathResolver) {
+    fn resolve_symbols_paths(symbols: &mut FileSymbols, file: &Path, resolver: &PathResolver) {
         for import in &mut symbols.imports {
             if let Some(resolved) = resolver
                 .resolve(import.source.as_str(), file)
@@ -87,28 +87,29 @@ impl IncrementalState {
 
     fn update_file_data(
         &mut self,
-        file: &PathBuf,
+        file: &Path,
         parsed: &ParsedFile,
         hash: String,
         skip_hash_update: bool,
     ) {
+        let file_path_buf = file.to_path_buf();
         self.file_symbols_mut()
-            .insert(file.clone(), parsed.symbols.clone());
+            .insert(file_path_buf.clone(), parsed.symbols.clone());
         self.file_metrics_mut().insert(
-            file.clone(),
+            file_path_buf.clone(),
             crate::engine::context::FileMetrics {
                 lines: parsed.lines,
             },
         );
         self.function_complexity_mut()
-            .insert(file.clone(), parsed.functions.clone());
+            .insert(file_path_buf.clone(), parsed.functions.clone());
 
         if !skip_hash_update {
-            self.file_hashes.insert(file.clone(), hash);
+            self.file_hashes.insert(file_path_buf, hash);
         }
     }
 
-    fn update_graph_dependencies(&mut self, file: &PathBuf, symbols: &FileSymbols) {
+    fn update_graph_dependencies(&mut self, file: &Path, symbols: &FileSymbols) {
         let from_node = self.graph_mut().add_file(file);
 
         for import in &symbols.imports {
@@ -125,7 +126,7 @@ impl IncrementalState {
                 self.reverse_deps
                     .entry(resolved)
                     .or_default()
-                    .insert(file.clone());
+                    .insert(file.to_path_buf());
             }
         }
     }
