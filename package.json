@@ -24,7 +24,7 @@
     "fmt": "cargo fmt",
     "clippy": "cargo clippy --workspace --all-targets --all-features -- -D warnings",
     "clippy:lib": "cargo clippy --workspace --all-targets --no-default-features -- -D warnings",
-    "clippy:fix": "cargo clippy --workspace --all-targets --all-features --fix -- -D warnings",
+    "clippy:fix": "cargo fix --workspace --allow-dirty --all-targets --all-features",
     "prepare": "simple-git-hooks",
     "clean": "pnpm -r clean && cargo clean",
     "copy-bins": "node scripts/copy-binaries.cjs",

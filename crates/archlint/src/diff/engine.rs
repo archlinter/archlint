@@ -110,6 +110,20 @@ impl DiffEngine {
             improvements.extend(metric_improvements);
         }
 
+        // Sort regressions by severity (Critical > High > Medium > Low)
+        regressions.sort_by(|a, b| {
+            let score_a = Self::severity_score(&a.smell.severity);
+            let score_b = Self::severity_score(&b.smell.severity);
+            score_b.cmp(&score_a) // Higher severity first
+        });
+
+        // Sort improvements by type priority (Fixed > SeverityDecrease > MetricImprovement)
+        improvements.sort_by(|a, b| {
+            let priority_a = Self::improvement_priority(&a.improvement_type);
+            let priority_b = Self::improvement_priority(&b.improvement_type);
+            priority_a.cmp(&priority_b) // Higher priority first
+        });
+
         // Build summary
         let summary = DiffSummary {
             new_smells: regressions
@@ -175,6 +189,26 @@ impl DiffEngine {
             })
         } else {
             None
+        }
+    }
+
+    /// Get numeric score for severity (higher = more severe)
+    fn severity_score(severity: &str) -> u8 {
+        match severity.to_lowercase().as_str() {
+            "critical" => 4,
+            "high" => 3,
+            "medium" => 2,
+            "low" => 1,
+            _ => 0,
+        }
+    }
+
+    /// Get priority for improvement type (higher = more important)
+    fn improvement_priority(improvement_type: &ImprovementType) -> u8 {
+        match improvement_type {
+            ImprovementType::Fixed => 3,
+            ImprovementType::SeverityDecrease { .. } => 2,
+            ImprovementType::MetricImprovement { .. } => 1,
         }
     }
 }
