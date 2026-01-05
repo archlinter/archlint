@@ -1,6 +1,6 @@
 use crate::api::options::ScanOptions;
 use crate::api::result::{IncrementalResult, ScanResult, SmellWithExplanation};
-use crate::args::{Language, OutputFormat, ScanArgs};
+use crate::args::ScanArgs;
 use crate::config::Config;
 use crate::detectors::DetectorRegistry;
 use crate::engine::context::AnalysisContext;
@@ -40,7 +40,7 @@ impl Analyzer {
         };
 
         let project_root = crate::project_root::detect_project_root(path_ref);
-        let args = build_scan_args(&options, path_ref);
+        let args = options.to_scan_args(path_ref);
         let config_hash = compute_config_hash(&config)?;
 
         Ok(Self {
@@ -349,36 +349,6 @@ pub struct StateStats {
     pub files_count: usize,
     pub graph_nodes: usize,
     pub graph_edges: usize,
-}
-
-fn build_scan_args(options: &ScanOptions, path: &Path) -> ScanArgs {
-    ScanArgs {
-        path: path.to_path_buf(),
-        lang: Language::TypeScript,
-        config: options.config_path.clone(),
-        report: None,
-        format: OutputFormat::Table,
-        json: true,
-        no_diagram: true,
-        all_detectors: false,
-        detectors: options.detectors.as_ref().map(|d| d.join(",")),
-        exclude_detectors: if options.exclude_detectors.is_empty() {
-            None
-        } else {
-            Some(options.exclude_detectors.join(","))
-        },
-        quiet: true,
-        verbose: false,
-        min_severity: options
-            .min_severity
-            .map(|s| format!("{:?}", s).to_lowercase()),
-        min_score: options.min_score,
-        severity: None,
-        no_cache: !options.enable_cache,
-        no_git: !options.enable_git,
-        git_history_period: options.git_history_period.clone(),
-        files: None,
-    }
 }
 
 #[cfg(test)]

@@ -2,7 +2,6 @@
 //!
 //! This module provides the stable public interface for programmatic use.
 
-use crate::args::{Language, OutputFormat, ScanArgs};
 use crate::config::Config;
 use crate::detectors::registry::{DetectorInfo, DetectorRegistry};
 use crate::engine::AnalysisEngine;
@@ -41,7 +40,7 @@ pub fn scan<P: AsRef<Path>>(path: P, options: ScanOptions) -> Result<ScanResult>
     };
 
     // 2. Build ScanArgs from options
-    let args = build_scan_args(&options, path_ref);
+    let args = options.to_scan_args(path_ref);
 
     // 3. Run analysis engine
     let engine = AnalysisEngine::new(args, config)?;
@@ -70,36 +69,6 @@ pub fn get_detectors() -> Vec<DetectorInfo> {
 /// Clear the analysis cache for a project
 pub fn clear_cache<P: AsRef<Path>>(path: P) -> Result<()> {
     crate::cache::AnalysisCache::clear(path.as_ref())
-}
-
-fn build_scan_args(options: &ScanOptions, path: &Path) -> ScanArgs {
-    ScanArgs {
-        path: path.to_path_buf(),
-        lang: Language::TypeScript,
-        config: options.config_path.clone(),
-        report: None,
-        format: OutputFormat::Table,
-        json: true, // For structured output
-        no_diagram: true,
-        all_detectors: false,
-        detectors: options.detectors.as_ref().map(|d| d.join(",")),
-        exclude_detectors: if options.exclude_detectors.is_empty() {
-            None
-        } else {
-            Some(options.exclude_detectors.join(","))
-        },
-        quiet: true,
-        verbose: false,
-        min_severity: options
-            .min_severity
-            .map(|s| format!("{:?}", s).to_lowercase()),
-        min_score: options.min_score,
-        severity: None,
-        no_cache: !options.enable_cache,
-        no_git: !options.enable_git,
-        git_history_period: options.git_history_period.clone(),
-        files: None,
-    }
 }
 
 pub(crate) fn build_file_info(
