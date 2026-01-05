@@ -5,164 +5,178 @@
 
 export interface JsScanOptions {
   /** Path to config file */
-  configPath?: string
+  configPath?: string;
   /** Only run these detectors (by ID) */
-  detectors?: Array<string>
+  detectors?: Array<string>;
   /** Exclude these detectors (by ID) */
-  excludeDetectors?: Array<string>
+  excludeDetectors?: Array<string>;
   /** Minimum severity to report */
-  minSeverity?: string
+  minSeverity?: string;
   /** Minimum score to report */
-  minScore?: number
+  minScore?: number;
   /** Enable caching (default: true) */
-  cache?: boolean
+  cache?: boolean;
   /** Enable git integration (default: true) */
-  git?: boolean
+  git?: boolean;
+  /** Git history analysis period (e.g. "90d", "1y", "all") */
+  gitHistoryPeriod?: string;
 }
 export interface JsScanResult {
-  smells: Array<JsSmellWithExplanation>
-  summary: JsSummary
-  files: Array<JsFileInfo>
-  grade: JsArchitectureGrade
-  projectPath: string
+  smells: Array<JsSmellWithExplanation>;
+  summary: JsSummary;
+  files: Array<JsFileInfo>;
+  grade: JsArchitectureGrade;
+  projectPath: string;
 }
 export interface JsIncrementalResult {
-  smells: Array<JsSmellWithExplanation>
-  affectedFiles: Array<string>
-  changedCount: number
-  affectedCount: number
-  analysisTimeMs: number
+  smells: Array<JsSmellWithExplanation>;
+  affectedFiles: Array<string>;
+  changedCount: number;
+  affectedCount: number;
+  analysisTimeMs: number;
 }
 export interface JsSmellWithExplanation {
-  smell: JsSmell
-  explanation: JsExplanation
+  smell: JsSmell;
+  explanation: JsExplanation;
 }
 export interface JsSmell {
-  smellType: string
-  severity: string
-  files: Array<string>
-  locations: Array<JsLocationDetail>
+  smellType: string;
+  severity: string;
+  files: Array<string>;
+  locations: Array<JsLocationDetail>;
   /** Additional metrics as JSON */
-  metrics: Record<string, unknown>
-  cluster?: JsCycleCluster
+  metrics: Record<string, unknown>;
+  cluster?: JsCycleCluster;
 }
 export interface JsLocationDetail {
-  file: string
-  line: number
-  column?: number
-  range?: JsCodeRange
-  description: string
+  file: string;
+  line: number;
+  column?: number;
+  range?: JsCodeRange;
+  description: string;
 }
 export interface JsCodeRange {
-  startLine: number
-  startColumn: number
-  endLine: number
-  endColumn: number
+  startLine: number;
+  startColumn: number;
+  endLine: number;
+  endColumn: number;
 }
 export interface JsExplanation {
-  problem: string
-  reason: string
-  risks: Array<string>
-  recommendations: Array<string>
+  problem: string;
+  reason: string;
+  risks: Array<string>;
+  recommendations: Array<string>;
 }
 export interface JsSummary {
-  filesAnalyzed: number
-  totalSmells: number
-  cyclicDependencies: number
-  cycleClusters: number
-  filesInCycles: number
-  godModules: number
-  deadCode: number
-  deadSymbols: number
-  highComplexityFunctions: number
-  unstableInterfaces: number
-  featureEnvy: number
-  shotgunSurgery: number
-  hubDependencies: number
+  filesAnalyzed: number;
+  totalSmells: number;
+  cyclicDependencies: number;
+  cycleClusters: number;
+  filesInCycles: number;
+  godModules: number;
+  deadCode: number;
+  deadSymbols: number;
+  highComplexityFunctions: number;
+  unstableInterfaces: number;
+  featureEnvy: number;
+  shotgunSurgery: number;
+  hubDependencies: number;
 }
 export interface JsArchitectureGrade {
-  score: number
-  level: string
-  density: number
+  score: number;
+  level: string;
+  density: number;
 }
 export interface JsFileInfo {
-  path: string
-  relativePath: string
-  imports: Array<JsImportInfo>
-  exports: Array<JsExportInfo>
-  metrics: JsFileMetrics
+  path: string;
+  relativePath: string;
+  imports: Array<JsImportInfo>;
+  exports: Array<JsExportInfo>;
+  metrics: JsFileMetrics;
 }
 export interface JsImportInfo {
-  source: string
-  names: Array<string>
-  line: number
-  isDefault: boolean
-  isNamespace: boolean
+  source: string;
+  names: Array<string>;
+  line: number;
+  isDefault: boolean;
+  isNamespace: boolean;
 }
 export interface JsExportInfo {
-  name: string
-  kind: string
-  isDefault: boolean
-  source?: string
+  name: string;
+  kind: string;
+  isDefault: boolean;
+  source?: string;
 }
 export interface JsFileMetrics {
-  lines: number
-  complexity?: number
-  fanIn: number
-  fanOut: number
+  lines: number;
+  complexity?: number;
+  fanIn: number;
+  fanOut: number;
 }
 export interface JsCycleCluster {
-  files: Array<string>
-  hotspots: Array<JsCycleHotspot>
-  criticalEdges: Array<JsCriticalEdge>
+  files: Array<string>;
+  hotspots: Array<JsCycleHotspot>;
+  criticalEdges: Array<JsCriticalEdge>;
 }
 export interface JsCycleHotspot {
-  file: string
-  inDegree: number
-  outDegree: number
+  file: string;
+  inDegree: number;
+  outDegree: number;
 }
 export interface JsCriticalEdge {
-  from: string
-  to: string
-  line: number
-  range?: JsCodeRange
-  impact: string
+  from: string;
+  to: string;
+  line: number;
+  range?: JsCodeRange;
+  impact: string;
 }
 export interface JsDetectorInfo {
-  id: string
-  name: string
-  description: string
-  defaultEnabled: boolean
-  isDeep: boolean
+  id: string;
+  name: string;
+  description: string;
+  defaultEnabled: boolean;
+  isDeep: boolean;
 }
 export interface JsConfig {
-  ignore: Array<string>
-  aliases: Record<string, string>
-  thresholds: Record<string, unknown>
-  entryPoints: Array<string>
-  enableGit: boolean
+  ignore: Array<string>;
+  aliases: Record<string, string>;
+  thresholds: Record<string, unknown>;
+  entryPoints: Array<string>;
+  enableGit: boolean;
 }
 export interface JsStateStats {
-  filesCount: number
-  graphNodes: number
-  graphEdges: number
+  filesCount: number;
+  graphNodes: number;
+  graphEdges: number;
 }
-export declare function scan(path: string, options?: JsScanOptions | undefined | null): Promise<JsScanResult>
-export declare function scanSync(path: string, options?: JsScanOptions | undefined | null): JsScanResult
-export declare function loadConfig(path?: string | undefined | null): JsConfig
-export declare function getDetectors(): Array<JsDetectorInfo>
-export declare function clearCache(path: string): void
+export declare function scan(
+  path: string,
+  options?: JsScanOptions | undefined | null
+): Promise<JsScanResult>;
+export declare function scanSync(
+  path: string,
+  options?: JsScanOptions | undefined | null
+): JsScanResult;
+export declare function loadConfig(path?: string | undefined | null): JsConfig;
+export declare function getDetectors(): Array<JsDetectorInfo>;
+export declare function clearCache(path: string): void;
 export declare class ArchlintAnalyzer {
-  constructor(path: string, options?: JsScanOptions | undefined | null)
-  scan(): Promise<JsScanResult>
-  scanIncremental(changedFiles: Array<string>): Promise<JsIncrementalResult>
-  scanSync(): JsScanResult
-  scanIncrementalSync(changedFiles: Array<string>): JsIncrementalResult
-  scanIncrementalWithOverlaySync(changedFiles: Array<string>, overlays: Record<string, string>): JsIncrementalResult
-  scanIncrementalWithOverlay(changedFiles: Array<string>, overlays: Record<string, string>): Promise<JsIncrementalResult>
-  invalidate(files: Array<string>): void
-  rescan(): Promise<JsScanResult>
-  rescanSync(): JsScanResult
-  getAffectedFiles(changedFiles: Array<string>): Array<string>
-  getStateStats(): JsStateStats
+  constructor(path: string, options?: JsScanOptions | undefined | null);
+  scan(): Promise<JsScanResult>;
+  scanIncremental(changedFiles: Array<string>): Promise<JsIncrementalResult>;
+  scanSync(): JsScanResult;
+  scanIncrementalSync(changedFiles: Array<string>): JsIncrementalResult;
+  scanIncrementalWithOverlaySync(
+    changedFiles: Array<string>,
+    overlays: Record<string, string>
+  ): JsIncrementalResult;
+  scanIncrementalWithOverlay(
+    changedFiles: Array<string>,
+    overlays: Record<string, string>
+  ): Promise<JsIncrementalResult>;
+  invalidate(files: Array<string>): void;
+  rescan(): Promise<JsScanResult>;
+  rescanSync(): JsScanResult;
+  getAffectedFiles(changedFiles: Array<string>): Array<string>;
+  getStateStats(): JsStateStats;
 }

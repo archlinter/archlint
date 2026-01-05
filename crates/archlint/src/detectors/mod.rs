@@ -339,7 +339,7 @@ impl LocationDetail {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Hash, Copy)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Hash, Copy, Default)]
 pub struct CodeRange {
     pub start_line: usize,
     pub start_column: usize,
@@ -640,12 +640,14 @@ impl ArchSmell {
     }
 
     pub fn new_dead_symbol(file: PathBuf, name: String, kind: String) -> Self {
+        let location =
+            LocationDetail::new(file.clone(), 0, format!("{} '{}' definition", kind, name));
         Self {
             smell_type: SmellType::DeadSymbol { name, kind },
             severity: Severity::Low,
             files: vec![file],
             metrics: Vec::new(),
-            locations: Vec::new(),
+            locations: vec![location],
             cluster: None,
         }
     }
@@ -656,7 +658,11 @@ impl ArchSmell {
         kind: String,
         line: usize,
     ) -> Self {
-        let location = LocationDetail::new(file.clone(), line, format!("{} definition", kind));
+        let location = LocationDetail::new(
+            file.clone(),
+            line,
+            format!("{} '{}' definition", kind, name),
+        );
 
         Self {
             smell_type: SmellType::DeadSymbol { name, kind },

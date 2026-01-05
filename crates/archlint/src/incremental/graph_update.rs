@@ -1,7 +1,7 @@
 use super::state::IncrementalState;
 use crate::cache::hash::content_hash;
 use crate::graph::EdgeData;
-use crate::parser::{ImportParser, ParserConfig};
+use crate::parser::{FileSymbols, ImportParser, ParsedFile, ParserConfig};
 use crate::resolver::PathResolver;
 use crate::Result;
 use std::collections::HashMap;
@@ -38,60 +38,97 @@ impl IncrementalState {
         skip_hash_update: bool,
     ) -> Result<()> {
         for file in changed {
-            // 1. Remove old outgoing edges
             self.remove_outgoing_edges(file);
 
-            // 2. Get content and hash
-            let (content, hash) = if let Some(overlay_content) = overlays.get(file) {
-                let h = content_hash(overlay_content);
-                (overlay_content.clone(), h)
-            } else {
-                let content = fs::read_to_string(file)?;
-                let h = content_hash(&content);
-                (content, h)
-            };
+            let (content, hash) = Self::get_file_content_and_hash(file, overlays)?;
+            let mut parsed = parser.parse_code_with_config(&content, file, parser_config)?;
 
-            // 3. Parse file
-            let parsed = parser.parse_code_with_config(&content, file, parser_config)?;
+            Self::resolve_symbols_paths(&mut parsed.symbols, file, resolver);
 
-            // 4. Update symbols, metrics, and hash
-            self.file_symbols_mut()
-                .insert(file.clone(), parsed.symbols.clone());
-            self.file_metrics_mut().insert(
-                file.clone(),
-                crate::engine::context::FileMetrics {
-                    lines: parsed.lines,
-                },
-            );
-            self.function_complexity_mut()
-                .insert(file.clone(), parsed.functions);
+            self.update_file_data(file, &parsed, hash, skip_hash_update);
+            self.update_graph_dependencies(file, &parsed.symbols);
+        }
+        Ok(())
+    }
 
-            if !skip_hash_update {
-                self.file_hashes.insert(file.clone(), hash);
+    fn get_file_content_and_hash(
+        file: &PathBuf,
+        overlays: &HashMap<PathBuf, String>,
+    ) -> Result<(String, String)> {
+        if let Some(overlay_content) = overlays.get(file) {
+            let hash = content_hash(overlay_content);
+            Ok((overlay_content.clone(), hash))
+        } else {
+            let content = fs::read_to_string(file)?;
+            let hash = content_hash(&content);
+            Ok((content, hash))
+        }
+    }
+
+    fn resolve_symbols_paths(symbols: &mut FileSymbols, file: &Path, resolver: &PathResolver) {
+        for import in &mut symbols.imports {
+            if let Some(resolved) = resolver
+                .resolve(import.source.as_str(), file)
+                .ok()
+                .flatten()
+            {
+                import.source = resolved.to_string_lossy().to_string().into();
             }
+        }
 
-            // 5. Update graph and reverse deps
-            let from_node = self.graph_mut().add_file(file);
-            for import in &parsed.symbols.imports {
-                if let Some(resolved) = resolver.resolve(import.source.as_str(), file)? {
-                    let to_node = self.graph_mut().add_file(&resolved);
-                    let edge_data = EdgeData::with_all(
-                        import.line,
-                        import.range,
-                        vec![import.name.to_string()],
-                    );
-                    self.graph_mut()
-                        .add_dependency(from_node, to_node, edge_data);
-
-                    // Update reverse deps
-                    self.reverse_deps
-                        .entry(resolved)
-                        .or_default()
-                        .insert(file.clone());
+        for export in &mut symbols.exports {
+            if let Some(ref source) = export.source {
+                if let Some(resolved) = resolver.resolve(source.as_str(), file).ok().flatten() {
+                    export.source = Some(resolved.to_string_lossy().to_string().into());
                 }
             }
         }
-        Ok(())
+    }
+
+    fn update_file_data(
+        &mut self,
+        file: &Path,
+        parsed: &ParsedFile,
+        hash: String,
+        skip_hash_update: bool,
+    ) {
+        let file_path_buf = file.to_path_buf();
+        self.file_symbols_mut()
+            .insert(file_path_buf.clone(), parsed.symbols.clone());
+        self.file_metrics_mut().insert(
+            file_path_buf.clone(),
+            crate::engine::context::FileMetrics {
+                lines: parsed.lines,
+            },
+        );
+        self.function_complexity_mut()
+            .insert(file_path_buf.clone(), parsed.functions.clone());
+
+        if !skip_hash_update {
+            self.file_hashes.insert(file_path_buf, hash);
+        }
+    }
+
+    fn update_graph_dependencies(&mut self, file: &Path, symbols: &FileSymbols) {
+        let from_node = self.graph_mut().add_file(file);
+
+        for import in &symbols.imports {
+            let source = import.source.as_str();
+            let resolved = PathBuf::from(source);
+
+            if resolved.is_absolute() {
+                let to_node = self.graph_mut().add_file(&resolved);
+                let edge_data =
+                    EdgeData::with_all(import.line, import.range, vec![import.name.to_string()]);
+                self.graph_mut()
+                    .add_dependency(from_node, to_node, edge_data);
+
+                self.reverse_deps
+                    .entry(resolved)
+                    .or_default()
+                    .insert(file.to_path_buf());
+            }
+        }
     }
 
     pub fn remove_outgoing_edges(&mut self, file: &Path) {

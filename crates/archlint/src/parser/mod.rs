@@ -8,7 +8,7 @@ pub use complexity::{calculate_arrow_complexity, calculate_complexity, Complexit
 pub use import_parser::ImportParser;
 pub use line_index::LineIndex;
 pub use types::{
-    ClassSymbol, ExportedSymbol, FileSymbols, FunctionComplexity, ImportedSymbol, MethodSymbol,
-    ParsedFile, ParserConfig, SymbolKind, SymbolName, SymbolSet,
+    ClassSymbol, ExportedSymbol, FileSymbols, FunctionComplexity, ImportedSymbol,
+    MethodAccessibility, MethodSymbol, ParsedFile, ParserConfig, SymbolKind, SymbolName, SymbolSet,
 };
 pub use visitor::UnifiedVisitor;
