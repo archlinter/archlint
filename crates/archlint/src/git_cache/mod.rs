@@ -78,7 +78,18 @@ impl GitHistoryCache {
         }
 
         let mut oids = Vec::new();
-        for oid in revwalk.flatten() {
+        for oid_result in revwalk {
+            let oid = match oid_result {
+                Ok(oid) => oid,
+                Err(e) => {
+                    log::debug!(
+                        "Stopping revwalk due to error (likely shallow clone): {}",
+                        e
+                    );
+                    break;
+                }
+            };
+
             if let Some(cutoff) = cutoff_time {
                 match self.repo.find_commit(oid) {
                     Ok(commit) => {
