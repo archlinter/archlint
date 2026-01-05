@@ -72,7 +72,9 @@ impl GitHistoryCache {
 
     fn get_filtered_oids(&self, cutoff_time: Option<i64>) -> Result<Vec<git2::Oid>> {
         let mut revwalk = self.repo.revwalk()?;
-        revwalk.push_head().ok();
+        if revwalk.push_head().is_err() {
+            log::warn!("Could not find HEAD for git history analysis; returning empty commit list");
+        }
 
         let mut oids = Vec::new();
         for oid in revwalk.flatten() {
