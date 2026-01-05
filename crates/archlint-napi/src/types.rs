@@ -19,6 +19,8 @@ pub struct JsScanOptions {
     pub cache: Option<bool>,
     /// Enable git integration (default: true)
     pub git: Option<bool>,
+    /// Git history analysis period (e.g. "90d", "1y", "all")
+    pub git_history_period: Option<String>,
 }
 
 // ============ Results ============
@@ -208,6 +210,7 @@ impl From<JsScanOptions> for archlint::ScanOptions {
             min_score: opts.min_score,
             enable_cache: opts.cache.unwrap_or(true),
             enable_git: opts.git.unwrap_or(true),
+            git_history_period: opts.git_history_period,
         }
     }
 }

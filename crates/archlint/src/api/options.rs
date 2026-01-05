@@ -1,7 +1,8 @@
+use crate::args::{Language, OutputFormat, ScanArgs};
 use crate::config::Config;
 use crate::detectors::Severity;
 use serde::{Deserialize, Serialize};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 /// Options for scanning a project (library-friendly version of ScanArgs)
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
@@ -30,6 +31,9 @@ pub struct ScanOptions {
 
     /// Enable git integration (default: true)
     pub enable_git: bool,
+
+    /// Git history analysis period (e.g. "90d", "1y", "all")
+    pub git_history_period: Option<String>,
 }
 
 impl ScanOptions {
@@ -38,6 +42,34 @@ impl ScanOptions {
             enable_cache: true,
             enable_git: true,
             ..Default::default()
+        }
+    }
+
+    pub fn to_scan_args(&self, path: &Path) -> ScanArgs {
+        ScanArgs {
+            path: path.to_path_buf(),
+            lang: Language::TypeScript,
+            config: self.config_path.clone(),
+            report: None,
+            format: OutputFormat::Table,
+            json: true, // For structured output
+            no_diagram: true,
+            all_detectors: false,
+            detectors: self.detectors.as_ref().map(|d| d.join(",")),
+            exclude_detectors: if self.exclude_detectors.is_empty() {
+                None
+            } else {
+                Some(self.exclude_detectors.join(","))
+            },
+            quiet: true,
+            verbose: false,
+            min_severity: self.min_severity.map(|s| format!("{:?}", s).to_lowercase()),
+            min_score: self.min_score,
+            severity: None,
+            no_cache: !self.enable_cache,
+            no_git: !self.enable_git,
+            git_history_period: self.git_history_period.clone(),
+            files: None,
         }
     }
 }

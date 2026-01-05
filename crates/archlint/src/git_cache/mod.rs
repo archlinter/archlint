@@ -1,7 +1,7 @@
 mod storage;
 
 use crate::Result;
-use chrono;
+use chrono::{Datelike, Duration, Utc};
 use git2::{DiffOptions, Repository};
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
@@ -49,31 +49,17 @@ impl GitHistoryCache {
     ) -> Result<HashMap<PathBuf, usize>> {
         let mut churn_map: HashMap<PathBuf, usize> = files.iter().map(|f| (f.clone(), 0)).collect();
 
-        let mut revwalk = self.repo.revwalk()?;
-        if revwalk.push_head().is_err() {
-            return Ok(churn_map);
-        }
+        let cutoff_time = parse_history_period(history_period)?;
 
-        let cutoff_time = parse_history_period(history_period);
-
-        let pb = if show_progress {
+        let (pb, oids) = if show_progress {
             self.create_progress_bar(cutoff_time)?
         } else {
-            None
+            (None, self.get_filtered_oids(cutoff_time)?)
         };
 
         let workdir = self.repo.workdir().unwrap_or(&self.project_root);
 
-        for oid in revwalk {
-            let oid = oid?;
-
-            if let Some(cutoff) = cutoff_time {
-                let commit = self.repo.find_commit(oid)?;
-                if commit.time().seconds() < cutoff {
-                    continue;
-                }
-            }
-
+        for oid in oids {
             self.process_single_oid(oid, &mut churn_map, workdir, pb.as_ref())?;
         }
 
@@ -82,6 +68,44 @@ impl GitHistoryCache {
         }
 
         Ok(churn_map)
+    }
+
+    fn get_filtered_oids(&self, cutoff_time: Option<i64>) -> Result<Vec<git2::Oid>> {
+        let mut revwalk = self.repo.revwalk()?;
+        if revwalk.push_head().is_err() {
+            log::warn!("Could not find HEAD for git history analysis; returning empty commit list");
+            return Ok(Vec::new());
+        }
+
+        let mut oids = Vec::new();
+        for oid_result in revwalk {
+            let oid = match oid_result {
+                Ok(oid) => oid,
+                Err(e) => {
+                    log::debug!(
+                        "Stopping revwalk due to error (likely shallow clone): {}",
+                        e
+                    );
+                    break;
+                }
+            };
+
+            if let Some(cutoff) = cutoff_time {
+                match self.repo.find_commit(oid) {
+                    Ok(commit) => {
+                        if commit.time().seconds() >= cutoff {
+                            oids.push(oid);
+                        }
+                    }
+                    Err(e) => {
+                        log::debug!("Failed to find commit {}: {}", oid, e);
+                    }
+                }
+            } else {
+                oids.push(oid);
+            }
+        }
+        Ok(oids)
     }
 
     fn process_single_oid(
@@ -154,27 +178,13 @@ impl GitHistoryCache {
         Ok(CommitData { files_changed })
     }
 
-    fn create_progress_bar(&self, cutoff_time: Option<i64>) -> Result<Option<ProgressBar>> {
-        let mut count_revwalk = self.repo.revwalk()?;
-        if count_revwalk.push_head().is_err() {
-            return Ok(None);
-        }
+    fn create_progress_bar(
+        &self,
+        cutoff_time: Option<i64>,
+    ) -> Result<(Option<ProgressBar>, Vec<git2::Oid>)> {
+        let oids = self.get_filtered_oids(cutoff_time)?;
 
-        let total_commits = if let Some(cutoff) = cutoff_time {
-            let mut count = 0;
-            for oid in count_revwalk.flatten() {
-                if let Ok(commit) = self.repo.find_commit(oid) {
-                    if commit.time().seconds() >= cutoff {
-                        count += 1;
-                    }
-                }
-            }
-            count
-        } else {
-            count_revwalk.count()
-        };
-
-        let pb = ProgressBar::new(total_commits as u64);
+        let pb = ProgressBar::new(oids.len() as u64);
         pb.set_style(
             ProgressStyle::default_bar()
                 .template(
@@ -184,7 +194,7 @@ impl GitHistoryCache {
                 .progress_chars("█▉▊▋▌▍▎▏  "),
         );
         pb.set_message("Analyzing commits (cached)...");
-        Ok(Some(pb))
+        Ok((Some(pb), oids))
     }
 
     pub fn clear(project_root: &Path) -> Result<()> {
@@ -206,27 +216,44 @@ fn resolve_cache_dir(project_root: &Path) -> PathBuf {
     }
 }
 
-fn parse_history_period(period: &str) -> Option<i64> {
+fn parse_history_period(period: &str) -> crate::Result<Option<i64>> {
     if period == "all" {
-        return None;
+        return Ok(None);
     }
 
-    let now = chrono::Utc::now();
-    let duration = if let Some(stripped) = period.strip_suffix('d') {
-        stripped.parse::<i64>().ok().map(chrono::Duration::days)
-    } else if let Some(stripped) = period.strip_suffix('m') {
-        stripped
-            .parse::<i64>()
-            .ok()
-            .map(|m| chrono::Duration::days(m * 30))
-    } else if let Some(stripped) = period.strip_suffix('y') {
-        stripped
-            .parse::<i64>()
-            .ok()
-            .map(|y| chrono::Duration::days(y * 365))
-    } else {
-        Some(chrono::Duration::days(365)) // Default to 1 year if parsing fails
+    let now = Utc::now();
+    let (val_str, suffix) = period.split_at(period.len().saturating_sub(1));
+    let val = val_str.parse::<i64>().map_err(|_| {
+        crate::AnalysisError::InvalidConfig(format!(
+            "Invalid number in git history period '{}'. Expected positive integer followed by 'd', 'm', or 'y'.",
+            period
+        ))
+    })?;
+
+    if val <= 0 {
+        return Err(crate::AnalysisError::InvalidConfig(format!(
+            "Git history period value must be positive, got '{}'",
+            period
+        )));
+    }
+
+    let cutoff = match suffix {
+        "d" => (now - Duration::days(val)).timestamp(),
+        "m" => now
+            .checked_sub_months(chrono::Months::new(val as u32))
+            .map(|dt| dt.timestamp())
+            .unwrap_or(0),
+        "y" => now
+            .with_year(now.year() - val as i32)
+            .map(|dt| dt.timestamp())
+            .unwrap_or(0),
+        _ => {
+            return Err(crate::AnalysisError::InvalidConfig(format!(
+                "Invalid git history period '{}'. Expected format like '90d', '6m', '1y' or 'all'.",
+                period
+            )));
+        }
     };
 
-    duration.map(|d| (now - d).timestamp())
+    Ok(Some(cutoff))
 }
