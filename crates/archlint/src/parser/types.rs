@@ -46,20 +46,47 @@ pub struct ImportedSymbol {
     pub is_reexport: bool,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub enum MethodAccessibility {
+    Public,
+    Protected,
+    Private,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MethodSymbol {
     pub name: SymbolName,
     pub used_fields: SymbolSet,
     pub used_methods: SymbolSet,
+    pub line: usize,
+    pub column: usize,
+    pub range: CodeRange,
+    pub has_decorators: bool,
+    pub is_accessor: bool,
+    pub accessibility: Option<MethodAccessibility>,
 }
 
 impl MethodSymbol {
     #[inline]
-    pub fn new(name: impl Into<SymbolName>) -> Self {
+    pub fn new(
+        name: impl Into<SymbolName>,
+        line: usize,
+        column: usize,
+        range: CodeRange,
+        has_decorators: bool,
+        is_accessor: bool,
+        accessibility: Option<MethodAccessibility>,
+    ) -> Self {
         Self {
             name: name.into(),
             used_fields: SymbolSet::default(),
             used_methods: SymbolSet::default(),
+            line,
+            column,
+            range,
+            has_decorators,
+            is_accessor,
+            accessibility,
         }
     }
 }

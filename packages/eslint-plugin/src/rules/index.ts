@@ -2,6 +2,7 @@ import type { Rule } from 'eslint';
 import { noCycles } from './no-cycles';
 import { noGodModules } from './no-god-modules';
 import { noDeadCode } from './no-dead-code';
+import { noDeadSymbols } from './no-dead-symbols';
 import { noHighCoupling } from './no-high-coupling';
 import { noBarrelAbuse } from './no-barrel-abuse';
 import { noLayerViolations } from './no-layer-violations';
@@ -15,6 +16,7 @@ export const rules: Record<string, Rule.RuleModule> = {
   'no-cycles': noCycles,
   'no-god-modules': noGodModules,
   'no-dead-code': noDeadCode,
+  'no-dead-symbols': noDeadSymbols,
   'no-high-coupling': noHighCoupling,
   'no-barrel-abuse': noBarrelAbuse,
   'no-layer-violations': noLayerViolations,

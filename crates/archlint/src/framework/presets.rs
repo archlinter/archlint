@@ -8,6 +8,7 @@ pub struct FrameworkPreset {
     pub disabled_detectors: Vec<&'static str>,
     pub file_rules: HashMap<FileType, FileRules>,
     pub vendor_ignore: Vec<String>,
+    pub ignore_methods: Vec<&'static str>,
 }
 
 #[derive(Debug, Clone, Default)]
@@ -147,6 +148,18 @@ fn nestjs_preset() -> FrameworkPreset {
             "@fastify/*".to_string(),
             "reflect-metadata".to_string(),
         ],
+        ignore_methods: vec![
+            "onModuleInit",
+            "onApplicationBootstrap",
+            "onModuleDestroy",
+            "beforeApplicationShutdown",
+            "onApplicationShutdown",
+            "intercept",
+            "transform",
+            "canActivate",
+            "resolve",
+            "validate",
+        ],
     }
 }
 
@@ -174,6 +187,7 @@ fn nextjs_preset() -> FrameworkPreset {
         disabled_detectors: vec!["layer_violation", "barrel_file_abuse"],
         file_rules,
         vendor_ignore: vec!["next/*".to_string()],
+        ignore_methods: vec!["getServerSideProps", "getStaticProps", "getStaticPaths"],
     }
 }
 
@@ -201,6 +215,13 @@ fn react_preset() -> FrameworkPreset {
         disabled_detectors: vec!["lcom", "scattered_module", "layer_violation"],
         file_rules,
         vendor_ignore: vec!["react/*".to_string()],
+        ignore_methods: vec![
+            "render",
+            "componentDidMount",
+            "componentDidUpdate",
+            "componentWillUnmount",
+            "shouldComponentUpdate",
+        ],
     }
 }
 
@@ -228,6 +249,7 @@ fn oclif_preset() -> FrameworkPreset {
         disabled_detectors: vec![],
         file_rules,
         vendor_ignore: vec!["@oclif/*".to_string()],
+        ignore_methods: vec!["run", "init", "finally", "catch"],
     }
 }
 

@@ -251,7 +251,7 @@ function shouldRescanFile(state: ProjectState, filePath: string, currentMtime: n
 function handleFileChange(state: ProjectState, filePath: string, currentMtime: number): void {
   const lastMtime = state.fileMtimes.get(filePath);
   const fileChanged = lastMtime !== undefined && currentMtime > lastMtime;
-  
+
   const needsRescan = shouldRescanFile(state, filePath, currentMtime);
   state.fileMtimes.set(filePath, currentMtime);
 
@@ -387,7 +387,8 @@ function matchesSmellType(smellType: string, detectorId: string): boolean {
   // "dead" + "code" should match "deadcode" or "deadsymbol" (for dead_code -> DeadSymbol)
   // Special cases for detector -> smellType mapping
   const mappings: Record<string, string[]> = {
-    dead_code: ['deadcode', 'deadsymbol'],
+    dead_code: ['deadcode'],
+    dead_symbols: ['deadsymbol'],
     cycles: ['cyclicdependency', 'cyclicdependencycluster'],
     high_coupling: ['highcoupling'],
     high_complexity: ['highcomplexity'],

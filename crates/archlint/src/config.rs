@@ -250,6 +250,19 @@ pub struct Thresholds {
 
     #[serde(default)]
     pub cycles: CyclesThresholds,
+
+    #[serde(default = "default_dead_symbols")]
+    pub dead_symbols: DeadSymbolsThresholds,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize, Default)]
+pub struct DeadSymbolsThresholds {
+    #[serde(default)]
+    pub ignore_methods: Vec<String>,
+}
+
+fn default_dead_symbols() -> DeadSymbolsThresholds {
+    DeadSymbolsThresholds::default()
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
@@ -752,6 +765,7 @@ impl Default for Thresholds {
             orphan_types: default_orphan_types(),
             abstractness: default_abstractness(),
             scattered_config: default_scattered_config(),
+            dead_symbols: default_dead_symbols(),
             cycles: default_cycles_thresholds(),
         }
     }

@@ -2,8 +2,8 @@ use crate::detectors::CodeRange;
 use crate::parser::complexity::{calculate_arrow_complexity, calculate_complexity};
 use crate::parser::line_index::LineIndex;
 use crate::parser::types::{
-    ClassSymbol, ExportedSymbol, FunctionComplexity, ImportedSymbol, MethodSymbol, ParserConfig,
-    SymbolKind, SymbolName, SymbolSet,
+    ClassSymbol, ExportedSymbol, FunctionComplexity, ImportedSymbol, MethodAccessibility,
+    MethodSymbol, ParserConfig, SymbolKind, SymbolName, SymbolSet,
 };
 use compact_str::CompactString;
 use oxc_ast::ast::{Argument, Expression, Function, TSType};
@@ -707,7 +707,28 @@ impl<'a> Visit<'a> for UnifiedVisitor {
 
         let old_method = self.current_method.take();
         if self.config.collect_classes {
-            self.current_method = Some(MethodSymbol::new(name.clone()));
+            let span = it.key.span();
+            let (line_num, col_num) = self.line_index.line_col(span.start as usize);
+            let range = self.get_range(span);
+            let has_decorators = !it.decorators.is_empty();
+            let is_accessor = matches!(
+                it.kind,
+                oxc_ast::ast::MethodDefinitionKind::Get | oxc_ast::ast::MethodDefinitionKind::Set
+            );
+            let accessibility = it.accessibility.map(|a| match a {
+                oxc_ast::ast::TSAccessibility::Public => MethodAccessibility::Public,
+                oxc_ast::ast::TSAccessibility::Protected => MethodAccessibility::Protected,
+                oxc_ast::ast::TSAccessibility::Private => MethodAccessibility::Private,
+            });
+            self.current_method = Some(MethodSymbol::new(
+                name.clone(),
+                line_num,
+                col_num,
+                range,
+                has_decorators,
+                is_accessor,
+                accessibility,
+            ));
         }
 
         self.current_name_override = Some(name);

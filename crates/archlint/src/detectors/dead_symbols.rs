@@ -2,7 +2,7 @@ use crate::config::Config;
 use crate::detectors::DetectorCategory;
 use crate::detectors::{ArchSmell, Detector, DetectorFactory, DetectorInfo};
 use crate::engine::AnalysisContext;
-use crate::parser::{FileSymbols, SymbolKind};
+use crate::parser::{FileSymbols, MethodAccessibility, SymbolKind};
 use inventory;
 use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
@@ -40,7 +40,7 @@ impl Detector for DeadSymbolsDetector {
     }
 
     fn detect(&self, ctx: &AnalysisContext) -> Vec<ArchSmell> {
-        Self::detect_symbols(ctx.file_symbols.as_ref(), &ctx.script_entry_points)
+        Self::detect_symbols(ctx.file_symbols.as_ref(), &ctx.script_entry_points, ctx)
     }
 }
 
@@ -52,6 +52,7 @@ impl DeadSymbolsDetector {
     pub fn detect_symbols(
         file_symbols: &HashMap<PathBuf, FileSymbols>,
         entry_points: &HashSet<PathBuf>,
+        ctx: &AnalysisContext,
     ) -> Vec<ArchSmell> {
         let all_project_usages = Self::collect_all_usages(file_symbols);
         let symbol_usages = Self::build_symbol_imports_map(file_symbols);
@@ -60,6 +61,12 @@ impl DeadSymbolsDetector {
         all_smells.extend(Self::check_dead_local_symbols(
             file_symbols,
             &all_project_usages,
+        ));
+        all_smells.extend(Self::check_dead_methods(
+            file_symbols,
+            &all_project_usages,
+            &symbol_usages,
+            ctx,
         ));
         all_smells.extend(Self::check_dead_exports(
             file_symbols,
@@ -97,6 +104,30 @@ impl DeadSymbolsDetector {
         symbol_usages
     }
 
+    fn is_symbol_imported(
+        symbol_usages: &HashMap<(PathBuf, String), HashSet<PathBuf>>,
+        file_path: &Path,
+        symbol_name: &str,
+    ) -> bool {
+        // Check for named import
+        if let Some(importers) =
+            symbol_usages.get(&(file_path.to_path_buf(), symbol_name.to_string()))
+        {
+            if !importers.is_empty() {
+                return true;
+            }
+        }
+
+        // Check for namespace import (*)
+        if let Some(importers) = symbol_usages.get(&(file_path.to_path_buf(), "*".to_string())) {
+            if !importers.is_empty() {
+                return true;
+            }
+        }
+
+        false
+    }
+
     fn check_dead_local_symbols(
         file_symbols: &HashMap<PathBuf, FileSymbols>,
         all_project_usages: &HashSet<String>,
@@ -117,6 +148,94 @@ impl DeadSymbolsDetector {
                         local_def.to_string(),
                         "Local Variable/Function".to_string(),
                     ));
+                }
+            }
+        }
+
+        smells
+    }
+
+    fn check_dead_methods(
+        file_symbols: &HashMap<PathBuf, FileSymbols>,
+        _all_project_usages: &HashSet<String>,
+        symbol_usages: &HashMap<(PathBuf, String), HashSet<PathBuf>>,
+        ctx: &AnalysisContext,
+    ) -> Vec<ArchSmell> {
+        let mut smells = Vec::new();
+
+        // 1. Start with base ignored methods
+        let mut ignored_methods: HashSet<String> =
+            ["constructor".to_string()].into_iter().collect();
+
+        // 2. Add methods from detected framework presets
+        let presets = crate::framework::presets::get_presets(&ctx.detected_frameworks);
+        for preset in presets {
+            for method in preset.ignore_methods {
+                ignored_methods.insert(method.to_string());
+            }
+        }
+
+        // 3. Add methods from user config
+        for method in &ctx.config.thresholds.dead_symbols.ignore_methods {
+            ignored_methods.insert(method.clone());
+        }
+
+        for (file_path, symbols) in file_symbols {
+            for class in &symbols.classes {
+                for method in &class.methods {
+                    if ignored_methods.contains(method.name.as_str())
+                        || method.has_decorators
+                        || method.is_accessor
+                    {
+                        continue;
+                    }
+
+                    let mut is_used = false;
+
+                    // 1. Check if used locally in the same file
+                    if symbols.local_usages.contains(method.name.as_str()) {
+                        is_used = true;
+                    }
+
+                    // 2. If not used locally, check if it's a private method
+                    // (if private and not used locally, it's definitely dead)
+                    if !is_used && method.accessibility != Some(MethodAccessibility::Private) {
+                        // 3. For non-private methods, check if any file that imports this class uses the method
+                        let mut all_importers = HashSet::new();
+                        if let Some(importers) =
+                            symbol_usages.get(&(file_path.clone(), class.name.to_string()))
+                        {
+                            all_importers.extend(importers);
+                        }
+                        // Also check namespace imports (*)
+                        if let Some(importers) =
+                            symbol_usages.get(&(file_path.clone(), "*".to_string()))
+                        {
+                            all_importers.extend(importers);
+                        }
+
+                        for importer_path in all_importers {
+                            if let Some(importer_symbols) = file_symbols.get(importer_path) {
+                                if importer_symbols.local_usages.contains(method.name.as_str()) {
+                                    is_used = true;
+                                    break;
+                                }
+                            }
+                        }
+                    }
+
+                    if !is_used {
+                        let mut smell = ArchSmell::new_dead_symbol_with_line(
+                            file_path.clone(),
+                            format!("{}.{}", class.name, method.name),
+                            "Class Method".to_string(),
+                            method.line,
+                        );
+                        if let Some(loc) = smell.locations.first_mut() {
+                            *loc = loc.clone().with_range(method.range);
+                        }
+                        smells.push(smell);
+                    }
                 }
             }
         }
@@ -166,8 +285,7 @@ impl DeadSymbolsDetector {
         symbol_usages: &HashMap<(PathBuf, String), HashSet<PathBuf>>,
         all_project_usages: &HashSet<String>,
     ) -> Option<ArchSmell> {
-        let usages = symbol_usages.get(&(file_path.to_path_buf(), export.name.to_string()));
-        let is_imported = usages.is_some() && !usages.unwrap().is_empty();
+        let is_imported = Self::is_symbol_imported(symbol_usages, file_path, export.name.as_str());
         let is_used_by_name = all_project_usages.contains(export.name.as_str());
 
         if is_imported || is_used_by_name {
@@ -197,5 +315,128 @@ impl DeadSymbolsDetector {
             _ => "Symbol",
         }
         .to_string()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::engine::AnalysisContext;
+    use crate::parser::ImportParser;
+    use std::sync::Arc;
+
+    #[test]
+    fn test_detect_unused_private_method() {
+        let code = r#"
+            class MyService {
+                private usedMethod() {
+                    return 1;
+                }
+                private unusedMethod() {
+                    return 2;
+                }
+                public main() {
+                    return this.usedMethod();
+                }
+            }
+        "#;
+        let path = PathBuf::from("service.ts");
+        let parser = ImportParser::new().unwrap();
+        let parsed = parser.parse_code(code, &path).unwrap();
+
+        let mut file_symbols = HashMap::new();
+        file_symbols.insert(path.clone(), parsed.symbols);
+
+        let mut ctx = AnalysisContext::default_for_test();
+        ctx.file_symbols = Arc::new(file_symbols);
+
+        let detector = DeadSymbolsDetector;
+        let smells = detector.detect(&ctx);
+
+        let unused_smells: Vec<_> = smells
+            .iter()
+            .filter(|s| match &s.smell_type {
+                crate::detectors::SmellType::DeadSymbol { name, .. } => {
+                    name.contains("unusedMethod")
+                }
+                _ => false,
+            })
+            .collect();
+
+        assert_eq!(unused_smells.len(), 1);
+        if let crate::detectors::SmellType::DeadSymbol { name, .. } = &unused_smells[0].smell_type {
+            assert!(name.contains("MyService.unusedMethod"));
+        } else {
+            panic!("Expected DeadSymbol smell type");
+        }
+    }
+
+    #[test]
+    fn test_detect_unused_public_method_with_name_collision() {
+        let service_code = r#"
+            export class MetricsService {
+                public usedMethod() { return 1; }
+                public unusedMethod() { return 2; }
+            }
+        "#;
+        let other_service_code = r#"
+            export class OtherService {
+                public unusedMethod() { return 3; }
+                public main() { return this.unusedMethod(); }
+            }
+        "#;
+        let consumer_code = r#"
+            import { MetricsService } from './metrics.service';
+            class Consumer {
+                constructor(private metrics: MetricsService) {}
+                run() { this.metrics.usedMethod(); }
+            }
+        "#;
+
+        let path1 = PathBuf::from("metrics.service.ts");
+        let path2 = PathBuf::from("other.service.ts");
+        let path3 = PathBuf::from("consumer.ts");
+
+        let parser = ImportParser::new().unwrap();
+        let parsed1 = parser.parse_code(service_code, &path1).unwrap();
+        let parsed2 = parser.parse_code(other_service_code, &path2).unwrap();
+        let parsed3 = parser.parse_code(consumer_code, &path3).unwrap();
+
+        let mut file_symbols = HashMap::new();
+        file_symbols.insert(path1.clone(), parsed1.symbols);
+        file_symbols.insert(path2.clone(), parsed2.symbols);
+        file_symbols.insert(path3.clone(), parsed3.symbols);
+
+        let mut ctx = AnalysisContext::default_for_test();
+        ctx.file_symbols = Arc::new(file_symbols);
+
+        let detector = DeadSymbolsDetector;
+        let smells = detector.detect(&ctx);
+
+        // MetricsService.unusedMethod should be dead, even though other.service.ts uses "unusedMethod"
+        let metrics_unused = smells.iter().find(|s| {
+            if let crate::detectors::SmellType::DeadSymbol { name, .. } = &s.smell_type {
+                name == "MetricsService.unusedMethod"
+            } else {
+                false
+            }
+        });
+        assert!(
+            metrics_unused.is_some(),
+            "MetricsService.unusedMethod should be reported as dead"
+        );
+
+        // OtherService.unusedMethod should NOT be dead because it's used locally
+        let other_unused = smells.iter().find(|s| {
+            if let crate::detectors::SmellType::DeadSymbol { name, .. } = &s.smell_type {
+                name == "OtherService.unusedMethod"
+            } else {
+                false
+            }
+        });
+        assert!(
+            other_unused.is_none(),
+            "OtherService.unusedMethod should NOT be reported as dead"
+        );
     }
 }

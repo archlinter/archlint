@@ -52,9 +52,27 @@ impl IncrementalState {
             };
 
             // 3. Parse file
-            let parsed = parser.parse_code_with_config(&content, file, parser_config)?;
+            let mut parsed = parser.parse_code_with_config(&content, file, parser_config)?;
 
-            // 4. Update symbols, metrics, and hash
+            // 4. Resolve imports/exports in symbols
+            for import in &mut parsed.symbols.imports {
+                if let Some(resolved) = resolver
+                    .resolve(import.source.as_str(), file)
+                    .ok()
+                    .flatten()
+                {
+                    import.source = resolved.to_string_lossy().to_string().into();
+                }
+            }
+            for export in &mut parsed.symbols.exports {
+                if let Some(ref source) = export.source {
+                    if let Some(resolved) = resolver.resolve(source.as_str(), file).ok().flatten() {
+                        export.source = Some(resolved.to_string_lossy().to_string().into());
+                    }
+                }
+            }
+
+            // 5. Update symbols, metrics, and hash
             self.file_symbols_mut()
                 .insert(file.clone(), parsed.symbols.clone());
             self.file_metrics_mut().insert(
@@ -70,10 +88,14 @@ impl IncrementalState {
                 self.file_hashes.insert(file.clone(), hash);
             }
 
-            // 5. Update graph and reverse deps
+            // 6. Update graph and reverse deps
             let from_node = self.graph_mut().add_file(file);
             for import in &parsed.symbols.imports {
-                if let Some(resolved) = resolver.resolve(import.source.as_str(), file)? {
+                let source = import.source.as_str();
+                let resolved = PathBuf::from(source);
+
+                // Only add to graph if it's an absolute path (meaning it was resolved to a project file)
+                if resolved.is_absolute() {
                     let to_node = self.graph_mut().add_file(&resolved);
                     let edge_data = EdgeData::with_all(
                         import.line,

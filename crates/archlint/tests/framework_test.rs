@@ -1,6 +1,6 @@
-use archlint::detectors::abstractness::AbstractnessViolationDetector;
 use archlint::detectors::lcom::LcomDetector;
 use archlint::detectors::Detector;
+use archlint::detectors::{abstractness::AbstractnessViolationDetector, CodeRange};
 use archlint::engine::AnalysisContext;
 use archlint::framework::{FileType, Framework};
 use archlint::parser::{ClassSymbol, FileSymbols, MethodSymbol};
@@ -18,9 +18,33 @@ fn test_lcom_skips_nestjs_controller() {
 
     // 2. Add a class with low cohesion (3 unconnected methods)
     let mut class = ClassSymbol::new("AppController");
-    class.methods.push(MethodSymbol::new("method1"));
-    class.methods.push(MethodSymbol::new("method2"));
-    class.methods.push(MethodSymbol::new("method3"));
+    class.methods.push(MethodSymbol::new(
+        "method1",
+        0,
+        0,
+        CodeRange::default(),
+        false,
+        false,
+        None,
+    ));
+    class.methods.push(MethodSymbol::new(
+        "method2",
+        0,
+        0,
+        CodeRange::default(),
+        false,
+        false,
+        None,
+    ));
+    class.methods.push(MethodSymbol::new(
+        "method3",
+        0,
+        0,
+        CodeRange::default(),
+        false,
+        false,
+        None,
+    ));
 
     let mut symbols = FileSymbols::default();
     symbols.classes.push(class);
