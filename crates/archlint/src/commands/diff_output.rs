@@ -24,40 +24,48 @@ pub fn print_diff_result(result: &DiffResult, verbose: bool) {
         return;
     }
 
-    // Header
     if result.has_regressions {
-        println!("{}", style("━".repeat(50)).dim());
-        println!(
-            "  {} ({})",
-            style("ARCHITECTURAL REGRESSIONS DETECTED").red().bold(),
-            result.regressions.len()
-        );
-        println!("{}", style("━".repeat(50)).dim());
-        println!();
-
-        if !verbose {
-            print_regressions_table(&result.regressions);
-        } else {
-            // Detailed regressions with explanations
-            for reg in &result.regressions {
-                print_regression(reg, verbose);
-            }
-        }
+        print_regressions_section(result, verbose);
     }
 
-    // Improvements (brief)
     if !result.improvements.is_empty() {
-        if result.has_regressions {
-            println!("{}", style("─".repeat(50)).dim());
-        }
-        println!(
-            "{} {} improvements (smells fixed or reduced)",
-            style("✓").green(),
-            result.improvements.len()
-        );
+        print_improvements_section(result);
     }
 
-    // Footer
+    print_footer(result, verbose);
+}
+
+fn print_regressions_section(result: &DiffResult, verbose: bool) {
+    println!("{}", style("━".repeat(50)).dim());
+    println!(
+        "  {} ({})",
+        style("ARCHITECTURAL REGRESSIONS DETECTED").red().bold(),
+        result.regressions.len()
+    );
+    println!("{}", style("━".repeat(50)).dim());
+    println!();
+
+    if !verbose {
+        print_regressions_table(&result.regressions);
+    } else {
+        for reg in &result.regressions {
+            print_regression(reg, verbose);
+        }
+    }
+}
+
+fn print_improvements_section(result: &DiffResult) {
+    if result.has_regressions {
+        println!("{}", style("─".repeat(50)).dim());
+    }
+    println!(
+        "{} {} improvements (smells fixed or reduced)",
+        style("✓").green(),
+        result.improvements.len()
+    );
+}
+
+fn print_footer(result: &DiffResult, verbose: bool) {
     println!();
     println!("{}", style("━".repeat(50)).dim());
     if let (Some(base), Some(curr)) = (&result.baseline_commit, &result.current_commit) {
@@ -163,20 +171,32 @@ fn print_regression(reg: &Regression, verbose: bool) {
         RegressionType::MetricWorsening { .. } => ("⚠️ WORSENED", Color::Yellow),
     };
 
-    let mut styled_type = style(&reg.smell.smell_type).yellow();
-    if verbose {
-        styled_type = styled_type.bold();
-    }
+    let styled_type = if verbose {
+        style(&reg.smell.smell_type).yellow().bold()
+    } else {
+        style(&reg.smell.smell_type).yellow()
+    };
 
     println!("{}: {}", style(icon).bold(), styled_type);
 
-    // Locations
+    print_reg_locations(reg);
+    print_regression_type_info(reg);
+
+    if verbose {
+        print_regression_explanation(reg);
+    }
+
+    println!();
+}
+
+fn print_reg_locations(reg: &Regression) {
     let locations = format_reg_locations(reg);
     for loc in locations.lines() {
         println!("   {}", loc);
     }
+}
 
-    // Type-specific info
+fn print_regression_type_info(reg: &Regression) {
     match &reg.regression_type {
         RegressionType::SeverityIncrease { from, to } => {
             println!("   Severity: {} → {}", from, style(to).red());
@@ -194,22 +214,19 @@ fn print_regression(reg: &Regression, verbose: bool) {
         }
         _ => {}
     }
+}
 
-    // Explain (if verbose)
-    if verbose {
-        if let Some(explain) = &reg.explain {
-            println!();
-            println!("   {}", style("WHY BAD:").cyan().bold());
-            for line in explain.why_bad.lines() {
-                println!("   {}", line);
-            }
-            println!();
-            println!("   {}", style("HOW TO FIX:").green().bold());
-            for line in explain.how_to_fix.lines() {
-                println!("   {}", line);
-            }
+fn print_regression_explanation(reg: &Regression) {
+    if let Some(explain) = &reg.explain {
+        println!();
+        println!("   {}", style("WHY BAD:").cyan().bold());
+        for line in explain.why_bad.lines() {
+            println!("   {}", line);
+        }
+        println!();
+        println!("   {}", style("HOW TO FIX:").green().bold());
+        for line in explain.how_to_fix.lines() {
+            println!("   {}", line);
         }
     }
-
-    println!();
 }

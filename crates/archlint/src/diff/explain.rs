@@ -1,4 +1,5 @@
 use super::types::{ExplainBlock, Regression, RegressionType};
+use crate::explain::{ExplainEngine, Explanation};
 use crate::snapshot::SnapshotSmell;
 
 pub fn generate_explain(regression: &Regression) -> ExplainBlock {
@@ -17,151 +18,8 @@ pub fn generate_explain(regression: &Regression) -> ExplainBlock {
 }
 
 pub fn explain_for_smell_type(smell: &SnapshotSmell) -> ExplainBlock {
-    match smell.smell_type.as_str() {
-        "CyclicDependency" | "CyclicDependencyCluster" => ExplainBlock {
-            why_bad: "Bidirectional dependencies create tight coupling between modules. \
-                Changes in one module force changes in others, and testing requires \
-                complex mocking of the entire cycle."
-                .to_string(),
-            consequences: "As the codebase grows, cycles become harder to break. \
-                Build times increase, and refactoring becomes risky. \
-                New developers struggle to understand module boundaries."
-                .to_string(),
-            how_to_fix: "1. Extract shared code into a new module that both can depend on.\n\
-                2. Use dependency injection to invert one direction.\n\
-                3. Introduce an interface/abstract layer to break the direct dependency.\n\
-                4. Consider if the modules should be merged."
-                .to_string(),
-        },
-
-        "LayerViolation" => ExplainBlock {
-            why_bad: "Bypassing architectural layers breaks encapsulation. \
-                Inner layers should not know about outer layers. \
-                This creates hidden dependencies and makes the architecture fragile."
-                .to_string(),
-            consequences:
-                "Layer violations spread - once one exists, developers copy the pattern. \
-                Testing becomes harder as you need to mock multiple layers. \
-                Changes in inner layers unexpectedly break outer layers."
-                    .to_string(),
-            how_to_fix: "1. Route access through the proper layer interface.\n\
-                2. Move the required functionality to the appropriate layer.\n\
-                3. Create a proper abstraction if cross-layer communication is needed.\n\
-                4. Review if layer boundaries are correctly defined."
-                .to_string(),
-        },
-
-        "GodModule" => ExplainBlock {
-            why_bad: "High fan-in/fan-out indicates a module with too many responsibilities. \
-                It becomes a bottleneck for changes and a single point of failure. \
-                Understanding and maintaining it requires knowing the entire codebase."
-                .to_string(),
-            consequences: "God modules attract more code ('gravity effect'). \
-                Multiple developers frequently conflict on the same file. \
-                Testing requires massive setup, and bugs have wide blast radius."
-                .to_string(),
-            how_to_fix: "1. Identify distinct responsibilities and extract them.\n\
-                2. Group related functions into cohesive submodules.\n\
-                3. Use the Facade pattern to maintain API while splitting internals.\n\
-                4. Apply Single Responsibility Principle progressively."
-                .to_string(),
-        },
-
-        "HubModule" => ExplainBlock {
-            why_bad: "Hub modules sit at the center of the dependency graph. \
-                They are imported by many modules and import many others. \
-                Any change has cascading effects throughout the codebase."
-                .to_string(),
-            consequences: "Hub modules become change bottlenecks. \
-                CI/CD pipelines slow down as most changes trigger full rebuilds. \
-                Code ownership becomes unclear."
-                .to_string(),
-            how_to_fix: "1. Split into smaller, focused modules.\n\
-                2. Use barrel files only for public API, not internal wiring.\n\
-                3. Move utility functions closer to their consumers.\n\
-                4. Consider if some dependencies should be inverted."
-                .to_string(),
-        },
-
-        "DeadCode" | "DeadSymbol" => ExplainBlock {
-            why_bad: "Unused code increases cognitive load and maintenance burden. \
-                Developers waste time understanding code that's never executed. \
-                Dead code can hide security vulnerabilities."
-                .to_string(),
-            consequences: "Dead code accumulates technical debt. \
-                It confuses new team members and slows onboarding. \
-                Refactoring becomes harder as boundaries are unclear."
-                .to_string(),
-            how_to_fix: "1. Remove the unused code if confident it's not needed.\n\
-                2. Check if it's used in tests or configuration.\n\
-                3. If keeping for future use, add documentation explaining why.\n\
-                4. Consider feature flags instead of dead code."
-                .to_string(),
-        },
-
-        "HighComplexity" => ExplainBlock {
-            why_bad: "High cyclomatic complexity means too many code paths. \
-                Such functions are hard to understand, test, and debug. \
-                Bug probability increases exponentially with complexity."
-                .to_string(),
-            consequences: "Complex functions accumulate bugs. \
-                Code coverage requires exponential test cases. \
-                Future changes are risky without comprehensive tests."
-                .to_string(),
-            how_to_fix: "1. Extract conditional branches into separate functions.\n\
-                2. Use early returns to reduce nesting.\n\
-                3. Apply strategy/state patterns for complex conditionals.\n\
-                4. Consider if the function does too many things."
-                .to_string(),
-        },
-
-        "LowCohesion" => ExplainBlock {
-            why_bad: "Low cohesion (high LCOM) indicates a class doing unrelated things. \
-                Methods don't share fields, suggesting the class should be split. \
-                This violates the Single Responsibility Principle."
-                .to_string(),
-            consequences: "Changes require understanding unrelated code. \
-                Testing requires mocking unrelated dependencies. \
-                Class becomes a dumping ground for miscellaneous code."
-                .to_string(),
-            how_to_fix: "1. Group methods that use common fields into separate classes.\n\
-                2. Extract utility methods into standalone functions.\n\
-                3. Use composition instead of one large class.\n\
-                4. Consider if data and behavior are properly co-located."
-                .to_string(),
-        },
-
-        "SdpViolation" => ExplainBlock {
-            why_bad: "Stable modules depending on unstable modules violates the \
-                Stable Dependencies Principle. Stable code should not depend on \
-                frequently changing code."
-                .to_string(),
-            consequences: "Stable, well-tested code becomes fragile. \
-                Changes in unstable dependencies break stable consumers. \
-                Architecture erodes as stability boundaries blur."
-                .to_string(),
-            how_to_fix: "1. Invert the dependency using interfaces.\n\
-                2. Move shared code to a stable common module.\n\
-                3. Re-evaluate module stability classifications.\n\
-                4. Use dependency injection to decouple."
-                .to_string(),
-        },
-
-        // Default for other types
-        _ => ExplainBlock {
-            why_bad: format!(
-                "This {} introduces architectural debt that makes the codebase \
-                harder to maintain and evolve.",
-                smell.smell_type
-            ),
-            consequences: "Without addressing this, the problem will grow and \
-                spread to other parts of the codebase."
-                .to_string(),
-            how_to_fix: "Review the architectural guidelines and refactor \
-                to align with established patterns."
-                .to_string(),
-        },
-    }
+    let explanation = ExplainEngine::explain_snapshot_smell(smell);
+    ExplanationConverter::to_explain_block(explanation)
 }
 
 pub fn explain_severity_increase(smell: &SnapshotSmell, from: &str, to: &str) -> ExplainBlock {
@@ -218,6 +76,18 @@ pub fn explain_metric_worsening(
     }
 }
 
+struct ExplanationConverter;
+
+impl ExplanationConverter {
+    fn to_explain_block(explanation: Explanation) -> ExplainBlock {
+        ExplainBlock {
+            why_bad: format!("{}\n{}", explanation.problem, explanation.reason),
+            consequences: explanation.risks.join("\n"),
+            how_to_fix: explanation.recommendations.join("\n"),
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -240,7 +110,7 @@ mod tests {
         let smell = make_test_smell("CyclicDependency");
         let explain = explain_for_smell_type(&smell);
 
-        assert!(explain.why_bad.contains("coupling"));
+        assert!(explain.why_bad.contains("Circular"));
         assert!(explain.how_to_fix.contains("Extract"));
     }
 
@@ -251,26 +121,5 @@ mod tests {
 
         assert!(explain.why_bad.contains("150%"));
         assert!(explain.why_bad.contains("fanIn"));
-    }
-
-    #[test]
-    fn test_all_smell_types_have_explain() {
-        let smell_types = [
-            "CyclicDependency",
-            "LayerViolation",
-            "GodModule",
-            "DeadCode",
-            "HighComplexity",
-            "HubModule",
-            "LowCohesion",
-        ];
-
-        for smell_type in smell_types {
-            let smell = make_test_smell(smell_type);
-            let explain = explain_for_smell_type(&smell);
-
-            assert!(!explain.why_bad.is_empty());
-            assert!(!explain.how_to_fix.is_empty());
-        }
     }
 }

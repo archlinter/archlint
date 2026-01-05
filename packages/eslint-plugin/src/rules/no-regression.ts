@@ -1,8 +1,8 @@
 import type { Rule } from 'eslint';
 import { findProjectRoot } from '../utils/project-root';
 import { runDiff, type JsDiffResult } from '@archlinter/core';
-import * as fs from 'fs';
-import * as path from 'path';
+import * as fs from 'node:fs';
+import * as path from 'node:path';
 
 // Cache to run diff only once per project
 const diffCache = new Map<string, JsDiffResult>();
@@ -66,9 +66,9 @@ function ensureDiffResult(
   context: Rule.RuleContext,
   projectRoot: string,
   baselinePath: string
-): JsDiffResult | null {
+): boolean {
   if (diffCache.has(projectRoot)) {
-    return diffCache.get(projectRoot)!;
+    return true;
   }
 
   const absoluteBaseline = path.resolve(projectRoot, baselinePath);
@@ -80,7 +80,7 @@ function ensureDiffResult(
         data: { path: baselinePath },
       });
     }
-    return null;
+    return false;
   }
 
   try {
@@ -89,7 +89,7 @@ function ensureDiffResult(
       projectPath: projectRoot,
     });
     diffCache.set(projectRoot, result);
-    return result;
+    return true;
   } catch (error: unknown) {
     if (isFirstFile(context, projectRoot)) {
       context.report({
@@ -98,7 +98,7 @@ function ensureDiffResult(
         data: { message: `Diff failed: ${error instanceof Error ? error.message : String(error)}` },
       });
     }
-    return null;
+    return false;
   }
 }
 
@@ -142,9 +142,7 @@ function createVisitor(
   return {
     Program(node) {
       for (const reg of regressions) {
-        const affectsFile = reg.smell.files.some((f) => f === filename || filename.endsWith(f));
-
-        if (affectsFile || isFirst) {
+        if (shouldReportRegression(reg, filename, isFirst)) {
           context.report({
             node,
             messageId: 'regression',
@@ -156,24 +154,51 @@ function createVisitor(
   };
 }
 
+function shouldReportRegression(
+  reg: JsDiffResult['regressions'][0],
+  filename: string,
+  isFirst: boolean
+): boolean {
+  if (isFirst) {
+    return true;
+  }
+  const files = reg.smell?.files;
+  if (!files || !Array.isArray(files)) {
+    return false;
+  }
+  return files.some((f) => f === filename || filename.endsWith(f));
+}
+
 function formatRegressionMessage(reg: JsDiffResult['regressions'][0]): string {
-  const type = reg.smell.smellType;
-  const files = reg.smell.files.slice(0, 3).join(', ');
+  const smell = reg.smell;
+  const smellType = smell.smellType;
+  const files = smell.files.slice(0, 3).join(', ');
 
   switch (reg.regressionType.type) {
     case 'NewSmell':
-      return `New architectural smell: ${type} in ${files}`;
+      return `New architectural smell: ${smellType} in ${files}`;
     case 'SeverityIncrease':
-      return `Architectural smell ${type} worsened: severity increased from ${reg.regressionType.from} to ${reg.regressionType.to}`;
+      return formatSeverityIncreaseMessage(reg.regressionType, smellType);
     case 'MetricWorsening':
-      return `Architectural metric worsened: ${type} ${
-        reg.regressionType.metric
-      } ${reg.regressionType.from} → ${reg.regressionType.to} (+${(
-        reg.regressionType.changePercent ?? 0
-      ).toFixed(0)}%)`;
+      return formatMetricWorseningMessage(reg.regressionType, smellType);
     default:
       return String(reg.message);
   }
+}
+
+function formatSeverityIncreaseMessage(
+  regType: JsDiffResult['regressions'][0]['regressionType'],
+  smellType: string
+): string {
+  return `Architectural smell ${smellType} worsened: severity increased from ${regType.from} to ${regType.to}`;
+}
+
+function formatMetricWorseningMessage(
+  regType: JsDiffResult['regressions'][0]['regressionType'],
+  smellType: string
+): string {
+  const { metric, from, to, changePercent } = regType;
+  return `Architectural metric worsened: ${smellType} ${metric} ${from} → ${to} (+${(changePercent ?? 0).toFixed(0)}%)`;
 }
 
 const firstFiles = new Set<string>();

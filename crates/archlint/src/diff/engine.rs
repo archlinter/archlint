@@ -1,5 +1,7 @@
 use super::metrics::MetricComparator;
-use super::types::*;
+use super::types::{
+    DiffResult, DiffSummary, Improvement, ImprovementType, Regression, RegressionType,
+};
 use crate::snapshot::{Snapshot, SnapshotSmell};
 use log::debug;
 use std::collections::{HashMap, HashSet};

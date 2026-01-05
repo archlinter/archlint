@@ -2,24 +2,33 @@ use assert_cmd::cargo_bin;
 use assert_cmd::Command;
 use predicates::prelude::*;
 use std::fs;
-use tempfile::tempdir;
+use tempfile::{tempdir, TempDir};
 
-#[test]
-fn test_snapshot_command() {
+fn setup_test_project() -> (TempDir, std::path::PathBuf) {
     let dir = tempdir().unwrap();
     fs::create_dir(dir.path().join("src")).unwrap();
     fs::write(dir.path().join("src/index.ts"), "export const x = 1;").unwrap();
+    let project_path = dir.path().to_path_buf();
+    (dir, project_path)
+}
 
-    let output_path = dir.path().join("snapshot.json");
-
+fn run_archlint_snapshot(project_path: &std::path::Path, output_path: &std::path::Path) {
     let mut cmd = Command::new(cargo_bin!("archlint"));
     cmd.arg("snapshot")
         .arg("-o")
-        .arg(&output_path)
+        .arg(output_path)
         .arg("-p")
-        .arg(dir.path())
+        .arg(project_path)
         .assert()
         .success();
+}
+
+#[test]
+fn test_snapshot_command() {
+    let (dir, project_path) = setup_test_project();
+    let output_path = dir.path().join("snapshot.json");
+
+    run_archlint_snapshot(&project_path, &output_path);
 
     assert!(output_path.exists());
 
@@ -29,27 +38,18 @@ fn test_snapshot_command() {
 
 #[test]
 fn test_diff_command_no_regressions() {
-    let dir = tempdir().unwrap();
-    fs::create_dir(dir.path().join("src")).unwrap();
-    fs::write(dir.path().join("src/index.ts"), "export const x = 1;").unwrap();
+    let (_dir, project_path) = setup_test_project();
 
     // Create baseline
-    let baseline = dir.path().join("baseline.json");
-    let mut cmd1 = Command::new(cargo_bin!("archlint"));
-    cmd1.arg("snapshot")
-        .arg("-o")
-        .arg(&baseline)
-        .arg("-p")
-        .arg(dir.path())
-        .assert()
-        .success();
+    let baseline = project_path.join("baseline.json");
+    run_archlint_snapshot(&project_path, &baseline);
 
     // Diff (no changes)
     let mut cmd2 = Command::new(cargo_bin!("archlint"));
     cmd2.arg("diff")
         .arg(&baseline)
         .arg("-p")
-        .arg(dir.path())
+        .arg(&project_path)
         .assert()
         .success()
         .stdout(predicate::str::contains("No architectural changes"));
@@ -57,22 +57,14 @@ fn test_diff_command_no_regressions() {
 
 #[test]
 fn test_diff_command_with_regression_exits_1() {
-    let dir = tempdir().unwrap();
-    fs::create_dir(dir.path().join("src")).unwrap();
+    let (dir, project_path) = setup_test_project();
 
     // Baseline: no cycle
     fs::write(dir.path().join("src/a.ts"), "export const a = 1;").unwrap();
     fs::write(dir.path().join("src/b.ts"), "export const b = 2;").unwrap();
 
-    let baseline = dir.path().join("baseline.json");
-    let mut cmd1 = Command::new(cargo_bin!("archlint"));
-    cmd1.arg("snapshot")
-        .arg("-o")
-        .arg(&baseline)
-        .arg("-p")
-        .arg(dir.path())
-        .assert()
-        .success();
+    let baseline = project_path.join("baseline.json");
+    run_archlint_snapshot(&project_path, &baseline);
 
     // Add cycle
     fs::write(
@@ -91,7 +83,7 @@ fn test_diff_command_with_regression_exits_1() {
     cmd2.arg("diff")
         .arg(&baseline)
         .arg("-p")
-        .arg(dir.path())
+        .arg(&project_path)
         .assert()
         .code(1)
         .stdout(predicate::str::contains("REGRESSIONS"));
@@ -99,26 +91,17 @@ fn test_diff_command_with_regression_exits_1() {
 
 #[test]
 fn test_diff_json_output() {
-    let dir = tempdir().unwrap();
-    fs::create_dir(dir.path().join("src")).unwrap();
-    fs::write(dir.path().join("src/index.ts"), "export const x = 1;").unwrap();
+    let (_dir, project_path) = setup_test_project();
 
-    let baseline = dir.path().join("baseline.json");
-    let mut cmd1 = Command::new(cargo_bin!("archlint"));
-    cmd1.arg("snapshot")
-        .arg("-o")
-        .arg(&baseline)
-        .arg("-p")
-        .arg(dir.path())
-        .assert()
-        .success();
+    let baseline = project_path.join("baseline.json");
+    run_archlint_snapshot(&project_path, &baseline);
 
     let mut cmd2 = Command::new(cargo_bin!("archlint"));
     cmd2.arg("diff")
         .arg(&baseline)
         .arg("--json")
         .arg("-p")
-        .arg(dir.path())
+        .arg(&project_path)
         .assert()
         .success()
         .stdout(predicate::str::contains("hasRegressions"));

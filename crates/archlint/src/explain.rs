@@ -1,4 +1,5 @@
 use crate::detectors::{ArchSmell, SmellType};
+use crate::snapshot::SnapshotSmell;
 use std::path::Path;
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
@@ -12,7 +13,115 @@ pub struct Explanation {
 pub struct ExplainEngine;
 
 impl ExplainEngine {
-    pub fn explain(smell: &ArchSmell) -> Explanation {
+    pub fn explain_snapshot_smell(smell: &SnapshotSmell) -> Explanation {
+        let smell_type = match smell.smell_type.as_str() {
+            "CyclicDependency" => SmellType::CyclicDependency,
+            "CyclicDependencyCluster" => SmellType::CyclicDependencyCluster,
+            "GodModule" => SmellType::GodModule,
+            "DeadCode" => SmellType::DeadCode,
+            "DeadSymbol" => {
+                let name = smell
+                    .details
+                    .as_ref()
+                    .and_then(|d| match d {
+                        crate::snapshot::SmellDetails::DeadSymbol { name, .. } => {
+                            Some(name.clone())
+                        }
+                        _ => None,
+                    })
+                    .unwrap_or_default();
+                let kind = smell
+                    .details
+                    .as_ref()
+                    .and_then(|d| match d {
+                        crate::snapshot::SmellDetails::DeadSymbol { kind, .. } => {
+                            Some(kind.clone())
+                        }
+                        _ => None,
+                    })
+                    .unwrap_or_else(|| "Symbol".to_string());
+                SmellType::DeadSymbol { name, kind }
+            }
+            "HighComplexity" => {
+                let name = smell
+                    .details
+                    .as_ref()
+                    .and_then(|d| match d {
+                        crate::snapshot::SmellDetails::Complexity { function_name, .. } => {
+                            Some(function_name.clone())
+                        }
+                        _ => None,
+                    })
+                    .unwrap_or_default();
+                let line = smell
+                    .details
+                    .as_ref()
+                    .and_then(|d| match d {
+                        crate::snapshot::SmellDetails::Complexity { line, .. } => Some(*line),
+                        _ => None,
+                    })
+                    .unwrap_or_default();
+                let complexity = smell
+                    .metrics
+                    .get("complexity")
+                    .and_then(|v| v.as_i64())
+                    .map(|v| v as usize)
+                    .unwrap_or(0);
+                SmellType::HighComplexity {
+                    name,
+                    line,
+                    complexity,
+                }
+            }
+            "LayerViolation" => {
+                let (from, to) = smell
+                    .details
+                    .as_ref()
+                    .and_then(|d| match d {
+                        crate::snapshot::SmellDetails::LayerViolation {
+                            from_layer,
+                            to_layer,
+                            ..
+                        } => Some((from_layer.clone(), to_layer.clone())),
+                        _ => None,
+                    })
+                    .unwrap_or_default();
+                SmellType::LayerViolation {
+                    from_layer: from,
+                    to_layer: to,
+                }
+            }
+            "HubModule" => SmellType::HubModule,
+            "LowCohesion" => {
+                let lcom = smell
+                    .metrics
+                    .get("lcom")
+                    .and_then(|v| v.as_i64())
+                    .map(|v| v as usize)
+                    .unwrap_or(0);
+                SmellType::LowCohesion { lcom }
+            }
+            "SdpViolation" => SmellType::SdpViolation,
+            _ => SmellType::GodModule, // Fallback
+        };
+
+        // Create a temporary ArchSmell to reuse the explanation logic
+        let arch_smell = crate::detectors::ArchSmell {
+            smell_type,
+            severity: smell
+                .severity
+                .parse()
+                .unwrap_or(crate::detectors::Severity::Medium),
+            files: smell.files.iter().map(std::path::PathBuf::from).collect(),
+            metrics: vec![], // Metrics are not used in explanation strings currently
+            locations: vec![],
+            cluster: None,
+        };
+
+        Self::explain(&arch_smell)
+    }
+
+    pub fn explain(smell: &crate::detectors::ArchSmell) -> Explanation {
         match &smell.smell_type {
             SmellType::CyclicDependency => Self::explain_cycle(smell),
             SmellType::CyclicDependencyCluster => Self::explain_cycle(smell),

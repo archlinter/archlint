@@ -1,4 +1,4 @@
-use super::types::*;
+use super::types::{Improvement, ImprovementType, Regression, RegressionType};
 use crate::snapshot::SnapshotSmell;
 
 /// Metrics that should be compared for worsening
