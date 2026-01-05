@@ -376,7 +376,7 @@ fn build_scan_args(options: &ScanOptions, path: &Path) -> ScanArgs {
         severity: None,
         no_cache: !options.enable_cache,
         no_git: !options.enable_git,
-        git_history_period: None,
+        git_history_period: options.git_history_period.clone(),
         files: None,
     }
 }

@@ -30,6 +30,9 @@ pub struct ScanOptions {
 
     /// Enable git integration (default: true)
     pub enable_git: bool,
+
+    /// Git history analysis period (e.g. "90d", "1y", "all")
+    pub git_history_period: Option<String>,
 }
 
 impl ScanOptions {

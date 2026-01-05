@@ -1,7 +1,7 @@
 mod storage;
 
 use crate::Result;
-use chrono;
+use chrono::{Duration, Utc};
 use git2::{DiffOptions, Repository};
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
@@ -49,35 +49,17 @@ impl GitHistoryCache {
     ) -> Result<HashMap<PathBuf, usize>> {
         let mut churn_map: HashMap<PathBuf, usize> = files.iter().map(|f| (f.clone(), 0)).collect();
 
-        let mut revwalk = self.repo.revwalk()?;
-        if revwalk.push_head().is_err() {
-            return Ok(churn_map);
-        }
-
         let cutoff_time = parse_history_period(history_period)?;
 
-        let pb = if show_progress {
+        let (pb, oids) = if show_progress {
             self.create_progress_bar(cutoff_time)?
         } else {
-            None
+            (None, self.get_filtered_oids(cutoff_time)?)
         };
 
         let workdir = self.repo.workdir().unwrap_or(&self.project_root);
 
-        for oid in revwalk {
-            let oid = oid?;
-
-            if let Some(cutoff) = cutoff_time {
-                if let Ok(commit) = self.repo.find_commit(oid) {
-                    if commit.time().seconds() < cutoff {
-                        continue;
-                    }
-                } else {
-                    // Skip commits that cannot be fetched, mirroring create_progress_bar behavior
-                    continue;
-                }
-            }
-
+        for oid in oids {
             self.process_single_oid(oid, &mut churn_map, workdir, pb.as_ref())?;
         }
 
@@ -86,6 +68,25 @@ impl GitHistoryCache {
         }
 
         Ok(churn_map)
+    }
+
+    fn get_filtered_oids(&self, cutoff_time: Option<i64>) -> Result<Vec<git2::Oid>> {
+        let mut revwalk = self.repo.revwalk()?;
+        revwalk.push_head().ok();
+
+        let mut oids = Vec::new();
+        for oid in revwalk.flatten() {
+            if let Some(cutoff) = cutoff_time {
+                if let Ok(commit) = self.repo.find_commit(oid) {
+                    if commit.time().seconds() >= cutoff {
+                        oids.push(oid);
+                    }
+                }
+            } else {
+                oids.push(oid);
+            }
+        }
+        Ok(oids)
     }
 
     fn process_single_oid(
@@ -158,27 +159,13 @@ impl GitHistoryCache {
         Ok(CommitData { files_changed })
     }
 
-    fn create_progress_bar(&self, cutoff_time: Option<i64>) -> Result<Option<ProgressBar>> {
-        let mut count_revwalk = self.repo.revwalk()?;
-        if count_revwalk.push_head().is_err() {
-            return Ok(None);
-        }
+    fn create_progress_bar(
+        &self,
+        cutoff_time: Option<i64>,
+    ) -> Result<(Option<ProgressBar>, Vec<git2::Oid>)> {
+        let oids = self.get_filtered_oids(cutoff_time)?;
 
-        let total_commits = if let Some(cutoff) = cutoff_time {
-            let mut count = 0;
-            for oid in count_revwalk.flatten() {
-                if let Ok(commit) = self.repo.find_commit(oid) {
-                    if commit.time().seconds() >= cutoff {
-                        count += 1;
-                    }
-                }
-            }
-            count
-        } else {
-            count_revwalk.count()
-        };
-
-        let pb = ProgressBar::new(total_commits as u64);
+        let pb = ProgressBar::new(oids.len() as u64);
         pb.set_style(
             ProgressStyle::default_bar()
                 .template(
@@ -188,7 +175,7 @@ impl GitHistoryCache {
                 .progress_chars("█▉▊▋▌▍▎▏  "),
         );
         pb.set_message("Analyzing commits (cached)...");
-        Ok(Some(pb))
+        Ok((Some(pb), oids))
     }
 
     pub fn clear(project_root: &Path) -> Result<()> {
@@ -215,7 +202,7 @@ fn parse_history_period(period: &str) -> crate::Result<Option<i64>> {
         return Ok(None);
     }
 
-    let now = chrono::Utc::now();
+    let now = Utc::now();
     let duration = if let Some(stripped) = period.strip_suffix('d') {
         let val = stripped.parse::<i64>().map_err(|_| {
             crate::AnalysisError::InvalidConfig(format!(
@@ -229,7 +216,7 @@ fn parse_history_period(period: &str) -> crate::Result<Option<i64>> {
                 period
             )));
         }
-        chrono::Duration::days(val)
+        Duration::days(val)
     } else if let Some(stripped) = period.strip_suffix('m') {
         let val = stripped.parse::<i64>().map_err(|_| {
             crate::AnalysisError::InvalidConfig(format!(
@@ -243,7 +230,7 @@ fn parse_history_period(period: &str) -> crate::Result<Option<i64>> {
                 period
             )));
         }
-        chrono::Duration::days(val * 30)
+        Duration::days(val * 30)
     } else if let Some(stripped) = period.strip_suffix('y') {
         let val = stripped.parse::<i64>().map_err(|_| {
             crate::AnalysisError::InvalidConfig(format!(
@@ -257,7 +244,7 @@ fn parse_history_period(period: &str) -> crate::Result<Option<i64>> {
                 period
             )));
         }
-        chrono::Duration::days(val * 365)
+        Duration::days(val * 365)
     } else {
         return Err(crate::AnalysisError::InvalidConfig(format!(
             "Invalid git history period '{}'. Expected format like '90d', '6m', '1y' or 'all'.",
