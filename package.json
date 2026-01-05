@@ -18,7 +18,7 @@
     "test": "pnpm test:node && pnpm test:rust",
     "test:node": "vitest run",
     "test:rust": "cargo test --workspace",
-    "lint": "pnpm --filter @archlinter/eslint-plugin build && pnpm -r lint && eslint .",
+    "lint": "eslint .",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "fmt": "cargo fmt",
@@ -53,11 +53,12 @@
     "commit-msg": "npx commitlint --edit ${1}"
   },
   "nano-staged": {
-    "*.{ts,js,json,md,yml,yaml}": "prettier --write",
-    "*.{ts,js}": "eslint --fix",
+    "*.{ts,js,cjs,mjs}": "eslint --fix",
+    "*.{ts,js,cjs,mjs,json,md,yml,yaml}": "prettier --write",
+    ".prettierrc": "prettier --write",
     "*.rs": [
-      "sh -c 'cargo clippy --workspace --all-targets --all-features --allow-dirty --allow-staged --fix -- -D warnings' --",
-      "sh -c 'cargo fmt --all' --"
+      "bash -c 'pnpm clippy'",
+      "bash -c 'pnpm fmt'"
     ]
   },
   "pnpm": {

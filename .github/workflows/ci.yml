@@ -67,17 +67,30 @@ jobs:
         with:
           components: rustfmt, clippy
 
+      - uses: pnpm/action-setup@v3
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install
+
       - name: Cache cargo
         uses: Swatinem/rust-cache@v2
 
-      - name: Check formatting
-        run: cargo fmt --all -- --check
+      - name: Lint and Format
+        run: |
+          pnpm fmt -- --check
+          pnpm clippy
+          pnpm lint
+          pnpm format:check
 
-      - name: Clippy
-        run: cargo clippy --all-targets --all-features -- -D warnings
-
-  test:
-    name: Test
+  test-rust:
+    name: Test Rust
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -94,7 +107,7 @@ jobs:
   build:
     name: Build - ${{ matrix.target }}
     runs-on: ${{ matrix.os }}
-    needs: [lint, test]
+    needs: [lint, test-rust]
     if: github.event_name == 'pull_request' || startsWith(github.ref, 'refs/tags/v')
     strategy:
       fail-fast: false
@@ -185,8 +198,8 @@ jobs:
             target/${{ matrix.target }}/release/archlint.exe
           if-no-files-found: error
 
-  test-core:
-    name: Test core - ${{ matrix.os }}
+  test-packages:
+    name: Test Node.js packages - ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     needs: [build]
     if: github.event_name == 'pull_request' || startsWith(github.ref, 'refs/tags/v')
@@ -223,8 +236,13 @@ jobs:
           name: ${{ matrix.artifact }}
           path: packages/core
 
+      - name: Build JS packages
+        run: |
+          pnpm --filter "@archlinter/plugin-api" build
+          pnpm --filter "@archlinter/eslint-plugin" build
+
       - name: Run tests
-        run: pnpm test:node
+        run: pnpm --filter "@archlinter/eslint-plugin" test
 
   test-cli:
     name: Test CLI - ${{ matrix.os }}
@@ -267,7 +285,7 @@ jobs:
   publish:
     name: Publish to npm
     if: startsWith(github.ref, 'refs/tags/v')
-    needs: [build, test-core, test-cli]
+    needs: [build, test-packages, test-cli]
     runs-on: ubuntu-latest
     permissions:
       contents: read

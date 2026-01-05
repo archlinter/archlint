@@ -1,11 +1,9 @@
 import js from '@eslint/js';
 import tseslint from 'typescript-eslint';
-import archlint from './packages/eslint-plugin/dist/index.js';
 
 export default [
   js.configs.recommended,
   ...tseslint.configs.recommended,
-  archlint.configs['flat/recommended'],
   {
     ignores: [
       '**/dist/',
@@ -21,7 +19,7 @@ export default [
     ],
   },
   {
-    files: ['**/*.{js,ts}'],
+    files: ['**/*.{js,ts,cjs,mjs}'],
     languageOptions: {
       ecmaVersion: 2022,
       sourceType: 'module',
@@ -65,7 +63,12 @@ export default [
     },
   },
   {
-    files: ['packages/eslint-plugin/src/utils/rule-factory.ts', 'packages/eslint-plugin/src/utils/smell-filter.ts', 'packages/eslint-plugin/src/rules/*.ts', 'packages/eslint-plugin/src/configs/*.ts'],
+    files: [
+      'packages/eslint-plugin/src/utils/rule-factory.ts',
+      'packages/eslint-plugin/src/utils/smell-filter.ts',
+      'packages/eslint-plugin/src/rules/*.ts',
+      'packages/eslint-plugin/src/configs/*.ts',
+    ],
     rules: {
       '@typescript-eslint/no-unsafe-assignment': 'off',
       '@typescript-eslint/no-unsafe-call': 'off',

@@ -184,9 +184,9 @@ mod tests {
         assert_eq!(int_val.as_i64(), Some(42));
         assert_eq!(int_val.as_f64(), 42.0);
 
-        let float_val = MetricValue::Float(3.14);
-        assert_eq!(float_val.as_i64(), Some(3));
-        assert_eq!(float_val.as_f64(), 3.14);
+        let float_val = MetricValue::Float(123.45);
+        assert_eq!(float_val.as_i64(), Some(123));
+        assert_eq!(float_val.as_f64(), 123.45);
     }
 
     #[test]

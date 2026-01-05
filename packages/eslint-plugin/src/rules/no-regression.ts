@@ -1,4 +1,5 @@
 import type { Rule } from 'eslint';
+import { findProjectRoot } from '../utils/project-root';
 import { runDiff, type JsDiffResult } from '@archlinter/core';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -42,56 +43,73 @@ export const noRegression: Rule.RuleModule = {
   },
 
   create(context) {
-    const options: RuleOptions = context.options[0] ?? {};
-    const baselinePath = options.baseline ?? '.archlint-snapshot.json';
-    const failOn = options.failOn ?? 'low';
-
+    const { baseline, failOn } = getOptions(context);
     const projectRoot = findProjectRoot(context.filename);
 
-    // Only run once per project
-    if (!diffCache.has(projectRoot)) {
-      const absoluteBaseline = path.resolve(projectRoot, baselinePath);
-      if (!fs.existsSync(absoluteBaseline)) {
-        // Only report on the first file to avoid spamming
-        if (isFirstFile(context, projectRoot)) {
-          context.report({
-            loc: { line: 1, column: 0 },
-            messageId: 'noBaseline',
-            data: { path: baselinePath },
-          });
-        }
-        return {};
-      }
-
-      try {
-        const result = runDiff({
-          baselinePath: absoluteBaseline,
-          projectPath: projectRoot,
-        });
-        diffCache.set(projectRoot, result);
-      } catch (error) {
-        if (isFirstFile(context, projectRoot)) {
-          context.report({
-            loc: { line: 1, column: 0 },
-            messageId: 'regression',
-            data: { message: `Diff failed: ${String(error)}` },
-          });
-        }
-        return {};
-      }
+    if (!ensureDiffResult(context, projectRoot, baseline!)) {
+      return {};
     }
 
-    return reportFromCache(context, projectRoot, failOn);
+    return reportFromCache(context, projectRoot, failOn!);
   },
 };
 
+function getOptions(context: Rule.RuleContext): RuleOptions {
+  const options: RuleOptions = context.options[0] ?? {};
+  return {
+    baseline: options.baseline ?? '.archlint-snapshot.json',
+    failOn: options.failOn ?? 'low',
+  };
+}
+
+function ensureDiffResult(
+  context: Rule.RuleContext,
+  projectRoot: string,
+  baselinePath: string
+): JsDiffResult | null {
+  if (diffCache.has(projectRoot)) {
+    return diffCache.get(projectRoot)!;
+  }
+
+  const absoluteBaseline = path.resolve(projectRoot, baselinePath);
+  if (!fs.existsSync(absoluteBaseline)) {
+    if (isFirstFile(context, projectRoot)) {
+      context.report({
+        loc: { line: 1, column: 0 },
+        messageId: 'noBaseline',
+        data: { path: baselinePath },
+      });
+    }
+    return null;
+  }
+
+  try {
+    const result = runDiff({
+      baselinePath: absoluteBaseline,
+      projectPath: projectRoot,
+    });
+    diffCache.set(projectRoot, result);
+    return result;
+  } catch (error: unknown) {
+    if (isFirstFile(context, projectRoot)) {
+      context.report({
+        loc: { line: 1, column: 0 },
+        messageId: 'regression',
+        data: { message: `Diff failed: ${error instanceof Error ? error.message : String(error)}` },
+      });
+    }
+    return null;
+  }
+}
+
+const SEVERITY_ORDER: Record<string, number> = { low: 0, medium: 1, high: 2, critical: 3 };
+
 function getRegressionsToReport(result: JsDiffResult, failOn: string): JsDiffResult['regressions'] {
-  const sevOrder = { low: 0, medium: 1, high: 2, critical: 3 };
-  const minSev = sevOrder[failOn as keyof typeof sevOrder] ?? 0;
+  const minSev = SEVERITY_ORDER[failOn] ?? 0;
 
   return result.regressions.filter((r) => {
     const sev = r.smell.severity.toLowerCase();
-    return (sevOrder[sev as keyof typeof sevOrder] ?? 0) >= minSev;
+    return (SEVERITY_ORDER[sev] ?? 0) >= minSev;
   });
 }
 
@@ -154,7 +172,7 @@ function formatRegressionMessage(reg: JsDiffResult['regressions'][0]): string {
         reg.regressionType.changePercent ?? 0
       ).toFixed(0)}%)`;
     default:
-      return (reg as { message: string }).message;
+      return String(reg.message);
   }
 }
 
@@ -165,21 +183,6 @@ function isFirstFile(context: Rule.RuleContext, projectRoot: string): boolean {
     return true;
   }
   return false;
-}
-
-function findProjectRoot(filename: string): string {
-  let dir = path.dirname(filename);
-  while (dir !== path.parse(dir).root) {
-    if (
-      fs.existsSync(path.join(dir, 'package.json')) ||
-      fs.existsSync(path.join(dir, 'archlint.yaml')) ||
-      fs.existsSync(path.join(dir, '.archlint.yaml'))
-    ) {
-      return dir;
-    }
-    dir = path.dirname(dir);
-  }
-  return path.dirname(filename);
 }
 
 export default noRegression;

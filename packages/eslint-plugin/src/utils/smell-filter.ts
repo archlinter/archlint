@@ -7,7 +7,6 @@ export type SmellLocationStrategy =
   | 'critical-edges' // Report at critical edges (for cycles)
   | 'source-file'; // Report in source file (for layer violations)
 
-
 export interface FileSmellLocation {
   line: number;
   column?: number;
@@ -62,7 +61,9 @@ function getCriticalEdgeLocations(
 }
 
 function createLocationFromSmell(
-  loc: { line?: number; column?: number; range?: { endLine?: number; endColumn?: number } } | undefined,
+  loc:
+    | { line?: number; column?: number; range?: { endLine?: number; endColumn?: number } }
+    | undefined,
   reason: string
 ): FileSmellLocation {
   return {

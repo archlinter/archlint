@@ -2,9 +2,9 @@ import { clearCache } from '@archlinter/core';
 import { ClearCacheInput } from '../schemas.js';
 import { mcpCache } from '../cache.js';
 
-export function archlintClearCache(
-  input: ClearCacheInput
-): { content: { type: 'text'; text: string }[] } {
+export function archlintClearCache(input: ClearCacheInput): {
+  content: { type: 'text'; text: string }[];
+} {
   const { path, level } = input;
 
   if (path) {

@@ -44,4 +44,3 @@ export function findProjectRoot(filePath: string): string {
   rootCache.set(filePath, result);
   return result;
 }
-

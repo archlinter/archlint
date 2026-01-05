@@ -1,3 +1,4 @@
+use assert_cmd::cargo_bin;
 use assert_cmd::Command;
 use predicates::prelude::*;
 use std::fs;
@@ -11,7 +12,7 @@ fn test_snapshot_command() {
 
     let output_path = dir.path().join("snapshot.json");
 
-    let mut cmd = Command::cargo_bin("archlint").unwrap();
+    let mut cmd = Command::new(cargo_bin!("archlint"));
     cmd.arg("snapshot")
         .arg("-o")
         .arg(&output_path)
@@ -34,7 +35,7 @@ fn test_diff_command_no_regressions() {
 
     // Create baseline
     let baseline = dir.path().join("baseline.json");
-    let mut cmd1 = Command::cargo_bin("archlint").unwrap();
+    let mut cmd1 = Command::new(cargo_bin!("archlint"));
     cmd1.arg("snapshot")
         .arg("-o")
         .arg(&baseline)
@@ -44,7 +45,7 @@ fn test_diff_command_no_regressions() {
         .success();
 
     // Diff (no changes)
-    let mut cmd2 = Command::cargo_bin("archlint").unwrap();
+    let mut cmd2 = Command::new(cargo_bin!("archlint"));
     cmd2.arg("diff")
         .arg(&baseline)
         .arg("-p")
@@ -64,7 +65,7 @@ fn test_diff_command_with_regression_exits_1() {
     fs::write(dir.path().join("src/b.ts"), "export const b = 2;").unwrap();
 
     let baseline = dir.path().join("baseline.json");
-    let mut cmd1 = Command::cargo_bin("archlint").unwrap();
+    let mut cmd1 = Command::new(cargo_bin!("archlint"));
     cmd1.arg("snapshot")
         .arg("-o")
         .arg(&baseline)
@@ -86,7 +87,7 @@ fn test_diff_command_with_regression_exits_1() {
     .unwrap();
 
     // Diff should exit 1
-    let mut cmd2 = Command::cargo_bin("archlint").unwrap();
+    let mut cmd2 = Command::new(cargo_bin!("archlint"));
     cmd2.arg("diff")
         .arg(&baseline)
         .arg("-p")
@@ -103,7 +104,7 @@ fn test_diff_json_output() {
     fs::write(dir.path().join("src/index.ts"), "export const x = 1;").unwrap();
 
     let baseline = dir.path().join("baseline.json");
-    let mut cmd1 = Command::cargo_bin("archlint").unwrap();
+    let mut cmd1 = Command::new(cargo_bin!("archlint"));
     cmd1.arg("snapshot")
         .arg("-o")
         .arg(&baseline)
@@ -112,7 +113,7 @@ fn test_diff_json_output() {
         .assert()
         .success();
 
-    let mut cmd2 = Command::cargo_bin("archlint").unwrap();
+    let mut cmd2 = Command::new(cargo_bin!("archlint"));
     cmd2.arg("diff")
         .arg(&baseline)
         .arg("--json")

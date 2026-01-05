@@ -207,10 +207,10 @@ function initializeProjectState(
       duration: Date.now() - start,
       smellCount: state.result?.smells?.length,
     });
-  } catch (error) {
+  } catch (error: unknown) {
     state.state = AnalysisState.Error;
     // eslint-disable-next-line no-console
-    console.error('[archlint] Analysis failed:', error);
+    console.error('[archlint] Analysis failed:', error instanceof Error ? error.message : error);
   }
 
   return state;
@@ -230,8 +230,8 @@ function performRescan(state: ProjectState, filePath: string): void {
       duration: Date.now() - start,
       smellCount: state.result?.smells?.length,
     });
-  } catch (error) {
-    debug('cache', 'Rescan error', error);
+  } catch (error: unknown) {
+    debug('cache', 'Rescan error', error instanceof Error ? error.message : error);
   }
 }
 
@@ -367,8 +367,8 @@ export function analyzeWithOverlay(
     });
 
     return result.smells;
-  } catch (error) {
-    debug('overlay', 'Overlay analysis failed', error);
+  } catch (error: unknown) {
+    debug('overlay', 'Overlay analysis failed', error instanceof Error ? error.message : error);
     return [];
   }
 }
