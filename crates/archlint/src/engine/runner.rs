@@ -144,8 +144,17 @@ impl AnalysisEngine {
 
         let all_smells = self.run_detectors(&ctx, use_progress, &presets)?;
 
+        // Filter smells: only keep smells that are NOT in ignored files
+        let filtered_smells: Vec<_> = all_smells
+            .into_iter()
+            .filter(|smell| {
+                // Keep the smell if at least one of the files it's associated with is NOT ignored
+                smell.files.is_empty() || smell.files.iter().any(|f| !self.is_file_ignored(f))
+            })
+            .collect();
+
         let mut report = AnalysisReport::new(
-            all_smells,
+            filtered_smells,
             Some(Arc::try_unwrap(ctx.graph).unwrap_or_else(|arc| (*arc).clone())),
             Arc::try_unwrap(ctx.file_symbols).unwrap_or_else(|arc| (*arc).clone()),
             Arc::try_unwrap(ctx.file_metrics).unwrap_or_else(|arc| (*arc).clone()),
@@ -183,14 +192,10 @@ impl AnalysisEngine {
         };
 
         let files = if let Some(ref explicit_files) = self.args.files {
-            explicit_files
-                .iter()
-                .filter(|f| !self.is_file_ignored(f))
-                .cloned()
-                .collect()
+            explicit_files.clone()
         } else {
             let scanner = FileScanner::new(&self.project_root, &self.target_path, extensions);
-            scanner.scan(&self.config)?
+            scanner.scan()?
         };
 
         info!(

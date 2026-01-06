@@ -36,7 +36,7 @@ pub fn analyze_fixture_with_config(name: &str, config: Config) -> AnalysisContex
         ],
     );
 
-    let files = scanner.scan(&config).unwrap();
+    let files = scanner.scan().unwrap();
     let mut graph = DependencyGraph::new();
     let mut file_symbols = HashMap::new();
     let mut function_complexity = HashMap::new();
