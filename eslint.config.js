@@ -10,6 +10,7 @@ export default [
       '**/node_modules/',
       '**/*.d.ts',
       'target/',
+      'docs/',
       'crates/archlint/test_data/',
       '**/__tests__/fixtures/**',
       '**/*.config.ts',
