@@ -2,7 +2,7 @@ name: Canary Release
 
 on:
   workflow_run:
-    workflows: ["CI"]
+    workflows: ['CI']
     types:
       - completed
     branches:
@@ -35,6 +35,19 @@ jobs:
             LATEST_TAG="v0.0.0"
           fi
           echo "Latest stable tag: $LATEST_TAG"
+
+          # Check if current commit is already a release commit or has a stable tag
+          COMMIT_MSG=$(git log -1 --pretty=%s)
+          if [[ "$COMMIT_MSG" == chore(release)* ]]; then
+            echo "Skipping canary release for release commit: $COMMIT_MSG"
+            exit 0
+          fi
+
+          CURRENT_COMMIT_TAGS=$(git tag --points-at HEAD)
+          if echo "$CURRENT_COMMIT_TAGS" | grep -qE '^v[0-9]+\.[0-9]+\.[0-9]+$'; then
+            echo "Skipping canary release because current commit already has a stable tag"
+            exit 0
+          fi
 
           # Extract version without 'v' prefix
           VERSION=${LATEST_TAG#v}
