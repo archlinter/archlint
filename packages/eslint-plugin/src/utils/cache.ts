@@ -207,10 +207,10 @@ function initializeProjectState(
       duration: Date.now() - start,
       smellCount: state.result?.smells?.length,
     });
-  } catch (error) {
+  } catch (error: unknown) {
     state.state = AnalysisState.Error;
     // eslint-disable-next-line no-console
-    console.error('[archlint] Analysis failed:', error);
+    console.error('[archlint] Analysis failed:', error instanceof Error ? error.message : error);
   }
 
   return state;
@@ -230,8 +230,8 @@ function performRescan(state: ProjectState, filePath: string): void {
       duration: Date.now() - start,
       smellCount: state.result?.smells?.length,
     });
-  } catch (error) {
-    debug('cache', 'Rescan error', error);
+  } catch (error: unknown) {
+    debug('cache', 'Rescan error', error instanceof Error ? error.message : error);
   }
 }
 
@@ -251,7 +251,7 @@ function shouldRescanFile(state: ProjectState, filePath: string, currentMtime: n
 function handleFileChange(state: ProjectState, filePath: string, currentMtime: number): void {
   const lastMtime = state.fileMtimes.get(filePath);
   const fileChanged = lastMtime !== undefined && currentMtime > lastMtime;
-  
+
   const needsRescan = shouldRescanFile(state, filePath, currentMtime);
   state.fileMtimes.set(filePath, currentMtime);
 
@@ -367,8 +367,8 @@ export function analyzeWithOverlay(
     });
 
     return result.smells;
-  } catch (error) {
-    debug('overlay', 'Overlay analysis failed', error);
+  } catch (error: unknown) {
+    debug('overlay', 'Overlay analysis failed', error instanceof Error ? error.message : error);
     return [];
   }
 }
@@ -387,7 +387,8 @@ function matchesSmellType(smellType: string, detectorId: string): boolean {
   // "dead" + "code" should match "deadcode" or "deadsymbol" (for dead_code -> DeadSymbol)
   // Special cases for detector -> smellType mapping
   const mappings: Record<string, string[]> = {
-    dead_code: ['deadcode', 'deadsymbol'],
+    dead_code: ['deadcode'],
+    dead_symbols: ['deadsymbol'],
     cycles: ['cyclicdependency', 'cyclicdependencycluster'],
     high_coupling: ['highcoupling'],
     high_complexity: ['highcomplexity'],

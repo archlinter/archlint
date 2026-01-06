@@ -110,7 +110,7 @@ impl AnalysisEngine {
         let final_config = self.apply_presets(&presets);
 
         let active_ids = self.get_active_detectors(&final_config, &presets);
-        let parser_config = self.create_parser_config(&active_ids);
+        let parser_config = ParserConfig::from_active_detectors(&active_ids);
 
         let mut cache = self.load_cache()?;
         let parsed_files = self.parse_files(&files, &parser_config, use_progress, &cache)?;
@@ -144,8 +144,17 @@ impl AnalysisEngine {
 
         let all_smells = self.run_detectors(&ctx, use_progress, &presets)?;
 
+        // Filter smells: only keep smells that are NOT in ignored files
+        let filtered_smells: Vec<_> = all_smells
+            .into_iter()
+            .filter(|smell| {
+                // Keep the smell if at least one of the files it's associated with is NOT ignored
+                smell.files.is_empty() || smell.files.iter().any(|f| !self.is_file_ignored(f))
+            })
+            .collect();
+
         let mut report = AnalysisReport::new(
-            all_smells,
+            filtered_smells,
             Some(Arc::try_unwrap(ctx.graph).unwrap_or_else(|arc| (*arc).clone())),
             Arc::try_unwrap(ctx.file_symbols).unwrap_or_else(|arc| (*arc).clone()),
             Arc::try_unwrap(ctx.file_metrics).unwrap_or_else(|arc| (*arc).clone()),
@@ -183,14 +192,10 @@ impl AnalysisEngine {
         };
 
         let files = if let Some(ref explicit_files) = self.args.files {
-            explicit_files
-                .iter()
-                .filter(|f| !self.is_file_ignored(f))
-                .cloned()
-                .collect()
+            explicit_files.clone()
         } else {
             let scanner = FileScanner::new(&self.project_root, &self.target_path, extensions);
-            scanner.scan(&self.config)?
+            scanner.scan()?
         };
 
         info!(
@@ -309,26 +314,6 @@ impl AnalysisEngine {
                 })
                 .map(|info| info.id.to_string())
                 .collect()
-        }
-    }
-
-    fn create_parser_config(&self, active_ids: &HashSet<String>) -> ParserConfig {
-        ParserConfig {
-            collect_complexity: active_ids.iter().any(|id| {
-                matches!(
-                    id.as_str(),
-                    "complexity"
-                        | "deep_nesting"
-                        | "long_params"
-                        | "hub_module"
-                        | "god_module"
-                        | "hub_dependency"
-                )
-            }),
-            collect_primitive_params: active_ids.contains("primitive_obsession"),
-            collect_classes: active_ids.contains("lcom"),
-            collect_env_vars: active_ids.contains("scattered_config"),
-            collect_used_symbols: active_ids.contains("scattered_module"),
         }
     }
 

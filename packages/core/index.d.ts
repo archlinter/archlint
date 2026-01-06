@@ -18,6 +18,8 @@ export interface JsScanOptions {
   cache?: boolean
   /** Enable git integration (default: true) */
   git?: boolean
+  /** Git history analysis period (e.g. "90d", "1y", "all") */
+  gitHistoryPeriod?: string
 }
 export interface JsScanResult {
   smells: Array<JsSmellWithExplanation>
@@ -147,6 +149,71 @@ export interface JsStateStats {
   graphNodes: number
   graphEdges: number
 }
+export interface JsDiffOptions {
+  baselinePath: string
+  projectPath: string
+  currentPath?: string
+}
+export interface JsDiffResult {
+  hasRegressions: boolean
+  regressions: Array<JsRegression>
+  improvements: Array<JsImprovement>
+  summary: JsDiffSummary
+  baselineCommit?: string
+  currentCommit?: string
+}
+export interface JsRegression {
+  id: string
+  regressionType: JsRegressionType
+  smell: JsSnapshotSmell
+  message: string
+  explain?: JsExplainBlock
+}
+export interface JsRegressionType {
+  type: string
+  from?: string
+  to?: string
+  metric?: string
+  fromVal?: number
+  toVal?: number
+  changePercent?: number
+}
+export interface JsImprovement {
+  id: string
+  improvementType: JsImprovementType
+  message: string
+}
+export interface JsImprovementType {
+  type: string
+  from?: string
+  to?: string
+  metric?: string
+  fromVal?: number
+  toVal?: number
+}
+export interface JsDiffSummary {
+  newSmells: number
+  fixedSmells: number
+  worsenedSmells: number
+  improvedSmells: number
+  totalRegressions: number
+  totalImprovements: number
+}
+export interface JsExplainBlock {
+  whyBad: string
+  consequences: string
+  howToFix: string
+}
+export interface JsSnapshotSmell {
+  id: string
+  smellType: string
+  severity: string
+  files: Array<string>
+  metrics: Record<string, unknown>
+  details?: unknown
+}
+export declare function runDiff(options: JsDiffOptions): JsDiffResult
+export declare function runDiffAsync(options: JsDiffOptions): Promise<JsDiffResult>
 export declare function scan(path: string, options?: JsScanOptions | undefined | null): Promise<JsScanResult>
 export declare function scanSync(path: string, options?: JsScanOptions | undefined | null): JsScanResult
 export declare function loadConfig(path?: string | undefined | null): JsConfig

@@ -18,12 +18,13 @@
     "test": "pnpm test:node && pnpm test:rust",
     "test:node": "vitest run",
     "test:rust": "cargo test --workspace",
-    "lint": "pnpm --filter @archlinter/eslint-plugin build && pnpm -r lint && eslint .",
-    "format": "prettier --write .",
-    "format:check": "prettier --check .",
+    "lint": "eslint .",
+    "format": "prettier --write \"**/*.{json,md,yml,yaml}\"",
+    "format:check": "prettier --check \"**/*.{json,md,yml,yaml}\"",
     "fmt": "cargo fmt",
     "clippy": "cargo clippy --workspace --all-targets --all-features -- -D warnings",
-    "clippy:fix": "cargo clippy --workspace --all-targets --all-features --allow-dirty --fix -- -D warnings",
+    "clippy:lib": "cargo clippy --workspace --all-targets --no-default-features -- -D warnings",
+    "clippy:fix": "cargo fix --workspace --allow-dirty --all-targets --all-features",
     "prepare": "simple-git-hooks",
     "clean": "pnpm -r clean && cargo clean",
     "copy-bins": "node scripts/copy-binaries.cjs",
@@ -53,11 +54,13 @@
     "commit-msg": "npx commitlint --edit ${1}"
   },
   "nano-staged": {
-    "*.{ts,js,json,md,yml,yaml}": "prettier --write",
-    "*.{ts,js}": "eslint --fix",
+    "*.{ts,js,cjs,mjs}": "eslint --fix",
+    "*.{json,md,yml,yaml}": "prettier --write",
+    ".prettierrc": "prettier --write",
     "*.rs": [
-      "sh -c 'cargo clippy --workspace --all-targets --all-features --allow-dirty --allow-staged --fix -- -D warnings' --",
-      "sh -c 'cargo fmt --all' --"
+      "bash -c 'pnpm clippy:fix'",
+      "bash -c 'pnpm clippy:lib'",
+      "bash -c 'pnpm fmt'"
     ]
   },
   "pnpm": {

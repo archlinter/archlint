@@ -14,10 +14,7 @@ if (!version) {
 const cargoPath = path.join(__dirname, '..', 'Cargo.toml');
 if (fs.existsSync(cargoPath)) {
   let cargoContent = fs.readFileSync(cargoPath, 'utf8');
-  cargoContent = cargoContent.replace(
-    /version = "[^"]+"/,
-    `version = "${version}"`
-  );
+  cargoContent = cargoContent.replace(/version = "[^"]+"/, `version = "${version}"`);
   fs.writeFileSync(cargoPath, cargoContent);
   console.log(`✓ Updated Cargo.toml to ${version}`);
 
@@ -27,7 +24,7 @@ if (fs.existsSync(cargoPath)) {
     console.log('Updating Cargo.lock...');
     execSync('cargo metadata --format-version 1 > /dev/null 2>&1', {
       cwd: path.join(__dirname, '..'),
-      shell: true
+      shell: true,
     });
     console.log(`✓ Updated Cargo.lock`);
   } catch (error) {
@@ -94,7 +91,7 @@ if (fs.existsSync(packagesDir)) {
     try {
       execSync('pnpm install --lockfile-only', {
         cwd: path.join(__dirname, '..'),
-        stdio: 'inherit'
+        stdio: 'inherit',
       });
       console.log(`✓ Updated pnpm-lock.yaml`);
     } catch (error) {

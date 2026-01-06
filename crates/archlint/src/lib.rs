@@ -2,8 +2,10 @@ pub mod args;
 pub mod cache;
 #[cfg(feature = "cli")]
 pub mod cli;
+pub mod commands;
 pub mod config;
 pub mod detectors;
+pub mod diff;
 pub mod engine;
 pub mod error;
 pub mod explain;
@@ -21,6 +23,7 @@ pub mod project_root;
 pub mod report;
 pub mod resolver;
 pub mod scanner;
+pub mod snapshot;
 #[cfg(feature = "cli")]
 pub mod watch;
 

@@ -3,6 +3,7 @@ use compact_str::CompactString;
 use rustc_hash::FxHashSet;
 use serde::{Deserialize, Serialize};
 use smallvec::SmallVec;
+use std::collections::HashSet;
 
 /// Compact string type for symbol names (inline up to 24 bytes, no heap allocation for short strings)
 pub type SymbolName = CompactString;
@@ -46,20 +47,47 @@ pub struct ImportedSymbol {
     pub is_reexport: bool,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub enum MethodAccessibility {
+    Public,
+    Protected,
+    Private,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MethodSymbol {
     pub name: SymbolName,
     pub used_fields: SymbolSet,
     pub used_methods: SymbolSet,
+    pub line: usize,
+    pub column: usize,
+    pub range: CodeRange,
+    pub has_decorators: bool,
+    pub is_accessor: bool,
+    pub accessibility: Option<MethodAccessibility>,
 }
 
 impl MethodSymbol {
     #[inline]
-    pub fn new(name: impl Into<SymbolName>) -> Self {
+    pub fn new(
+        name: impl Into<SymbolName>,
+        line: usize,
+        column: usize,
+        range: CodeRange,
+        has_decorators: bool,
+        is_accessor: bool,
+        accessibility: Option<MethodAccessibility>,
+    ) -> Self {
         Self {
             name: name.into(),
             used_fields: SymbolSet::default(),
             used_methods: SymbolSet::default(),
+            line,
+            column,
+            range,
+            has_decorators,
+            is_accessor,
+            accessibility,
         }
     }
 }
@@ -148,6 +176,26 @@ impl ParserConfig {
             collect_classes: false,
             collect_env_vars: false,
             collect_used_symbols: false,
+        }
+    }
+
+    pub fn from_active_detectors(active_ids: &HashSet<String>) -> Self {
+        Self {
+            collect_complexity: active_ids.iter().any(|id| {
+                matches!(
+                    id.as_str(),
+                    "complexity"
+                        | "deep_nesting"
+                        | "long_params"
+                        | "hub_module"
+                        | "god_module"
+                        | "hub_dependency"
+                )
+            }),
+            collect_primitive_params: active_ids.contains("primitive_obsession"),
+            collect_classes: active_ids.contains("lcom") || active_ids.contains("dead_symbols"),
+            collect_env_vars: active_ids.contains("scattered_config"),
+            collect_used_symbols: active_ids.contains("scattered_module"),
         }
     }
 }

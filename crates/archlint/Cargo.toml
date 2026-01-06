@@ -59,4 +59,6 @@ redb.workspace = true
 bincode.workspace = true
 
 [dev-dependencies]
+assert_cmd = "2.0"
+predicates = "3.1"
 tempfile.workspace = true

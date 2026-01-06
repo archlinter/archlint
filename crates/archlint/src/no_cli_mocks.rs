@@ -6,6 +6,23 @@ pub mod console {
             self.0.fmt(f)
         }
     }
+    pub enum Attribute {
+        Bold,
+        Italic,
+        Underlined,
+        Dim,
+    }
+    pub enum Color {
+        Red,
+        Green,
+        Yellow,
+        Blue,
+        Magenta,
+        Cyan,
+        White,
+        Black,
+    }
+
     impl<T> MockStyled<T> {
         pub fn red(self) -> Self {
             self
@@ -25,6 +42,18 @@ pub mod console {
         pub fn cyan(self) -> Self {
             self
         }
+        pub fn white(self) -> Self {
+            self
+        }
+        pub fn attr(self, _: Attribute) -> Self {
+            self
+        }
+        pub fn fg(self, _: Color) -> Self {
+            self
+        }
+        pub fn for_stderr(self) -> Self {
+            self
+        }
         pub fn dim(self) -> Self {
             self
         }
@@ -33,11 +62,6 @@ pub mod console {
         }
         pub fn underlined(self) -> Self {
             self
-        }
-    }
-    impl<T: ToString> MockStyled<T> {
-        pub fn to_string(&self) -> String {
-            self.0.to_string()
         }
     }
     pub fn style<T>(t: T) -> MockStyled<T> {
@@ -84,7 +108,7 @@ pub mod indicatif {
         pub fn default_spinner() -> Self {
             Self
         }
-        pub fn template(self, _: &str) -> Result<Self, ()> {
+        pub fn template(self, _: &str) -> Result<Self, String> {
             Ok(self)
         }
         pub fn progress_chars(self, _: &str) -> Self {
@@ -102,6 +126,11 @@ pub mod indicatif {
 #[cfg(not(feature = "cli"))]
 pub mod comfy_table {
     pub struct Table;
+    impl Default for Table {
+        fn default() -> Self {
+            Self::new()
+        }
+    }
     impl Table {
         pub fn new() -> Self {
             Self
@@ -154,6 +183,7 @@ pub mod comfy_table {
         DarkGrey,
         Red,
         Yellow,
+        White,
     }
     pub enum ContentArrangement {
         Dynamic,
