@@ -1,3 +1,14 @@
+## [0.7.0](https://github.com/archlinter/archlint/compare/v0.6.0...v0.7.0) (2026-01-06)
+
+### Features
+
+- add support for git history analysis period ([#7](https://github.com/archlinter/archlint/issues/7)) ([0a20d2b](https://github.com/archlinter/archlint/commit/0a20d2b0b910afc565e935c559db6fb43411f50c))
+- **core:** implement persistent git history cache using redb ([#5](https://github.com/archlinter/archlint/issues/5)) ([b2f3555](https://github.com/archlinter/archlint/commit/b2f35554f18f904fa916ba6fbb8b13bfad515b58))
+
+### Performance Improvements
+
+- **core:** migrate analysis cache to binary format (bincode) ([#6](https://github.com/archlinter/archlint/issues/6)) ([2543a52](https://github.com/archlinter/archlint/commit/2543a52043b370f58fd4695c55214a6a204778d1))
+
 ## [0.6.0](https://github.com/archlinter/archlint/compare/v0.5.0...v0.6.0) (2026-01-04)
 
 ### Features
