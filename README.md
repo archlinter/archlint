@@ -64,7 +64,12 @@ It asks you to **stop making it worse**.
 ```yaml
 # GitHub Actions
 - name: Architecture Gate
-  run: npx @archlinter/cli diff origin/main --fail-on medium
+  uses: archlinter/action@v1
+  with:
+    baseline: origin/${{ github.base_ref }}
+    fail-on: medium
+  env:
+    GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 ```
 
 That's it. Your PR now fails only if:
@@ -127,21 +132,31 @@ npx @archlinter/cli diff .archlint-baseline.json
 
 ### GitHub Actions
 
+The recommended way to use archlint on GitHub is via our official [GitHub Action](https://github.com/marketplace/actions/archlint-architecture-gate):
+
 ```yaml
 name: Architecture
 
 on: [pull_request]
 
 jobs:
-  arch-check:
+  archlint:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write # Required for PR comments
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 0
+          fetch-depth: 0 # Important for git diff analysis
 
-      - name: Check for architectural regressions
-        run: npx @archlinter/cli diff origin/${{ github.base_ref }} --fail-on medium
+      - name: archlint Architecture Gate
+        uses: archlinter/action@v1
+        with:
+          baseline: origin/${{ github.base_ref }}
+          fail-on: medium
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 ```
 
 ### GitLab CI
