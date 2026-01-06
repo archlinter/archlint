@@ -119,3 +119,22 @@ npx @archlinter/mcp-server
 ```
 
 See the [MCP Server](/integrations/mcp-server) section for more information.
+
+## GitHub Action
+
+To prevent architectural regressions in your Pull Requests, use our official GitHub Action:
+
+<div v-pre>
+
+```yaml
+- name: archlint
+  uses: archlinter/action@v1
+  with:
+    baseline: origin/${{ github.base_ref }}
+    fail-on: medium
+    github-token: ${{ github.token }}
+```
+
+</div>
+
+See the [GitHub Actions](/integrations/github-actions) section for more information.
