@@ -95,8 +95,15 @@ impl DeadSymbolsDetector {
         file_symbols: &HashMap<PathBuf, FileSymbols>,
     ) -> InheritanceContext {
         let mut ctx = InheritanceContext::default();
+        Self::collect_reexports(file_symbols, &mut ctx);
+        Self::collect_inheritance(file_symbols, &mut ctx);
+        ctx
+    }
 
-        // 1. Build re-export map
+    fn collect_reexports(
+        file_symbols: &HashMap<PathBuf, FileSymbols>,
+        ctx: &mut InheritanceContext,
+    ) {
         for (path, symbols) in file_symbols {
             for export in &symbols.exports {
                 if export.is_reexport && export.name == "*" {
@@ -109,21 +116,18 @@ impl DeadSymbolsDetector {
                 }
             }
         }
+    }
 
-        // 2. Build inheritance map
+    fn collect_inheritance(
+        file_symbols: &HashMap<PathBuf, FileSymbols>,
+        ctx: &mut InheritanceContext,
+    ) {
         for (path, symbols) in file_symbols {
             for class in &symbols.classes {
                 if let Some(ref super_name) = class.super_class {
-                    let parent_info = symbols
-                        .imports
-                        .iter()
-                        .find(|i| {
-                            i.alias.as_ref().map_or(i.name.as_str(), |a| a.as_str())
-                                == super_name.as_str()
-                        })
-                        .map(|i| (PathBuf::from(i.source.as_str()), i.name.to_string()));
-
-                    if let Some((parent_path, parent_name)) = parent_info {
+                    if let Some((parent_path, parent_name)) =
+                        Self::resolve_parent_class(symbols, super_name)
+                    {
                         let child_id = (path.clone(), class.name.to_string());
                         let parent_id = (parent_path, parent_name);
 
@@ -133,8 +137,14 @@ impl DeadSymbolsDetector {
                 }
             }
         }
+    }
 
-        ctx
+    fn resolve_parent_class(symbols: &FileSymbols, super_name: &str) -> Option<(PathBuf, String)> {
+        symbols
+            .imports
+            .iter()
+            .find(|i| i.alias.as_ref().map_or(i.name.as_str(), |a| a.as_str()) == super_name)
+            .map(|i| (PathBuf::from(i.source.as_str()), i.name.to_string()))
     }
 
     fn collect_all_usages(file_symbols: &HashMap<PathBuf, FileSymbols>) -> HashSet<String> {
