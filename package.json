@@ -15,6 +15,9 @@
     "build": "pnpm -r build",
     "build:rust": "cargo build --release --workspace",
     "build:napi": "cd crates/archlint-napi && napi build --release",
+    "docs:dev": "vitepress dev docs",
+    "docs:build": "vitepress build docs",
+    "docs:preview": "vitepress preview docs",
     "test": "pnpm test:node && pnpm test:rust",
     "test:node": "vitest run",
     "test:rust": "cargo test --workspace",
@@ -47,6 +50,7 @@
     "simple-git-hooks": "^2.12.0",
     "typescript": "^5.4.0",
     "typescript-eslint": "^8.51.0",
+    "vitepress": "^1.6.4",
     "vitest": "^1.4.0"
   },
   "simple-git-hooks": {
