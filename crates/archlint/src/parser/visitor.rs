@@ -51,7 +51,7 @@ pub struct UnifiedVisitor {
     line_index: LineIndex,
 }
 
-impl UnifiedVisitor {
+impl<'a> UnifiedVisitor {
     pub fn new(source_text: &str, config: ParserConfig) -> Self {
         // Pre-allocate based on file size heuristics
         let estimated_imports = (source_text.len() / 500).max(8);
@@ -157,6 +157,19 @@ impl UnifiedVisitor {
     #[inline]
     fn export_name_to_compact(name: oxc_span::Atom) -> CompactString {
         CompactString::new(name.as_str())
+    }
+
+    fn ts_type_name_to_string(it: &oxc_ast::ast::TSTypeName<'_>) -> String {
+        match it {
+            oxc_ast::ast::TSTypeName::IdentifierReference(id) => id.name.to_string(),
+            oxc_ast::ast::TSTypeName::QualifiedName(qn) => {
+                format!(
+                    "{}.{}",
+                    Self::ts_type_name_to_string(&qn.left),
+                    qn.right.name
+                )
+            }
+        }
     }
 
     fn handle_reexport_specifiers(
@@ -377,6 +390,88 @@ impl UnifiedVisitor {
                 self.env_vars.insert(name);
             }
         }
+    }
+
+    fn enter_class_scope(
+        &mut self,
+        it: &oxc_ast::ast::Class<'a>,
+    ) -> (
+        SymbolName,
+        SymbolSet,
+        SmallVec<[MethodSymbol; 8]>,
+        Option<SymbolName>,
+    ) {
+        let class_name = it
+            .id
+            .as_ref()
+            .map(|id| Self::atom_to_compact(&id.name))
+            .unwrap_or_else(|| interned::ANONYMOUS.clone());
+
+        let old_class = self.current_class.replace(class_name.clone());
+        let old_fields = std::mem::take(&mut self.temp_fields);
+        let old_methods = std::mem::take(&mut self.temp_methods);
+
+        (class_name, old_fields, old_methods, old_class)
+    }
+
+    fn collect_class_fields(&mut self, it: &oxc_ast::ast::Class<'a>) {
+        for item in &it.body.body {
+            if let oxc_ast::ast::ClassElement::PropertyDefinition(p) = item {
+                if let Some(name) = p.key.name() {
+                    self.temp_fields.insert(CompactString::new(&name));
+                }
+            }
+        }
+    }
+
+    fn expression_to_string(expr: &oxc_ast::ast::Expression<'_>) -> Option<String> {
+        match expr {
+            Expression::Identifier(id) => Some(id.name.to_string()),
+            Expression::StaticMemberExpression(s) => {
+                if let Some(obj) = Self::expression_to_string(&s.object) {
+                    Some(format!("{}.{}", obj, s.property.name))
+                } else {
+                    Some(s.property.name.to_string())
+                }
+            }
+            _ => None,
+        }
+    }
+
+    fn finalize_class_symbol(&mut self, it: &oxc_ast::ast::Class<'a>, class_name: SymbolName) {
+        let super_class = it
+            .super_class
+            .as_ref()
+            .and_then(|expr| Self::expression_to_string(expr).map(CompactString::new));
+
+        let mut implements = Vec::new();
+        if let Some(impls) = &it.implements {
+            for imp in impls {
+                let name = Self::ts_type_name_to_string(&imp.expression);
+                implements.push(CompactString::new(name));
+            }
+        }
+
+        let class_symbol = ClassSymbol {
+            name: class_name,
+            super_class,
+            implements,
+            fields: self.temp_fields.iter().cloned().collect(),
+            methods: self.temp_methods.clone(),
+            is_abstract: it.r#abstract,
+        };
+        self.classes.push(class_symbol);
+    }
+
+    fn exit_class_scope(
+        &mut self,
+        old_fields: SymbolSet,
+        old_methods: SmallVec<[MethodSymbol; 8]>,
+        old_class: Option<SymbolName>,
+    ) {
+        self.temp_fields = old_fields;
+        self.temp_methods = old_methods;
+        self.current_class = old_class;
     }
 }
 
@@ -642,41 +737,19 @@ impl<'a> Visit<'a> for UnifiedVisitor {
     }
 
     fn visit_class(&mut self, it: &oxc_ast::ast::Class<'a>) {
-        let old_class = self.current_class.take();
-        let class_name = it
-            .id
-            .as_ref()
-            .map(|id| Self::atom_to_compact(&id.name))
-            .unwrap_or_else(|| interned::ANONYMOUS.clone());
-        self.current_class = Some(class_name.clone());
-
-        let old_temp_fields = std::mem::take(&mut self.temp_fields);
-        let old_temp_methods = std::mem::take(&mut self.temp_methods);
+        let (class_name, old_fields, old_methods, old_class) = self.enter_class_scope(it);
 
         if self.config.collect_classes {
-            for item in &it.body.body {
-                if let oxc_ast::ast::ClassElement::PropertyDefinition(p) = item {
-                    if let Some(name) = p.key.name() {
-                        self.temp_fields.insert(CompactString::new(&name));
-                    }
-                }
-            }
+            self.collect_class_fields(it);
         }
 
         oxc_ast::visit::walk::walk_class(self, it);
 
         if self.config.collect_classes {
-            let class_symbol = ClassSymbol {
-                name: class_name,
-                fields: self.temp_fields.iter().cloned().collect(),
-                methods: self.temp_methods.clone(),
-            };
-            self.classes.push(class_symbol);
+            self.finalize_class_symbol(it, class_name);
         }
 
-        self.temp_fields = old_temp_fields;
-        self.temp_methods = old_temp_methods;
-        self.current_class = old_class;
+        self.exit_class_scope(old_fields, old_methods, old_class);
     }
 
     fn visit_variable_declarator(&mut self, it: &oxc_ast::ast::VariableDeclarator<'a>) {
@@ -728,6 +801,7 @@ impl<'a> Visit<'a> for UnifiedVisitor {
                 has_decorators,
                 is_accessor,
                 accessibility,
+                it.r#type.is_abstract(),
             ));
         }
 
