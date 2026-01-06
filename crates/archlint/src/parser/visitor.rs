@@ -424,12 +424,25 @@ impl<'a> UnifiedVisitor {
         }
     }
 
-    fn finalize_class_symbol(&mut self, it: &oxc_ast::ast::Class<'a>, class_name: SymbolName) {
-        let super_class = it.super_class.as_ref().and_then(|expr| match expr {
-            Expression::Identifier(id) => Some(Self::atom_to_compact(&id.name)),
-            Expression::StaticMemberExpression(s) => Some(Self::atom_to_compact(&s.property.name)),
+    fn expression_to_string(expr: &oxc_ast::ast::Expression<'_>) -> Option<String> {
+        match expr {
+            Expression::Identifier(id) => Some(id.name.to_string()),
+            Expression::StaticMemberExpression(s) => {
+                if let Some(obj) = Self::expression_to_string(&s.object) {
+                    Some(format!("{}.{}", obj, s.property.name))
+                } else {
+                    Some(s.property.name.to_string())
+                }
+            }
             _ => None,
-        });
+        }
+    }
+
+    fn finalize_class_symbol(&mut self, it: &oxc_ast::ast::Class<'a>, class_name: SymbolName) {
+        let super_class = it
+            .super_class
+            .as_ref()
+            .and_then(|expr| Self::expression_to_string(expr).map(CompactString::new));
 
         let mut implements = Vec::new();
         if let Some(impls) = &it.implements {

@@ -140,11 +140,35 @@ impl DeadSymbolsDetector {
     }
 
     fn resolve_parent_class(symbols: &FileSymbols, super_name: &str) -> Option<(PathBuf, String)> {
-        symbols
+        // Try direct match (e.g., Base)
+        if let Some(import) = symbols
             .imports
             .iter()
             .find(|i| i.alias.as_ref().map_or(i.name.as_str(), |a| a.as_str()) == super_name)
-            .map(|i| (PathBuf::from(i.source.as_str()), i.name.to_string()))
+        {
+            return Some((
+                PathBuf::from(import.source.as_str()),
+                import.name.to_string(),
+            ));
+        }
+
+        // Try namespace match (e.g., NS.Base)
+        if let Some(dot_pos) = super_name.find('.') {
+            let ns = &super_name[..dot_pos];
+            let name = &super_name[dot_pos + 1..];
+
+            if let Some(import) = symbols
+                .imports
+                .iter()
+                .find(|i| i.alias.as_ref().map_or(i.name.as_str(), |a| a.as_str()) == ns)
+            {
+                if import.name == "*" {
+                    return Some((PathBuf::from(import.source.as_str()), name.to_string()));
+                }
+            }
+        }
+
+        None
     }
 
     fn collect_all_usages(file_symbols: &HashMap<PathBuf, FileSymbols>) -> HashSet<String> {
@@ -549,6 +573,16 @@ mod tests {
     use super::*;
     use crate::engine::AnalysisContext;
     use crate::parser::ImportParser;
+    use crate::parser::{
+        ClassSymbol, ExportedSymbol, FileSymbols, ImportedSymbol, MethodAccessibility,
+        MethodSymbol, SymbolKind,
+    };
+    use crate::CodeRange;
+    use compact_str::CompactString;
+    use rustc_hash::FxHashSet;
+    use smallvec::smallvec;
+    use std::collections::{HashMap, HashSet};
+    use std::path::PathBuf;
     use std::sync::Arc;
 
     #[test]
@@ -664,6 +698,132 @@ mod tests {
             other_unused.is_none(),
             "OtherService.unusedMethod should NOT be reported as dead"
         );
+    }
+
+    #[test]
+    fn test_namespace_inheritance() {
+        let mut file_symbols = HashMap::new();
+
+        // base.ts: class Base { method() {} }
+        let base_path = PathBuf::from("base.ts");
+        let base_symbols = FileSymbols {
+            exports: vec![ExportedSymbol {
+                name: CompactString::new("Base"),
+                kind: SymbolKind::Class,
+                is_reexport: false,
+                source: None,
+                line: 1,
+                column: 0,
+                range: CodeRange::default(),
+                used_symbols: FxHashSet::default(),
+                is_mutable: false,
+            }],
+            classes: vec![ClassSymbol {
+                name: CompactString::new("Base"),
+                super_class: None,
+                implements: vec![],
+                fields: smallvec![],
+                methods: smallvec![MethodSymbol::new(
+                    CompactString::new("method"),
+                    2,
+                    4,
+                    CodeRange::default(),
+                    false,
+                    false,
+                    Some(MethodAccessibility::Public),
+                    false,
+                )],
+                is_abstract: false,
+            }],
+            imports: vec![],
+            local_definitions: vec![],
+            local_usages: FxHashSet::default(),
+            has_runtime_code: true,
+            env_vars: FxHashSet::default(),
+        };
+        file_symbols.insert(base_path.clone(), base_symbols);
+
+        // child.ts: import * as NS from './base'; class Child extends NS.Base {}
+        let child_path = PathBuf::from("child.ts");
+        let child_symbols = FileSymbols {
+            exports: vec![ExportedSymbol {
+                name: CompactString::new("Child"),
+                kind: SymbolKind::Class,
+                is_reexport: false,
+                source: None,
+                line: 2,
+                column: 0,
+                range: CodeRange::default(),
+                used_symbols: FxHashSet::default(),
+                is_mutable: false,
+            }],
+            classes: vec![ClassSymbol {
+                name: CompactString::new("Child"),
+                super_class: Some(CompactString::new("NS.Base")),
+                implements: vec![],
+                fields: smallvec![],
+                methods: smallvec![],
+                is_abstract: false,
+            }],
+            imports: vec![ImportedSymbol {
+                name: CompactString::new("*"),
+                alias: Some(CompactString::new("NS")),
+                source: CompactString::new("base.ts"),
+                line: 1,
+                column: 0,
+                range: CodeRange::default(),
+                is_type_only: false,
+                is_reexport: false,
+            }],
+            local_definitions: vec![],
+            local_usages: FxHashSet::default(),
+            has_runtime_code: true,
+            env_vars: FxHashSet::default(),
+        };
+        file_symbols.insert(child_path.clone(), child_symbols);
+
+        // main.ts: import { Child } from './child'; const c = new Child(); c.method();
+        let main_path = PathBuf::from("main.ts");
+        let mut local_usages = FxHashSet::default();
+        local_usages.insert(CompactString::new("Child"));
+        local_usages.insert(CompactString::new("method"));
+        let main_symbols = FileSymbols {
+            exports: vec![],
+            classes: vec![],
+            imports: vec![ImportedSymbol {
+                name: CompactString::new("Child"),
+                alias: None,
+                source: CompactString::new("child.ts"),
+                line: 1,
+                column: 0,
+                range: CodeRange::default(),
+                is_type_only: false,
+                is_reexport: false,
+            }],
+            local_definitions: vec![],
+            local_usages,
+            has_runtime_code: true,
+            env_vars: FxHashSet::default(),
+        };
+        file_symbols.insert(main_path.clone(), main_symbols);
+
+        let mut ctx = AnalysisContext::default_for_test();
+        ctx.file_symbols = Arc::new(file_symbols.clone());
+        ctx.script_entry_points = HashSet::from_iter(vec![main_path.clone()]);
+
+        let _detector = DeadSymbolsDetector;
+        let smells =
+            DeadSymbolsDetector::detect_symbols(&file_symbols, &ctx.script_entry_points, &ctx);
+
+        // method should NOT be dead because it's called on Child which inherits from Base via NS.Base
+        let dead_method = smells.iter().find(|s| {
+            if let crate::detectors::SmellType::DeadSymbol { name, .. } = &s.smell_type {
+                name.contains("method")
+            } else {
+                false
+            }
+        });
+        assert!(dead_method.is_none(), "Method should be alive");
     }
 
     #[test]
