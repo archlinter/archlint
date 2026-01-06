@@ -82,6 +82,27 @@ pub fn generate_snapshot_from_git_ref(
 ) -> Result<Snapshot> {
     // Resolve ref to commit hash using git2
     let repo = git2::Repository::discover(project_path)?;
+    let repo_root = repo
+        .workdir()
+        .ok_or_else(|| crate::AnalysisError::GitCommand("Repository has no workdir".to_string()))?;
+
+    // Calculate relative path from repo root to project_path to maintain scope
+    let relative_path = project_path
+        .canonicalize()
+        .unwrap_or_else(|_| project_path.to_path_buf())
+        .strip_prefix(
+            repo_root
+                .canonicalize()
+                .unwrap_or_else(|_| repo_root.to_path_buf()),
+        )
+        .map_err(|_| {
+            crate::AnalysisError::GitCommand(format!(
+                "Project path {:?} is not inside repository root {:?}",
+                project_path, repo_root
+            ))
+        })?
+        .to_path_buf();
+
     let obj = repo.revparse_single(git_ref).map_err(|e| {
         crate::AnalysisError::GitCommand(format!("Cannot resolve '{}': {}", git_ref, e))
     })?;
@@ -98,14 +119,18 @@ pub fn generate_snapshot_from_git_ref(
         );
     }
 
+    // Path to analyze within the worktree
+    let analysis_path = worktree.path().join(relative_path);
+
     // Analyze the worktree
-    let mut analyzer = Analyzer::new(worktree.path(), ScanOptions::default())?;
+    let mut analyzer = Analyzer::new(&analysis_path, ScanOptions::default())?;
     let scan_result = analyzer.scan()?;
 
     debug!("Worktree path: {:?}", worktree.path());
+    debug!("Analysis path: {:?}", analysis_path);
 
-    // Generate snapshot (paths relative to worktree)
-    let snapshot = SnapshotGenerator::new(worktree.path().to_path_buf())
+    // Generate snapshot (paths relative to analysis_path)
+    let snapshot = SnapshotGenerator::new(analysis_path)
         .with_commit(true)
         .generate(&scan_result);
 

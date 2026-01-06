@@ -134,7 +134,7 @@ fn nestjs_preset() -> FrameworkPreset {
 
     FrameworkPreset {
         name: "NestJS",
-        enabled_detectors: vec!["layer_violation", "sdp_violation"],
+        enabled_detectors: vec!["layer_violation"],
         disabled_detectors: vec!["scattered_module"],
         file_rules,
         vendor_ignore: vec![
