@@ -44,6 +44,16 @@ impl Detector for DeadSymbolsDetector {
     }
 }
 
+#[derive(Default)]
+struct InheritanceContext {
+    // child (path, name) -> parent (path, name)
+    parents: HashMap<(PathBuf, String), (PathBuf, String)>,
+    // parent (path, name) -> children [(path, name)]
+    children: HashMap<(PathBuf, String), Vec<(PathBuf, String)>>,
+    // file -> files that re-export it (export * from 'file')
+    reexports: HashMap<PathBuf, HashSet<PathBuf>>,
+}
+
 impl DeadSymbolsDetector {
     pub fn new(_entry_points: HashSet<PathBuf>) -> Self {
         Self
@@ -56,6 +66,7 @@ impl DeadSymbolsDetector {
     ) -> Vec<ArchSmell> {
         let all_project_usages = Self::collect_all_usages(file_symbols);
         let symbol_usages = Self::build_symbol_imports_map(file_symbols);
+        let inheritance_ctx = Self::build_inheritance_context(file_symbols);
 
         let mut all_smells = Vec::new();
         all_smells.extend(Self::check_dead_local_symbols(
@@ -66,6 +77,7 @@ impl DeadSymbolsDetector {
             file_symbols,
             &all_project_usages,
             &symbol_usages,
+            &inheritance_ctx,
             ctx,
         ));
         all_smells.extend(Self::check_dead_exports(
@@ -73,9 +85,56 @@ impl DeadSymbolsDetector {
             entry_points,
             &symbol_usages,
             &all_project_usages,
+            &inheritance_ctx,
         ));
 
         all_smells
+    }
+
+    fn build_inheritance_context(
+        file_symbols: &HashMap<PathBuf, FileSymbols>,
+    ) -> InheritanceContext {
+        let mut ctx = InheritanceContext::default();
+
+        // 1. Build re-export map
+        for (path, symbols) in file_symbols {
+            for export in &symbols.exports {
+                if export.is_reexport && export.name == "*" {
+                    if let Some(ref source) = export.source {
+                        ctx.reexports
+                            .entry(PathBuf::from(source.as_str()))
+                            .or_default()
+                            .insert(path.clone());
+                    }
+                }
+            }
+        }
+
+        // 2. Build inheritance map
+        for (path, symbols) in file_symbols {
+            for class in &symbols.classes {
+                if let Some(ref super_name) = class.super_class {
+                    let parent_info = symbols
+                        .imports
+                        .iter()
+                        .find(|i| {
+                            i.alias.as_ref().map_or(i.name.as_str(), |a| a.as_str())
+                                == super_name.as_str()
+                        })
+                        .map(|i| (PathBuf::from(i.source.as_str()), i.name.to_string()));
+
+                    if let Some((parent_path, parent_name)) = parent_info {
+                        let child_id = (path.clone(), class.name.to_string());
+                        let parent_id = (parent_path, parent_name);
+
+                        ctx.parents.insert(child_id.clone(), parent_id.clone());
+                        ctx.children.entry(parent_id).or_default().push(child_id);
+                    }
+                }
+            }
+        }
+
+        ctx
     }
 
     fn collect_all_usages(file_symbols: &HashMap<PathBuf, FileSymbols>) -> HashSet<String> {
@@ -159,6 +218,7 @@ impl DeadSymbolsDetector {
         file_symbols: &HashMap<PathBuf, FileSymbols>,
         _all_project_usages: &HashSet<String>,
         symbol_usages: &HashMap<(PathBuf, String), HashSet<PathBuf>>,
+        inheritance_ctx: &InheritanceContext,
         ctx: &AnalysisContext,
     ) -> Vec<ArchSmell> {
         let ignored_methods = Self::build_ignored_methods_set(ctx);
@@ -172,6 +232,7 @@ impl DeadSymbolsDetector {
                     symbols,
                     file_symbols,
                     symbol_usages,
+                    inheritance_ctx,
                     &ignored_methods,
                 ));
             }
@@ -204,6 +265,7 @@ impl DeadSymbolsDetector {
         symbols: &FileSymbols,
         file_symbols: &HashMap<PathBuf, FileSymbols>,
         symbol_usages: &HashMap<(PathBuf, String), HashSet<PathBuf>>,
+        inheritance_ctx: &InheritanceContext,
         ignored_methods: &HashSet<String>,
     ) -> Vec<ArchSmell> {
         let mut smells = Vec::new();
@@ -220,6 +282,7 @@ impl DeadSymbolsDetector {
                 symbols,
                 file_symbols,
                 symbol_usages,
+                inheritance_ctx,
             ) {
                 smells.push(Self::create_dead_method_smell(file_path, class, method));
             }
@@ -244,16 +307,45 @@ impl DeadSymbolsDetector {
         symbols: &FileSymbols,
         file_symbols: &HashMap<PathBuf, FileSymbols>,
         symbol_usages: &HashMap<(PathBuf, String), HashSet<PathBuf>>,
+        inheritance_ctx: &InheritanceContext,
     ) -> bool {
+        // 1. Direct usage in the same file
         if symbols.local_usages.contains(method.name.as_str()) {
             return true;
         }
 
-        if method.accessibility == Some(MethodAccessibility::Private) {
-            return false;
+        // 2. If it overrides a method in base class, and that base method name is used in base class
+        let mut current_class_id = (file_path.to_path_buf(), class.name.to_string());
+        let mut visited_parents = HashSet::new();
+        visited_parents.insert(current_class_id.clone());
+
+        while let Some(parent_id) = inheritance_ctx.parents.get(&current_class_id) {
+            if !visited_parents.insert(parent_id.clone()) {
+                break; // Cycle detected
+            }
+            if let Some(parent_symbols) = file_symbols.get(&parent_id.0) {
+                if parent_symbols.local_usages.contains(method.name.as_str()) {
+                    return true;
+                }
+            }
+            current_class_id = parent_id.clone();
         }
 
-        Self::is_method_used_in_importers(method, file_path, class, file_symbols, symbol_usages)
+        // 3. Usage in importers (including importers of descendants and through re-exports)
+        if method.accessibility != Some(MethodAccessibility::Private)
+            && Self::is_method_used_in_importers(
+                method,
+                file_path,
+                class,
+                file_symbols,
+                symbol_usages,
+                inheritance_ctx,
+            )
+        {
+            return true;
+        }
+
+        false
     }
 
     fn is_method_used_in_importers(
@@ -262,8 +354,10 @@ impl DeadSymbolsDetector {
         class: &crate::parser::ClassSymbol,
         file_symbols: &HashMap<PathBuf, FileSymbols>,
         symbol_usages: &HashMap<(PathBuf, String), HashSet<PathBuf>>,
+        inheritance_ctx: &InheritanceContext,
     ) -> bool {
-        let all_importers = Self::collect_class_importers(file_path, class, symbol_usages);
+        let all_importers =
+            Self::collect_class_importers(file_path, class, symbol_usages, inheritance_ctx);
 
         for importer_path in all_importers {
             if let Some(importer_symbols) = file_symbols.get(&importer_path) {
@@ -276,21 +370,72 @@ impl DeadSymbolsDetector {
         false
     }
 
+    fn collect_all_reexporters_static(
+        file_path: &Path,
+        reexport_map: &HashMap<PathBuf, HashSet<PathBuf>>,
+        visited: &mut HashSet<PathBuf>,
+    ) {
+        if !visited.insert(file_path.to_path_buf()) {
+            return;
+        }
+        if let Some(reexporters) = reexport_map.get(file_path) {
+            for reexporter in reexporters {
+                Self::collect_all_reexporters_static(reexporter, reexport_map, visited);
+            }
+        }
+    }
+
+    fn collect_all_descendants_static(
+        class_id: &(PathBuf, String),
+        children_map: &HashMap<(PathBuf, String), Vec<(PathBuf, String)>>,
+        visited: &mut HashSet<(PathBuf, String)>,
+    ) {
+        if !visited.insert(class_id.clone()) {
+            return;
+        }
+        if let Some(children) = children_map.get(class_id) {
+            for child in children {
+                Self::collect_all_descendants_static(child, children_map, visited);
+            }
+        }
+    }
+
     fn collect_class_importers(
         file_path: &Path,
         class: &crate::parser::ClassSymbol,
         symbol_usages: &HashMap<(PathBuf, String), HashSet<PathBuf>>,
+        inheritance_ctx: &InheritanceContext,
     ) -> HashSet<PathBuf> {
         let mut all_importers = HashSet::new();
-        let file_path_buf = file_path.to_path_buf();
 
-        if let Some(importers) = symbol_usages.get(&(file_path_buf.clone(), class.name.to_string()))
-        {
-            all_importers.extend(importers.iter().cloned());
-        }
+        // Find all descendants of the class (including itself)
+        let mut all_classes = HashSet::new();
+        let class_id = (file_path.to_path_buf(), class.name.to_string());
+        Self::collect_all_descendants_static(
+            &class_id,
+            &inheritance_ctx.children,
+            &mut all_classes,
+        );
 
-        if let Some(importers) = symbol_usages.get(&(file_path_buf.clone(), "*".to_string())) {
-            all_importers.extend(importers.iter().cloned());
+        for (c_path, c_name) in all_classes {
+            // For each class (itself or descendant), find all files that re-export its file
+            let mut all_source_files = HashSet::new();
+            Self::collect_all_reexporters_static(
+                &c_path,
+                &inheritance_ctx.reexports,
+                &mut all_source_files,
+            );
+
+            for source_path in all_source_files {
+                // Named import
+                if let Some(importers) = symbol_usages.get(&(source_path.clone(), c_name.clone())) {
+                    all_importers.extend(importers.iter().cloned());
+                }
+                // Star import
+                if let Some(importers) = symbol_usages.get(&(source_path, "*".to_string())) {
+                    all_importers.extend(importers.iter().cloned());
+                }
+            }
         }
 
         all_importers
@@ -318,6 +463,7 @@ impl DeadSymbolsDetector {
         entry_points: &HashSet<PathBuf>,
         symbol_usages: &HashMap<(PathBuf, String), HashSet<PathBuf>>,
         all_project_usages: &HashSet<String>,
+        _inheritance_ctx: &InheritanceContext,
     ) -> Vec<ArchSmell> {
         file_symbols
             .iter()
@@ -508,5 +654,89 @@ mod tests {
             other_unused.is_none(),
             "OtherService.unusedMethod should NOT be reported as dead"
         );
+    }
+
+    #[test]
+    fn test_polymorphism_and_barrels() {
+        let base_code = r#"
+            export abstract class Base {
+                protected abstract usedInBase(): void;
+                public run() { this.usedInBase(); }
+            }
+        "#;
+        let child_code = r#"
+            import { Base } from './base';
+            export class Child extends Base {
+                protected usedInBase(): void { console.log("used"); }
+                public unusedMethod(): void { console.log("unused"); }
+            }
+        "#;
+        let index_code = r#"
+            export * from './child';
+        "#;
+        let consumer_code = r#"
+            import { Child } from './index';
+            const c = new Child();
+            c.run();
+        "#;
+
+        let path_base = PathBuf::from("base.ts");
+        let path_child = PathBuf::from("child.ts");
+        let path_index = PathBuf::from("index.ts");
+        let path_consumer = PathBuf::from("consumer.ts");
+
+        let parser = ImportParser::new().unwrap();
+        let parsed_base = parser.parse_code(base_code, &path_base).unwrap();
+        let parsed_child = parser.parse_code(child_code, &path_child).unwrap();
+        let parsed_index = parser.parse_code(index_code, &path_index).unwrap();
+        let parsed_consumer = parser.parse_code(consumer_code, &path_consumer).unwrap();
+
+        let mut file_symbols = HashMap::new();
+        file_symbols.insert(path_base.clone(), parsed_base.symbols);
+        file_symbols.insert(path_child.clone(), parsed_child.symbols);
+        file_symbols.insert(path_index.clone(), parsed_index.symbols);
+        file_symbols.insert(path_consumer.clone(), parsed_consumer.symbols);
+
+        let mut ctx = AnalysisContext::default_for_test();
+        // Simulate symbol resolution that happens in engine
+        let mut resolved_symbols = file_symbols.clone();
+        resolved_symbols.get_mut(&path_child).unwrap().imports[0].source = "base.ts".into();
+        resolved_symbols.get_mut(&path_index).unwrap().exports[0].source = Some("child.ts".into());
+        resolved_symbols.get_mut(&path_consumer).unwrap().imports[0].source = "index.ts".into();
+
+        ctx.file_symbols = Arc::new(resolved_symbols);
+
+        let detector = DeadSymbolsDetector;
+        let smells = detector.detect(&ctx);
+
+        // 1. Base.run should be ALIVE (called in consumer.ts through Child)
+        let base_run_dead = smells.iter().any(|s| {
+            if let crate::detectors::SmellType::DeadSymbol { name, .. } = &s.smell_type {
+                name == "Base.run"
+            } else {
+                false
+            }
+        });
+        assert!(!base_run_dead, "Base.run should be alive");
+
+        // 2. Child.usedInBase should be ALIVE (called in Base.run via polymorphism)
+        let child_used_dead = smells.iter().any(|s| {
+            if let crate::detectors::SmellType::DeadSymbol { name, .. } = &s.smell_type {
+                name == "Child.usedInBase"
+            } else {
+                false
+            }
+        });
+        assert!(!child_used_dead, "Child.usedInBase should be alive");
+
+        // 3. Child.unusedMethod should be DEAD
+        let child_unused_dead = smells.iter().any(|s| {
+            if let crate::detectors::SmellType::DeadSymbol { name, .. } = &s.smell_type {
+                name == "Child.unusedMethod"
+            } else {
+                false
+            }
+        });
+        assert!(child_unused_dead, "Child.unusedMethod should be dead");
     }
 }

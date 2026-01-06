@@ -65,10 +65,12 @@ pub struct MethodSymbol {
     pub has_decorators: bool,
     pub is_accessor: bool,
     pub accessibility: Option<MethodAccessibility>,
+    pub is_abstract: bool,
 }
 
 impl MethodSymbol {
     #[inline]
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         name: impl Into<SymbolName>,
         line: usize,
@@ -77,6 +79,7 @@ impl MethodSymbol {
         has_decorators: bool,
         is_accessor: bool,
         accessibility: Option<MethodAccessibility>,
+        is_abstract: bool,
     ) -> Self {
         Self {
             name: name.into(),
@@ -88,6 +91,7 @@ impl MethodSymbol {
             has_decorators,
             is_accessor,
             accessibility,
+            is_abstract,
         }
     }
 }
@@ -95,8 +99,11 @@ impl MethodSymbol {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ClassSymbol {
     pub name: SymbolName,
+    pub super_class: Option<SymbolName>,
+    pub implements: Vec<SymbolName>,
     pub fields: SmallVec<[SymbolName; 8]>,
     pub methods: SmallVec<[MethodSymbol; 8]>,
+    pub is_abstract: bool,
 }
 
 impl ClassSymbol {
@@ -104,8 +111,11 @@ impl ClassSymbol {
     pub fn new(name: impl Into<SymbolName>) -> Self {
         Self {
             name: name.into(),
+            super_class: None,
+            implements: Vec::new(),
             fields: SmallVec::new(),
             methods: SmallVec::new(),
+            is_abstract: false,
         }
     }
 }

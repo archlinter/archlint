@@ -159,6 +159,19 @@ impl UnifiedVisitor {
         CompactString::new(name.as_str())
     }
 
+    fn ts_type_name_to_string(it: &oxc_ast::ast::TSTypeName<'_>) -> String {
+        match it {
+            oxc_ast::ast::TSTypeName::IdentifierReference(id) => id.name.to_string(),
+            oxc_ast::ast::TSTypeName::QualifiedName(qn) => {
+                format!(
+                    "{}.{}",
+                    Self::ts_type_name_to_string(&qn.left),
+                    qn.right.name
+                )
+            }
+        }
+    }
+
     fn handle_reexport_specifiers(
         &mut self,
         it: &oxc_ast::ast::ExportNamedDeclaration<'_>,
@@ -666,10 +679,29 @@ impl<'a> Visit<'a> for UnifiedVisitor {
         oxc_ast::visit::walk::walk_class(self, it);
 
         if self.config.collect_classes {
+            let super_class = it.super_class.as_ref().and_then(|expr| match expr {
+                Expression::Identifier(id) => Some(Self::atom_to_compact(&id.name)),
+                Expression::StaticMemberExpression(s) => {
+                    Some(Self::atom_to_compact(&s.property.name))
+                }
+                _ => None,
+            });
+
+            let mut implements = Vec::new();
+            if let Some(impls) = &it.implements {
+                for imp in impls {
+                    let name = Self::ts_type_name_to_string(&imp.expression);
+                    implements.push(CompactString::new(name));
+                }
+            }
+
             let class_symbol = ClassSymbol {
                 name: class_name,
+                super_class,
+                implements,
                 fields: self.temp_fields.iter().cloned().collect(),
                 methods: self.temp_methods.clone(),
+                is_abstract: it.r#abstract,
             };
             self.classes.push(class_symbol);
         }
@@ -728,6 +760,7 @@ impl<'a> Visit<'a> for UnifiedVisitor {
                 has_decorators,
                 is_accessor,
                 accessibility,
+                it.r#type.is_abstract(),
             ));
         }
 

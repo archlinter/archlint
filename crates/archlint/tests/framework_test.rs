@@ -26,6 +26,7 @@ fn test_lcom_skips_nestjs_controller() {
         false,
         false,
         None,
+        false,
     ));
     class.methods.push(MethodSymbol::new(
         "method2",
@@ -35,6 +36,7 @@ fn test_lcom_skips_nestjs_controller() {
         false,
         false,
         None,
+        false,
     ));
     class.methods.push(MethodSymbol::new(
         "method3",
@@ -44,6 +46,7 @@ fn test_lcom_skips_nestjs_controller() {
         false,
         false,
         None,
+        false,
     ));
 
     let mut symbols = FileSymbols::default();
