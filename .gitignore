@@ -38,3 +38,5 @@ report.md
 # Cache
 .archlint-cache
 .serena/
+docs/.vitepress/cache/
+docs/.vitepress/dist/

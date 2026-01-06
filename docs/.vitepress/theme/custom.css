@@ -1,0 +1,43 @@
+:root {
+  --cursor-btn-bg: #f4f4f5;
+  --cursor-btn-text: #18181b;
+  --cursor-btn-border: #e4e4e7;
+  --cursor-btn-hover-bg: #e4e4e7;
+}
+
+.dark {
+  --cursor-btn-bg: #27272a;
+  --cursor-btn-text: #fafafa;
+  --cursor-btn-border: #3f3f46;
+  --cursor-btn-hover-bg: #3f3f46;
+}
+
+.add-to-cursor-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  white-space: nowrap;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  height: 36px;
+  padding: 0 12px;
+  transition: all 0.2s;
+  text-decoration: none !important;
+  background-color: var(--cursor-btn-bg);
+  color: var(--cursor-btn-text) !important;
+  border: 1px solid var(--cursor-btn-border);
+  margin: 1rem 0;
+}
+
+.add-to-cursor-btn:hover {
+  background-color: var(--cursor-btn-hover-bg);
+  text-decoration: none !important;
+}
+
+.add-to-cursor-btn svg {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+}
