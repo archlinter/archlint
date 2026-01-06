@@ -1,3 +1,9 @@
+## [0.8.1](https://github.com/archlinter/archlint/compare/v0.8.0...v0.8.1) (2026-01-06)
+
+### Bug Fixes
+
+- **core:** improve dead symbols detection with polymorphism and inher… ([#11](https://github.com/archlinter/archlint/issues/11)) ([aeceeb4](https://github.com/archlinter/archlint/commit/aeceeb418a571f8c4c18a3b864e72748edd6114a))
+
 ## [0.8.0](https://github.com/archlinter/archlint/compare/v0.7.0...v0.8.0) (2026-01-06)
 
 ### Features

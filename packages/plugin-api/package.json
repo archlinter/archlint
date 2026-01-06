@@ -1,6 +1,6 @@
 {
   "name": "@archlinter/plugin-api",
-  "version": "0.8.0",
+  "version": "0.8.1",
   "description": "TypeScript types for writing archlint plugins",
   "license": "MIT",
   "type": "module",
