@@ -1,3 +1,9 @@
+## [0.8.0](https://github.com/archlinter/archlint/compare/v0.7.0...v0.8.0) (2026-01-06)
+
+### Features
+
+- **core:** implement architectural diff mode and ESLint regression rule ([#10](https://github.com/archlinter/archlint/issues/10)) ([553b6ea](https://github.com/archlinter/archlint/commit/553b6ea7e40c85e4562c43042379bed0250c538a)), closes [#8](https://github.com/archlinter/archlint/issues/8)
+
 ## [0.7.0](https://github.com/archlinter/archlint/compare/v0.6.0...v0.7.0) (2026-01-06)
 
 ### Features
