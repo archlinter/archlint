@@ -38,7 +38,7 @@ jobs:
 
           # Check if current commit is already a release commit or has a stable tag
           COMMIT_MSG=$(git log -1 --pretty=%s)
-          if [[ "$COMMIT_MSG" == chore(release)* ]]; then
+          if [[ "$COMMIT_MSG" == "chore(release)"* ]]; then
             echo "Skipping canary release for release commit: $COMMIT_MSG"
             exit 0
           fi
@@ -62,7 +62,11 @@ jobs:
 
           # Check if there are new commits since last tag
           LAST_TAG=$(git tag -l 'v*' --sort=-v:refname | head -n1)
-          COMMITS_SINCE=$(git rev-list ${LAST_TAG}..HEAD --count 2>/dev/null || echo "999")
+          if [ -z "$LAST_TAG" ]; then
+            COMMITS_SINCE=$(git rev-list HEAD --count)
+          else
+            COMMITS_SINCE=$(git rev-list "${LAST_TAG}..HEAD" --count 2>/dev/null || echo "999")
+          fi
 
           if [ "$COMMITS_SINCE" = "0" ]; then
             echo "No new commits since $LAST_TAG, skipping canary release"
