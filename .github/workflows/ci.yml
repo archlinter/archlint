@@ -248,6 +248,7 @@ jobs:
         run: |
           pnpm --filter "@archlinter/plugin-api" build
           pnpm --filter "@archlinter/eslint-plugin" build
+          pnpm --filter "@archlinter/action" build
 
       - name: Run tests
         run: pnpm --filter "@archlinter/eslint-plugin" test
@@ -383,6 +384,7 @@ jobs:
           pnpm --filter "@archlinter/plugin-api" build
           pnpm --filter "@archlinter/eslint-plugin" build
           pnpm --filter "@archlinter/mcp-server" build
+          pnpm --filter "@archlinter/action" build
 
       - name: Prepare core packages
         run: |
@@ -469,7 +471,7 @@ jobs:
 
       - name: Publish additional packages
         run: |
-          for pkg in plugin-api eslint-plugin mcp-server; do
+          for pkg in plugin-api eslint-plugin mcp-server action; do
             echo "📦 Publishing @archlinter/${pkg}..."
             cd packages/${pkg}
             npm publish --access public --provenance --tag ${{ steps.version.outputs.TAG }} 2>&1 | tee /tmp/publish.log || {

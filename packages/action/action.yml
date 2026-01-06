@@ -1,0 +1,34 @@
+name: 'archlint Architecture Gate'
+description: 'Prevent architectural regressions in your Pull Requests with beautiful comments and annotations.'
+author: 'archlint'
+inputs:
+  baseline:
+    description: 'Git ref or snapshot file to compare against'
+    required: false
+    default: 'origin/main'
+  fail-on:
+    description: 'Minimum severity to fail (low, medium, high, critical)'
+    required: false
+    default: 'medium'
+  comment:
+    description: 'Post PR comment with architecture report'
+    required: false
+    default: 'true'
+  annotations:
+    description: 'Show inline annotations for architectural smells'
+    required: false
+    default: 'true'
+  working-directory:
+    description: 'Directory to analyze'
+    required: false
+    default: '.'
+  github-token:
+    description: 'GitHub token for posting comments and annotations'
+    required: false
+    default: ${{ github.token }}
+runs:
+  using: 'node20'
+  main: 'dist/index.js'
+branding:
+  icon: 'shield'
+  color: 'blue'

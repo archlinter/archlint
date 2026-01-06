@@ -1,0 +1,35 @@
+{
+  "name": "@archlinter/action",
+  "version": "0.1.0",
+  "description": "GitHub Action for archlint architecture checks with PR comments",
+  "type": "module",
+  "main": "dist/index.js",
+  "files": [
+    "dist",
+    "action.yml"
+  ],
+  "scripts": {
+    "build": "ncc build src/index.ts -o dist --minify --no-cache",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@actions/core": "^1.11.1",
+    "@actions/exec": "^1.1.1",
+    "@actions/github": "^6.0.1",
+    "@archlinter/core": "workspace:*"
+  },
+  "devDependencies": {
+    "@vercel/ncc": "^0.38.3",
+    "@types/node": "^20.0.0",
+    "typescript": "^5.4.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/archlinter/archlint.git",
+    "directory": "packages/action"
+  },
+  "license": "MIT"
+}
