@@ -1,3 +1,9 @@
+## [0.9.0](https://github.com/archlinter/archlint/compare/v0.8.2...v0.9.0) (2026-01-07)
+
+### Features
+
+- add locations to snapshot smell for line number reporting ([2be6a95](https://github.com/archlinter/archlint/commit/2be6a95c9fc831ed43497a2f62b8751d28ac4847))
+
 ## [0.8.2](https://github.com/archlinter/archlint/compare/v0.8.1...v0.8.2) (2026-01-07)
 
 ### Bug Fixes

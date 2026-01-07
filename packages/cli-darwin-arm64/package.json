@@ -1,6 +1,6 @@
 {
   "name": "@archlinter/cli-darwin-arm64",
-  "version": "0.8.2",
+  "version": "0.9.0",
   "description": "archlint CLI binary for macOS ARM64",
   "license": "MIT",
   "repository": {
