@@ -540,6 +540,7 @@ pub struct JsSnapshotSmell {
     pub metrics: serde_json::Value,
     #[napi(ts_type = "unknown")]
     pub details: Option<serde_json::Value>,
+    pub locations: Vec<JsLocationDetail>,
 }
 
 impl From<archlint::diff::DiffResult> for JsDiffResult {
@@ -679,6 +680,17 @@ impl From<archlint::snapshot::SnapshotSmell> for JsSnapshotSmell {
             files: s.files,
             metrics: serde_json::to_value(&s.metrics).unwrap_or(serde_json::Value::Null),
             details: s.details.and_then(|d| serde_json::to_value(&d).ok()),
+            locations: s
+                .locations
+                .into_iter()
+                .map(|l| JsLocationDetail {
+                    file: l.file,
+                    line: l.line as u32,
+                    column: l.column.map(|c| c as u32),
+                    range: None,
+                    description: l.description.unwrap_or_default(),
+                })
+                .collect(),
         }
     }
 }

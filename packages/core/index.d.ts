@@ -211,6 +211,7 @@ export interface JsSnapshotSmell {
   files: Array<string>
   metrics: Record<string, unknown>
   details?: unknown
+  locations: Array<JsLocationDetail>
 }
 export declare function runDiff(options: JsDiffOptions): JsDiffResult
 export declare function runDiffAsync(options: JsDiffOptions): Promise<JsDiffResult>
