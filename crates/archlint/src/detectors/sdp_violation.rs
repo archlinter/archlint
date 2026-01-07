@@ -38,45 +38,54 @@ impl Detector for SdpViolationDetector {
     }
 
     fn detect(&self, ctx: &AnalysisContext) -> Vec<ArchSmell> {
-        let thresholds = &ctx.config.thresholds.sdp_violation;
-
         ctx.graph
             .nodes()
-            .filter(|&node| Self::should_check_node(ctx, node, thresholds))
-            .flat_map(|node| Self::check_node_violations(ctx, node, thresholds))
+            .flat_map(|node| {
+                if let Some(path) = ctx.graph.get_file_path(node) {
+                    let rule = ctx.resolve_rule("sdp_violation", Some(path));
+                    if !rule.enabled
+                        || ctx.is_excluded(path, &rule.exclude)
+                        || ctx.should_skip_detector(path, "sdp_violation")
+                    {
+                        return Vec::new();
+                    }
+
+                    let mut node_smells = Self::check_node_violations(ctx, node, &rule);
+                    for smell in &mut node_smells {
+                        smell.severity = rule.severity;
+                    }
+                    node_smells
+                } else {
+                    Vec::new()
+                }
+            })
             .collect()
     }
 }
 
 impl SdpViolationDetector {
-    fn should_check_node(
-        ctx: &AnalysisContext,
-        node: NodeIndex,
-        thresholds: &crate::config::SdpThresholds,
-    ) -> bool {
-        if let Some(path) = ctx.graph.get_file_path(node) {
-            if ctx.should_skip_detector(path, "sdp_violation") {
-                return false;
-            }
-        }
-
-        let fan_in = ctx.graph.fan_in(node);
-        let fan_out = ctx.graph.fan_out(node);
-        fan_in + fan_out >= thresholds.min_fan_total
-    }
-
     fn check_node_violations(
         ctx: &AnalysisContext,
         node: NodeIndex,
-        thresholds: &crate::config::SdpThresholds,
+        rule: &crate::rule_resolver::ResolvedRuleConfig,
     ) -> Vec<ArchSmell> {
+        let min_fan_total: usize = rule.get_option("min_fan_total").unwrap_or(5);
+        let instability_diff: f64 = rule.get_option("instability_diff").unwrap_or(0.3);
+
+        let fan_in = ctx.graph.fan_in(node);
+        let fan_out = ctx.graph.fan_out(node);
+
+        if fan_in + fan_out < min_fan_total {
+            return Vec::new();
+        }
+
         let from_i = Self::calculate_instability_static(ctx, node);
         let mut smells = Vec::new();
 
         for to_node in ctx.graph.dependencies(node) {
             let to_i = Self::calculate_instability_static(ctx, to_node);
 
-            if Self::is_violation(from_i, to_i, thresholds) {
+            if from_i < to_i && (to_i - from_i) > instability_diff {
                 if let (Some(from_path), Some(to_path)) = (
                     ctx.graph.get_file_path(node),
                     ctx.graph.get_file_path(to_node),
@@ -99,10 +108,6 @@ impl SdpViolationDetector {
         }
 
         smells
-    }
-
-    fn is_violation(from_i: f64, to_i: f64, thresholds: &crate::config::SdpThresholds) -> bool {
-        from_i < to_i && (to_i - from_i) > thresholds.instability_diff
     }
 
     fn calculate_instability_static(ctx: &AnalysisContext, node: NodeIndex) -> f64 {

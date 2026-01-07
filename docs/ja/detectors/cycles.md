@@ -4,7 +4,7 @@
 
 循環依存は、2つ以上のモジュールが直接的または間接的に互いに依存している場合に発生します。
 
-## なぜこれが「不吉な臭い（スメル）」なのか
+## なぜこれが「不吉な臭い」なのか
 
 - **密結合**: モジュールが切り離せなくなり、個別に再利用することが困難になります。
 - **初期化の問題**: バンドラーによる処理が適切でない場合、実行時に「undefined」なインポートが発生する可能性があります。
@@ -55,9 +55,10 @@ export const processPayment = (order: Order) => {
 ## 設定 (Configuration)
 
 ```yaml
-thresholds:
+rules:
   cycles:
-    exclude_patterns: ['**/*.test.ts']
+    severity: error
+    exclude: ['**/*.test.ts']
 ```
 
 ## 修正方法
@@ -65,3 +66,20 @@ thresholds:
 1. **共有ロジックの抽出**: 共通部分を、既存のモジュールの両方が依存する新しいモジュールに移動してください。
 2. **依存性の注入 (Dependency Injection)**: 依存関係をインポートするのではなく、引数として渡してください。
 3. **イベントの使用**: イベントバスやコールバックを使用して、モジュール間の結合を解除してください。
+
+## ESLint ルール
+
+このディテクターは、エディター内でリアルタイムのフィードバックを提供する ESLint ルールとして利用可能です。
+
+```javascript
+// eslint.config.js
+export default [
+  {
+    rules: {
+      '@archlinter/no-cycles': 'error',
+    },
+  },
+];
+```
+
+セットアップ手順については [ESLint Integration](/ja/integrations/eslint) を参照してください。

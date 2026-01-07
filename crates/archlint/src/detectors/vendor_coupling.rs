@@ -40,14 +40,25 @@ impl Detector for VendorCouplingDetector {
 
     fn detect(&self, ctx: &AnalysisContext) -> Vec<ArchSmell> {
         let mut package_usage: HashMap<String, Vec<PathBuf>> = HashMap::new();
-        let thresholds = &ctx.config.thresholds.vendor_coupling;
 
         for (path, symbols) in ctx.file_symbols.as_ref() {
+            let rule = ctx.resolve_rule("vendor_coupling", Some(path));
+            if !rule.enabled
+                || ctx.is_excluded(path, &rule.exclude)
+                || ctx.should_skip_detector(path, "vendor_coupling")
+            {
+                continue;
+            }
+
+            let ignore_packages: Vec<String> = rule
+                .get_option("ignore_packages")
+                .unwrap_or_else(|| vec!["react".to_string(), "lodash".to_string()]);
+
             for import in &symbols.imports {
                 if self.is_external_import(&import.source) {
                     let package = self.extract_package_name(&import.source);
 
-                    if !self.should_ignore_package(&package, thresholds) {
+                    if !self.should_ignore_package(&package, &ignore_packages) {
                         let entries = package_usage.entry(package).or_default();
                         if !entries.contains(path) {
                             entries.push(path.clone());
@@ -59,8 +70,20 @@ impl Detector for VendorCouplingDetector {
 
         package_usage
             .into_iter()
-            .filter(|(_, files)| files.len() >= thresholds.max_files_per_package)
-            .map(|(package, files)| ArchSmell::new_vendor_coupling(package, files))
+            .filter_map(|(package, files)| {
+                // For global thresholds, we use the first file's rule as an approximation
+                // or just resolve without a path. Let's resolve without a path for the global threshold.
+                let rule = ctx.resolve_rule("vendor_coupling", None);
+                let max_files: usize = rule.get_option("max_files_per_package").unwrap_or(10);
+
+                if files.len() >= max_files {
+                    let mut smell = ArchSmell::new_vendor_coupling(package, files);
+                    smell.severity = rule.severity;
+                    Some(smell)
+                } else {
+                    None
+                }
+            })
             .collect()
     }
 }
@@ -70,17 +93,12 @@ impl VendorCouplingDetector {
         !source.starts_with('.') && !source.starts_with('/')
     }
 
-    fn should_ignore_package(
-        &self,
-        package: &str,
-        thresholds: &crate::config::VendorCouplingThresholds,
-    ) -> bool {
+    fn should_ignore_package(&self, package: &str, ignore_packages: &[String]) -> bool {
         if self.is_builtin_package(package) {
             return true;
         }
 
-        thresholds
-            .ignore_packages
+        ignore_packages
             .iter()
             .any(|pattern_str| self.matches_ignore_pattern(package, pattern_str))
     }

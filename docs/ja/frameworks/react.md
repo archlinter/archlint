@@ -11,6 +11,5 @@ Reactコンポーネントは、伝統的なクラスやモジュールとは異
 ## 推奨設定
 
 ```yaml
-frameworks:
-  - react
+framework: react
 ```

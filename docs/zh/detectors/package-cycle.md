@@ -1,6 +1,6 @@
 # 包循环依赖
 
-**ID:** `package_cycle` | **Severity:** High (default)
+**ID:** `package_cycles` | **严重程度:** 高 (默认)
 
 检测整个包（包含 `package.json` 的文件夹或逻辑模块边界）之间的循环依赖。
 

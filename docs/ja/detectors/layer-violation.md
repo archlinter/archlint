@@ -1,10 +1,10 @@
 # レイヤー違反
 
-**ID:** `layer_violation` | **Severity:** High (default)
+**ID:** `layer_violation` | **重要度:** High (default)
 
 レイヤー違反（Layer violation）は、あるアーキテクチャレイヤーのコードが、知るべきではないレイヤーのコードをインポートした場合に発生します（例：Domain レイヤーが Infrastructure レイヤーをインポートする）。
 
-## なぜこれがコードの不吉な臭い（smell）なのか
+## なぜこれが「不吉な臭い」なのか
 
 - **抽象化の破壊**: 内部の実装詳細が、高レベルのビジネスロジックに漏れ出します。
 - **テストの困難さ**: インフラストラクチャ（DB、API など）のモックなしでは、ビジネスロジックのテストが困難になります。
@@ -15,19 +15,38 @@
 `.archlint.yaml` でレイヤーを定義する必要があります。
 
 ```yaml
-layers:
-  - name: domain
-    paths: ['**/domain/**']
-    can_import: [] # Domain は何もインポートしません
+rules:
+  layer_violation:
+    layers:
+      - name: domain
+        path: ['**/domain/**']
+        allowed_imports: [] # Domain は何もインポートしません
 
-  - name: application
-    paths: ['**/application/**']
-    can_import: ['domain']
+      - name: application
+        path: ['**/application/**']
+        allowed_imports: ['domain']
 
-  - name: infrastructure
-    paths: ['**/infrastructure/**']
-    can_import: ['domain', 'application']
+      - name: infrastructure
+        path: ['**/infrastructure/**']
+        allowed_imports: ['domain', 'application']
 ```
+
+## ESLint ルール
+
+このディテクターは、エディター内でリアルタイムのフィードバックを提供する ESLint ルールとして利用可能です。
+
+```javascript
+// eslint.config.js
+export default [
+  {
+    rules: {
+      '@archlinter/no-layer-violations': 'error',
+    },
+  },
+];
+```
+
+セットアップ手順については [ESLint Integration](/ja/integrations/eslint) を参照してください。
 
 ## 修正方法
 

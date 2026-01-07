@@ -17,7 +17,25 @@ Deeply nested code is exponentially harder to read and understand. It's often a 
 ## Configuration
 
 ```yaml
-thresholds:
+rules:
   deep_nesting:
+    severity: info
     max_depth: 4
 ```
+
+## ESLint Rule
+
+This detector is available as an ESLint rule for real-time feedback in your editor.
+
+```javascript
+// eslint.config.js
+export default [
+  {
+    rules: {
+      '@archlinter/no-deep-nesting': 'warn',
+    },
+  },
+];
+```
+
+See [ESLint Integration](/integrations/eslint) for setup instructions.

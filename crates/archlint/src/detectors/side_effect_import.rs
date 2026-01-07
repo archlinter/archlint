@@ -40,6 +40,11 @@ impl Detector for SideEffectImportDetector {
         let mut smells = Vec::new();
 
         for (path, symbols) in ctx.file_symbols.as_ref() {
+            let rule = ctx.resolve_rule("side_effect_import", Some(path));
+            if !rule.enabled || ctx.is_excluded(path, &rule.exclude) {
+                continue;
+            }
+
             for import in &symbols.imports {
                 if import.name == "*" && import.alias.is_none() && !import.is_reexport {
                     // Check if it's a CSS file or similar (should be ignored)
@@ -47,10 +52,10 @@ impl Detector for SideEffectImportDetector {
                         continue;
                     }
 
-                    smells.push(ArchSmell::new_side_effect_import(
-                        path.clone(),
-                        import.source.to_string(),
-                    ));
+                    let mut smell =
+                        ArchSmell::new_side_effect_import(path.clone(), import.source.to_string());
+                    smell.severity = rule.severity;
+                    smells.push(smell);
                 }
             }
         }

@@ -1,8 +1,8 @@
 # 低凝集 (LCOM4)
 
-**ID:** `lcom` | **Severity:** Medium (default)
+**ID:** `lcom` | **重要度:** Medium (default)
 
-凝集度は、クラスのメソッドとフィールドがどの程度密接に関連しているかを測定します。archlint は **LCOM4** (Lack of Cohesion of Methods) 指標を使用します。
+凝集度は、クラスのメソッドとフィールドがどの程度密接に関連しているかを測定します。`archlint` は **LCOM4** (Lack of Cohesion of Methods) 指標を使用します。
 
 ## なぜこれが「不吉な臭い」なのか
 
@@ -18,7 +18,9 @@
 ## 設定
 
 ```yaml
-thresholds:
+rules:
   lcom:
-    threshold: 1 # 許容される非接続コンポーネントの数（デフォルトは1）
+    severity: warn
+    max_lcom: 4
+    min_methods: 3
 ```

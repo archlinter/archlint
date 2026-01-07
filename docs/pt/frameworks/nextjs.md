@@ -11,8 +11,7 @@ Projetos Next.js têm padrões únicos de roteamento baseado em arquivos e empac
 ## Configuração Recomendada
 
 ```yaml
-frameworks:
-  - nextjs
+framework: nextjs
 
 entry_points:
   - 'src/pages/**/*.tsx'

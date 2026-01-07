@@ -14,7 +14,7 @@ npx @archlinter/cli scan
 
 1. 扫描当前目录中的所有 TypeScript 和 JavaScript 文件。
 2. 遵循您的 `.gitignore` 文件。
-3. 为所有 28+ 个检测器使用默认阈值。
+3. 为所有 28+ 个检测器使用默认规则。
 4. 输出检测到的异味的彩色表格摘要。
 
 ## 保存快照 (Snapshot)
@@ -44,5 +44,5 @@ npx @archlinter/cli diff origin/main --fail-on medium
 ## 下一步是什么？
 
 - [了解所有检测器](/zh/detectors/)
-- [配置 archlint.yaml](/zh/configuration/)
+- [配置 .archlint.yaml](/zh/configuration/)
 - [集成到 CI/CD](/zh/integrations/github-actions)

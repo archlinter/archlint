@@ -1,6 +1,6 @@
 # 長すぎる引数リスト
 
-**ID:** `long_params` | **Severity:** Low (default)
+**ID:** `long_params` | **重要度:** Low (default)
 
 引数が多すぎる関数やメソッドを特定します。
 
@@ -16,7 +16,26 @@
 ## 設定
 
 ```yaml
-thresholds:
+rules:
   long_params:
+    severity: info
     max_params: 5
+    ignore_constructors: true
 ```
+
+## ESLint ルール
+
+このディテクターは、エディター内でリアルタイムのフィードバックを提供する ESLint ルールとして利用可能です。
+
+```javascript
+// eslint.config.js
+export default [
+  {
+    rules: {
+      '@archlinter/no-long-params': 'warn',
+    },
+  },
+];
+```
+
+セットアップ手順については [ESLint Integration](/ja/integrations/eslint) を参照してください。

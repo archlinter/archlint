@@ -1,6 +1,6 @@
 # 大文件
 
-**ID:** `large_file` | **Severity:** Medium (default)
+**ID:** `large_file` | **严重程度:** 中 (默认)
 
 识别超过特定行数的源文件。
 
@@ -15,7 +15,7 @@
 ## 配置
 
 ```yaml
-thresholds:
+rules:
   large_file:
     max_lines: 1000
 ```

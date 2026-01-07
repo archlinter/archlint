@@ -2,6 +2,7 @@ use crate::config::Config;
 use crate::framework::{FileType, Framework};
 use crate::graph::DependencyGraph;
 use crate::parser::{FileSymbols, FunctionComplexity};
+use crate::rule_resolver::ResolvedRuleConfig;
 use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
@@ -28,6 +29,10 @@ pub struct AnalysisContext {
 }
 
 impl AnalysisContext {
+    pub fn resolve_rule(&self, detector_id: &str, file_path: Option<&Path>) -> ResolvedRuleConfig {
+        ResolvedRuleConfig::resolve(&self.config, detector_id, file_path)
+    }
+
     pub fn is_excluded(&self, path: &Path, exclude_patterns: &[String]) -> bool {
         if exclude_patterns.is_empty() {
             return false;

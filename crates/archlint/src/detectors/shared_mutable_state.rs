@@ -42,12 +42,17 @@ impl Detector for SharedMutableStateDetector {
         let mut smells = Vec::new();
 
         for (path, symbols) in ctx.file_symbols.as_ref() {
+            let rule = ctx.resolve_rule("shared_mutable_state", Some(path));
+            if !rule.enabled || ctx.is_excluded(path, &rule.exclude) {
+                continue;
+            }
+
             for export in &symbols.exports {
                 if export.is_mutable && export.kind == SymbolKind::Variable {
-                    smells.push(ArchSmell::new_shared_mutable_state(
-                        path.clone(),
-                        export.name.to_string(),
-                    ));
+                    let mut smell =
+                        ArchSmell::new_shared_mutable_state(path.clone(), export.name.to_string());
+                    smell.severity = rule.severity;
+                    smells.push(smell);
                 }
             }
         }

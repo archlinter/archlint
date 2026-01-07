@@ -1,7 +1,7 @@
 use crate::args::{Language, ScanArgs};
 use crate::cache::hash::file_content_hash;
 use crate::cache::AnalysisCache;
-use crate::config::Config;
+use crate::config::{Config, RuleConfig, RuleSeverity};
 use crate::detectors::{self, Severity};
 use crate::engine::AnalysisContext;
 use crate::framework::classifier::FileClassifier;
@@ -37,8 +37,6 @@ pub struct AnalysisEngine {
     pub target_path: PathBuf,
 }
 
-use std::str::FromStr;
-
 impl AnalysisEngine {
     pub fn new(args: ScanArgs, config: Config) -> Result<Self> {
         let target_path = args
@@ -51,24 +49,18 @@ impl AnalysisEngine {
 
         // Overrides from args
         if let Some(ref detectors) = args.detectors {
-            config.detectors.enabled =
-                Some(detectors.split(',').map(|s| s.trim().to_string()).collect());
+            for id in detectors.split(',').map(|s| s.trim()) {
+                config
+                    .rules
+                    .insert(id.to_string(), RuleConfig::Short(RuleSeverity::Error));
+            }
         }
         if let Some(ref exclude) = args.exclude_detectors {
-            config
-                .detectors
-                .disabled
-                .extend(exclude.split(',').map(|s| s.trim().to_string()));
-        }
-
-        // Overrides for severity
-        if let Some(ref min_sev) = args.min_severity {
-            config.severity.minimum = Some(
-                Severity::from_str(min_sev).map_err(crate::error::AnalysisError::InvalidConfig)?,
-            );
-        }
-        if let Some(min_score) = args.min_score {
-            config.severity.minimum_score = Some(min_score);
+            for id in exclude.split(',').map(|s| s.trim()) {
+                config
+                    .rules
+                    .insert(id.to_string(), RuleConfig::Short(RuleSeverity::Off));
+            }
         }
 
         // Overrides for git
@@ -162,7 +154,18 @@ impl AnalysisEngine {
             ctx.churn_map,
         );
         report.set_files_analyzed(files.len());
-        report.apply_severity_config(&self.config.severity);
+
+        if let Some(ref min_sev) = self.args.min_severity {
+            use std::str::FromStr;
+            if let Ok(s) = Severity::from_str(min_sev) {
+                report.set_min_severity(s);
+            }
+        }
+        if let Some(min_score) = self.args.min_score {
+            report.set_min_score(min_score);
+        }
+
+        report.apply_severity_config(&self.config.scoring);
 
         if let Some(c) = cache {
             debug!("Saving cache...");
@@ -259,29 +262,56 @@ impl AnalysisEngine {
         let mut final_config = self.config.clone();
         for preset in presets {
             for ignore in &preset.vendor_ignore {
-                if !final_config
-                    .thresholds
-                    .vendor_coupling
-                    .ignore_packages
-                    .contains(ignore)
-                {
-                    final_config
-                        .thresholds
-                        .vendor_coupling
-                        .ignore_packages
-                        .push(ignore.clone());
+                let rule = final_config
+                    .rules
+                    .entry("vendor_coupling".to_string())
+                    .or_insert_with(|| {
+                        crate::config::RuleConfig::Full(crate::config::RuleFullConfig {
+                            severity: None,
+                            enabled: None,
+                            exclude: Vec::new(),
+                            options: serde_yaml::Value::Mapping(serde_yaml::Mapping::new()),
+                        })
+                    });
+
+                if let crate::config::RuleConfig::Full(full) = rule {
+                    if let serde_yaml::Value::Mapping(m) = &mut full.options {
+                        let ignore_packages = m
+                            .entry(serde_yaml::Value::String("ignore_packages".to_string()))
+                            .or_insert_with(|| serde_yaml::Value::Sequence(Vec::new()));
+
+                        if let serde_yaml::Value::Sequence(seq) = ignore_packages {
+                            if !seq.iter().any(|v| v.as_str() == Some(ignore)) {
+                                seq.push(serde_yaml::Value::String(ignore.clone()));
+                            }
+                        }
+                    }
                 }
-                if !final_config
-                    .thresholds
-                    .hub_dependency
-                    .ignore_packages
-                    .contains(ignore)
-                {
-                    final_config
-                        .thresholds
-                        .hub_dependency
-                        .ignore_packages
-                        .push(ignore.clone());
+
+                let hub_rule = final_config
+                    .rules
+                    .entry("hub_dependency".to_string())
+                    .or_insert_with(|| {
+                        crate::config::RuleConfig::Full(crate::config::RuleFullConfig {
+                            severity: None,
+                            enabled: None,
+                            exclude: Vec::new(),
+                            options: serde_yaml::Value::Mapping(serde_yaml::Mapping::new()),
+                        })
+                    });
+
+                if let crate::config::RuleConfig::Full(full) = hub_rule {
+                    if let serde_yaml::Value::Mapping(m) = &mut full.options {
+                        let ignore_packages = m
+                            .entry(serde_yaml::Value::String("ignore_packages".to_string()))
+                            .or_insert_with(|| serde_yaml::Value::Sequence(Vec::new()));
+
+                        if let serde_yaml::Value::Sequence(seq) = ignore_packages {
+                            if !seq.iter().any(|v| v.as_str() == Some(ignore)) {
+                                seq.push(serde_yaml::Value::String(ignore.clone()));
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -294,27 +324,9 @@ impl AnalysisEngine {
         presets: &[presets::FrameworkPreset],
     ) -> HashSet<String> {
         let registry = detectors::registry::DetectorRegistry::new();
-        let selection =
-            crate::framework::selector::DetectorSelector::select(&config.detectors, presets);
-        if self.args.all_detectors {
-            registry
-                .list_all()
-                .into_iter()
-                .map(|i| i.id.to_string())
-                .collect()
-        } else if let Some(ref user_enabled) = selection.user_enabled {
-            user_enabled.clone()
-        } else {
-            registry
-                .list_all()
-                .into_iter()
-                .filter(|info| {
-                    (info.default_enabled || selection.preset_enabled.contains(info.id))
-                        && !selection.disabled.contains(info.id)
-                })
-                .map(|info| info.id.to_string())
-                .collect()
-        }
+        let (enabled_detectors, _) =
+            registry.get_enabled_full(config, presets, self.args.all_detectors);
+        enabled_detectors.into_iter().map(|(id, _)| id).collect()
     }
 
     fn load_cache(&self) -> Result<Option<AnalysisCache>> {
@@ -624,7 +636,7 @@ impl AnalysisEngine {
     ) -> Result<Vec<detectors::ArchSmell>> {
         let registry = detectors::registry::DetectorRegistry::new();
         let (final_detectors, needs_deep) =
-            registry.get_enabled_with_presets(&ctx.config, presets, self.args.all_detectors);
+            registry.get_enabled_full(&ctx.config, presets, self.args.all_detectors);
 
         info!(
             "{} Detecting architectural smells...{}",
@@ -652,7 +664,7 @@ impl AnalysisEngine {
             None
         };
 
-        for detector in final_detectors {
+        for (_id, detector) in final_detectors {
             if let Some(ref pb) = pb {
                 pb.set_message(detector.name());
             }

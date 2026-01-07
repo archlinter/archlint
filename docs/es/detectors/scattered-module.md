@@ -1,12 +1,48 @@
 # Módulo Disperso
 
-**ID:** `scattered_module` | **Severity:** Medium (default)
+**ID:** `module_cohesion` | **Severidad:** Medium (default)
 
-Identifica un "módulo" (a menudo una carpeta o una agrupación lógica) donde los archivos internos no están bien conectados entre si, lo que indica que el módulo es solo una colección aleatoria de código.
+Identifica un "módulo" (típicamente un archivo o grupo lógico) donde los elementos internos (funciones, clases) no están bien conectados. Esto indica que el módulo carece de un propósito cohesivo y probablemente es una colección de código no relacionado.
 
-## Por qué es un "smell"
+## Por qué esto es un problema
 
-Un módulo debe ser cohesivo. Si sus partes internas no interactúan entre sí, es probable que no sea un módulo real y deba dividirse o reestructurarse.
+Un módulo debe ser cohesivo, siguiendo el principio de que "las cosas que cambian juntas deben permanecer juntas". Si las partes internas de un módulo no interactúan entre sí, no es un módulo real—es solo una carpeta o archivo usado como contenedor aleatorio. Esto hace que el código sea más difícil de encontrar y aumenta la carga cognitiva.
+
+## Ejemplos
+
+### Mal
+
+Un archivo que contiene funciones auxiliares no relacionadas que no comparten lógica ni datos comunes.
+
+```typescript
+// misc-utils.ts
+export const formatCurrency = (val: number) => { ... };
+export const validateEmail = (email: string) => { ... };
+export const parseJwt = (token: string) => { ... };
+// Estas tres funciones no comparten estado ni lógica común.
+```
+
+### Bien
+
+Agrupa las funciones no relacionadas en módulos específicos y cohesivos.
+
+```typescript
+// currency-utils.ts
+export const formatCurrency = (val: number) => { ... };
+
+// validation-utils.ts
+export const validateEmail = (email: string) => { ... };
+```
+
+## Configuración
+
+```yaml
+rules:
+  module_cohesion:
+    severity: warn
+    min_exports: 5
+    max_components: 2
+```
 
 ## Cómo solucionarlo
 

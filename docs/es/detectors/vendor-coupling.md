@@ -1,10 +1,10 @@
 # Acoplamiento de Proveedor (Vendor Coupling)
 
-**ID:** `vendor_coupling` | **Severity:** Medium (default)
+**ID:** `vendor_coupling` | **Severidad:** Medium (default)
 
 Identifica módulos que están demasiado estrechamente acoplados a una biblioteca o framework externo específico.
 
-## Por qué es un smell
+## Por qué esto es un problema
 
 Si decides cambiar la biblioteca en el futuro, tendrás que cambiar el código en muchos lugares. También hace que las pruebas sean más difíciles porque tienes que simular (mock) la biblioteca externa en todas partes.
 

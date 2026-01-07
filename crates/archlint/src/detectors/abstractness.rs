@@ -15,7 +15,7 @@ pub struct AbstractnessViolationDetectorFactory;
 impl DetectorFactory for AbstractnessViolationDetectorFactory {
     fn info(&self) -> DetectorInfo {
         DetectorInfo {
-            id: "abstractness_violation",
+            id: "abstractness",
             name: "Abstractness vs Instability Violation Detector",
             description:
                 "Detects modules that are far from the Main Sequence (Zone of Pain or Uselessness)",
@@ -41,23 +41,29 @@ impl Detector for AbstractnessViolationDetector {
 
     fn detect(&self, ctx: &AnalysisContext) -> Vec<ArchSmell> {
         let mut smells = Vec::new();
-        let thresholds = &ctx.config.thresholds.abstractness;
 
         for node in ctx.graph.nodes() {
             if let Some(path) = ctx.graph.get_file_path(node) {
-                if ctx.is_excluded(path, &thresholds.exclude_patterns)
-                    || ctx.should_skip_detector(path, "abstractness_violation")
+                let rule = ctx.resolve_rule("abstractness", Some(path));
+                if !rule.enabled
+                    || ctx.is_excluded(path, &rule.exclude)
+                    || ctx.should_skip_detector(path, "abstractness")
                 {
                     continue;
                 }
+
+                let distance_threshold: f64 = rule.get_option("distance_threshold").unwrap_or(0.85);
+
                 if let Some(symbols) = ctx.file_symbols.get(path) {
                     let a = self.calculate_abstractness(symbols);
                     let i = self.calculate_instability(ctx, node);
 
                     let d = (a + i - 1.0).abs();
 
-                    if d > thresholds.distance_threshold {
-                        smells.push(ArchSmell::new_abstractness_violation(path.clone(), d));
+                    if d > distance_threshold {
+                        let mut smell = ArchSmell::new_abstractness_violation(path.clone(), d);
+                        smell.severity = rule.severity;
+                        smells.push(smell);
                     }
                 }
             }

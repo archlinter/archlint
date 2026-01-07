@@ -45,6 +45,11 @@ impl Detector for CircularTypeDepsDetector {
         let mut path_to_node = HashMap::new();
 
         for (path, symbols) in ctx.file_symbols.as_ref() {
+            let rule = ctx.resolve_rule("circular_type_deps", Some(path));
+            if !rule.enabled || ctx.is_excluded(path, &rule.exclude) {
+                continue;
+            }
+
             let from_node = *path_to_node
                 .entry(path.clone())
                 .or_insert_with(|| type_graph.add_node(path.clone()));
@@ -65,9 +70,17 @@ impl Detector for CircularTypeDepsDetector {
         for scc in sccs {
             if scc.len() > 1 {
                 let files: Vec<_> = scc.iter().map(|&idx| type_graph[idx].clone()).collect();
+
+                // Get severity from the first file in cycle
+                let severity = if let Some(path) = files.first() {
+                    ctx.resolve_rule("circular_type_deps", Some(path)).severity
+                } else {
+                    crate::detectors::Severity::Low
+                };
+
                 smells.push(ArchSmell {
                     smell_type: crate::detectors::SmellType::CircularTypeDependency,
-                    severity: crate::detectors::Severity::Low,
+                    severity,
                     files,
                     metrics: Vec::new(),
                     locations: Vec::new(),

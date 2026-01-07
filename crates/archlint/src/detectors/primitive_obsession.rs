@@ -38,16 +38,24 @@ impl Detector for PrimitiveObsessionDetector {
 
     fn detect(&self, ctx: &AnalysisContext) -> Vec<ArchSmell> {
         let mut smells = Vec::new();
-        let thresholds = &ctx.config.thresholds.primitive_obsession;
 
         for (path, functions) in ctx.function_complexity.as_ref() {
+            let rule = ctx.resolve_rule("primitive_obsession", Some(path));
+            if !rule.enabled || ctx.is_excluded(path, &rule.exclude) {
+                continue;
+            }
+
+            let max_primitives: usize = rule.get_option("max_primitives").unwrap_or(3);
+
             for func in functions {
-                if func.primitive_params > thresholds.max_primitives {
-                    smells.push(ArchSmell::new_primitive_obsession(
+                if func.primitive_params > max_primitives {
+                    let mut smell = ArchSmell::new_primitive_obsession(
                         path.clone(),
                         func.name.to_string(),
                         func.primitive_params,
-                    ));
+                    );
+                    smell.severity = rule.severity;
+                    smells.push(smell);
                 }
             }
         }

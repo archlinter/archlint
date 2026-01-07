@@ -1,8 +1,8 @@
 # 上帝模块
 
-**ID:** `god_module` | **Severity:** High (default)
+**ID:** `god_module` | **严重程度:** 高 (默认)
 
-“上帝模块”（God Module）是指一个变得过于庞大且承担了过多职责的文件。
+"上帝模块"（God Module）是指一个变得过于庞大且承担了过多职责的文件。
 
 ## 为什么这是一种坏味道
 
@@ -13,7 +13,7 @@
 
 ## 检测标准
 
-archlint 根据以下指标识别上帝模块：
+`archlint` 根据以下指标识别上帝模块：
 
 - **Fan-in（扇入）**：依赖于它的其他模块的数量。
 - **Fan-out（扇出）**：它所依赖的模块的数量。
@@ -29,10 +29,27 @@ archlint 根据以下指标识别上帝模块：
 ## 配置
 
 ```yaml
-thresholds:
+rules:
   god_module:
+    severity: error
     fan_in: 15
     fan_out: 15
     churn: 20
-    max_lines: 500
 ```
+
+## ESLint 规则
+
+此检测器可作为 ESLint 规则使用，以便在编辑器中获得实时反馈。
+
+```javascript
+// eslint.config.js
+export default [
+  {
+    rules: {
+      '@archlinter/no-god-modules': 'warn',
+    },
+  },
+];
+```
+
+详见 [ESLint 集成](/zh/integrations/eslint) 了解设置说明。

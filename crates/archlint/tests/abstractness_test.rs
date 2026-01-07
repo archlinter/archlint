@@ -7,7 +7,15 @@ use common::analyze_fixture_with_config;
 #[test]
 fn test_zone_of_pain_detected() {
     let mut config = archlint::config::Config::default();
-    config.thresholds.abstractness.distance_threshold = 0.5;
+    config.rules.insert(
+        "abstractness".to_string(),
+        archlint::config::RuleConfig::Full(archlint::config::RuleFullConfig {
+            enabled: Some(true),
+            severity: None,
+            exclude: Vec::new(),
+            options: serde_yaml::from_str("distance_threshold: 0.5").unwrap(),
+        }),
+    );
 
     let ctx = analyze_fixture_with_config("abstractness/pain", config);
     let detector = AbstractnessViolationDetector;
@@ -23,7 +31,15 @@ fn test_zone_of_pain_detected() {
 #[test]
 fn test_zone_of_uselessness_detected() {
     let mut config = archlint::config::Config::default();
-    config.thresholds.abstractness.distance_threshold = 0.5;
+    config.rules.insert(
+        "abstractness".to_string(),
+        archlint::config::RuleConfig::Full(archlint::config::RuleFullConfig {
+            enabled: Some(true),
+            severity: None,
+            exclude: Vec::new(),
+            options: serde_yaml::from_str("distance_threshold: 0.5").unwrap(),
+        }),
+    );
 
     let ctx = analyze_fixture_with_config("abstractness/useless", config);
     let detector = AbstractnessViolationDetector;

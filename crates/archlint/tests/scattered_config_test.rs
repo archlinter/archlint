@@ -7,7 +7,15 @@ use common::analyze_fixture_with_config;
 #[test]
 fn test_scattered_config_detected() {
     let mut config = archlint::config::Config::default();
-    config.thresholds.scattered_config.max_files = 3;
+    config.rules.insert(
+        "scattered_config".to_string(),
+        archlint::config::RuleConfig::Full(archlint::config::RuleFullConfig {
+            enabled: Some(true),
+            severity: None,
+            exclude: Vec::new(),
+            options: serde_yaml::from_str("max_files: 3").unwrap(),
+        }),
+    );
 
     let ctx = analyze_fixture_with_config("config/scattered", config);
     let detector = ScatteredConfigDetector;
@@ -30,7 +38,15 @@ fn test_scattered_config_detected() {
 #[test]
 fn test_centralized_config_ok() {
     let mut config = archlint::config::Config::default();
-    config.thresholds.scattered_config.max_files = 3;
+    config.rules.insert(
+        "scattered_config".to_string(),
+        archlint::config::RuleConfig::Full(archlint::config::RuleFullConfig {
+            enabled: Some(true),
+            severity: None,
+            exclude: Vec::new(),
+            options: serde_yaml::from_str("max_files: 3").unwrap(),
+        }),
+    );
 
     let ctx = analyze_fixture_with_config("config/centralized", config);
     let detector = ScatteredConfigDetector;

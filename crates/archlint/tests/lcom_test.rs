@@ -7,7 +7,15 @@ use common::analyze_fixture;
 #[test]
 fn test_high_lcom_detected() {
     let mut config = archlint::config::Config::default();
-    config.thresholds.lcom.max_lcom = 1; // 2+ components is a smell
+    config.rules.insert(
+        "lcom".to_string(),
+        archlint::config::RuleConfig::Full(archlint::config::RuleFullConfig {
+            enabled: Some(true),
+            severity: None,
+            exclude: Vec::new(),
+            options: serde_yaml::from_str("max_lcom: 1").unwrap(),
+        }),
+    );
     let ctx = analyze_fixture_with_config("lcom/high", config);
     let detector = LcomDetector;
     let smells = detector.detect(&ctx);

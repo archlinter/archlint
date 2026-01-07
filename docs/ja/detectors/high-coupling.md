@@ -1,10 +1,10 @@
 # 高い結合度
 
-**ID:** `high_coupling` | **Severity:** Medium (default)
+**ID:** `high_coupling` | **重要度:** Medium (default)
 
 高い結合度（High coupling）は、モジュールが他の多くのモジュールに依存している場合に発生します（高いファンアウト）。
 
-## なぜこれがコードの不吉な臭い（smell）なのか
+## なぜこれが「不吉な臭い」なのか
 
 - **硬直性**: 依存関係のいずれかが変更されると、このモジュールも変更が必要になる可能性があります。
 - **脆弱性**: 依存関係のいずれかが変更されたときに、このモジュールが壊れる可能性が高くなります。
@@ -18,7 +18,25 @@
 ## 設定
 
 ```yaml
-thresholds:
+rules:
   high_coupling:
-    max_dependencies: 15
+    severity: warn
+    max_cbo: 20
 ```
+
+## ESLint ルール
+
+このディテクターは、エディター内でリアルタイムのフィードバックを提供する ESLint ルールとして利用可能です。
+
+```javascript
+// eslint.config.js
+export default [
+  {
+    rules: {
+      '@archlinter/no-high-coupling': 'warn',
+    },
+  },
+];
+```
+
+セットアップ手順については [ESLint Integration](/ja/integrations/eslint) を参照してください。

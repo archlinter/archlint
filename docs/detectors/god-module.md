@@ -29,10 +29,27 @@ archlint identifies God Modules based on:
 ## Configuration
 
 ```yaml
-thresholds:
+rules:
   god_module:
+    severity: error
     fan_in: 15
     fan_out: 15
     churn: 20
-    max_lines: 500
 ```
+
+## ESLint Rule
+
+This detector is available as an ESLint rule for real-time feedback in your editor.
+
+```javascript
+// eslint.config.js
+export default [
+  {
+    rules: {
+      '@archlinter/no-god-modules': 'warn',
+    },
+  },
+];
+```
+
+See [ESLint Integration](/integrations/eslint) for setup instructions.

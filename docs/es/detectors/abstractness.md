@@ -1,13 +1,23 @@
 # Violación de Abstracción
 
-**ID:** `abstractness_violation` | **Severidad:** Baja (por defecto)
+**ID:** `abstractness` | **Severidad:** Baja (por defecto)
 
-Basado en las métricas de la "Secuencia Principal" de Robert C. Martin. Mide el equilibrio entre la estabilidad (I) y la abstracción (A). Un módulo debería ser o bien estable y abstracto, o inestable y concreto.
+Este detector utiliza las métricas de la "Secuencia Principal" de Robert C. Martin para evaluar la relación entre la Estabilidad (I) y la Abstracción (A) de un módulo. El objetivo es asegurar que los módulos se sitúen cerca de la "Secuencia Principal"—una línea donde la abstracción aumenta a medida que aumenta la estabilidad.
 
-## Por qué esto es un problema (smell)
+## Por qué esto es un problema
 
-Los módulos que son estables y concretos están en la "Zona de Dolor" (difíciles de cambiar, pero otros dependen de ellos). Los módulos que son inestables y abstractos están en la "Zona de Inutilidad" (nadie depende de ellos, pero son abstractos).
+- **Zona de Dolor**: Módulos que son altamente estables (muchas cosas dependen de ellos) pero muy concretos (sin abstracciones). Estos son extremadamente difíciles de cambiar debido a sus dependencias, pero su naturaleza concreta significa que _necesitarán_ cambiar.
+- **Zona de Inutilidad**: Módulos que son altamente abstractos (muchas interfaces/clases abstractas) pero muy inestables (nadie depende de ellos). Estos proporcionan abstracciones que realmente no se están utilizando, añadiendo complejidad innecesaria.
 
 ## Cómo solucionarlo
 
-Ajusta la abstracción del módulo (por ejemplo, introduciendo interfaces) o su estabilidad (cambiando quién depende de él).
+- **En la Zona de Dolor**: Introduce abstracciones (interfaces, clases abstractas) para desacoplar la implementación del módulo de sus usuarios.
+- **En la Zona de Inutilidad**: Considera hacer el módulo más concreto o eliminar las abstracciones no utilizadas para simplificar el código.
+
+## Configuración
+
+```yaml
+rules:
+  abstractness:
+    severity: warn
+```

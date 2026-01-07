@@ -38,22 +38,31 @@ impl Detector for LongParameterListDetector {
 
     fn detect(&self, ctx: &AnalysisContext) -> Vec<ArchSmell> {
         let mut smells = Vec::new();
-        let thresholds = &ctx.config.thresholds.long_params;
 
         for (path, functions) in ctx.function_complexity.as_ref() {
+            let rule = ctx.resolve_rule("long_params", Some(path));
+            if !rule.enabled || ctx.is_excluded(path, &rule.exclude) {
+                continue;
+            }
+
+            let ignore_constructors: bool = rule.get_option("ignore_constructors").unwrap_or(true);
+            let max_params: usize = rule.get_option("max_params").unwrap_or(5);
+
             for func in functions {
-                if thresholds.ignore_constructors && func.is_constructor {
+                if ignore_constructors && func.is_constructor {
                     continue;
                 }
 
-                if func.param_count > thresholds.max_params {
-                    smells.push(ArchSmell::new_long_params(
+                if func.param_count > max_params {
+                    let mut smell = ArchSmell::new_long_params(
                         path.clone(),
                         func.name.to_string(),
                         func.param_count,
                         func.line,
                         func.range,
-                    ));
+                    );
+                    smell.severity = rule.severity;
+                    smells.push(smell);
                 }
             }
         }

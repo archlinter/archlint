@@ -1,14 +1,25 @@
 # Cirurgia por Difusão (Shotgun Surgery)
 
-**ID:** `shotgun_surgery` | **Severity:** Medium (default)
+**ID:** `shotgun_surgery` | **Gravidade:** Medium (default)
 
-A cirurgia por difusão ocorre quando uma única mudança em seus requisitos exige que você faça muitas pequenas alterações em muitos módulos diferentes.
+A cirurgia por difusão ocorre quando uma única mudança em seus requisitos exige que você faça muitas pequenas alterações em muitos módulos diferentes. O `archlint` detecta isso analisando o histórico do git para encontrar arquivos que mudam frequentemente juntos (alta frequência de co-mudança).
 
 ## Por que isso é um smell
 
-Isso indica que as responsabilidades estão muito dispersas pela base de código. Torna as mudanças difíceis, demoradas e propensas a erros.
+- **Alto Custo de Manutenção**: Cada feature ou correção de bug requer tocar em múltiplas partes do sistema.
+- **Propenso a Erros**: É fácil esquecer uma das muitas mudanças necessárias, levando a bugs.
+- **Encapsulamento Deficiente**: Indica que uma única responsabilidade está fragmentada pela base de código ao invés de estar encapsulada em um só lugar.
 
 ## Como corrigir
 
-- **Mover Método/Campo (Move Method/Field)**: Consolide a lógica relacionada em um único módulo.
-- **Classe Inline (Inline Class)**: Se uma classe é apenas uma coleção de métodos que são sempre usados junto com outra classe, combine-as.
+- **Consolidar Responsabilidades**: Use **Move Method** ou **Move Field** para trazer a lógica relacionada para um único módulo.
+- **Introduzir Objeto de Parâmetro**: Se múltiplos módulos requerem o mesmo conjunto de dados, agrupe-o em um único objeto.
+- **Substituir Valor por Objeto**: Se você tem muitos módulos manipulando os mesmos dados primitivos, encapsule esses dados e seu comportamento em uma nova classe.
+
+## Configuração
+
+```yaml
+rules:
+  shotgun_surgery:
+    severity: warn
+```

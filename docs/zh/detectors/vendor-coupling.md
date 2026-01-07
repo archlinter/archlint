@@ -1,10 +1,10 @@
 # 厂商耦合 (Vendor Coupling)
 
-**ID:** `vendor_coupling` | **Severity:** Medium (default)
+**ID:** `vendor_coupling` | **严重程度:** 中 (默认)
 
 识别与特定外部库或框架耦合过于紧密的模块。
 
-## 为什么这是一个代码异味
+## 为什么这是一种坏味道
 
 如果您决定将来更换该库，您将不得不修改多处的代码。这也会使测试变得更加困难，因为您必须在各处对外部库进行 Mock。
 

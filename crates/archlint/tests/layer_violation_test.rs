@@ -7,7 +7,7 @@ use common::analyze_fixture_with_config;
 
 fn get_layer_config() -> Config {
     let mut config = Config::default();
-    config.thresholds.layer_violation.layers = vec![
+    let layers = vec![
         LayerConfig {
             name: "domain".to_string(),
             path: "**/domain/**".to_string(),
@@ -19,6 +19,22 @@ fn get_layer_config() -> Config {
             allowed_imports: vec!["domain".to_string()],
         },
     ];
+
+    let mut mapping = serde_yaml::Mapping::new();
+    mapping.insert(
+        serde_yaml::Value::String("layers".to_string()),
+        serde_yaml::to_value(&layers).unwrap(),
+    );
+
+    config.rules.insert(
+        "layer_violation".to_string(),
+        archlint::config::RuleConfig::Full(archlint::config::RuleFullConfig {
+            enabled: Some(true),
+            severity: None,
+            exclude: Vec::new(),
+            options: serde_yaml::Value::Mapping(mapping),
+        }),
+    );
     config
 }
 

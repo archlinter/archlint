@@ -1,6 +1,6 @@
 # 分散した設定
 
-**ID:** `scattered_config` | **Severity:** Low (default)
+**ID:** `scattered_config` | **重要度:** Low (default)
 
 中央集約されずに多くの異なるファイルに分散している設定（環境変数へのアクセスなど）を特定します。
 

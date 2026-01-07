@@ -1,6 +1,6 @@
 # 依恋情结
 
-**ID:** `feature_envy` | **Severity:** Medium (default)
+**ID:** `feature_envy` | **严重程度:** 中 (默认)
 
 依恋情结（Feature Envy）发生在当一个类中的方法看起来对另一个类的数据比对自己类的数据更感兴趣时。
 

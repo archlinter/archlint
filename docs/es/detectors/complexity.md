@@ -4,7 +4,7 @@
 
 Este detector identifica funciones con una alta Complejidad Ciclomática.
 
-## Por qué esto es un problema (smell)
+## Por qué esto es un problema
 
 - **Difícil de Entender**: Demasiadas ramificaciones hacen que el código sea difícil de seguir.
 - **Propenso a Errores**: Mayor probabilidad de pasar por alto casos borde durante las pruebas.
@@ -19,7 +19,25 @@ Este detector identifica funciones con una alta Complejidad Ciclomática.
 ## Configuración
 
 ```yaml
-thresholds:
+rules:
   complexity:
+    severity: warn
     max_complexity: 15
 ```
+
+## Regla ESLint
+
+Este detector está disponible como una regla ESLint para recibir retroalimentación en tiempo real en tu editor.
+
+```javascript
+// eslint.config.js
+export default [
+  {
+    rules: {
+      '@archlinter/no-high-complexity': 'warn',
+    },
+  },
+];
+```
+
+Consulta [Integración con ESLint](/es/integrations/eslint) para instrucciones de configuración.

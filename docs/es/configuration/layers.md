@@ -1,45 +1,48 @@
-# Capas (Layers)
+# Capas
 
-La configuración de `layers` te permite definir las capas arquitectónicas de tu proyecto y aplicar reglas de dependencia entre ellas.
+La configuración de capas le permite definir niveles arquitectónicos en su proyecto y hacer cumplir las reglas de dependencia entre ellos.
 
 ## Definición de Capas
 
-Cada definición de capa consta de:
+Las capas se configuran dentro de la regla `layer_violation`. Cada definición de capa consiste en:
 
-- `name`: Un identificador único para la capa.
-- `paths`: Una lista de patrones glob que identifican los archivos en esta capa.
-- `can_import`: Una lista de nombres de capas de las que esta capa puede depender.
+- `name`: Nombre único de la capa.
+- `path` (o `paths`): Patrón glob que identifica los archivos en esta capa.
+- `allowed_imports` (o `can_import`): Lista de nombres de capas que esta capa tiene permitido importar.
 
 ## Ejemplo: Arquitectura Limpia (Clean Architecture)
 
 ```yaml
-layers:
-  - name: domain
-    paths: ['**/domain/**']
-    can_import: [] # La capa domain debe ser independiente
+rules:
+  layer_violation:
+    severity: error
+    layers:
+      - name: domain
+        path: '**/domain/**'
+        allowed_imports: [] # La capa domain no debe depender de nada
 
-  - name: application
-    paths: ['**/application/**', '**/use-cases/**']
-    can_import:
-      - domain
+      - name: application
+        path: '**/application/**'
+        allowed_imports:
+          - domain
 
-  - name: infrastructure
-    paths: ['**/infrastructure/**', '**/adapters/**']
-    can_import:
-      - domain
-      - application
+      - name: infrastructure
+        path: '**/infrastructure/**'
+        allowed_imports:
+          - domain
+          - application
 
-  - name: presentation
-    paths: ['**/controllers/**', '**/api/**', '**/ui/**']
-    can_import:
-      - domain
-      - application
+      - name: presentation
+        path: '**/presentation/**'
+        allowed_imports:
+          - domain
+          - application
 ```
 
-## Cómo funciona
+## Cómo Funciona
 
 Cuando el detector `layer_violation` está habilitado:
 
-1. Asigna cada archivo de tu proyecto a una capa basándose en los patrones de `paths`.
-2. Comprueba cada importación en esos archivos.
-3. Si un archivo en la capa `A` importa un archivo en la capa `B`, pero `B` no está en la lista `can_import` de `A`, se informa de una violación.
+1. Mapea cada archivo de su proyecto a una capa específica basándose en el patrón `path`.
+2. Si un archivo coincide con varios patrones, se elige el más específico (el patrón más largo).
+3. La herramienta verifica cada importación. Si un archivo en la capa `A` importa un archivo en la capa `B`, pero `B` no está en la lista `allowed_imports` de la capa `A`, se informa de una violación.

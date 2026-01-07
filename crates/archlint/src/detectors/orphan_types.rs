@@ -39,6 +39,11 @@ impl Detector for OrphanTypesDetector {
     }
 
     fn detect(&self, ctx: &AnalysisContext) -> Vec<ArchSmell> {
+        let rule = ctx.resolve_rule("orphan_types", None);
+        if !rule.enabled {
+            return Vec::new();
+        }
+
         let mut smells = Vec::new();
 
         // 1. Collect all exported types/interfaces and where they are
@@ -66,7 +71,13 @@ impl Detector for OrphanTypesDetector {
         // 3. Flag those that are never used
         for (path, name) in type_definitions {
             if !all_usages.contains(name) {
-                smells.push(ArchSmell::new_orphan_type(path.clone(), name.to_string()));
+                let file_rule = ctx.resolve_rule("orphan_types", Some(path));
+                if !file_rule.enabled || ctx.is_excluded(path, &file_rule.exclude) {
+                    continue;
+                }
+                let mut smell = ArchSmell::new_orphan_type(path.clone(), name.to_string());
+                smell.severity = file_rule.severity;
+                smells.push(smell);
             }
         }
 

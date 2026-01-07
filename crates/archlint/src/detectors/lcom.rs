@@ -40,27 +40,31 @@ impl Detector for LcomDetector {
 
     fn detect(&self, ctx: &AnalysisContext) -> Vec<ArchSmell> {
         let mut smells = Vec::new();
-        let thresholds = &ctx.config.thresholds.lcom;
 
         for (path, symbols) in ctx.file_symbols.as_ref() {
-            if ctx.is_excluded(path, &thresholds.exclude_patterns)
+            let rule = ctx.resolve_rule("lcom", Some(path));
+            if !rule.enabled
+                || ctx.is_excluded(path, &rule.exclude)
                 || ctx.should_skip_detector(path, "lcom")
             {
                 continue;
             }
+
+            let min_methods: usize = rule.get_option("min_methods").unwrap_or(3);
+            let max_lcom: usize = rule.get_option("max_lcom").unwrap_or(4);
+
             for class in &symbols.classes {
-                if class.methods.len() < thresholds.min_methods {
+                if class.methods.len() < min_methods {
                     continue;
                 }
 
                 let lcom4 = self.calculate_lcom4(class);
 
-                if lcom4 > thresholds.max_lcom {
-                    smells.push(ArchSmell::new_low_cohesion(
-                        path.clone(),
-                        class.name.to_string(),
-                        lcom4,
-                    ));
+                if lcom4 > max_lcom {
+                    let mut smell =
+                        ArchSmell::new_low_cohesion(path.clone(), class.name.to_string(), lcom4);
+                    smell.severity = rule.severity;
+                    smells.push(smell);
                 }
             }
         }

@@ -1,6 +1,6 @@
 # Estado Mutável Compartilhado
 
-**ID:** `shared_mutable_state` | **Severity:** Medium (default)
+**ID:** `shared_state` | **Gravidade:** Medium (default)
 
 Identifica variáveis exportadas que são mutáveis (ex: `export let ...` ou `export var ...`).
 

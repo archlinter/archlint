@@ -107,7 +107,25 @@ const enSidebar: DefaultTheme.Sidebar = {
       text: 'Configuration',
       items: [
         { text: 'Overview', link: '/configuration/' },
-        { text: 'Thresholds', link: '/configuration/thresholds' },
+        { text: 'Layers', link: '/configuration/layers' },
+        { text: 'Ignore', link: '/configuration/ignore' },
+      ]
+    },
+    {
+      text: 'Frameworks',
+      items: [
+        { text: 'Overview', link: '/frameworks/' },
+        { text: 'NestJS', link: '/frameworks/nestjs' },
+        { text: 'Next.js', link: '/frameworks/nextjs' },
+        { text: 'React', link: '/frameworks/react' },
+      ]
+    }
+  ],
+  '/frameworks/': [
+    {
+      text: 'Configuration',
+      items: [
+        { text: 'Overview', link: '/configuration/' },
         { text: 'Layers', link: '/configuration/layers' },
         { text: 'Ignore', link: '/configuration/ignore' },
       ]
@@ -274,7 +292,25 @@ export default defineConfig({
               text: 'Конфигурация',
               items: [
                 { text: 'Обзор', link: '/ru/configuration/' },
-                { text: 'Пороги', link: '/ru/configuration/thresholds' },
+                { text: 'Слои', link: '/ru/configuration/layers' },
+                { text: 'Игнорирование', link: '/ru/configuration/ignore' },
+              ]
+            },
+            {
+              text: 'Фреймворки',
+              items: [
+                { text: 'Обзор', link: '/ru/frameworks/' },
+                { text: 'NestJS', link: '/ru/frameworks/nestjs' },
+                { text: 'Next.js', link: '/ru/frameworks/nextjs' },
+                { text: 'React', link: '/ru/frameworks/react' },
+              ]
+            }
+          ],
+          '/ru/frameworks/': [
+            {
+              text: 'Конфигурация',
+              items: [
+                { text: 'Обзор', link: '/ru/configuration/' },
                 { text: 'Слои', link: '/ru/configuration/layers' },
                 { text: 'Игнорирование', link: '/ru/configuration/ignore' },
               ]
@@ -409,7 +445,25 @@ export default defineConfig({
               text: '配置',
               items: [
                 { text: '概述', link: '/zh/configuration/' },
-                { text: '阈值', link: '/zh/configuration/thresholds' },
+                { text: '层级', link: '/zh/configuration/layers' },
+                { text: '忽略', link: '/zh/configuration/ignore' },
+              ]
+            },
+            {
+              text: '框架',
+              items: [
+                { text: '概述', link: '/zh/frameworks/' },
+                { text: 'NestJS', link: '/zh/frameworks/nestjs' },
+                { text: 'Next.js', link: '/zh/frameworks/nextjs' },
+                { text: 'React', link: '/zh/frameworks/react' },
+              ]
+            }
+          ],
+          '/zh/frameworks/': [
+            {
+              text: '配置',
+              items: [
+                { text: '概述', link: '/zh/configuration/' },
                 { text: '层级', link: '/zh/configuration/layers' },
                 { text: '忽略', link: '/zh/configuration/ignore' },
               ]
@@ -544,7 +598,25 @@ export default defineConfig({
               text: 'Configuração',
               items: [
                 { text: 'Visão Geral', link: '/pt/configuration/' },
-                { text: 'Limites', link: '/pt/configuration/thresholds' },
+                { text: 'Camadas', link: '/pt/configuration/layers' },
+                { text: 'Ignorar', link: '/pt/configuration/ignore' },
+              ]
+            },
+            {
+              text: 'Frameworks',
+              items: [
+                { text: 'Visão Geral', link: '/pt/frameworks/' },
+                { text: 'NestJS', link: '/pt/frameworks/nestjs' },
+                { text: 'Next.js', link: '/pt/frameworks/nextjs' },
+                { text: 'React', link: '/pt/frameworks/react' },
+              ]
+            }
+          ],
+          '/pt/frameworks/': [
+            {
+              text: 'Configuração',
+              items: [
+                { text: 'Visão Geral', link: '/pt/configuration/' },
                 { text: 'Camadas', link: '/pt/configuration/layers' },
                 { text: 'Ignorar', link: '/pt/configuration/ignore' },
               ]
@@ -679,7 +751,25 @@ export default defineConfig({
               text: 'Configuración',
               items: [
                 { text: 'Resumen', link: '/es/configuration/' },
-                { text: 'Umbrales', link: '/es/configuration/thresholds' },
+                { text: 'Capas', link: '/es/configuration/layers' },
+                { text: 'Ignorar', link: '/es/configuration/ignore' },
+              ]
+            },
+            {
+              text: 'Frameworks',
+              items: [
+                { text: 'Resumen', link: '/es/frameworks/' },
+                { text: 'NestJS', link: '/es/frameworks/nestjs' },
+                { text: 'Next.js', link: '/es/frameworks/nextjs' },
+                { text: 'React', link: '/es/frameworks/react' },
+              ]
+            }
+          ],
+          '/es/frameworks/': [
+            {
+              text: 'Configuración',
+              items: [
+                { text: 'Resumen', link: '/es/configuration/' },
                 { text: 'Capas', link: '/es/configuration/layers' },
                 { text: 'Ignorar', link: '/es/configuration/ignore' },
               ]
@@ -814,7 +904,25 @@ export default defineConfig({
               text: '設定',
               items: [
                 { text: '概要', link: '/ja/configuration/' },
-                { text: 'しきい値', link: '/ja/configuration/thresholds' },
+                { text: 'レイヤー', link: '/ja/configuration/layers' },
+                { text: '無視', link: '/ja/configuration/ignore' },
+              ]
+            },
+            {
+              text: 'フレームワーク',
+              items: [
+                { text: '概要', link: '/ja/frameworks/' },
+                { text: 'NestJS', link: '/ja/frameworks/nestjs' },
+                { text: 'Next.js', link: '/ja/frameworks/nextjs' },
+                { text: 'React', link: '/ja/frameworks/react' },
+              ]
+            }
+          ],
+          '/ja/frameworks/': [
+            {
+              text: '設定',
+              items: [
+                { text: '概要', link: '/ja/configuration/' },
                 { text: 'レイヤー', link: '/ja/configuration/layers' },
                 { text: '無視', link: '/ja/configuration/ignore' },
               ]

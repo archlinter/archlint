@@ -1,10 +1,10 @@
 # Нарушение слоев
 
-**ID:** `layer_violation` | **Severity:** High (default)
+**ID:** `layer_violation` | **Степень критичности:** Высокая (по умолчанию)
 
 Нарушение слоев (Layer violation) возникает, когда код в одном архитектурном слое импортирует код из слоя, о котором он не должен знать (например, слой Domain импортирует из Infrastructure).
 
-## Почему это запах
+## Почему это «запах»
 
 - **Нарушает абстракцию**: Детали внутренней реализации просачиваются в высокоуровневую бизнес-логику.
 - **Сложность тестирования**: Бизнес-логику становится трудно тестировать без моков для инфраструктуры (БД, API и т.д.).
@@ -12,22 +12,35 @@
 
 ## Конфигурация
 
-Вы должны определить свои слои в `.archlint.yaml`:
-
 ```yaml
-layers:
-  - name: domain
-    paths: ['**/domain/**']
-    can_import: [] # Domain ничего не импортирует
-
-  - name: application
-    paths: ['**/application/**']
-    can_import: ['domain']
-
-  - name: infrastructure
-    paths: ['**/infrastructure/**']
-    can_import: ['domain', 'application']
+rules:
+  layer_violation:
+    severity: error
+    layers:
+      - name: domain
+        path: '**/domain/**'
+        allowed_imports: []
+      - name: application
+        path: '**/application/**'
+        allowed_imports: ['domain']
 ```
+
+## ESLint правило
+
+Этот детектор доступен как правило ESLint для получения обратной связи в реальном времени.
+
+```javascript
+// eslint.config.js
+export default [
+  {
+    rules: {
+      '@archlinter/no-layer-violations': 'error',
+    },
+  },
+];
+```
+
+Смотрите [Интеграция с ESLint](/ru/integrations/eslint) для инструкций по настройке.
 
 ## Как исправить
 

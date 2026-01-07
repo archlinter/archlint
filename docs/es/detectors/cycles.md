@@ -4,7 +4,7 @@
 
 Las dependencias circulares ocurren cuando dos o más módulos dependen entre sí, ya sea directa o indirectamente.
 
-## Por qué esto es un problema (smell)
+## Por qué esto es un problema
 
 - **Acoplamiento Fuerte**: Los módulos son inseparables, lo que dificulta su reutilización independiente.
 - **Problemas de Inicialización**: Pueden dar lugar a importaciones "undefined" en tiempo de ejecución si el bundler no las maneja con cuidado.
@@ -55,9 +55,10 @@ export const processPayment = (order: Order) => {
 ## Configuración
 
 ```yaml
-thresholds:
+rules:
   cycles:
-    exclude_patterns: ['**/*.test.ts']
+    severity: error
+    exclude: ['**/*.test.ts']
 ```
 
 ## Cómo solucionarlo
@@ -65,3 +66,20 @@ thresholds:
 1. **Extraer lógica compartida**: Mueve las partes comunes a un nuevo módulo del que dependan ambos módulos existentes.
 2. **Inyección de Dependencias (Dependency Injection)**: Pasa las dependencias como argumentos en lugar de importarlas.
 3. **Usar Eventos**: Utiliza un bus de eventos o callbacks para desacoplar los módulos.
+
+## Regla ESLint
+
+Este detector está disponible como una regla ESLint para recibir retroalimentación en tiempo real en tu editor.
+
+```javascript
+// eslint.config.js
+export default [
+  {
+    rules: {
+      '@archlinter/no-cycles': 'error',
+    },
+  },
+];
+```
+
+Consulta [Integración con ESLint](/es/integrations/eslint) para instrucciones de configuración.

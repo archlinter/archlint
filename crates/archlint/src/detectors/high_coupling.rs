@@ -38,21 +38,27 @@ impl Detector for HighCouplingDetector {
 
     fn detect(&self, ctx: &AnalysisContext) -> Vec<ArchSmell> {
         let mut smells = Vec::new();
-        let thresholds = &ctx.config.thresholds.high_coupling;
 
         for node in ctx.graph.nodes() {
             if let Some(path) = ctx.graph.get_file_path(node) {
-                if ctx.is_excluded(path, &thresholds.exclude_patterns)
+                let rule = ctx.resolve_rule("high_coupling", Some(path));
+                if !rule.enabled
+                    || ctx.is_excluded(path, &rule.exclude)
                     || ctx.should_skip_detector(path, "high_coupling")
                 {
                     continue;
                 }
+
+                let max_cbo: usize = rule.get_option("max_cbo").unwrap_or(20);
+
                 let fan_in = ctx.graph.fan_in(node);
                 let fan_out = ctx.graph.fan_out(node);
                 let cbo = fan_in + fan_out;
 
-                if cbo >= thresholds.max_cbo {
-                    smells.push(ArchSmell::new_high_coupling(path.clone(), cbo));
+                if cbo >= max_cbo {
+                    let mut smell = ArchSmell::new_high_coupling(path.clone(), cbo);
+                    smell.severity = rule.severity;
+                    smells.push(smell);
                 }
             }
         }

@@ -8,9 +8,15 @@ use common::analyze_fixture_with_config;
 #[test]
 fn test_god_module_detected() {
     let mut config = Config::default();
-    config.thresholds.god_module.fan_in = 2;
-    config.thresholds.god_module.fan_out = 2;
-    config.thresholds.god_module.churn = 0; // Disable churn check for this test
+    config.rules.insert(
+        "god_module".to_string(),
+        archlint::config::RuleConfig::Full(archlint::config::RuleFullConfig {
+            enabled: Some(true),
+            severity: None,
+            exclude: Vec::new(),
+            options: serde_yaml::from_str("fan_in: 2\nfan_out: 2\nchurn: 0").unwrap(),
+        }),
+    );
 
     // Create a fixture with 2 incoming and 2 outgoing dependencies
     // test_data/god_module/

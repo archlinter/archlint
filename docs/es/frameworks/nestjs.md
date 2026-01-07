@@ -12,19 +12,20 @@ archlint comprende la arquitectura modular de NestJS y proporciona un análisis 
 ## Configuración Recomendada
 
 ```yaml
-frameworks:
-  - nestjs
+framework: nestjs
 
-layers:
+rules:
+  layer_violation:
+    layers:
   - name: presentation
-    paths: ['**/*.controller.ts']
-    can_import: ['application']
+    path: ['**/*.controller.ts']
+    allowed_imports: ['application']
 
   - name: application
-    paths: ['**/*.service.ts']
-    can_import: ['domain']
+    path: ['**/*.service.ts']
+    allowed_imports: ['domain']
 
   - name: domain
-    paths: ['**/entities/**']
-    can_import: []
+    path: ['**/entities/**']
+    allowed_imports: []
 ```

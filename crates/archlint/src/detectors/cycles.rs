@@ -46,8 +46,6 @@ impl Detector for CycleDetector {
     }
 
     fn detect(&self, ctx: &AnalysisContext) -> Vec<ArchSmell> {
-        let thresholds = &ctx.config.thresholds.cycles;
-
         // Use Tarjan's SCC algorithm to find strongly connected components
         let sccs = tarjan_scc(ctx.graph.graph());
 
@@ -61,7 +59,9 @@ impl Detector for CycleDetector {
                 // or if it should be skipped due to framework context
                 !scc.iter().any(|&node| {
                     if let Some(path) = ctx.graph.get_file_path(node) {
-                        ctx.is_excluded(path, &thresholds.exclude_patterns)
+                        let rule = ctx.resolve_rule("cycles", Some(path));
+                        !rule.enabled
+                            || ctx.is_excluded(path, &rule.exclude)
                             || ctx.should_skip_detector(path, "cycles")
                     } else {
                         false
@@ -74,7 +74,16 @@ impl Detector for CycleDetector {
             .iter()
             .map(|scc| {
                 let cluster = Self::build_cluster(ctx.graph.as_ref(), scc);
-                ArchSmell::new_cycle_cluster(cluster)
+                let mut smell = ArchSmell::new_cycle_cluster(cluster);
+
+                // Set severity based on the first node in the cycle (approximate)
+                if let Some(node) = scc.first() {
+                    if let Some(path) = ctx.graph.get_file_path(*node) {
+                        let rule = ctx.resolve_rule("cycles", Some(path));
+                        smell.severity = rule.severity;
+                    }
+                }
+                smell
             })
             .collect()
     }

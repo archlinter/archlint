@@ -1,6 +1,6 @@
 # Interface Instável
 
-**ID:** `unstable_interface` | **Severity:** Medium (default)
+**ID:** `unstable_interface` | **Gravidade:** Medium (default)
 
 Identifica módulos cuja API pública (exports) muda frequentemente de acordo com o histórico do git, enquanto muitos outros módulos dependem dela.
 

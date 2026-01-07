@@ -1,6 +1,6 @@
 # Importações com Efeito Colateral
 
-**ID:** `side_effect_import` | **Severity:** Low (default)
+**ID:** `side_effect_import` | **Gravidade:** Low (default)
 
 Identifica importações que são realizadas apenas por seus efeitos colaterais (ex: `import './globals';`), que frequentemente modificam o estado global ou protótipos.
 

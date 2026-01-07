@@ -38,18 +38,26 @@ impl Detector for DeepNestingDetector {
 
     fn detect(&self, ctx: &AnalysisContext) -> Vec<ArchSmell> {
         let mut smells = Vec::new();
-        let thresholds = &ctx.config.thresholds.deep_nesting;
 
         for (path, functions) in ctx.function_complexity.as_ref() {
+            let rule = ctx.resolve_rule("deep_nesting", Some(path));
+            if !rule.enabled || ctx.is_excluded(path, &rule.exclude) {
+                continue;
+            }
+
+            let max_depth: usize = rule.get_option("max_depth").unwrap_or(4);
+
             for func in functions {
-                if func.max_depth > thresholds.max_depth {
-                    smells.push(ArchSmell::new_deep_nesting(
+                if func.max_depth > max_depth {
+                    let mut smell = ArchSmell::new_deep_nesting(
                         path.clone(),
                         func.name.to_string(),
                         func.max_depth,
                         func.line,
                         func.range,
-                    ));
+                    );
+                    smell.severity = rule.severity;
+                    smells.push(smell);
                 }
             }
         }

@@ -15,19 +15,38 @@ Layer violation occurs when code in one architectural layer imports code from a 
 You must define your layers in `.archlint.yaml`:
 
 ```yaml
-layers:
-  - name: domain
-    paths: ['**/domain/**']
-    can_import: [] # Domain imports nothing
+rules:
+  layer_violation:
+    layers:
+      - name: domain
+        path: ['**/domain/**']
+        allowed_imports: [] # Domain imports nothing
 
-  - name: application
-    paths: ['**/application/**']
-    can_import: ['domain']
+      - name: application
+        path: ['**/application/**']
+        allowed_imports: ['domain']
 
-  - name: infrastructure
-    paths: ['**/infrastructure/**']
-    can_import: ['domain', 'application']
+      - name: infrastructure
+        path: ['**/infrastructure/**']
+        allowed_imports: ['domain', 'application']
 ```
+
+## ESLint Rule
+
+This detector is available as an ESLint rule for real-time feedback in your editor.
+
+```javascript
+// eslint.config.js
+export default [
+  {
+    rules: {
+      '@archlinter/no-layer-violations': 'error',
+    },
+  },
+];
+```
+
+See [ESLint Integration](/integrations/eslint) for setup instructions.
 
 ## How to fix
 

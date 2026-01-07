@@ -11,3 +11,20 @@ Identifica funções, variáveis ou classes que são definidas dentro de um arqu
 ## Como corrigir
 
 Delete os símbolos não utilizados.
+
+## Regra ESLint
+
+Este detector está disponível como uma regra ESLint para feedback em tempo real no seu editor.
+
+```javascript
+// eslint.config.js
+export default [
+  {
+    rules: {
+      '@archlinter/no-dead-symbols': 'warn',
+    },
+  },
+];
+```
+
+Veja [Integração ESLint](/pt/integrations/eslint) para instruções de configuração.

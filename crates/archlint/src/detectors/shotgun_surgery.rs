@@ -75,6 +75,7 @@ impl ShotgunSurgeryDetector {
     fn analyze_co_changes(
         &self,
         ctx: &AnalysisContext,
+        lookback: usize,
     ) -> Result<HashMap<PathBuf, CoChangeStats>, Box<dyn std::error::Error>> {
         if !ctx.config.enable_git {
             return Ok(HashMap::new());
@@ -90,7 +91,6 @@ impl ShotgunSurgeryDetector {
             return Ok(HashMap::new());
         }
 
-        let lookback = ctx.config.thresholds.shotgun_surgery.lookback_commits;
         let mut stats: HashMap<PathBuf, CoChangeStats> = HashMap::new();
 
         for oid in revwalk.take(lookback) {
@@ -155,9 +155,16 @@ impl Detector for ShotgunSurgeryDetector {
     }
 
     fn detect(&self, ctx: &AnalysisContext) -> Vec<ArchSmell> {
-        let thresholds = &ctx.config.thresholds.shotgun_surgery;
+        let rule = ctx.resolve_rule("shotgun_surgery", None);
+        if !rule.enabled {
+            return Vec::new();
+        }
 
-        let stats = match self.analyze_co_changes(ctx) {
+        let lookback: usize = rule.get_option("lookback_commits").unwrap_or(500);
+        let min_frequency: usize = rule.get_option("min_frequency").unwrap_or(5);
+        let min_co_changes: usize = rule.get_option("min_co_changes").unwrap_or(3);
+
+        let stats = match self.analyze_co_changes(ctx, lookback) {
             Ok(s) => s,
             Err(_) => return Vec::new(), // If git analysis fails, skip
         };
@@ -165,6 +172,11 @@ impl Detector for ShotgunSurgeryDetector {
         stats
             .into_iter()
             .filter_map(|(file, stat)| {
+                let file_rule = ctx.resolve_rule("shotgun_surgery", Some(&file));
+                if !file_rule.enabled || ctx.is_excluded(&file, &file_rule.exclude) {
+                    return None;
+                }
+
                 // Only consider source code files that are part of the project
                 if !self.is_source_code(&file) || !ctx.file_symbols.contains_key(&file) {
                     return None;
@@ -172,14 +184,12 @@ impl Detector for ShotgunSurgeryDetector {
 
                 let avg_co_changes = stat.total_co_changed as f64 / stat.commit_count as f64;
 
-                if stat.commit_count >= thresholds.min_frequency
-                    && avg_co_changes >= thresholds.min_co_changes as f64
-                {
+                if stat.commit_count >= min_frequency && avg_co_changes >= min_co_changes as f64 {
                     let mut frequently_co_changed: Vec<(PathBuf, usize)> = stat
                         .frequently_co_changed
                         .into_iter()
                         .filter(|(p, count)| {
-                            *count >= thresholds.min_frequency
+                            *count >= min_frequency
                                 && self.is_source_code(p)
                                 && ctx.file_symbols.contains_key(p)
                         })
@@ -189,11 +199,10 @@ impl Detector for ShotgunSurgeryDetector {
 
                     let top_co_changed = frequently_co_changed.into_iter().take(5).collect();
 
-                    Some(ArchSmell::new_shotgun_surgery(
-                        file,
-                        avg_co_changes,
-                        top_co_changed,
-                    ))
+                    let mut smell =
+                        ArchSmell::new_shotgun_surgery(file, avg_co_changes, top_co_changed);
+                    smell.severity = file_rule.severity;
+                    Some(smell)
                 } else {
                     None
                 }

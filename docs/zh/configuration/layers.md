@@ -1,45 +1,48 @@
-# 架构层
+# 分层
 
-`layers` 配置允许您定义项目的架构层，并强制执行它们之间的依赖规则。
+分层配置允许您定义项目的架构级别，并强制执行它们之间的依赖规则。
 
-## 定义架构层
+## 定义分层
 
-每个层定义包含：
+分层在 `layer_violation` 规则内进行配置。每个分层定义包含：
 
-- `name`：层的唯一标识符。
-- `paths`：标识该层中文件的 Glob 模式数组。
-- `can_import`：该层允许依赖的层名称数组。
+- `name`: 分层的唯一名称。
+- `path`（或 `paths`）: 识别该分层中文件的 glob 模式。
+- `allowed_imports`（或 `can_import`）: 允许该分层导入的分层名称列表。
 
 ## 示例：整洁架构 (Clean Architecture)
 
 ```yaml
-layers:
-  - name: domain
-    paths: ['**/domain/**']
-    can_import: [] # 领域层必须是独立的
+rules:
+  layer_violation:
+    severity: error
+    layers:
+      - name: domain
+        path: '**/domain/**'
+        allowed_imports: [] # Domain 层不应依赖于任何东西
 
-  - name: application
-    paths: ['**/application/**', '**/use-cases/**']
-    can_import:
-      - domain
+      - name: application
+        path: '**/application/**'
+        allowed_imports:
+          - domain
 
-  - name: infrastructure
-    paths: ['**/infrastructure/**', '**/adapters/**']
-    can_import:
-      - domain
-      - application
+      - name: infrastructure
+        path: '**/infrastructure/**'
+        allowed_imports:
+          - domain
+          - application
 
-  - name: presentation
-    paths: ['**/controllers/**', '**/api/**', '**/ui/**']
-    can_import:
-      - domain
-      - application
+      - name: presentation
+        path: '**/presentation/**'
+        allowed_imports:
+          - domain
+          - application
 ```
 
 ## 工作原理
 
-当 `layer_violation` 探测器启用时：
+当启用 `layer_violation` 检测器时：
 
-1. 它根据 `paths` 模式将项目中的每个文件分配到一个层。
-2. 它检查这些文件中的每一个导入（import）。
-3. 如果层 `A` 中的文件导入了层 `B` 中的文件，但 `B` 不在 `A` 的 `can_import` 列表中，则会报告违规。
+1. 它根据 `path` 模式将项目中的每个文件映射到特定的分层。
+2. 如果一个文件匹配多个模式，将选择最具体的模式（最长模式）。
+3. 具检查每个导入。如果分层 `A` 中的文件导入了分层 `B` 中的文件，但 `B` 不在分层 `A` 的 `allowed_imports` 列表中，则会报告违规。

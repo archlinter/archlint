@@ -44,8 +44,15 @@ fn test_constructor_ignored_by_default() {
 #[test]
 fn test_constructor_detected_when_not_ignored() {
     let mut config = archlint::config::Config::default();
-    config.thresholds.long_params.ignore_constructors = false;
-    config.thresholds.long_params.max_params = 5;
+    config.rules.insert(
+        "long_params".to_string(),
+        archlint::config::RuleConfig::Full(archlint::config::RuleFullConfig {
+            enabled: Some(true),
+            severity: None,
+            exclude: Vec::new(),
+            options: serde_yaml::from_str("ignore_constructors: false\nmax_params: 5").unwrap(),
+        }),
+    );
 
     let ctx = analyze_fixture_with_config("params/constructor", config);
     let detector = LongParameterListDetector;

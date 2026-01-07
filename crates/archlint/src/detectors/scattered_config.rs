@@ -40,8 +40,13 @@ impl Detector for ScatteredConfigDetector {
     }
 
     fn detect(&self, ctx: &AnalysisContext) -> Vec<ArchSmell> {
+        let rule = ctx.resolve_rule("scattered_config", None);
+        if !rule.enabled {
+            return Vec::new();
+        }
+
         let mut var_usage: HashMap<String, Vec<PathBuf>> = HashMap::new();
-        let thresholds = &ctx.config.thresholds.scattered_config;
+        let max_files: usize = rule.get_option("max_files").unwrap_or(3);
 
         for (path, symbols) in ctx.file_symbols.as_ref() {
             for var in &symbols.env_vars {
@@ -54,8 +59,12 @@ impl Detector for ScatteredConfigDetector {
 
         var_usage
             .into_iter()
-            .filter(|(_, files)| files.len() > thresholds.max_files)
-            .map(|(env_var, files)| ArchSmell::new_scattered_configuration(env_var, files))
+            .filter(|(_, files)| files.len() > max_files)
+            .map(|(env_var, files)| {
+                let mut smell = ArchSmell::new_scattered_configuration(env_var, files);
+                smell.severity = rule.severity;
+                smell
+            })
             .collect()
     }
 }

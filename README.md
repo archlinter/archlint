@@ -189,32 +189,28 @@ npx @archlinter/cli diff HEAD~1 --fail-on high
 Create `.archlint.yaml` for project-specific rules:
 
 ```yaml
-# Layer architecture enforcement
-layers:
-  - name: domain
-    paths: ['**/domain/**']
-    can_import: [] # domain imports nothing
+rules:
+  # Layer architecture enforcement
+  layer_violation:
+    layers:
+      - name: domain
+        path: '**/domain/**'
+        allowed_imports: []
 
-  - name: application
-    paths: ['**/application/**']
-    can_import: ['domain']
+      - name: application
+        path: '**/application/**'
+        allowed_imports: ['domain']
 
-  - name: infrastructure
-    paths: ['**/infrastructure/**']
-    can_import: ['domain', 'application']
-
-# Adjust thresholds
-thresholds:
   god_module:
+    severity: error
     fan_in: 15
     fan_out: 15
+
   high_coupling:
-    max_dependencies: 20
+    max_cbo: 20
 
 # Framework-aware analysis
-frameworks:
-  - nestjs # knows controllers are entry points
-  - react # skips LCOM for components
+framework: nestjs # knows controllers are entry points
 ```
 
 ---

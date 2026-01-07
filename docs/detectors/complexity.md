@@ -19,7 +19,25 @@ This detector identifies functions with high Cyclomatic Complexity.
 ## Configuration
 
 ```yaml
-thresholds:
+rules:
   complexity:
+    severity: warn
     max_complexity: 15
 ```
+
+## ESLint Rule
+
+This detector is available as an ESLint rule for real-time feedback in your editor.
+
+```javascript
+// eslint.config.js
+export default [
+  {
+    rules: {
+      '@archlinter/no-high-complexity': 'warn',
+    },
+  },
+];
+```
+
+See [ESLint Integration](/integrations/eslint) for setup instructions.

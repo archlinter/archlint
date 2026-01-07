@@ -11,3 +11,20 @@ It's just clutter. It makes the file harder to read and maintain without adding 
 ## How to fix
 
 Delete the unused symbols.
+
+## ESLint Rule
+
+This detector is available as an ESLint rule for real-time feedback in your editor.
+
+```javascript
+// eslint.config.js
+export default [
+  {
+    rules: {
+      '@archlinter/no-dead-symbols': 'warn',
+    },
+  },
+];
+```
+
+See [ESLint Integration](/integrations/eslint) for setup instructions.

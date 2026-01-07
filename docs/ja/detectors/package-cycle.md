@@ -1,6 +1,6 @@
 # パッケージの循環参照
 
-**ID:** `package_cycle` | **Severity:** High (default)
+**ID:** `package_cycles` | **重要度:** High (default)
 
 パッケージ全体（`package.json` を含むフォルダまたは論理的なモジュール境界）の間の循環依存関係を検出します。
 

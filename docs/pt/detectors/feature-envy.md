@@ -1,10 +1,10 @@
 # Inveja de Recursos
 
-**ID:** `feature_envy` | **Severity:** Medium (default)
+**ID:** `feature_envy` | **Gravidade:** Medium (default)
 
 A inveja de recursos (Feature envy) ocorre quando um método em uma classe parece mais interessado nos dados de outra classe do que nos dados de sua própria classe.
 
-## Por que isso é um "smell"
+## Por que isso é um smell
 
 Isso indica uma violação de encapsulamento. A lógica provavelmente está no lugar errado.
 

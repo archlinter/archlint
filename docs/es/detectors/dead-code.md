@@ -4,7 +4,7 @@
 
 El código muerto se refiere a funciones, clases o variables exportadas que no se importan ni se utilizan en ningún otro lugar del proyecto.
 
-## Por qué esto es un problema (smell)
+## Por qué esto es un problema
 
 - **Carga de Mantenimiento**: Los desarrolladores podrían dedicar tiempo a actualizar o refactorizar código que ni siquiera se utiliza.
 - **Tamaño del Bundle**: Aumenta el tamaño final de la aplicación (aunque muchos bundlers realizan tree-shaking).
@@ -35,3 +35,20 @@ entry_points:
   - 'src/index.ts'
   - 'src/api/**/*.ts'
 ```
+
+## Regla ESLint
+
+Este detector está disponible como una regla ESLint para recibir retroalimentación en tiempo real en tu editor.
+
+```javascript
+// eslint.config.js
+export default [
+  {
+    rules: {
+      '@archlinter/no-dead-code': 'warn',
+    },
+  },
+];
+```
+
+Consulta [Integración con ESLint](/es/integrations/eslint) para instrucciones de configuración.

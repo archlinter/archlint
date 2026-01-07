@@ -1,10 +1,10 @@
-# Ignore Patterns
+# Ignoring Files
 
 archlint provides several ways to exclude files or directories from analysis.
 
 ## Global Ignore
 
-The `ignore` section in `archlint.yaml` specifies files that should be completely skipped by all detectors.
+The `ignore` section at the root of `.archlint.yaml` specifies files that should be completely skipped by all detectors.
 
 ```yaml
 ignore:
@@ -17,20 +17,33 @@ ignore:
 
 ## .gitignore Support
 
-By default, archlint automatically respects your `.gitignore` file. You don't need to duplicate those patterns in your `archlint.yaml`.
+By default, archlint automatically respects your `.gitignore` file. You don't need to duplicate these patterns in `.archlint.yaml`. If you want to disable this behavior, set `enable_git: false`.
 
-## Detector-Specific Ignore
+## Per-Rule Ignore
 
-Some detectors have their own `exclude_patterns` within the `thresholds` section. This is useful if you want a file to be analyzed by most detectors but skipped by a specific one (e.g., excluding test files from cycle detection).
+You can exclude files from a specific detector using the `exclude` field inside the `rules` section. This is useful if you want a file to be analyzed by most detectors but skipped by one specific detector.
 
 ```yaml
-thresholds:
+rules:
   cycles:
-    exclude_patterns:
-      - '**/*.test.ts'
-      - '**/*.spec.ts'
+    exclude:
+      - '**/generated/**'
+      - '**/*.entity.ts'
 ```
 
-## Inline Ignores
+## Path Overrides
 
-(Coming Soon) We are working on supporting inline comments like `// archlint-disable` to ignore specific lines or files directly in the source code.
+For more complex logic (e.g., changing settings or disabling multiple rules for a specific directory), use the `overrides` section:
+
+```yaml
+overrides:
+  - files: ['**/tests/**', '**/mocks/**']
+    rules:
+      complexity: off
+      god_module: off
+      large_file: warn
+```
+
+## Inline Ignore
+
+(In Development) We are working on supporting comments like `// archlint-disable` to ignore specific lines or files directly in the code.

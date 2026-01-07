@@ -1,6 +1,6 @@
 # 分散配置
 
-**ID:** `scattered_config` | **Severity:** Low (default)
+**ID:** `scattered_config` | **严重程度:** 低 (默认)
 
 识别分散在许多不同文件中而不是集中管理的配置（如环境变量访问）。
 

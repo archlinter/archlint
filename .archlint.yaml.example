@@ -1,20 +1,60 @@
+# Archlint Configuration Example
+
+# Files and directories to ignore globally
 ignore:
+  - "**/node_modules/**"
+  - "**/dist/**"
   - "**/*.test.ts"
   - "**/*.spec.ts"
-  - "**/__tests__/**"
-  - "**/__mocks__/**"
 
+# Path aliases (similar to tsconfig.json)
 aliases:
   "@/*": "src/*"
-  "@components/*": "src/components/*"
 
+# Entry points for dead code analysis
 entry_points:
   - "src/main.ts"
-  - "src/index.ts"
-  - "**/*.e2e.ts"
 
-thresholds:
+# Rule-specific configuration
+rules:
+  # Short form: level or "off"
+  cycles: error
+  dead_code: warn
+
+  # Full form: with additional parameters
   god_module:
-    fan_in: 10
-    fan_out: 10
+    severity: high
+    fan_in: 15
+    fan_out: 15
     churn: 20
+    exclude: ["**/legacy/**"]
+
+  layer_violation:
+    severity: error
+    layers:
+      - name: domain
+        path: "**/domain/**"
+        allowed_imports: []
+      - name: application
+        path: "**/application/**"
+        allowed_imports: ["domain"]
+
+# Path-specific overrides
+overrides:
+  - files: ["**/tests/**", "**/mocks/**"]
+    rules:
+      complexity: off
+      god_module: off
+
+# Scoring and grading configuration
+scoring:
+  minimum: warn
+  weights:
+    critical: 100
+    high: 50
+    medium: 20
+    low: 5
+
+# Framework preset
+framework: nestjs
+auto_detect_framework: true

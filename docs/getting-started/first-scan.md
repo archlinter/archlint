@@ -14,7 +14,7 @@ By default, archlint will:
 
 1. Scan all TypeScript and JavaScript files in the current directory.
 2. Respect your `.gitignore` file.
-3. Use default thresholds for all 28+ detectors.
+3. Use default rules for all 28+ detectors.
 4. Output a colored table summary of the detected smells.
 
 ## Save a Snapshot
@@ -44,5 +44,5 @@ npx @archlinter/cli diff origin/main --fail-on medium
 ## What's Next?
 
 - [Learn about all Detectors](/detectors/)
-- [Configure archlint.yaml](/configuration/)
+- [Configure .archlint.yaml](/configuration/)
 - [Integrate into CI/CD](/integrations/github-actions)

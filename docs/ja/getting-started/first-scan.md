@@ -44,5 +44,5 @@ npx @archlinter/cli diff origin/main --fail-on medium
 ## 次のステップ
 
 - [すべての検出器について学ぶ](/ja/detectors/)
-- [archlint.yaml を設定する](/ja/configuration/)
+- [.archlint.yaml を設定する](/ja/configuration/)
 - [CI/CD に統合する](/ja/integrations/github-actions)

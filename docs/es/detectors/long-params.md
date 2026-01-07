@@ -1,10 +1,10 @@
 # Lista de Parámetros Larga
 
-**ID:** `long_params` | **Severity:** Low (default)
+**ID:** `long_params` | **Severidad:** Low (default)
 
 Identifica funciones o métodos que tienen demasiados parámetros.
 
-## Por qué es un "smell"
+## Por qué esto es un problema
 
 Las funciones con muchos parámetros son difíciles de usar y de leer. A menudo indican que la función está haciendo demasiado o que algunos parámetros deberían agruparse en un objeto.
 
@@ -16,7 +16,26 @@ Las funciones con muchos parámetros son difíciles de usar y de leer. A menudo 
 ## Configuración
 
 ```yaml
-thresholds:
+rules:
   long_params:
+    severity: info
     max_params: 5
+    ignore_constructors: true
 ```
+
+## Regla ESLint
+
+Este detector está disponible como una regla ESLint para recibir retroalimentación en tiempo real en tu editor.
+
+```javascript
+// eslint.config.js
+export default [
+  {
+    rules: {
+      '@archlinter/no-long-params': 'warn',
+    },
+  },
+];
+```
+
+Consulta [Integración con ESLint](/es/integrations/eslint) para instrucciones de configuración.

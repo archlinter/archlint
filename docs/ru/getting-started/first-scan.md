@@ -44,5 +44,5 @@ npx @archlinter/cli diff origin/main --fail-on medium
 ## Что дальше?
 
 - [Узнать обо всех детекторах](/ru/detectors/)
-- [Настроить archlint.yaml](/ru/configuration/)
+- [Настроить .archlint.yaml](/ru/configuration/)
 - [Интегрировать в CI/CD](/ru/integrations/github-actions)

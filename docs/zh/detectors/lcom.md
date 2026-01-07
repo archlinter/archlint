@@ -1,8 +1,8 @@
 # 低内聚 (LCOM4)
 
-**ID:** `lcom` | **Severity:** Medium (default)
+**ID:** `lcom` | **严重程度:** 中 (默认)
 
-内聚性衡量类的的方法和字段之间的关联紧密程度。archlint 使用 **LCOM4** (Lack of Cohesion of Methods) 指标。
+内聚性衡量类的方法和字段之间的关联紧密程度。`archlint` 使用 **LCOM4** (Lack of Cohesion of Methods) 指标。
 
 ## 为什么这是一种坏味道
 
@@ -18,7 +18,9 @@
 ## 配置
 
 ```yaml
-thresholds:
+rules:
   lcom:
-    threshold: 1 # 允许的未连接组件数量（默认为 1）
+    severity: warn
+    max_lcom: 4
+    min_methods: 3
 ```
