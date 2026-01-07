@@ -1,3 +1,8 @@
+---
+title: CLI Reference
+description: Complete reference for archlint CLI commands, including scan, diff, snapshot, and watch.
+---
+
 # CLI Reference
 
 The archlint CLI is the primary way to interact with the tool.

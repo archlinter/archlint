@@ -1,3 +1,8 @@
+---
+title: Configuration
+description: Learn how to configure archlint using archlint.yaml, define architectural layers, and set custom thresholds for detectors.
+---
+
 # Configuration
 
 archlint can be configured using an `archlint.yaml` file in your project root. If no configuration file is found, the tool uses sensible defaults for all detectors.

@@ -5,7 +5,26 @@ export default defineConfig({
   base: '/archlint/',
   title: "archlint",
   description: "Stop architecture degradation",
-  head: [['link', { rel: 'icon', href: '/logo.svg' }]],
+  lastUpdated: true,
+  sitemap: {
+    hostname: 'https://archlinter.github.io/archlint/'
+  },
+  head: [
+    ['link', { rel: 'icon', type: 'image/svg+xml', href: '/archlint/logo.svg' }],
+    ['link', { rel: 'icon', type: 'image/png', href: '/archlint/logo.png' }],
+    ['link', { rel: 'icon', href: '/archlint/favicon.ico' }],
+    ['meta', { name: 'theme-color', content: '#6366F1' }],
+    ['meta', { property: 'og:type', content: 'website' }],
+    ['meta', { property: 'og:locale', content: 'en' }],
+    ['meta', { property: 'og:title', content: 'archlint | Stop architecture degradation' }],
+    ['meta', { property: 'og:site_name', content: 'archlint' }],
+    ['meta', { property: 'og:image', content: 'https://archlinter.github.io/archlint/logo.png' }],
+    ['meta', { property: 'og:url', content: 'https://archlinter.github.io/archlint/' }],
+    ['meta', { name: 'twitter:card', content: 'summary_large_image' }],
+    ['meta', { name: 'twitter:title', content: 'archlint | Stop architecture degradation' }],
+    ['meta', { name: 'twitter:description', content: 'Fast, AST-based architecture smell detector for TypeScript/JavaScript projects.' }],
+    ['meta', { name: 'twitter:image', content: 'https://archlinter.github.io/archlint/logo.png' }],
+  ],
   markdown: {
     config(md) {
       md.use(groupIconMdPlugin)

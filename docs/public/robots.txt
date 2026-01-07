@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://archlinter.github.io/archlint/sitemap.xml

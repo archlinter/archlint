@@ -1,5 +1,7 @@
 ---
 layout: home
+title: Stop architecture degradation
+description: Fast, AST-based architecture smell detector for TypeScript/JavaScript projects. Stop architecture degradation with 28+ detectors and blazingly fast analysis.
 
 hero:
   name: 'archlint'
