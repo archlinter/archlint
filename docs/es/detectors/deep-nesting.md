@@ -1,0 +1,23 @@
+# Anidamiento Profundo
+
+**ID:** `deep_nesting` | **Severity:** Low (default)
+
+Identifica bloques de código (if, for, while, etc.) que están anidados con demasiada profundidad.
+
+## Por qué esto es un "smell"
+
+El código profundamente anidado es exponencialmente más difícil de leer y comprender. A menudo es una señal de que una función está haciendo demasiado o que la lógica puede simplificarse.
+
+## Cómo solucionar
+
+- **Guard Clauses**: Devuelva temprano para evitar bloques `else` y reducir el anidamiento.
+- **Extract Function**: Mueva el bloque anidado interno a una nueva función.
+- **Flatten Logic**: Reevalúe la lógica para ver si se puede expresar de forma más sencilla.
+
+## Configuración
+
+```yaml
+thresholds:
+  deep_nesting:
+    max_depth: 4
+```
