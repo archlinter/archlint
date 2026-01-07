@@ -103,9 +103,45 @@ pub fn generate_snapshot_from_git_ref(
         })?
         .to_path_buf();
 
-    let obj = repo.revparse_single(git_ref).map_err(|e| {
-        crate::AnalysisError::GitCommand(format!("Cannot resolve '{}': {}", git_ref, e))
-    })?;
+    let obj = match repo.revparse_single(git_ref) {
+        Ok(obj) => obj,
+        Err(e) if e.code() == git2::ErrorCode::NotFound && git_ref.contains('/') => {
+            let parts: Vec<&str> = git_ref.split('/').collect();
+            let remote = parts[0];
+            let branch = parts[1..].join("/");
+
+            if !silent {
+                eprintln!(
+                    "Ref {} not found locally. Trying to fetch from {}...",
+                    style(git_ref).cyan(),
+                    style(remote).yellow()
+                );
+            }
+
+            // Try to fetch the specific branch
+            let _ = Command::new("git")
+                .args([
+                    "fetch",
+                    "--no-tags",
+                    "--depth=1",
+                    remote,
+                    &format!("+refs/heads/{}:refs/remotes/{}/{}", branch, remote, branch),
+                ])
+                .current_dir(project_path)
+                .output();
+
+            // Try resolving again
+            repo.revparse_single(git_ref).map_err(|e| {
+                crate::AnalysisError::GitCommand(format!("Cannot resolve '{}': {}", git_ref, e))
+            })?
+        }
+        Err(e) => {
+            return Err(crate::AnalysisError::GitCommand(format!(
+                "Cannot resolve '{}': {}",
+                git_ref, e
+            )));
+        }
+    };
     let commit = obj.id().to_string();
 
     // Create temporary worktree
