@@ -1,3 +1,14 @@
+## [0.8.2](https://github.com/archlinter/archlint/compare/v0.8.1...v0.8.2) (2026-01-07)
+
+### Bug Fixes
+
+- **cli:** attempt to fetch git ref if not found locally ([#14](https://github.com/archlinter/archlint/issues/14)) ([9d4df7c](https://github.com/archlinter/archlint/commit/9d4df7c4f07d2f73eca602d89f1308f9693ff11e))
+
+### Documentation
+
+- add VitePress documentation and setup GitHub Pages deployment ([2e119be](https://github.com/archlinter/archlint/commit/2e119be48e1bff265c86cc16e87b519323bcd8c3))
+- promote official GitHub Action in README and installation guide ([#13](https://github.com/archlinter/archlint/issues/13)) ([87a10c9](https://github.com/archlinter/archlint/commit/87a10c9de8b91a6a1dd0e16bb50b509f834719e9))
+
 ## [0.8.1](https://github.com/archlinter/archlint/compare/v0.8.0...v0.8.1) (2026-01-06)
 
 ### Bug Fixes
