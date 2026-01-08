@@ -45,7 +45,7 @@ impl Detector for CodeCloneDetector {
     }
 
     fn detect(&self, ctx: &AnalysisContext) -> Vec<ArchSmell> {
-        let (min_tokens, min_lines) = self.resolve_config(ctx);
+        let (min_tokens, min_lines, max_bucket_size) = self.resolve_config(ctx);
 
         let file_tokens = tokenize_files(ctx, min_tokens);
         if file_tokens.is_empty() {
@@ -53,7 +53,13 @@ impl Detector for CodeCloneDetector {
         }
 
         let window_map = build_window_map(&file_tokens, min_tokens);
-        let clusters = detect_clusters(&file_tokens, window_map, min_tokens, min_lines);
+        let clusters = detect_clusters(
+            &file_tokens,
+            window_map,
+            min_tokens,
+            min_lines,
+            max_bucket_size,
+        );
 
         self.report_smells(ctx, clusters)
     }
@@ -61,11 +67,12 @@ impl Detector for CodeCloneDetector {
 
 impl CodeCloneDetector {
     /// Resolves detector configuration options from the analysis context.
-    fn resolve_config(&self, ctx: &AnalysisContext) -> (usize, usize) {
+    fn resolve_config(&self, ctx: &AnalysisContext) -> (usize, usize, usize) {
         let global_rule = ctx.resolve_rule("code_clone", None);
         let min_tokens: usize = global_rule.get_option("min_tokens").unwrap_or(50);
         let min_lines: usize = global_rule.get_option("min_lines").unwrap_or(6);
-        (min_tokens, min_lines)
+        let max_bucket_size: usize = global_rule.get_option("max_bucket_size").unwrap_or(1000);
+        (min_tokens, min_lines, max_bucket_size)
     }
 
     /// Converts detected clusters into architectural smells (`ArchSmell`).
@@ -90,7 +97,7 @@ impl CodeCloneDetector {
             }
 
             let mut location_details = Vec::new();
-            if let Some(occ) = merged_occurrences.first() {
+            for occ in &merged_occurrences {
                 let other_refs = self.format_other_refs(ctx, &merged_occurrences, occ);
 
                 let description = format!(

@@ -65,7 +65,10 @@ impl DetectionContext<'_> {
 
         self.processed_ranges.get(&pair_key).is_some_and(|ranges| {
             ranges.iter().any(|&(s1, s2, len)| {
-                // Defensive check to avoid underflow, though len >= min_tokens is an invariant
+                // Check if the new window starting at (off1, off2) would expand to overlap
+                // significantly with the already-processed range [s1, s2, len).
+                // We check if off1 falls within [s1, s1 + len - min_tokens], which ensures
+                // that the new window would mostly coincide with the processed range.
                 let end1 = s1 + len.saturating_sub(self.min_tokens);
                 let end2 = s2 + len.saturating_sub(self.min_tokens);
                 off1 >= s1 && off1 <= end1 && off2 >= s2 && off2 <= end2
@@ -311,6 +314,7 @@ pub fn detect_clusters(
     window_map: FxHashMap<[u8; 32], Vec<(PathBuf, usize)>>,
     min_tokens: usize,
     min_lines: usize,
+    max_bucket_size: usize,
 ) -> Vec<Cluster> {
     let mut window_entries: Vec<WindowEntry> = window_map.into_iter().collect();
     window_entries.sort_by(|a, b| a.0.cmp(&b.0));
@@ -334,7 +338,7 @@ pub fn detect_clusters(
 
         for (_hash, locations) in window_entries {
             // Skip extremely large buckets to avoid O(n^2) complexity on generated code
-            if locations.len() > 1000 {
+            if locations.len() > max_bucket_size {
                 continue;
             }
 
@@ -349,6 +353,9 @@ pub fn detect_clusters(
             }
         }
     }
+
+    // Clean up empty clusters left over from merges
+    clusters.retain(|c| !c.occurrences.is_empty());
 
     clusters
 }
