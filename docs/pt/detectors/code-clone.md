@@ -2,7 +2,7 @@
 
 **ID:** `code_clone` | **Gravidade:** Média (padrão)
 
-Este detector identifica blocos de código duplicados em seu projeto. Suporta clones de **Tipo-1** (cópias exatas) e **Tipo-2** (variáveis/identificadores renomeados).
+Este detector identifica blocos de código duplicados em seu projeto. Utiliza a tokenização baseada em AST para encontrar correspondências exatas, ignorando diferenças de formatação e comentários.
 
 ## Por que isto é um "cheiro"
 

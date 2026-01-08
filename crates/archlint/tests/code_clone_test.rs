@@ -5,15 +5,14 @@ use archlint::detectors::Detector;
 use common::analyze_fixture_with_rule;
 
 #[test]
-fn test_code_clones_detected_type2() {
+fn test_code_clones_detected_exact() {
     let ctx = analyze_fixture_with_rule(
-        "clones/simple",
+        "clones/exact",
         "code_clone",
         Some(
             r#"
             min_tokens: 20
             min_lines: 3
-            mode: type2
             "#,
         ),
     );

@@ -7,7 +7,6 @@ use crate::detectors::{
     ArchSmell, CodeRange, Detector, DetectorCategory, DetectorFactory, DetectorInfo, LocationDetail,
 };
 use crate::engine::AnalysisContext;
-use crate::parser::tokenizer::CloneTokenizationMode;
 use rustc_hash::FxHashSet;
 
 use self::engine::{build_window_map, detect_clusters, merge_overlapping_occurrences};
@@ -47,9 +46,9 @@ impl Detector for CodeCloneDetector {
     }
 
     fn detect(&self, ctx: &AnalysisContext) -> Vec<ArchSmell> {
-        let (min_tokens, min_lines, mode) = self.resolve_config(ctx);
+        let (min_tokens, min_lines) = self.resolve_config(ctx);
 
-        let file_tokens = tokenize_files(ctx, min_tokens, mode);
+        let file_tokens = tokenize_files(ctx, min_tokens);
         if file_tokens.is_empty() {
             return Vec::new();
         }
@@ -63,20 +62,11 @@ impl Detector for CodeCloneDetector {
 
 impl CodeCloneDetector {
     /// Resolves detector configuration options from the analysis context.
-    fn resolve_config(&self, ctx: &AnalysisContext) -> (usize, usize, CloneTokenizationMode) {
+    fn resolve_config(&self, ctx: &AnalysisContext) -> (usize, usize) {
         let global_rule = ctx.resolve_rule("code_clone", None);
         let min_tokens: usize = global_rule.get_option("min_tokens").unwrap_or(50);
         let min_lines: usize = global_rule.get_option("min_lines").unwrap_or(6);
-        let mode = match global_rule
-            .get_option::<String>("mode")
-            .unwrap_or_else(|| "exact".to_string())
-            .to_lowercase()
-            .as_str()
-        {
-            "exact" | "type1" => CloneTokenizationMode::Exact,
-            _ => CloneTokenizationMode::Type2,
-        };
-        (min_tokens, min_lines, mode)
+        (min_tokens, min_lines)
     }
 
     /// Converts detected clusters into architectural smells (`ArchSmell`).

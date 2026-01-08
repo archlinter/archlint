@@ -7,14 +7,6 @@ use oxc_parser::Parser;
 use oxc_span::{GetSpan, SourceType, Span};
 use oxc_syntax::scope::ScopeFlags;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum CloneTokenizationMode {
-    /// Type-2 clone detection: normalize identifiers and literals
-    Type2,
-    /// Type-1 clone detection: keep exact token text for identifiers/literals
-    Exact,
-}
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum TokenKind {
     Identifier,
@@ -43,17 +35,15 @@ pub struct TokenCollector {
     pub tokens: Vec<NormalizedToken>,
     line_index: LineIndex,
     source: String,
-    mode: CloneTokenizationMode,
     seq: u32,
 }
 
 impl TokenCollector {
-    pub fn new(source: &str, mode: CloneTokenizationMode) -> Self {
+    pub fn new(source: &str) -> Self {
         Self {
             tokens: Vec::new(),
             line_index: LineIndex::new(source),
             source: source.to_string(),
-            mode,
             seq: 0,
         }
     }
@@ -90,110 +80,52 @@ impl TokenCollector {
 
 impl<'a> Visit<'a> for TokenCollector {
     fn visit_identifier_reference(&mut self, it: &ast::IdentifierReference<'a>) {
-        match self.mode {
-            CloneTokenizationMode::Type2 => {
-                self.add_token(
-                    TokenKind::Identifier,
-                    CompactString::const_new("$ID"),
-                    it.span,
-                );
-            }
-            CloneTokenizationMode::Exact => {
-                self.add_token(
-                    TokenKind::Identifier,
-                    CompactString::from(self.slice(it.span)),
-                    it.span,
-                );
-            }
-        }
+        self.add_token(
+            TokenKind::Identifier,
+            CompactString::from(self.slice(it.span)),
+            it.span,
+        );
     }
 
     fn visit_binding_identifier(&mut self, it: &ast::BindingIdentifier<'a>) {
-        match self.mode {
-            CloneTokenizationMode::Type2 => {
-                self.add_token(
-                    TokenKind::Identifier,
-                    CompactString::const_new("$ID"),
-                    it.span,
-                );
-            }
-            CloneTokenizationMode::Exact => {
-                self.add_token(
-                    TokenKind::Identifier,
-                    CompactString::from(self.slice(it.span)),
-                    it.span,
-                );
-            }
-        }
+        self.add_token(
+            TokenKind::Identifier,
+            CompactString::from(self.slice(it.span)),
+            it.span,
+        );
     }
 
     fn visit_identifier_name(&mut self, it: &ast::IdentifierName<'a>) {
-        match self.mode {
-            CloneTokenizationMode::Type2 => {
-                self.add_token(
-                    TokenKind::Identifier,
-                    CompactString::const_new("$ID"),
-                    it.span,
-                );
-            }
-            CloneTokenizationMode::Exact => {
-                self.add_token(
-                    TokenKind::Identifier,
-                    CompactString::from(self.slice(it.span)),
-                    it.span,
-                );
-            }
-        }
+        self.add_token(
+            TokenKind::Identifier,
+            CompactString::from(self.slice(it.span)),
+            it.span,
+        );
     }
 
     fn visit_ts_type_name(&mut self, it: &ast::TSTypeName<'a>) {
-        match self.mode {
-            CloneTokenizationMode::Type2 => {
-                self.add_token(
-                    TokenKind::Identifier,
-                    CompactString::const_new("$ID"),
-                    it.span(),
-                );
-            }
-            CloneTokenizationMode::Exact => {
-                self.add_token(
-                    TokenKind::Identifier,
-                    CompactString::from(self.slice(it.span())),
-                    it.span(),
-                );
-            }
-        }
+        self.add_token(
+            TokenKind::Identifier,
+            CompactString::from(self.slice(it.span())),
+            it.span(),
+        );
         oxc_ast::visit::walk::walk_ts_type_name(self, it);
     }
 
     fn visit_string_literal(&mut self, it: &ast::StringLiteral<'a>) {
-        match self.mode {
-            CloneTokenizationMode::Type2 => {
-                self.add_token(TokenKind::String, CompactString::const_new("$STR"), it.span);
-            }
-            CloneTokenizationMode::Exact => {
-                self.add_token(
-                    TokenKind::String,
-                    CompactString::from(self.slice(it.span)),
-                    it.span,
-                );
-            }
-        }
+        self.add_token(
+            TokenKind::String,
+            CompactString::from(self.slice(it.span)),
+            it.span,
+        );
     }
 
     fn visit_numeric_literal(&mut self, it: &ast::NumericLiteral<'a>) {
-        match self.mode {
-            CloneTokenizationMode::Type2 => {
-                self.add_token(TokenKind::Number, CompactString::const_new("$NUM"), it.span);
-            }
-            CloneTokenizationMode::Exact => {
-                self.add_token(
-                    TokenKind::Number,
-                    CompactString::from(self.slice(it.span)),
-                    it.span,
-                );
-            }
-        }
+        self.add_token(
+            TokenKind::Number,
+            CompactString::from(self.slice(it.span)),
+            it.span,
+        );
     }
 
     fn visit_call_expression(&mut self, it: &ast::CallExpression<'a>) {
@@ -331,18 +263,30 @@ impl<'a> Visit<'a> for TokenCollector {
         self.add_marker("$SWITCH", it.span);
         oxc_ast::visit::walk::walk_switch_statement(self, it);
     }
+
+    fn visit_import_declaration(&mut self, _it: &ast::ImportDeclaration<'a>) {
+        // Skip imports to avoid false positives from identical import lists
+    }
+
+    fn visit_export_named_declaration(&mut self, _it: &ast::ExportNamedDeclaration<'a>) {
+        // Skip exports to avoid false positives from identical export lists
+    }
+
+    fn visit_export_all_declaration(&mut self, _it: &ast::ExportAllDeclaration<'a>) {
+        // Skip exports
+    }
+
+    fn visit_export_default_declaration(&mut self, _it: &ast::ExportDefaultDeclaration<'a>) {
+        // Skip exports
+    }
 }
 
-pub fn tokenize_and_normalize(
-    source: &str,
-    source_type: SourceType,
-    mode: CloneTokenizationMode,
-) -> Vec<NormalizedToken> {
+pub fn tokenize_and_normalize(source: &str, source_type: SourceType) -> Vec<NormalizedToken> {
     let allocator = Allocator::default();
     let parser = Parser::new(&allocator, source, source_type);
     let ret = parser.parse();
 
-    let mut collector = TokenCollector::new(source, mode);
+    let mut collector = TokenCollector::new(source);
     collector.visit_program(&ret.program);
 
     // Sort tokens by span start to ensure they are in source order

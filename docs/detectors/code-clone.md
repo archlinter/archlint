@@ -2,8 +2,7 @@
 
 **ID:** `code_clone` | **Severity:** Medium (default)
 
-This detector identifies duplicated code blocks across your project.
-By default it runs in **Type-1** mode (exact matches). You can optionally enable **Type-2** mode (renamed variables/identifiers).
+This detector identifies duplicated code blocks across your project. It uses AST-based tokenization to find exact matches while ignoring differences in formatting and comments.
 
 ## Why this is a smell
 
@@ -24,7 +23,6 @@ rules:
   code_clone:
     enabled: true
     severity: warn
-    mode: exact
     min_tokens: 50
     min_lines: 6
 ```
@@ -33,7 +31,6 @@ rules:
 
 - `min_tokens`: The minimum number of normalized tokens to trigger a clone detection (default: 50).
 - `min_lines`: The minimum number of lines the clone must span (default: 6).
-- `mode`: `exact` (default) or `type2`.
 
 ## ESLint Rule
 

@@ -1,15 +1,21 @@
 use super::types::{Cluster, Occurrence, WindowEntry};
 use crate::parser::tokenizer::NormalizedToken;
-use rustc_hash::{FxHashMap, FxHashSet};
+use rustc_hash::FxHashMap;
 use sha2::{Digest, Sha256};
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
+
+/// Map to track processed ranges for each file pair.
+type ProcessedRangesMap = FxHashMap<(PathBuf, PathBuf), Vec<(usize, usize, usize)>>;
 
 /// Context for the clone detection process.
 struct DetectionContext<'a> {
     file_tokens: &'a FxHashMap<PathBuf, Vec<NormalizedToken>>,
-    covered: &'a mut FxHashMap<PathBuf, FxHashSet<usize>>,
     clusters: &'a mut Vec<Cluster>,
     occ_to_cluster: &'a mut FxHashMap<(PathBuf, usize), usize>,
+    /// Track already processed ranges for each file pair to avoid redundant expansions.
+    /// Key is (file1, file2) where file1 <= file2 (alphabetically).
+    /// Value is a list of (start1, start2, length).
+    processed_ranges: ProcessedRangesMap,
     min_tokens: usize,
     min_lines: usize,
 }
@@ -20,8 +26,24 @@ impl DetectionContext<'_> {
         let (file1, off1) = loc1;
         let (file2, off2) = loc2;
 
-        if is_already_covered(self.covered, file1, off1, file2, off2) {
-            return;
+        // Ensure deterministic key for processed_ranges
+        let (f1, f2, o1, o2) = if file1 <= file2 {
+            (file1, file2, *off1, *off2)
+        } else {
+            (file2, file1, *off2, *off1)
+        };
+
+        let pair_key = (f1.clone(), f2.clone());
+        if let Some(ranges) = self.processed_ranges.get(&pair_key) {
+            for &(s1, s2, len) in ranges {
+                if o1 >= s1
+                    && o1 <= s1 + len - self.min_tokens
+                    && o2 >= s2
+                    && o2 <= s2 + len - self.min_tokens
+                {
+                    return;
+                }
+            }
         }
 
         let tokens1 = &self.file_tokens[file1];
@@ -40,6 +62,17 @@ impl DetectionContext<'_> {
             return;
         }
 
+        // Record the range to avoid re-processing overlapping windows
+        let (rs1, rs2) = if file1 <= file2 {
+            (start1, start2)
+        } else {
+            (start2, start1)
+        };
+        self.processed_ranges
+            .entry(pair_key)
+            .or_default()
+            .push((rs1, rs2, length));
+
         if !starts_at_line_boundary(tokens1, start1) || !starts_at_line_boundary(tokens2, start2) {
             return;
         }
@@ -53,9 +86,6 @@ impl DetectionContext<'_> {
         if lines1 < self.min_lines || lines2 < self.min_lines {
             return;
         }
-
-        mark_as_covered(self.covered, file1, start1, length);
-        mark_as_covered(self.covered, file2, start2, length);
 
         let range_hash = hash_tokens(&tokens1[start1..start1 + length]);
         let occ1 = Occurrence {
@@ -100,8 +130,10 @@ impl DetectionContext<'_> {
                     let k = (occ.file.clone(), occ.token_start);
                     self.add_to_cluster(keep, occ, k);
                 }
-                self.clusters[keep].hash = range_hash;
-                self.clusters[keep].token_count = length;
+                if length > self.clusters[keep].token_count {
+                    self.clusters[keep].hash = range_hash;
+                    self.clusters[keep].token_count = length;
+                }
                 keep
             }
             (Some(a), _) => a,
@@ -159,7 +191,10 @@ pub fn build_window_map(
 
     for path in paths {
         let tokens = &file_tokens[path];
-        for i in 0..=(tokens.len().saturating_sub(min_tokens)) {
+        if tokens.len() < min_tokens {
+            continue;
+        }
+        for i in 0..=(tokens.len() - min_tokens) {
             let hash = hash_tokens(&tokens[i..i + min_tokens]);
             window_map.entry(hash).or_default().push((path.clone(), i));
         }
@@ -177,32 +212,9 @@ pub fn merge_overlapping_occurrences(mut occurrences: Vec<Occurrence>) -> Vec<Oc
     let mut merged: Vec<Occurrence> = Vec::new();
     for occ in occurrences {
         if let Some(last) = merged.last_mut() {
-            if last.file == occ.file {
-                // Only merge if they truly overlap in source lines
-                let overlaps = (occ.start_line >= last.start_line
-                    && occ.start_line <= last.end_line)
-                    || (occ.end_line >= last.start_line && occ.end_line <= last.end_line);
-
-                if overlaps {
-                    // Update start line/column if current occurrence starts earlier
-                    if occ.start_line < last.start_line {
-                        last.start_line = occ.start_line;
-                        last.start_column = occ.start_column;
-                    } else if occ.start_line == last.start_line {
-                        last.start_column = last.start_column.min(occ.start_column);
-                    }
-
-                    // Update end line/column if current occurrence ends later
-                    if occ.end_line > last.end_line {
-                        last.end_line = occ.end_line;
-                        last.end_column = occ.end_column;
-                    } else if occ.end_line == last.end_line {
-                        last.end_column = last.end_column.max(occ.end_column);
-                    }
-
-                    last.token_start = last.token_start.min(occ.token_start);
-                    continue;
-                }
+            if last.overlaps(&occ) {
+                last.merge_with(occ);
+                continue;
             }
         }
         merged.push(occ);
@@ -282,19 +294,23 @@ pub fn detect_clusters(
 
     let mut clusters: Vec<Cluster> = Vec::new();
     let mut occ_to_cluster: FxHashMap<(PathBuf, usize), usize> = FxHashMap::default();
-    let mut covered_tokens: FxHashMap<PathBuf, FxHashSet<usize>> = FxHashMap::default();
 
     {
         let mut ctx = DetectionContext {
             file_tokens,
-            covered: &mut covered_tokens,
             clusters: &mut clusters,
             occ_to_cluster: &mut occ_to_cluster,
+            processed_ranges: FxHashMap::default(),
             min_tokens,
             min_lines,
         };
 
         for (_hash, locations) in window_entries {
+            // Skip extremely large buckets to avoid O(n^2) complexity on generated code
+            if locations.len() > 1000 {
+                continue;
+            }
+
             if locations.len() < 2 {
                 continue;
             }
@@ -310,33 +326,7 @@ pub fn detect_clusters(
     clusters
 }
 
-/// Checks if the current token offsets are already part of a detected clone.
-fn is_already_covered(
-    covered: &FxHashMap<PathBuf, FxHashSet<usize>>,
-    file1: &Path,
-    off1: &usize,
-    file2: &Path,
-    off2: &usize,
-) -> bool {
-    file1 != file2
-        && covered.get(file1).is_some_and(|s| s.contains(off1))
-        && covered.get(file2).is_some_and(|s| s.contains(off2))
-}
-
 /// Checks if the token at `start` is the beginning of a line.
 fn starts_at_line_boundary(tokens: &[NormalizedToken], start: usize) -> bool {
     start == 0 || tokens[start - 1].line != tokens[start].line
-}
-
-/// Marks a range of tokens as covered to avoid redundant detection.
-fn mark_as_covered(
-    covered: &mut FxHashMap<PathBuf, FxHashSet<usize>>,
-    file: &Path,
-    start: usize,
-    length: usize,
-) {
-    let set = covered.entry(file.to_path_buf()).or_default();
-    for idx in start..start + length {
-        set.insert(idx);
-    }
 }
