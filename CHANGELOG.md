@@ -1,3 +1,14 @@
+## [0.10.0](https://github.com/archlinter/archlint/compare/v0.9.0...v0.10.0) (2026-01-08)
+
+### Features
+
+- implement deterministic code clone detector ([#16](https://github.com/archlinter/archlint/issues/16)) ([2cef2bc](https://github.com/archlinter/archlint/commit/2cef2bc77e92ab0ed2bd3899fe3bd3fa37e5c573))
+
+### Documentation
+
+- add favicon and optimize SEO for documentation ([88b1b3a](https://github.com/archlinter/archlint/commit/88b1b3ae7f4a889fb01d198de7440b180cf9d1fc))
+- add internationalization support for 5 languages ([c1dc15d](https://github.com/archlinter/archlint/commit/c1dc15d75d43132fafacd0ec89b2310c63cedf1d))
+
 ## [0.9.0](https://github.com/archlinter/archlint/compare/v0.8.2...v0.9.0) (2026-01-07)
 
 ### Features
