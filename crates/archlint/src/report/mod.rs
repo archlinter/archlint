@@ -71,11 +71,50 @@ pub(crate) fn format_location(path: &Path, line: usize, col: Option<usize>) -> S
 
 /// Formats a LocationDetail as `path:line[:col] (message)`
 pub(crate) fn format_location_detail(loc: &LocationDetail) -> String {
-    let base = format_location(&loc.file, loc.line, loc.column);
-    if loc.description.is_empty() {
+    format_location_parts(
+        &loc.file,
+        loc.line,
+        loc.column,
+        loc.range.as_ref(),
+        &loc.description,
+    )
+}
+
+/// Generic location formatter shared between report types
+pub(crate) fn format_location_parts(
+    file: &Path,
+    line: usize,
+    column: Option<usize>,
+    range: Option<&crate::detectors::CodeRange>,
+    description: &str,
+) -> String {
+    let line_str = if let Some(range) = range {
+        if range.start_line == range.end_line {
+            range.start_line.to_string()
+        } else {
+            format!("{}-{}", range.start_line, range.end_line)
+        }
+    } else {
+        line.to_string()
+    };
+
+    let formatted_path = ExplainEngine::format_file_path(file);
+    let base = if line == 0 && range.is_none() {
+        formatted_path
+    } else {
+        // Don't show column if it's a multi-line range
+        let is_multi_line = range.is_some_and(|r| r.start_line != r.end_line);
+
+        match column {
+            Some(c) if !is_multi_line => format!("{}:{}:{}", formatted_path, line_str, c),
+            _ => format!("{}:{}", formatted_path, line_str),
+        }
+    };
+
+    if description.is_empty() {
         base
     } else {
-        format!("{} ({})", base, loc.description)
+        format!("{} ({})", base, description)
     }
 }
 
@@ -91,6 +130,7 @@ pub struct AnalysisReport {
     pub feature_envy: usize,
     pub shotgun_surgery: usize,
     pub hub_dependencies: usize,
+    pub code_clones: usize,
     pub smells: Vec<(ArchSmell, Explanation)>,
     pub graph: Option<DependencyGraph>,
     pub file_symbols: std::collections::HashMap<std::path::PathBuf, crate::parser::FileSymbols>,
@@ -190,6 +230,11 @@ impl AnalysisReport {
             })
             .count();
 
+        let code_clones = smells
+            .iter()
+            .filter(|s| matches!(s.smell_type, crate::detectors::SmellType::CodeClone { .. }))
+            .count();
+
         let smells_with_explanations = smells
             .into_iter()
             .map(|smell| {
@@ -210,6 +255,7 @@ impl AnalysisReport {
             feature_envy,
             shotgun_surgery,
             hub_dependencies,
+            code_clones,
             smells: smells_with_explanations,
             graph,
             file_symbols,
@@ -327,6 +373,11 @@ impl AnalysisReport {
                     crate::detectors::SmellType::HubDependency { .. }
                 )
             })
+            .count();
+        self.code_clones = self
+            .smells
+            .iter()
+            .filter(|(s, _)| matches!(s.smell_type, crate::detectors::SmellType::CodeClone { .. }))
             .count();
     }
 
@@ -451,6 +502,13 @@ impl AnalysisReport {
             style("Architectural Smells Report").bold().underlined(),
             table
         );
+
+        if self.smells.is_empty() {
+            println!(
+                "{}",
+                style("No smells found matching current filters.").dim()
+            );
+        }
 
         Ok(())
     }
@@ -581,6 +639,7 @@ impl AnalysisReport {
                     env_var, files_count
                 )
             }
+            crate::detectors::SmellType::CodeClone { .. } => "Code Clone".to_string(),
         }
     }
 

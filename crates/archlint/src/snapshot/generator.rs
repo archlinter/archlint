@@ -90,6 +90,7 @@ impl SnapshotGenerator {
                     file,
                     line: loc.line,
                     column: loc.column,
+                    range: loc.range,
                     description: if loc.description.is_empty() {
                         None
                     } else {
@@ -147,8 +148,24 @@ impl SnapshotGenerator {
                 SmellMetric::Depth(v) => {
                     metrics.insert("depth".into(), MetricValue::Int(*v as i64));
                 }
+                SmellMetric::TokenCount(v) => {
+                    metrics.insert("tokenCount".into(), MetricValue::Int(*v as i64));
+                }
+                SmellMetric::CloneInstances(v) => {
+                    metrics.insert("cloneInstances".into(), MetricValue::Int(*v as i64));
+                }
                 _ => {}
             }
+        }
+
+        // Special handling for CodeClone smell type to extract cloneHash and tokenCount
+        if let SmellType::CodeClone {
+            clone_hash,
+            token_count,
+        } = &smell.smell_type
+        {
+            metrics.insert("cloneHash".into(), MetricValue::String(clone_hash.clone()));
+            metrics.insert("tokenCount".into(), MetricValue::Int(*token_count as i64));
         }
 
         metrics

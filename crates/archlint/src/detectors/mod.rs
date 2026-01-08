@@ -1,6 +1,7 @@
 pub mod abstractness;
 pub mod barrel_abuse;
 pub mod circular_type_deps;
+pub mod code_clone;
 pub mod complexity;
 pub mod cycles;
 pub mod dead_code;
@@ -35,6 +36,7 @@ pub use registry::{DetectorFactory, DetectorInfo, DetectorRegistry};
 /// This is needed to force the linker to include all modules when using the `inventory` crate.
 pub fn init() {
     complexity::init();
+    code_clone::init();
     cycles::init();
     dead_code::init();
     dead_symbols::init();
@@ -68,6 +70,7 @@ pub fn init() {
 use crate::config::SeverityConfig;
 use crate::engine::AnalysisContext;
 use serde::{Deserialize, Serialize};
+use std::collections::HashSet;
 use std::path::PathBuf;
 
 pub trait Detector: Send + Sync {
@@ -167,6 +170,10 @@ pub enum SmellType {
         env_var: String,
         files_count: usize,
     },
+    CodeClone {
+        clone_hash: String,
+        token_count: usize,
+    },
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Hash, Copy)]
@@ -209,6 +216,7 @@ pub enum ConfigurableSmellType {
     CircularTypeDependency,
     AbstractnessViolation,
     ScatteredConfiguration,
+    CodeClone,
 }
 
 impl std::str::FromStr for ConfigurableSmellType {
@@ -265,6 +273,7 @@ impl std::str::FromStr for ConfigurableSmellType {
             "scatteredconfiguration" | "scattered_configuration" => {
                 Ok(ConfigurableSmellType::ScatteredConfiguration)
             }
+            "codeclone" | "code_clone" | "duplicates" => Ok(ConfigurableSmellType::CodeClone),
 
             _ => Err(format!("Unknown smell type: {}", s)),
         }
@@ -304,6 +313,7 @@ impl ConfigurableSmellType {
             ConfigurableSmellType::CircularTypeDependency => "circular_type_deps",
             ConfigurableSmellType::AbstractnessViolation => "abstractness",
             ConfigurableSmellType::ScatteredConfiguration => "scattered_config",
+            ConfigurableSmellType::CodeClone => "code_clone",
         }
     }
 }
@@ -344,6 +354,7 @@ impl SmellType {
             SmellType::ScatteredConfiguration { .. } => {
                 ConfigurableSmellType::ScatteredConfiguration
             }
+            SmellType::CodeClone { .. } => ConfigurableSmellType::CodeClone,
         }
     }
 }
@@ -463,6 +474,8 @@ pub enum SmellMetric {
     Cbo(usize),
     Depth(usize),
     Distance(f64),
+    TokenCount(usize),
+    CloneInstances(usize),
 }
 
 impl ArchSmell {
@@ -567,6 +580,13 @@ impl ArchSmell {
     pub fn depth(&self) -> Option<usize> {
         self.metrics.iter().find_map(|m| match m {
             SmellMetric::Depth(v) => Some(*v),
+            _ => None,
+        })
+    }
+
+    pub fn token_count(&self) -> Option<usize> {
+        self.metrics.iter().find_map(|m| match m {
+            SmellMetric::TokenCount(v) => Some(*v),
             _ => None,
         })
     }
@@ -1230,6 +1250,40 @@ impl ArchSmell {
                 .into_iter()
                 .map(|f| LocationDetail::new(f, 0, format!("Accesses '{}'", env_var)))
                 .collect(),
+            cluster: None,
+        }
+    }
+
+    pub fn new_code_clone(
+        locations: Vec<LocationDetail>,
+        token_count: usize,
+        clone_hash: String,
+    ) -> Self {
+        let files = locations
+            .iter()
+            .map(|l| l.file.clone())
+            .collect::<HashSet<_>>()
+            .into_iter()
+            .collect();
+
+        Self {
+            smell_type: SmellType::CodeClone {
+                clone_hash,
+                token_count,
+            },
+            severity: if token_count >= 100 {
+                Severity::High
+            } else if token_count >= 50 {
+                Severity::Medium
+            } else {
+                Severity::Low
+            },
+            files,
+            metrics: vec![
+                SmellMetric::TokenCount(token_count),
+                SmellMetric::CloneInstances(locations.len()),
+            ],
+            locations,
             cluster: None,
         }
     }

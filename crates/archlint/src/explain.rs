@@ -279,6 +279,24 @@ impl ExplainEngine {
                     files_count,
                 }
             }
+            "CodeClone" => {
+                let clone_hash = smell
+                    .metrics
+                    .get("cloneHash")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or_default()
+                    .to_string();
+                let token_count = smell
+                    .metrics
+                    .get("tokenCount")
+                    .and_then(|v| v.as_i64())
+                    .map(|v| v as usize)
+                    .unwrap_or(0);
+                SmellType::CodeClone {
+                    clone_hash,
+                    token_count,
+                }
+            }
             _ => SmellType::GodModule, // Fallback
         };
 
@@ -383,6 +401,10 @@ impl ExplainEngine {
             SmellType::ScatteredConfiguration { .. } => Self::simple_explanation(
                 "Scattered Configuration",
                 "Configuration is spread across many files",
+            ),
+            SmellType::CodeClone { .. } => Self::simple_explanation(
+                "Code Clone",
+                "Duplicated code found in multiple locations",
             ),
         }
     }

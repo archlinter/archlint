@@ -87,6 +87,10 @@ pub fn generate_smell_id(smell: &ArchSmell, project_root: &Path) -> String {
             format!("config:{}", env_var)
         }
 
+        SmellType::CodeClone { clone_hash, .. } => {
+            format!("clone:{}", clone_hash)
+        }
+
         _ => {
             // Fallback: generic ID
             let type_name = format!("{:?}", smell.smell_type);

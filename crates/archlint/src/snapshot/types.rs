@@ -1,3 +1,4 @@
+use crate::detectors::CodeRange;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
@@ -63,6 +64,7 @@ pub struct Location {
     pub file: String,
     pub line: usize,
     pub column: Option<usize>,
+    pub range: Option<CodeRange>,
     pub description: Option<String>,
 }
 
@@ -71,6 +73,7 @@ pub struct Location {
 pub enum MetricValue {
     Int(i64),
     Float(f64),
+    String(String),
 }
 
 impl MetricValue {
@@ -78,6 +81,7 @@ impl MetricValue {
         match self {
             MetricValue::Int(v) => Some(*v),
             MetricValue::Float(v) => Some(*v as i64),
+            MetricValue::String(_) => None,
         }
     }
 
@@ -85,6 +89,14 @@ impl MetricValue {
         match self {
             MetricValue::Int(v) => *v as f64,
             MetricValue::Float(v) => *v,
+            MetricValue::String(_) => 0.0,
+        }
+    }
+
+    pub fn as_str(&self) -> Option<&str> {
+        match self {
+            MetricValue::String(s) => Some(s.as_str()),
+            _ => None,
         }
     }
 }

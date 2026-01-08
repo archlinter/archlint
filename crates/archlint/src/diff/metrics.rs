@@ -10,6 +10,7 @@ const TRACKABLE_METRICS: &[&str] = &[
     "lcom",
     "cbo",
     "depth",
+    "cloneInstances",
 ];
 
 pub struct MetricComparator {
@@ -31,80 +32,105 @@ impl MetricComparator {
         let mut improvements = Vec::new();
 
         for metric_name in TRACKABLE_METRICS {
-            let baseline_val = baseline.metrics.get(*metric_name);
-            let current_val = current.metrics.get(*metric_name);
+            if let (Some(base), Some(curr)) = (
+                baseline.metrics.get(*metric_name),
+                current.metrics.get(*metric_name),
+            ) {
+                let (regression, improvement) =
+                    self.compare_metric(metric_name, id, base.as_f64(), curr.as_f64(), current);
 
-            if let (Some(base), Some(curr)) = (baseline_val, current_val) {
-                let base_f = base.as_f64();
-                let curr_f = curr.as_f64();
-
-                if base_f == 0.0 {
-                    if curr_f > 0.0 {
-                        // If it was 0 and now it's not, it's an infinite % increase, so we count it as regression
-                        regressions.push(Regression {
-                            id: id.to_string(),
-                            regression_type: RegressionType::MetricWorsening {
-                                metric: metric_name.to_string(),
-                                from: base_f,
-                                to: curr_f,
-                                change_percent: 100.0, // Arbitrary high value
-                            },
-                            smell: current.clone(),
-                            message: format!(
-                                "{} worsened: {} 0 → {} (+100%)",
-                                current.smell_type, metric_name, curr_f as i64
-                            ),
-                            explain: None,
-                        });
-                    }
-                    continue;
+                if let Some(r) = regression {
+                    regressions.push(r);
                 }
-
-                let change_percent = ((curr_f - base_f) / base_f) * 100.0;
-
-                if change_percent >= self.threshold_percent {
-                    // Worsened
-                    regressions.push(Regression {
-                        id: id.to_string(),
-                        regression_type: RegressionType::MetricWorsening {
-                            metric: metric_name.to_string(),
-                            from: base_f,
-                            to: curr_f,
-                            change_percent,
-                        },
-                        smell: current.clone(),
-                        message: format!(
-                            "{} worsened: {} {} → {} (+{:.0}%)",
-                            current.smell_type,
-                            metric_name,
-                            base_f as i64,
-                            curr_f as i64,
-                            change_percent
-                        ),
-                        explain: None,
-                    });
-                } else if change_percent <= -self.threshold_percent {
-                    // Improved
-                    improvements.push(Improvement {
-                        id: id.to_string(),
-                        improvement_type: ImprovementType::MetricImprovement {
-                            metric: metric_name.to_string(),
-                            from: base_f,
-                            to: curr_f,
-                        },
-                        message: format!(
-                            "{} improved: {} {} → {} ({:.0}%)",
-                            current.smell_type,
-                            metric_name,
-                            base_f as i64,
-                            curr_f as i64,
-                            change_percent
-                        ),
-                    });
+                if let Some(i) = improvement {
+                    improvements.push(i);
                 }
             }
         }
 
         (regressions, improvements)
+    }
+
+    fn compare_metric(
+        &self,
+        name: &str,
+        id: &str,
+        base: f64,
+        curr: f64,
+        current: &SnapshotSmell,
+    ) -> (Option<Regression>, Option<Improvement>) {
+        if base == curr {
+            return (None, None);
+        }
+
+        let change_percent = if base == 0.0 {
+            100.0
+        } else {
+            ((curr - base) / base) * 100.0
+        };
+
+        let is_worsened = if name == "cloneInstances" {
+            curr > base
+        } else {
+            change_percent >= self.threshold_percent
+        };
+
+        if is_worsened {
+            let message = if name == "cloneInstances" {
+                format!(
+                    "{} worsened: {} {} → {} (new clones detected)",
+                    current.smell_type, name, base as i64, curr as i64
+                )
+            } else {
+                format!(
+                    "{} worsened: {} {} → {} (+{:.0}%)",
+                    current.smell_type,
+                    name,
+                    if base == 0.0 {
+                        "0".to_string()
+                    } else {
+                        (base as i64).to_string()
+                    },
+                    curr as i64,
+                    change_percent
+                )
+            };
+
+            return (
+                Some(Regression {
+                    id: id.to_string(),
+                    regression_type: RegressionType::MetricWorsening {
+                        metric: name.to_string(),
+                        from: base,
+                        to: curr,
+                        change_percent,
+                    },
+                    smell: current.clone(),
+                    message,
+                    explain: None,
+                }),
+                None,
+            );
+        }
+
+        if change_percent <= -self.threshold_percent {
+            return (
+                None,
+                Some(Improvement {
+                    id: id.to_string(),
+                    improvement_type: ImprovementType::MetricImprovement {
+                        metric: name.to_string(),
+                        from: base,
+                        to: curr,
+                    },
+                    message: format!(
+                        "{} improved: {} {} → {} ({:.0}%)",
+                        current.smell_type, name, base as i64, curr as i64, change_percent
+                    ),
+                }),
+            );
+        }
+
+        (None, None)
     }
 }

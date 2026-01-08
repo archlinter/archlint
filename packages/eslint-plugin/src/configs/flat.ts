@@ -13,6 +13,7 @@ export const flatRecommended: Linter.Config = {
     '@archlinter/no-high-coupling': 'warn',
     '@archlinter/no-high-complexity': 'error',
     '@archlinter/no-layer-violations': 'error',
+    '@archlinter/no-code-clone': 'warn',
   },
 };
 
@@ -33,6 +34,7 @@ export const flatStrict: Linter.Config = {
     '@archlinter/no-hub-modules': 'warn',
     '@archlinter/no-deep-nesting': 'error',
     '@archlinter/no-long-params': 'warn',
+    '@archlinter/no-code-clone': 'error',
     '@archlinter/no-regression': ['error', { failOn: 'medium' }],
   },
 };

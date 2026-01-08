@@ -69,3 +69,4 @@ description: Explora los más de 28 detectores de code smells de arquitectura en
 | -------------------------------------------------------- | ------------------ | ----------------------------------------- | ----------- |
 | [Violación de Abstractez](/es/detectors/abstractness)    | `abstractness`     | Zonas de Dolor/Inutilidad (métrica I+A)   | ❌          |
 | [Configuración Dispersa](/es/detectors/scattered-config) | `scattered_config` | Configuración dispersa en muchos archivos | ❌          |
+| [Clon de Código](/es/detectors/code-clone)               | `code_clone`       | Código duplicado en el proyecto           | ✅          |

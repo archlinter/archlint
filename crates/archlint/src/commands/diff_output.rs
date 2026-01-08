@@ -149,19 +149,13 @@ fn format_reg_locations(reg: &Regression) -> String {
 }
 
 fn format_snapshot_location(loc: &crate::snapshot::types::Location) -> String {
-    let mut base = if loc.line > 0 {
-        match loc.column {
-            Some(col) => format!("{}:{}:{}", loc.file, loc.line, col),
-            None => format!("{}:{}", loc.file, loc.line),
-        }
-    } else {
-        loc.file.clone()
-    };
-
-    if let Some(desc) = &loc.description {
-        base = format!("{} ({})", base, desc);
-    }
-    base
+    crate::report::format_location_parts(
+        &std::path::PathBuf::from(&loc.file),
+        loc.line,
+        loc.column,
+        loc.range.as_ref(),
+        loc.description.as_deref().unwrap_or(""),
+    )
 }
 
 fn print_regression(reg: &Regression, verbose: bool) {

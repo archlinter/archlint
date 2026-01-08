@@ -78,6 +78,10 @@ pub struct ScanArgs {
     #[cfg_attr(feature = "cli", arg(long, value_name = "PERIOD"))]
     pub git_history_period: Option<String>,
 
+    /// Maximum file size in bytes to analyze
+    #[cfg_attr(feature = "cli", arg(long, value_name = "BYTES"))]
+    pub max_file_size: Option<u64>,
+
     /// Explicit list of files to scan (internal use for glob expansion)
     #[cfg_attr(feature = "cli", arg(skip))]
     pub files: Option<Vec<PathBuf>>,

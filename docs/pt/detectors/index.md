@@ -69,3 +69,4 @@ O `archlint` vem com mais de 28 detectores integrados categorizados pelo tipo de
 | -------------------------------------------------------- | ------------------ | ------------------------------------------ | ------ |
 | [Violação de Abstratividade](/pt/detectors/abstractness) | `abstractness`     | Zonas de Dor/Inutilidade (métrica I+A)     | ❌     |
 | [Configuração Dispersa](/pt/detectors/scattered-config)  | `scattered_config` | Configuração espalhada por muitos arquivos | ❌     |
+| [Clone de Código](/pt/detectors/code-clone)              | `code_clone`       | Código duplicado no projeto                | ✅     |

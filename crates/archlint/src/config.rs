@@ -37,6 +37,9 @@ pub struct Config {
     #[serde(default = "default_true")]
     pub enable_git: bool,
 
+    #[serde(default = "default_max_file_size")]
+    pub max_file_size: u64,
+
     #[serde(default)]
     pub git: GitConfig,
 }
@@ -98,6 +101,10 @@ fn default_true() -> bool {
     true
 }
 
+fn default_max_file_size() -> u64 {
+    1024 * 1024 // 1MB
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct WatchConfig {
     #[serde(default = "default_debounce_ms")]
@@ -128,7 +135,7 @@ impl Default for WatchConfig {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SeverityConfig {
     #[serde(default = "default_weights")]
     pub weights: SeverityWeights,
@@ -136,11 +143,26 @@ pub struct SeverityConfig {
     #[serde(default)]
     pub grade_thresholds: GradeThresholds,
 
-    #[serde(default)]
+    #[serde(default = "default_min_severity")]
     pub minimum: Option<Severity>,
 
     #[serde(default)]
     pub minimum_score: Option<u32>,
+}
+
+impl Default for SeverityConfig {
+    fn default() -> Self {
+        Self {
+            weights: default_weights(),
+            grade_thresholds: GradeThresholds::default(),
+            minimum: Some(Severity::Low),
+            minimum_score: None,
+        }
+    }
+}
+
+fn default_min_severity() -> Option<Severity> {
+    Some(Severity::Low)
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -240,6 +262,7 @@ impl Default for Config {
             framework: None,
             auto_detect_framework: true,
             enable_git: true,
+            max_file_size: default_max_file_size(),
             git: GitConfig::default(),
         }
     }

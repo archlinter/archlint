@@ -71,6 +71,10 @@ impl AnalysisEngine {
             config.git.history_period = period.clone();
         }
 
+        if let Some(max_size) = args.max_file_size {
+            config.max_file_size = max_size;
+        }
+
         Ok(Self {
             args,
             config,
@@ -140,6 +144,13 @@ impl AnalysisEngine {
         let filtered_smells: Vec<_> = all_smells
             .into_iter()
             .filter(|smell| {
+                // Clones are special: we want to see them even if they touch ignored files
+                if matches!(
+                    smell.smell_type,
+                    crate::detectors::SmellType::CodeClone { .. }
+                ) {
+                    return true;
+                }
                 // Keep the smell if at least one of the files it's associated with is NOT ignored
                 smell.files.is_empty() || smell.files.iter().any(|f| !self.is_file_ignored(f))
             })
@@ -194,12 +205,40 @@ impl AnalysisEngine {
             Language::JavaScript => vec!["js".to_string(), "jsx".to_string()],
         };
 
-        let files = if let Some(ref explicit_files) = self.args.files {
+        let all_files = if let Some(ref explicit_files) = self.args.files {
             explicit_files.clone()
         } else {
             let scanner = FileScanner::new(&self.project_root, &self.target_path, extensions);
             scanner.scan()?
         };
+
+        let mut files = Vec::new();
+        let mut skipped_large = 0;
+        let max_size = self.config.max_file_size;
+
+        for path in all_files {
+            if let Ok(metadata) = std::fs::metadata(&path) {
+                if metadata.len() > max_size {
+                    debug!(
+                        "Skipping large file: {} ({} bytes)",
+                        path.display(),
+                        metadata.len()
+                    );
+                    skipped_large += 1;
+                    continue;
+                }
+            }
+            files.push(path);
+        }
+
+        if skipped_large > 0 {
+            info!(
+                "{} Skipped {} files exceeding max_file_size ({} bytes)",
+                style("⚠️").yellow().bold(),
+                style(skipped_large).yellow(),
+                style(max_size).dim()
+            );
+        }
 
         info!(
             "{} Found {} files to analyze",
@@ -309,7 +348,9 @@ impl AnalysisEngine {
         let registry = detectors::registry::DetectorRegistry::new();
         let (enabled_detectors, _) =
             registry.get_enabled_full(config, presets, self.args.all_detectors);
-        enabled_detectors.into_iter().map(|(id, _)| id).collect()
+
+        let active_detectors = self.filter_detectors(enabled_detectors, |(id, _)| id);
+        active_detectors.into_iter().map(|(id, _)| id).collect()
     }
 
     fn load_cache(&self) -> Result<Option<AnalysisCache>> {
@@ -618,8 +659,17 @@ impl AnalysisEngine {
         presets: &[presets::FrameworkPreset],
     ) -> Result<Vec<detectors::ArchSmell>> {
         let registry = detectors::registry::DetectorRegistry::new();
-        let (final_detectors, needs_deep) =
+        let (final_detectors, _) =
             registry.get_enabled_full(&ctx.config, presets, self.args.all_detectors);
+
+        let final_detectors = self.filter_detectors(final_detectors, |(id, _)| id);
+
+        let needs_deep = final_detectors.iter().any(|(id, _)| {
+            registry
+                .get_info(id)
+                .map(|info| info.is_deep)
+                .unwrap_or(false)
+        });
 
         info!(
             "{} Detecting architectural smells...{}",
@@ -677,5 +727,35 @@ impl AnalysisEngine {
             pb.finish_and_clear();
         }
         Ok(all_smells)
+    }
+
+    fn parse_detector_id_set(&self, ids: &Option<String>) -> Option<HashSet<String>> {
+        ids.as_ref().map(|s| {
+            s.split(',')
+                .map(|id| id.trim())
+                .filter(|id| !id.is_empty())
+                .map(|id| id.to_string())
+                .collect::<HashSet<_>>()
+        })
+    }
+
+    fn filter_detectors<T, F: Fn(&T) -> &str>(
+        &self,
+        detectors: impl IntoIterator<Item = T>,
+        id_extractor: F,
+    ) -> Vec<T> {
+        let include = self.parse_detector_id_set(&self.args.detectors);
+        let exclude = self
+            .parse_detector_id_set(&self.args.exclude_detectors)
+            .unwrap_or_default();
+
+        detectors
+            .into_iter()
+            .filter(|d| match include.as_ref() {
+                Some(set) => set.contains(id_extractor(d)),
+                None => true,
+            })
+            .filter(|d| !exclude.contains(id_extractor(d)))
+            .collect()
     }
 }

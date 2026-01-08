@@ -80,6 +80,10 @@ pub struct Cli {
     /// Git history analysis period (e.g. "90d", "1y", "all")
     #[arg(long, value_name = "PERIOD")]
     pub git_history_period: Option<String>,
+
+    /// Maximum file size in bytes to analyze
+    #[arg(long, value_name = "BYTES")]
+    pub max_file_size: Option<u64>,
 }
 
 impl Cli {
@@ -111,6 +115,7 @@ impl Cli {
             no_cache: self.no_cache,
             no_git: self.no_git,
             git_history_period: self.git_history_period.clone(),
+            max_file_size: self.max_file_size,
             files: None,
         }
     }
