@@ -4,6 +4,138 @@ use rustc_hash::{FxHashMap, FxHashSet};
 use sha2::{Digest, Sha256};
 use std::path::{Path, PathBuf};
 
+/// Context for the clone detection process.
+struct DetectionContext<'a> {
+    file_tokens: &'a FxHashMap<PathBuf, Vec<NormalizedToken>>,
+    covered: &'a mut FxHashMap<PathBuf, FxHashSet<usize>>,
+    clusters: &'a mut Vec<Cluster>,
+    occ_to_cluster: &'a mut FxHashMap<(PathBuf, usize), usize>,
+    min_tokens: usize,
+    min_lines: usize,
+}
+
+impl DetectionContext<'_> {
+    /// Processes a pair of token window locations to detect and record clones.
+    fn process_location_pair(&mut self, loc1: &(PathBuf, usize), loc2: &(PathBuf, usize)) {
+        let (file1, off1) = loc1;
+        let (file2, off2) = loc2;
+
+        if is_already_covered(self.covered, file1, off1, file2, off2) {
+            return;
+        }
+
+        let tokens1 = &self.file_tokens[file1];
+        let tokens2 = &self.file_tokens[file2];
+
+        let (start1, start2, length) = expand_match(
+            tokens1,
+            tokens2,
+            *off1,
+            *off2,
+            self.min_tokens,
+            file1 == file2,
+        );
+
+        if length < self.min_tokens {
+            return;
+        }
+
+        if !starts_at_line_boundary(tokens1, start1) || !starts_at_line_boundary(tokens2, start2) {
+            return;
+        }
+
+        let (sl1, sc1, el1, ec1) = calculate_range_bounds(tokens1, start1, length);
+        let (sl2, sc2, el2, ec2) = calculate_range_bounds(tokens2, start2, length);
+
+        let lines1 = el1.saturating_sub(sl1) + 1;
+        let lines2 = el2.saturating_sub(sl2) + 1;
+
+        if lines1 < self.min_lines || lines2 < self.min_lines {
+            return;
+        }
+
+        mark_as_covered(self.covered, file1, start1, length);
+        mark_as_covered(self.covered, file2, start2, length);
+
+        let range_hash = hash_tokens(&tokens1[start1..start1 + length]);
+        let occ1 = Occurrence {
+            file: file1.clone(),
+            token_start: start1,
+            start_line: sl1,
+            start_column: sc1,
+            end_line: el1,
+            end_column: ec1,
+        };
+        let occ2 = Occurrence {
+            file: file2.clone(),
+            token_start: start2,
+            start_line: sl2,
+            start_column: sc2,
+            end_line: el2,
+            end_column: ec2,
+        };
+
+        self.update_clusters(occ1, occ2, range_hash, length);
+    }
+
+    /// Updates or merges clusters with a newly discovered match.
+    fn update_clusters(
+        &mut self,
+        occ1: Occurrence,
+        occ2: Occurrence,
+        range_hash: [u8; 32],
+        length: usize,
+    ) {
+        let key1 = (occ1.file.clone(), occ1.token_start);
+        let key2 = (occ2.file.clone(), occ2.token_start);
+
+        let c1 = self.occ_to_cluster.get(&key1).copied();
+        let c2 = self.occ_to_cluster.get(&key2).copied();
+
+        let target_idx = match (c1, c2) {
+            (Some(a), Some(b)) if a != b => {
+                let (keep, drop) = if a < b { (a, b) } else { (b, a) };
+                let dropped_occurrences = std::mem::take(&mut self.clusters[drop].occurrences);
+                for occ in dropped_occurrences {
+                    let k = (occ.file.clone(), occ.token_start);
+                    self.add_to_cluster(keep, occ, k);
+                }
+                self.clusters[keep].hash = range_hash;
+                self.clusters[keep].token_count = length;
+                keep
+            }
+            (Some(a), _) => a,
+            (_, Some(b)) => b,
+            (None, None) => {
+                let idx = self.clusters.len();
+                self.clusters.push(Cluster {
+                    hash: range_hash,
+                    token_count: length,
+                    occurrences: vec![occ1.clone(), occ2.clone()],
+                });
+                self.occ_to_cluster.insert(key1, idx);
+                self.occ_to_cluster.insert(key2, idx);
+                return;
+            }
+        };
+
+        self.add_to_cluster(target_idx, occ1, key1);
+        self.add_to_cluster(target_idx, occ2, key2);
+    }
+
+    fn add_to_cluster(&mut self, cluster_idx: usize, occ: Occurrence, key: (PathBuf, usize)) {
+        let cluster = &mut self.clusters[cluster_idx];
+        if !cluster
+            .occurrences
+            .iter()
+            .any(|o| o.file == occ.file && o.token_start == occ.token_start)
+        {
+            cluster.occurrences.push(occ);
+            self.occ_to_cluster.insert(key, cluster_idx);
+        }
+    }
+}
+
 /// Hashes a sequence of tokens into a deterministic 32-byte hash.
 pub fn hash_tokens(tokens: &[NormalizedToken]) -> [u8; 32] {
     let mut hasher = Sha256::new();
@@ -91,25 +223,18 @@ fn expand_match(
     let mut start2 = off2;
     let mut length = min_tokens;
 
-    // Expand forward
-    let max_forward = if is_same_file {
-        let (lower, higher) = if off1 < off2 {
-            (off1, off2)
-        } else {
-            (off2, off1)
-        };
-        higher - lower
+    let dist = if is_same_file {
+        off1.abs_diff(off2)
     } else {
         usize::MAX
     };
 
+    // Expand forward
     while start1 + length < tokens1.len()
         && start2 + length < tokens2.len()
         && tokens1[start1 + length].normalized == tokens2[start2 + length].normalized
+        && (!is_same_file || length < dist)
     {
-        if is_same_file && length >= max_forward {
-            break;
-        }
         length += 1;
     }
 
@@ -117,19 +242,8 @@ fn expand_match(
     while start1 > 0
         && start2 > 0
         && tokens1[start1 - 1].normalized == tokens2[start2 - 1].normalized
+        && (!is_same_file || length < dist)
     {
-        if is_same_file {
-            let new_start1 = start1 - 1;
-            let new_start2 = start2 - 1;
-            let (new_lower, new_higher) = if new_start1 < new_start2 {
-                (new_start1, new_start2)
-            } else {
-                (new_start2, new_start1)
-            };
-            if new_lower + length + 1 > new_higher {
-                break;
-            }
-        }
         start1 -= 1;
         start2 -= 1;
         length += 1;
@@ -145,23 +259,8 @@ fn calculate_range_bounds(
     length: usize,
 ) -> (usize, usize, usize, usize) {
     let first = &tokens[start];
-    let mut sl = first.line;
-    let mut sc = first.column;
-    let mut el = first.end_line;
-    let mut ec = first.end_column;
-
-    for i in 0..length {
-        let t = &tokens[start + i];
-        if t.line < sl || (t.line == sl && t.column < sc) {
-            sl = t.line;
-            sc = t.column;
-        }
-        if t.end_line > el || (t.end_line == el && t.end_column > ec) {
-            el = t.end_line;
-            ec = t.end_column;
-        }
-    }
-    (sl, sc, el, ec)
+    let last = &tokens[start + length - 1];
+    (first.line, first.column, last.end_line, last.end_column)
 }
 
 /// Main logic for detecting clone clusters.
@@ -185,75 +284,25 @@ pub fn detect_clusters(
     let mut occ_to_cluster: FxHashMap<(PathBuf, usize), usize> = FxHashMap::default();
     let mut covered_tokens: FxHashMap<PathBuf, FxHashSet<usize>> = FxHashMap::default();
 
-    for (_hash, locations) in window_entries {
-        if locations.len() < 2 {
-            continue;
-        }
+    {
+        let mut ctx = DetectionContext {
+            file_tokens,
+            covered: &mut covered_tokens,
+            clusters: &mut clusters,
+            occ_to_cluster: &mut occ_to_cluster,
+            min_tokens,
+            min_lines,
+        };
 
-        for i in 0..locations.len() {
-            for j in (i + 1)..locations.len() {
-                let (file1, off1) = &locations[i];
-                let (file2, off2) = &locations[j];
+        for (_hash, locations) in window_entries {
+            if locations.len() < 2 {
+                continue;
+            }
 
-                if is_already_covered(&covered_tokens, file1, off1, file2, off2) {
-                    continue;
+            for i in 0..locations.len() {
+                for j in (i + 1)..locations.len() {
+                    ctx.process_location_pair(&locations[i], &locations[j]);
                 }
-
-                let tokens1 = &file_tokens[file1];
-                let tokens2 = &file_tokens[file2];
-
-                let (start1, start2, length) =
-                    expand_match(tokens1, tokens2, *off1, *off2, min_tokens, file1 == file2);
-
-                if length < min_tokens {
-                    continue;
-                }
-
-                if !starts_at_line_boundary(tokens1, start1)
-                    || !starts_at_line_boundary(tokens2, start2)
-                {
-                    continue;
-                }
-
-                let (sl1, sc1, el1, ec1) = calculate_range_bounds(tokens1, start1, length);
-                let (sl2, sc2, el2, ec2) = calculate_range_bounds(tokens2, start2, length);
-
-                let lines1 = el1.saturating_sub(sl1) + 1;
-                let lines2 = el2.saturating_sub(sl2) + 1;
-
-                if lines1 < min_lines || lines2 < min_lines {
-                    continue;
-                }
-
-                mark_as_covered(&mut covered_tokens, file1, start1, length);
-                mark_as_covered(&mut covered_tokens, file2, start2, length);
-
-                let range_hash = hash_tokens(&tokens1[start1..start1 + length]);
-                let occ1 = Occurrence {
-                    file: file1.clone(),
-                    token_start: start1,
-                    start_line: sl1,
-                    start_column: sc1,
-                    end_line: el1,
-                    end_column: ec1,
-                };
-                let occ2 = Occurrence {
-                    file: file2.clone(),
-                    token_start: start2,
-                    start_line: sl2,
-                    start_column: sc2,
-                    end_line: el2,
-                    end_column: ec2,
-                };
-
-                update_clusters(
-                    &mut clusters,
-                    &mut occ_to_cluster,
-                    occ1,
-                    occ2,
-                    range_hash,
-                    length,
-                );
             }
         }
     }
@@ -289,73 +338,5 @@ fn mark_as_covered(
     let set = covered.entry(file.to_path_buf()).or_default();
     for idx in start..start + length {
         set.insert(idx);
-    }
-}
-
-/// Updates or merges clusters with a newly discovered match.
-fn update_clusters(
-    clusters: &mut Vec<Cluster>,
-    occ_to_cluster: &mut FxHashMap<(PathBuf, usize), usize>,
-    occ1: Occurrence,
-    occ2: Occurrence,
-    range_hash: [u8; 32],
-    length: usize,
-) {
-    let key1 = (occ1.file.clone(), occ1.token_start);
-    let key2 = (occ2.file.clone(), occ2.token_start);
-
-    let c1 = occ_to_cluster.get(&key1).copied();
-    let c2 = occ_to_cluster.get(&key2).copied();
-
-    let target_idx = match (c1, c2) {
-        (Some(a), Some(b)) if a != b => {
-            let (keep, drop) = if a < b { (a, b) } else { (b, a) };
-            let dropped_occurrences = std::mem::take(&mut clusters[drop].occurrences);
-            for occ in dropped_occurrences {
-                let k = (occ.file.clone(), occ.token_start);
-                if !clusters[keep]
-                    .occurrences
-                    .iter()
-                    .any(|o| o.file == occ.file && o.token_start == occ.token_start)
-                {
-                    clusters[keep].occurrences.push(occ);
-                }
-                occ_to_cluster.insert(k, keep);
-            }
-            clusters[keep].hash = range_hash;
-            clusters[keep].token_count = length;
-            keep
-        }
-        (Some(a), _) => a,
-        (_, Some(b)) => b,
-        (None, None) => {
-            let idx = clusters.len();
-            clusters.push(Cluster {
-                hash: range_hash,
-                token_count: length,
-                occurrences: vec![occ1.clone(), occ2.clone()],
-            });
-            occ_to_cluster.insert(key1, idx);
-            occ_to_cluster.insert(key2, idx);
-            return;
-        }
-    };
-
-    let target = &mut clusters[target_idx];
-    if !target
-        .occurrences
-        .iter()
-        .any(|o| o.file == occ1.file && o.token_start == occ1.token_start)
-    {
-        target.occurrences.push(occ1);
-        occ_to_cluster.insert(key1, target_idx);
-    }
-    if !target
-        .occurrences
-        .iter()
-        .any(|o| o.file == occ2.file && o.token_start == occ2.token_start)
-    {
-        target.occurrences.push(occ2);
-        occ_to_cluster.insert(key2, target_idx);
     }
 }
