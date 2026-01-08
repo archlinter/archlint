@@ -262,60 +262,43 @@ impl AnalysisEngine {
         let mut final_config = self.config.clone();
         for preset in presets {
             for ignore in &preset.vendor_ignore {
-                let rule = final_config
-                    .rules
-                    .entry("vendor_coupling".to_string())
-                    .or_insert_with(|| {
-                        crate::config::RuleConfig::Full(crate::config::RuleFullConfig {
-                            severity: None,
-                            enabled: None,
-                            exclude: Vec::new(),
-                            options: serde_yaml::Value::Mapping(serde_yaml::Mapping::new()),
-                        })
-                    });
-
-                if let crate::config::RuleConfig::Full(full) = rule {
-                    if let serde_yaml::Value::Mapping(m) = &mut full.options {
-                        let ignore_packages = m
-                            .entry(serde_yaml::Value::String("ignore_packages".to_string()))
-                            .or_insert_with(|| serde_yaml::Value::Sequence(Vec::new()));
-
-                        if let serde_yaml::Value::Sequence(seq) = ignore_packages {
-                            if !seq.iter().any(|v| v.as_str() == Some(ignore)) {
-                                seq.push(serde_yaml::Value::String(ignore.clone()));
-                            }
-                        }
-                    }
-                }
-
-                let hub_rule = final_config
-                    .rules
-                    .entry("hub_dependency".to_string())
-                    .or_insert_with(|| {
-                        crate::config::RuleConfig::Full(crate::config::RuleFullConfig {
-                            severity: None,
-                            enabled: None,
-                            exclude: Vec::new(),
-                            options: serde_yaml::Value::Mapping(serde_yaml::Mapping::new()),
-                        })
-                    });
-
-                if let crate::config::RuleConfig::Full(full) = hub_rule {
-                    if let serde_yaml::Value::Mapping(m) = &mut full.options {
-                        let ignore_packages = m
-                            .entry(serde_yaml::Value::String("ignore_packages".to_string()))
-                            .or_insert_with(|| serde_yaml::Value::Sequence(Vec::new()));
-
-                        if let serde_yaml::Value::Sequence(seq) = ignore_packages {
-                            if !seq.iter().any(|v| v.as_str() == Some(ignore)) {
-                                seq.push(serde_yaml::Value::String(ignore.clone()));
-                            }
-                        }
-                    }
+                for rule_name in ["vendor_coupling", "hub_dependency"] {
+                    Self::add_ignore_to_rule(&mut final_config, rule_name, ignore);
                 }
             }
         }
         final_config
+    }
+
+    fn add_ignore_to_rule(config: &mut Config, rule_name: &str, ignore: &str) {
+        let rule = config
+            .rules
+            .entry(rule_name.to_string())
+            .or_insert_with(|| {
+                RuleConfig::Full(crate::config::RuleFullConfig {
+                    severity: None,
+                    enabled: None,
+                    exclude: Vec::new(),
+                    options: serde_yaml::Value::Mapping(serde_yaml::Mapping::new()),
+                })
+            });
+
+        let RuleConfig::Full(full) = rule else { return };
+        let serde_yaml::Value::Mapping(m) = &mut full.options else {
+            return;
+        };
+
+        let ignore_packages = m
+            .entry(serde_yaml::Value::String("ignore_packages".to_string()))
+            .or_insert_with(|| serde_yaml::Value::Sequence(Vec::new()));
+
+        let serde_yaml::Value::Sequence(seq) = ignore_packages else {
+            return;
+        };
+
+        if !seq.iter().any(|v| v.as_str() == Some(ignore)) {
+            seq.push(serde_yaml::Value::String(ignore.to_string()));
+        }
     }
 
     fn get_active_detectors(

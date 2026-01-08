@@ -62,58 +62,42 @@ impl ResolvedRuleConfig {
         options: &mut serde_yaml::Mapping,
     ) {
         match config {
-            RuleConfig::Short(s) => match s {
-                RuleSeverity::Off => *enabled = false,
-                RuleSeverity::Info => {
-                    *enabled = true;
-                    *severity = Severity::Low;
-                }
-                RuleSeverity::Warn => {
-                    *enabled = true;
-                    *severity = Severity::Medium;
-                }
-                RuleSeverity::Error => {
-                    *enabled = true;
-                    *severity = Severity::High;
-                }
-                RuleSeverity::Critical => {
-                    *enabled = true;
-                    *severity = Severity::Critical;
-                }
-            },
+            RuleConfig::Short(s) => Self::apply_severity(*s, enabled, severity),
             RuleConfig::Full(full) => {
                 if let Some(e) = full.enabled {
                     *enabled = e;
                 }
                 if let Some(s) = full.severity {
-                    match s {
-                        RuleSeverity::Off => *enabled = false,
-                        RuleSeverity::Info => {
-                            *enabled = true;
-                            *severity = Severity::Low;
-                        }
-                        RuleSeverity::Warn => {
-                            *enabled = true;
-                            *severity = Severity::Medium;
-                        }
-                        RuleSeverity::Error => {
-                            *enabled = true;
-                            *severity = Severity::High;
-                        }
-                        RuleSeverity::Critical => {
-                            *enabled = true;
-                            *severity = Severity::Critical;
-                        }
-                    }
+                    Self::apply_severity(s, enabled, severity);
                 }
                 if !full.exclude.is_empty() {
                     *exclude = full.exclude.clone();
                 }
                 if let serde_yaml::Value::Mapping(m) = &full.options {
-                    for (k, v) in m {
-                        options.insert(k.clone(), v.clone());
-                    }
+                    options.extend(m.clone());
                 }
+            }
+        }
+    }
+
+    fn apply_severity(rule_severity: RuleSeverity, enabled: &mut bool, severity: &mut Severity) {
+        match rule_severity {
+            RuleSeverity::Off => *enabled = false,
+            RuleSeverity::Info => {
+                *enabled = true;
+                *severity = Severity::Low;
+            }
+            RuleSeverity::Warn => {
+                *enabled = true;
+                *severity = Severity::Medium;
+            }
+            RuleSeverity::Error => {
+                *enabled = true;
+                *severity = Severity::High;
+            }
+            RuleSeverity::Critical => {
+                *enabled = true;
+                *severity = Severity::Critical;
             }
         }
     }

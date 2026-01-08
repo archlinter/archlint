@@ -1,10 +1,12 @@
+use std::collections::{HashMap, HashSet};
+use std::path::{Path, PathBuf};
+
 use crate::config::Config;
 use crate::detectors::DetectorCategory;
 use crate::detectors::{ArchSmell, Detector, DetectorFactory, DetectorInfo};
 use crate::engine::AnalysisContext;
+use crate::parser::FileSymbols;
 use inventory;
-use std::collections::HashMap;
-use std::path::PathBuf;
 
 pub fn init() {}
 
@@ -39,56 +41,66 @@ impl Detector for VendorCouplingDetector {
     }
 
     fn detect(&self, ctx: &AnalysisContext) -> Vec<ArchSmell> {
-        let mut package_usage: HashMap<String, Vec<PathBuf>> = HashMap::new();
-
-        for (path, symbols) in ctx.file_symbols.as_ref() {
-            let rule = ctx.resolve_rule("vendor_coupling", Some(path));
-            if !rule.enabled
-                || ctx.is_excluded(path, &rule.exclude)
-                || ctx.should_skip_detector(path, "vendor_coupling")
-            {
-                continue;
-            }
-
-            let ignore_packages: Vec<String> = rule
-                .get_option("ignore_packages")
-                .unwrap_or_else(|| vec!["react".to_string(), "lodash".to_string()]);
-
-            for import in &symbols.imports {
-                if self.is_external_import(&import.source) {
-                    let package = self.extract_package_name(&import.source);
-
-                    if !self.should_ignore_package(&package, &ignore_packages) {
-                        let entries = package_usage.entry(package).or_default();
-                        if !entries.contains(path) {
-                            entries.push(path.clone());
-                        }
-                    }
-                }
-            }
-        }
+        let package_usage = self.collect_package_usage(ctx);
+        let rule = ctx.resolve_rule("vendor_coupling", None);
+        let max_files: usize = rule.get_option("max_files_per_package").unwrap_or(10);
 
         package_usage
             .into_iter()
-            .filter_map(|(package, files)| {
-                // For global thresholds, we use the first file's rule as an approximation
-                // or just resolve without a path. Let's resolve without a path for the global threshold.
-                let rule = ctx.resolve_rule("vendor_coupling", None);
-                let max_files: usize = rule.get_option("max_files_per_package").unwrap_or(10);
-
-                if files.len() >= max_files {
-                    let mut smell = ArchSmell::new_vendor_coupling(package, files);
-                    smell.severity = rule.severity;
-                    Some(smell)
-                } else {
-                    None
-                }
+            .filter(|(_, files)| files.len() >= max_files)
+            .map(|(package, files)| {
+                let mut smell = ArchSmell::new_vendor_coupling(package, files);
+                smell.severity = rule.severity;
+                smell
             })
             .collect()
     }
 }
 
 impl VendorCouplingDetector {
+    fn collect_package_usage(&self, ctx: &AnalysisContext) -> HashMap<String, Vec<PathBuf>> {
+        let mut package_usage: HashMap<String, Vec<PathBuf>> = HashMap::new();
+
+        for (path, symbols) in ctx.file_symbols.as_ref() {
+            if let Some(packages) = self.get_file_external_packages(ctx, path, symbols) {
+                for package in packages {
+                    package_usage.entry(package).or_default().push(path.clone());
+                }
+            }
+        }
+
+        package_usage
+    }
+
+    fn get_file_external_packages(
+        &self,
+        ctx: &AnalysisContext,
+        path: &Path,
+        symbols: &FileSymbols,
+    ) -> Option<HashSet<String>> {
+        let rule = ctx.resolve_rule("vendor_coupling", Some(path));
+        if !rule.enabled
+            || ctx.is_excluded(path, &rule.exclude)
+            || ctx.should_skip_detector(path, "vendor_coupling")
+        {
+            return None;
+        }
+
+        let ignore_packages: Vec<String> = rule
+            .get_option("ignore_packages")
+            .unwrap_or_else(|| vec!["react".to_string(), "lodash".to_string()]);
+
+        let packages = symbols
+            .imports
+            .iter()
+            .filter(|import| self.is_external_import(&import.source))
+            .map(|import| self.extract_package_name(&import.source))
+            .filter(|package| !self.should_ignore_package(package, &ignore_packages))
+            .collect();
+
+        Some(packages)
+    }
+
     fn is_external_import(&self, source: &str) -> bool {
         !source.starts_with('.') && !source.starts_with('/')
     }
