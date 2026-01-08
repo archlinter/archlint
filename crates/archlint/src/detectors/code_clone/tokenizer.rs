@@ -5,6 +5,10 @@ use rustc_hash::FxHashMap;
 use std::fs;
 use std::path::PathBuf;
 
+/// Tokenizes all files in the analysis context that are not excluded by rules.
+///
+/// Only files with at least `min_tokens` are included in the results.
+/// This function handles file reading, rule resolution, and exclusion checks.
 pub fn tokenize_files(
     ctx: &AnalysisContext,
     min_tokens: usize,

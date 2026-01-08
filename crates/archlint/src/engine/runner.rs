@@ -316,21 +316,9 @@ impl AnalysisEngine {
         let registry = detectors::registry::DetectorRegistry::new();
         let (enabled_detectors, _) =
             registry.get_enabled_full(config, presets, self.args.all_detectors);
-        let include_detectors = self.parse_detector_id_set(&self.args.detectors);
-        let exclude_detectors = self
-            .parse_detector_id_set(&self.args.exclude_detectors)
-            .unwrap_or_default();
 
-        enabled_detectors
-            .into_iter()
-            .map(|(id, _)| id)
-            .filter(|id| {
-                include_detectors
-                    .as_ref()
-                    .is_none_or(|set| set.contains(id))
-            })
-            .filter(|id| !exclude_detectors.contains(id))
-            .collect()
+        let active_detectors = self.filter_detectors(enabled_detectors, |(id, _)| id);
+        active_detectors.into_iter().map(|(id, _)| id).collect()
     }
 
     fn load_cache(&self) -> Result<Option<AnalysisCache>> {
@@ -639,22 +627,10 @@ impl AnalysisEngine {
         presets: &[presets::FrameworkPreset],
     ) -> Result<Vec<detectors::ArchSmell>> {
         let registry = detectors::registry::DetectorRegistry::new();
-        let (final_detectors, _needs_deep) =
+        let (final_detectors, _) =
             registry.get_enabled_full(&ctx.config, presets, self.args.all_detectors);
-        let include_detectors = self.parse_detector_id_set(&self.args.detectors);
-        let exclude_detectors = self
-            .parse_detector_id_set(&self.args.exclude_detectors)
-            .unwrap_or_default();
 
-        let final_detectors: Vec<_> = final_detectors
-            .into_iter()
-            .filter(|(id, _)| {
-                include_detectors
-                    .as_ref()
-                    .is_none_or(|set| set.contains(id))
-            })
-            .filter(|(id, _)| !exclude_detectors.contains(id))
-            .collect();
+        let final_detectors = self.filter_detectors(final_detectors, |(id, _)| id);
 
         let needs_deep = final_detectors.iter().any(|(id, _)| {
             registry
@@ -729,5 +705,26 @@ impl AnalysisEngine {
                 .map(|id| id.to_string())
                 .collect::<HashSet<_>>()
         })
+    }
+
+    fn filter_detectors<T, F: Fn(&T) -> &str>(
+        &self,
+        detectors: impl IntoIterator<Item = T>,
+        id_extractor: F,
+    ) -> Vec<T> {
+        let include = self.parse_detector_id_set(&self.args.detectors);
+        let exclude = self
+            .parse_detector_id_set(&self.args.exclude_detectors)
+            .unwrap_or_default();
+
+        detectors
+            .into_iter()
+            .filter(|d| {
+                include
+                    .as_ref()
+                    .is_none_or(|set| set.contains(id_extractor(d)))
+            })
+            .filter(|d| !exclude.contains(id_extractor(d)))
+            .collect()
     }
 }

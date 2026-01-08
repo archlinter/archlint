@@ -76,6 +76,26 @@ impl MetricComparator {
         };
 
         if is_worsened {
+            let message = if name == "cloneInstances" {
+                format!(
+                    "{} worsened: {} {} → {} (new clones detected)",
+                    current.smell_type, name, base as i64, curr as i64
+                )
+            } else {
+                format!(
+                    "{} worsened: {} {} → {} (+{:.0}%)",
+                    current.smell_type,
+                    name,
+                    if base == 0.0 {
+                        "0".to_string()
+                    } else {
+                        (base as i64).to_string()
+                    },
+                    curr as i64,
+                    change_percent
+                )
+            };
+
             return (
                 Some(Regression {
                     id: id.to_string(),
@@ -86,18 +106,7 @@ impl MetricComparator {
                         change_percent,
                     },
                     smell: current.clone(),
-                    message: format!(
-                        "{} worsened: {} {} → {} (+{:.0}%)",
-                        current.smell_type,
-                        name,
-                        if base == 0.0 {
-                            "0".to_string()
-                        } else {
-                            (base as i64).to_string()
-                        },
-                        curr as i64,
-                        change_percent
-                    ),
+                    message,
                     explain: None,
                 }),
                 None,

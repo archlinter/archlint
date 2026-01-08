@@ -158,6 +158,16 @@ impl SnapshotGenerator {
             }
         }
 
+        // Special handling for CodeClone smell type to extract cloneHash and tokenCount
+        if let SmellType::CodeClone {
+            clone_hash,
+            token_count,
+        } = &smell.smell_type
+        {
+            metrics.insert("cloneHash".into(), MetricValue::String(clone_hash.clone()));
+            metrics.insert("tokenCount".into(), MetricValue::Int(*token_count as i64));
+        }
+
         metrics
     }
 

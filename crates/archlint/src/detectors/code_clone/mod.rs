@@ -13,8 +13,10 @@ use rustc_hash::FxHashSet;
 use self::engine::{build_window_map, detect_clusters, merge_overlapping_occurrences};
 use self::tokenizer::tokenize_files;
 
+/// Main detector for code clones (duplicated code blocks).
 pub struct CodeCloneDetector;
 
+/// Factory for creating `CodeCloneDetector` instances.
 pub struct CodeCloneDetectorFactory;
 
 impl DetectorFactory for CodeCloneDetectorFactory {
@@ -60,6 +62,7 @@ impl Detector for CodeCloneDetector {
 }
 
 impl CodeCloneDetector {
+    /// Resolves detector configuration options from the analysis context.
     fn resolve_config(&self, ctx: &AnalysisContext) -> (usize, usize, CloneTokenizationMode) {
         let global_rule = ctx.resolve_rule("code_clone", None);
         let min_tokens: usize = global_rule.get_option("min_tokens").unwrap_or(50);
@@ -76,6 +79,7 @@ impl CodeCloneDetector {
         (min_tokens, min_lines, mode)
     }
 
+    /// Converts detected clusters into architectural smells (`ArchSmell`).
     fn report_smells(
         &self,
         ctx: &AnalysisContext,
@@ -128,6 +132,7 @@ impl CodeCloneDetector {
         smells
     }
 
+    /// Formats the "Also found in" part of the smell description.
     fn format_other_refs(
         &self,
         ctx: &AnalysisContext,
@@ -161,4 +166,5 @@ impl CodeCloneDetector {
     }
 }
 
+/// Ensures all detectors in this module are registered.
 pub fn init() {}

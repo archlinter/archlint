@@ -20,30 +20,38 @@ vi.mock('../../utils/project-root', () => ({
 const { isAnalysisReady, getSmellsForFile } = await import('../../utils/cache');
 
 describe('no-code-clone', () => {
-  it('should report code clone', () => {
+    it('should report code clone', () => {
     (isAnalysisReady as any).mockReturnValue(AnalysisState.Ready);
-    (getSmellsForFile as any).mockReturnValue([
-      {
-        smell: {
-          smellType: 'CodeClone { clone_hash: "hash123", token_count: 50 }',
-          files: ['/project/file1.ts', '/project/file2.ts'],
-          locations: [
-            {
-              file: '/project/file1.ts',
-              line: 5,
-              column: 0,
-              description: 'Clone instance (lines 5-15)',
-            },
-          ],
+    (getSmellsForFile as any).mockImplementation((filename: string) => {
+      if (filename === '/project/unique.ts') return [];
+      return [
+        {
+          smell: {
+            smellType: 'CodeClone { clone_hash: "hash123", token_count: 50 }',
+            files: ['/project/file1.ts', '/project/file2.ts'],
+            locations: [
+              {
+                file: '/project/file1.ts',
+                line: 5,
+                column: 0,
+                description: 'Clone instance (lines 5-15)',
+              },
+            ],
+          },
+          explanation: {
+            reason: 'Duplicated code found in multiple locations',
+          },
         },
-        explanation: {
-          reason: 'Duplicated code found in multiple locations',
-        },
-      },
-    ]);
+      ];
+    });
 
     ruleTester.run('no-code-clone', noCodeClone, {
-      valid: [],
+      valid: [
+        {
+          code: 'function unique() { return 1; }',
+          filename: '/project/unique.ts',
+        },
+      ],
       invalid: [
         {
           code: 'function duplicated() { /* ... */ }',
