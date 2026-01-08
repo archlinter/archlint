@@ -109,7 +109,7 @@ impl<'a> Visit<'a> for TokenCollector {
             CompactString::from(self.slice(it.span())),
             it.span(),
         );
-        oxc_ast::visit::walk::walk_ts_type_name(self, it);
+        // Do not call walk_ts_type_name to avoid redundant tokens for parts of qualified names
     }
 
     fn visit_string_literal(&mut self, it: &ast::StringLiteral<'a>) {

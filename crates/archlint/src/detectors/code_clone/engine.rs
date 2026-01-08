@@ -65,10 +65,10 @@ impl DetectionContext<'_> {
 
         self.processed_ranges.get(&pair_key).is_some_and(|ranges| {
             ranges.iter().any(|&(s1, s2, len)| {
-                off1 >= s1
-                    && off1 <= s1 + len - self.min_tokens
-                    && off2 >= s2
-                    && off2 <= s2 + len - self.min_tokens
+                // Defensive check to avoid underflow, though len >= min_tokens is an invariant
+                let end1 = s1 + len.saturating_sub(self.min_tokens);
+                let end2 = s2 + len.saturating_sub(self.min_tokens);
+                off1 >= s1 && off1 <= end1 && off2 >= s2 && off2 <= end2
             })
         })
     }
@@ -293,6 +293,10 @@ fn calculate_range_bounds(
     start: usize,
     length: usize,
 ) -> (usize, usize, usize, usize) {
+    debug_assert!(length > 0);
+    debug_assert!(start < tokens.len());
+    debug_assert!(start + length <= tokens.len());
+
     let first = &tokens[start];
     let last = &tokens[start + length - 1];
     (first.line, first.column, last.end_line, last.end_column)

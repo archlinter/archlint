@@ -1,7 +1,7 @@
 use std::path::PathBuf;
 
 /// Represents a single occurrence of a duplicated code block.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Occurrence {
     /// Absolute path to the file containing the clone.
     pub file: PathBuf,
@@ -51,7 +51,7 @@ impl Occurrence {
 }
 
 /// Represents a set of duplicated code blocks (a clone class).
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Cluster {
     /// Hash of the normalized tokens in this clone class.
     pub hash: [u8; 32],

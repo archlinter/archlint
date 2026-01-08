@@ -23,8 +23,7 @@ impl DetectorFactory for CodeCloneDetectorFactory {
         DetectorInfo {
             id: "code_clone",
             name: "Code Clone Detector",
-            description:
-                "Detects duplicated code blocks across the project (Type-1 and Type-2 clones)",
+            description: "Detects duplicated code blocks across the project (Type-1 clones)",
             default_enabled: true,
             is_deep: true,
             category: DetectorCategory::Global,
@@ -157,4 +156,8 @@ impl CodeCloneDetector {
 }
 
 /// Ensures all detectors in this module are registered.
+///
+/// This function is intentionally empty. The `inventory::submit!` macro
+/// registers the detector factory at compile time. Calling this function
+/// ensures the module is linked and the static registration takes effect.
 pub fn init() {}
