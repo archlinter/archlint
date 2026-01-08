@@ -37,6 +37,9 @@ pub struct Config {
     #[serde(default = "default_true")]
     pub enable_git: bool,
 
+    #[serde(default = "default_max_file_size")]
+    pub max_file_size: u64,
+
     #[serde(default)]
     pub git: GitConfig,
 }
@@ -96,6 +99,10 @@ fn default_history_period() -> String {
 
 fn default_true() -> bool {
     true
+}
+
+fn default_max_file_size() -> u64 {
+    1024 * 1024 // 1MB
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -255,6 +262,7 @@ impl Default for Config {
             framework: None,
             auto_detect_framework: true,
             enable_git: true,
+            max_file_size: default_max_file_size(),
             git: GitConfig::default(),
         }
     }

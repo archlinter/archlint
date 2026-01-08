@@ -71,6 +71,10 @@ impl AnalysisEngine {
             config.git.history_period = period.clone();
         }
 
+        if let Some(max_size) = args.max_file_size {
+            config.max_file_size = max_size;
+        }
+
         Ok(Self {
             args,
             config,
@@ -201,12 +205,40 @@ impl AnalysisEngine {
             Language::JavaScript => vec!["js".to_string(), "jsx".to_string()],
         };
 
-        let files = if let Some(ref explicit_files) = self.args.files {
+        let all_files = if let Some(ref explicit_files) = self.args.files {
             explicit_files.clone()
         } else {
             let scanner = FileScanner::new(&self.project_root, &self.target_path, extensions);
             scanner.scan()?
         };
+
+        let mut files = Vec::new();
+        let mut skipped_large = 0;
+        let max_size = self.config.max_file_size;
+
+        for path in all_files {
+            if let Ok(metadata) = std::fs::metadata(&path) {
+                if metadata.len() > max_size {
+                    debug!(
+                        "Skipping large file: {} ({} bytes)",
+                        path.display(),
+                        metadata.len()
+                    );
+                    skipped_large += 1;
+                    continue;
+                }
+            }
+            files.push(path);
+        }
+
+        if skipped_large > 0 {
+            info!(
+                "{} Skipped {} files exceeding max_file_size ({} bytes)",
+                style("⚠️").yellow().bold(),
+                style(skipped_large).yellow(),
+                style(max_size).dim()
+            );
+        }
 
         info!(
             "{} Found {} files to analyze",

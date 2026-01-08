@@ -6,6 +6,7 @@ use oxc_ast::visit::Visit;
 use oxc_parser::Parser;
 use oxc_span::{GetSpan, SourceType, Span};
 use oxc_syntax::scope::ScopeFlags;
+use std::sync::Arc;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum TokenKind {
@@ -34,16 +35,16 @@ pub struct NormalizedToken {
 pub struct TokenCollector {
     pub tokens: Vec<NormalizedToken>,
     line_index: LineIndex,
-    source: String,
+    source: Arc<str>,
     seq: u32,
 }
 
 impl TokenCollector {
-    pub fn new(source: &str) -> Self {
+    pub fn new(source: Arc<str>) -> Self {
         Self {
             tokens: Vec::new(),
-            line_index: LineIndex::new(source),
-            source: source.to_string(),
+            line_index: LineIndex::new(&source),
+            source,
             seq: 0,
         }
     }
@@ -164,7 +165,31 @@ impl<'a> Visit<'a> for TokenCollector {
     }
 
     fn visit_binary_expression(&mut self, it: &ast::BinaryExpression<'a>) {
-        self.add_marker("$BINARY", it.span);
+        let op_marker = match it.operator {
+            ast::BinaryOperator::Addition => "$ADD",
+            ast::BinaryOperator::Subtraction => "$SUB",
+            ast::BinaryOperator::Multiplication => "$MUL",
+            ast::BinaryOperator::Division => "$DIV",
+            ast::BinaryOperator::Remainder => "$MOD",
+            ast::BinaryOperator::Exponential => "$EXP",
+            ast::BinaryOperator::BitwiseAnd => "$BITAND",
+            ast::BinaryOperator::BitwiseOR => "$BITOR",
+            ast::BinaryOperator::BitwiseXOR => "$BITXOR",
+            ast::BinaryOperator::ShiftLeft => "$SHL",
+            ast::BinaryOperator::ShiftRight => "$SHR",
+            ast::BinaryOperator::ShiftRightZeroFill => "$SHR_U",
+            ast::BinaryOperator::Equality => "$EQ",
+            ast::BinaryOperator::Inequality => "$NE",
+            ast::BinaryOperator::StrictEquality => "$SEQ",
+            ast::BinaryOperator::StrictInequality => "$SNE",
+            ast::BinaryOperator::LessThan => "$LT",
+            ast::BinaryOperator::LessEqualThan => "$LE",
+            ast::BinaryOperator::GreaterThan => "$GT",
+            ast::BinaryOperator::GreaterEqualThan => "$GE",
+            ast::BinaryOperator::In => "$IN",
+            ast::BinaryOperator::Instanceof => "$INSTANCEOF",
+        };
+        self.add_marker(op_marker, it.span);
         oxc_ast::visit::walk::walk_binary_expression(self, it);
     }
 
@@ -283,12 +308,16 @@ impl<'a> Visit<'a> for TokenCollector {
     }
 }
 
-pub fn tokenize_and_normalize(source: &str, source_type: SourceType) -> Vec<NormalizedToken> {
+pub fn tokenize_and_normalize(source: Arc<str>, source_type: SourceType) -> Vec<NormalizedToken> {
     let allocator = Allocator::default();
-    let parser = Parser::new(&allocator, source, source_type);
+    let parser = Parser::new(&allocator, &source, source_type);
     let ret = parser.parse();
 
-    let mut collector = TokenCollector::new(source);
+    if !ret.errors.is_empty() {
+        return Vec::new();
+    }
+
+    let mut collector = TokenCollector::new(source.clone());
     collector.visit_program(&ret.program);
 
     // Sort tokens by span start to ensure they are in source order

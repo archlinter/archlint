@@ -21,6 +21,8 @@ pub struct JsScanOptions {
     pub git: Option<bool>,
     /// Git history analysis period (e.g. "90d", "1y", "all")
     pub git_history_period: Option<String>,
+    /// Maximum file size in bytes to analyze
+    pub max_file_size: Option<u32>,
 }
 
 // ============ Results ============
@@ -215,6 +217,7 @@ impl From<JsScanOptions> for archlint::ScanOptions {
             enable_cache: opts.cache.unwrap_or(true),
             enable_git: opts.git.unwrap_or(true),
             git_history_period: opts.git_history_period,
+            max_file_size: opts.max_file_size.map(|s| s as u64),
         }
     }
 }

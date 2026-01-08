@@ -4,6 +4,7 @@ use oxc_span::SourceType;
 use rustc_hash::FxHashMap;
 use std::fs;
 use std::path::PathBuf;
+use std::sync::Arc;
 
 /// Tokenizes all files in the analysis context that are not excluded by rules.
 ///
@@ -23,7 +24,7 @@ pub fn tokenize_files(
 
         if let Ok(source) = fs::read_to_string(path) {
             let source_type = SourceType::from_path(path).unwrap_or_default();
-            let tokens = tokenize_and_normalize(&source, source_type);
+            let tokens = tokenize_and_normalize(Arc::from(source), source_type);
             if tokens.len() >= min_tokens {
                 file_tokens.insert(path.clone(), tokens);
             }

@@ -15,6 +15,9 @@ aliases:
 entry_points:
   - "src/main.ts"
 
+# Maximum file size in bytes to analyze (default: 1048576 = 1MB)
+max_file_size: 1048576
+
 # Rule-specific configuration
 rules:
   # Short form: level or "off"
