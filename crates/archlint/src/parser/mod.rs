@@ -1,6 +1,7 @@
 pub mod complexity;
 pub mod import_parser;
 pub mod line_index;
+pub mod tokenizer;
 pub mod types;
 pub mod visitor;
 

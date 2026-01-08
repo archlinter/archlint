@@ -384,6 +384,10 @@ impl ExplainEngine {
                 "Scattered Configuration",
                 "Configuration is spread across many files",
             ),
+            SmellType::CodeClone { .. } => Self::simple_explanation(
+                "Code Clone",
+                "Duplicated code found in multiple locations",
+            ),
         }
     }
 

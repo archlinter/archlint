@@ -69,3 +69,4 @@ archlint comes with 28+ built-in detectors categorized by the type of architectu
 | ------------------------------------------------- | ------------------ | -------------------------------------- | ------- |
 | [Abstractness Violation](/detectors/abstractness) | `abstractness`     | Pain/Useless zones (I+A metric)        | ❌      |
 | [Scattered Config](/detectors/scattered-config)   | `scattered_config` | Configuration spread across many files | ❌      |
+| [Code Clone](/detectors/code-clone)               | `code_clone`       | Duplicated code across the project     | ✅      |

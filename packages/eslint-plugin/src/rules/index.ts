@@ -11,6 +11,7 @@ import { noHubModules } from './no-hub-modules';
 import { noDeepNesting } from './no-deep-nesting';
 import { noLongParams } from './no-long-params';
 import { noHighComplexity } from './no-high-complexity';
+import { noCodeClone } from './no-code-clone';
 import { noRegression } from './no-regression';
 
 export const rules: Record<string, Rule.RuleModule> = {
@@ -26,5 +27,6 @@ export const rules: Record<string, Rule.RuleModule> = {
   'no-deep-nesting': noDeepNesting,
   'no-long-params': noLongParams,
   'no-high-complexity': noHighComplexity,
+  'no-code-clone': noCodeClone,
   'no-regression': noRegression,
 };

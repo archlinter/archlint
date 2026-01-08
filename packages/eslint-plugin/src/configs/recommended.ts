@@ -9,6 +9,7 @@ export const recommended = {
     '@archlinter/no-high-coupling': 'warn',
     '@archlinter/no-high-complexity': 'error',
     '@archlinter/no-layer-violations': 'error',
+    '@archlinter/no-code-clone': 'warn',
   },
 } as const;
 
@@ -27,6 +28,7 @@ export const strict = {
     '@archlinter/no-hub-modules': 'warn',
     '@archlinter/no-deep-nesting': 'error',
     '@archlinter/no-long-params': 'warn',
+    '@archlinter/no-code-clone': 'error',
     '@archlinter/no-regression': ['error', { failOn: 'medium' }],
   },
 } as const;

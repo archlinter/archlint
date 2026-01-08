@@ -10,6 +10,7 @@ const TRACKABLE_METRICS: &[&str] = &[
     "lcom",
     "cbo",
     "depth",
+    "cloneInstances",
 ];
 
 pub struct MetricComparator {
@@ -61,8 +62,13 @@ impl MetricComparator {
                 }
 
                 let change_percent = ((curr_f - base_f) / base_f) * 100.0;
+                let is_worsened = if *metric_name == "cloneInstances" {
+                    curr_f > base_f // Strictly greater for clones
+                } else {
+                    change_percent >= self.threshold_percent
+                };
 
-                if change_percent >= self.threshold_percent {
+                if is_worsened {
                     // Worsened
                     regressions.push(Regression {
                         id: id.to_string(),

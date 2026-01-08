@@ -63,6 +63,7 @@ pub struct Location {
     pub file: String,
     pub line: usize,
     pub column: Option<usize>,
+    pub range: Option<crate::detectors::CodeRange>,
     pub description: Option<String>,
 }
 

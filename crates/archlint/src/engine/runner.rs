@@ -140,6 +140,13 @@ impl AnalysisEngine {
         let filtered_smells: Vec<_> = all_smells
             .into_iter()
             .filter(|smell| {
+                // Clones are special: we want to see them even if they touch ignored files
+                if matches!(
+                    smell.smell_type,
+                    crate::detectors::SmellType::CodeClone { .. }
+                ) {
+                    return true;
+                }
                 // Keep the smell if at least one of the files it's associated with is NOT ignored
                 smell.files.is_empty() || smell.files.iter().any(|f| !self.is_file_ignored(f))
             })
@@ -309,7 +316,21 @@ impl AnalysisEngine {
         let registry = detectors::registry::DetectorRegistry::new();
         let (enabled_detectors, _) =
             registry.get_enabled_full(config, presets, self.args.all_detectors);
-        enabled_detectors.into_iter().map(|(id, _)| id).collect()
+        let include_detectors = self.parse_detector_id_set(&self.args.detectors);
+        let exclude_detectors = self
+            .parse_detector_id_set(&self.args.exclude_detectors)
+            .unwrap_or_default();
+
+        enabled_detectors
+            .into_iter()
+            .map(|(id, _)| id)
+            .filter(|id| {
+                include_detectors
+                    .as_ref()
+                    .is_none_or(|set| set.contains(id))
+            })
+            .filter(|id| !exclude_detectors.contains(id))
+            .collect()
     }
 
     fn load_cache(&self) -> Result<Option<AnalysisCache>> {
@@ -618,8 +639,29 @@ impl AnalysisEngine {
         presets: &[presets::FrameworkPreset],
     ) -> Result<Vec<detectors::ArchSmell>> {
         let registry = detectors::registry::DetectorRegistry::new();
-        let (final_detectors, needs_deep) =
+        let (final_detectors, _needs_deep) =
             registry.get_enabled_full(&ctx.config, presets, self.args.all_detectors);
+        let include_detectors = self.parse_detector_id_set(&self.args.detectors);
+        let exclude_detectors = self
+            .parse_detector_id_set(&self.args.exclude_detectors)
+            .unwrap_or_default();
+
+        let final_detectors: Vec<_> = final_detectors
+            .into_iter()
+            .filter(|(id, _)| {
+                include_detectors
+                    .as_ref()
+                    .is_none_or(|set| set.contains(id))
+            })
+            .filter(|(id, _)| !exclude_detectors.contains(id))
+            .collect();
+
+        let needs_deep = final_detectors.iter().any(|(id, _)| {
+            registry
+                .get_info(id)
+                .map(|info| info.is_deep)
+                .unwrap_or(false)
+        });
 
         info!(
             "{} Detecting architectural smells...{}",
@@ -677,5 +719,15 @@ impl AnalysisEngine {
             pb.finish_and_clear();
         }
         Ok(all_smells)
+    }
+
+    fn parse_detector_id_set(&self, ids: &Option<String>) -> Option<HashSet<String>> {
+        ids.as_ref().map(|s| {
+            s.split(',')
+                .map(|id| id.trim())
+                .filter(|id| !id.is_empty())
+                .map(|id| id.to_string())
+                .collect::<HashSet<_>>()
+        })
     }
 }

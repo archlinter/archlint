@@ -128,7 +128,7 @@ impl Default for WatchConfig {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SeverityConfig {
     #[serde(default = "default_weights")]
     pub weights: SeverityWeights,
@@ -136,11 +136,26 @@ pub struct SeverityConfig {
     #[serde(default)]
     pub grade_thresholds: GradeThresholds,
 
-    #[serde(default)]
+    #[serde(default = "default_min_severity")]
     pub minimum: Option<Severity>,
 
     #[serde(default)]
     pub minimum_score: Option<u32>,
+}
+
+impl Default for SeverityConfig {
+    fn default() -> Self {
+        Self {
+            weights: default_weights(),
+            grade_thresholds: GradeThresholds::default(),
+            minimum: Some(Severity::Low),
+            minimum_score: None,
+        }
+    }
+}
+
+fn default_min_severity() -> Option<Severity> {
+    Some(Severity::Low)
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
