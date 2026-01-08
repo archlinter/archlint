@@ -43,77 +43,77 @@ fn nestjs_preset() -> FrameworkPreset {
     file_rules.insert(
         FileType::Module,
         FileRules {
-            skip_detectors: vec!["high_coupling", "lcom", "scattered_module", "sdp_violation"],
+            skip_detectors: vec!["high_coupling", "lcom", "module_cohesion", "sdp_violation"],
             is_entry_point: true,
         },
     );
     file_rules.insert(
         FileType::Entity,
         FileRules {
-            skip_detectors: vec!["cycles", "lcom", "abstractness_violation"],
+            skip_detectors: vec!["cycles", "lcom", "abstractness"],
             is_entry_point: false,
         },
     );
     file_rules.insert(
         FileType::DTO,
         FileRules {
-            skip_detectors: vec!["abstractness_violation"],
+            skip_detectors: vec!["abstractness"],
             is_entry_point: false,
         },
     );
     file_rules.insert(
         FileType::Interface,
         FileRules {
-            skip_detectors: vec!["abstractness_violation"],
+            skip_detectors: vec!["abstractness"],
             is_entry_point: false,
         },
     );
     file_rules.insert(
         FileType::Config,
         FileRules {
-            skip_detectors: vec!["abstractness_violation"],
+            skip_detectors: vec!["abstractness"],
             is_entry_point: false,
         },
     );
     file_rules.insert(
         FileType::Event,
         FileRules {
-            skip_detectors: vec!["abstractness_violation"],
+            skip_detectors: vec!["abstractness"],
             is_entry_point: false,
         },
     );
     file_rules.insert(
         FileType::Exception,
         FileRules {
-            skip_detectors: vec!["abstractness_violation"],
+            skip_detectors: vec!["abstractness"],
             is_entry_point: false,
         },
     );
     file_rules.insert(
         FileType::Guard,
         FileRules {
-            skip_detectors: vec!["lcom", "abstractness_violation"],
+            skip_detectors: vec!["lcom", "abstractness"],
             is_entry_point: false,
         },
     );
     file_rules.insert(
         FileType::Pipe,
         FileRules {
-            skip_detectors: vec!["lcom", "abstractness_violation"],
+            skip_detectors: vec!["lcom", "abstractness"],
             is_entry_point: false,
         },
     );
     file_rules.insert(
         FileType::Interceptor,
         FileRules {
-            skip_detectors: vec!["lcom", "abstractness_violation"],
+            skip_detectors: vec!["lcom", "abstractness"],
             is_entry_point: false,
         },
     );
     file_rules.insert(
         FileType::Decorator,
         FileRules {
-            skip_detectors: vec!["abstractness_violation"],
+            skip_detectors: vec!["abstractness"],
             is_entry_point: false,
         },
     );
@@ -135,7 +135,7 @@ fn nestjs_preset() -> FrameworkPreset {
     FrameworkPreset {
         name: "NestJS",
         enabled_detectors: vec!["layer_violation"],
-        disabled_detectors: vec!["scattered_module"],
+        disabled_detectors: vec!["module_cohesion"],
         file_rules,
         vendor_ignore: vec![
             "@nestjs/*".to_string(),
@@ -184,7 +184,7 @@ fn nextjs_preset() -> FrameworkPreset {
     FrameworkPreset {
         name: "Next.js",
         enabled_detectors: vec![],
-        disabled_detectors: vec!["layer_violation", "barrel_file_abuse"],
+        disabled_detectors: vec!["layer_violation", "barrel_file"],
         file_rules,
         vendor_ignore: vec!["next/*".to_string()],
         ignore_methods: vec!["getServerSideProps", "getStaticProps", "getStaticPaths"],
@@ -197,7 +197,7 @@ fn react_preset() -> FrameworkPreset {
     file_rules.insert(
         FileType::Component,
         FileRules {
-            skip_detectors: vec!["abstractness_violation", "lcom"],
+            skip_detectors: vec!["abstractness", "lcom"],
             is_entry_point: false,
         },
     );
@@ -212,7 +212,7 @@ fn react_preset() -> FrameworkPreset {
     FrameworkPreset {
         name: "React",
         enabled_detectors: vec![],
-        disabled_detectors: vec!["lcom", "scattered_module", "layer_violation"],
+        disabled_detectors: vec!["lcom", "module_cohesion", "layer_violation"],
         file_rules,
         vendor_ignore: vec!["react/*".to_string()],
         ignore_methods: vec![
@@ -231,7 +231,7 @@ fn oclif_preset() -> FrameworkPreset {
     file_rules.insert(
         FileType::CliCommand,
         FileRules {
-            skip_detectors: vec!["lcom", "abstractness_violation"],
+            skip_detectors: vec!["lcom", "abstractness"],
             is_entry_point: true,
         },
     );

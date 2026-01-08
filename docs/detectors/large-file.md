@@ -15,7 +15,8 @@ Break the file into smaller, more focused modules.
 ## Configuration
 
 ```yaml
-thresholds:
+rules:
   large_file:
+    severity: warn
     max_lines: 1000
 ```

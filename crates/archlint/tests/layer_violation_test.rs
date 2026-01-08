@@ -3,11 +3,10 @@ mod common;
 use archlint::config::{Config, LayerConfig};
 use archlint::detectors::layer_violation::LayerViolationDetector;
 use archlint::detectors::Detector;
-use common::analyze_fixture_with_config;
+use common::{analyze_fixture_with_config, create_config_with_rule};
 
 fn get_layer_config() -> Config {
-    let mut config = Config::default();
-    config.thresholds.layer_violation.layers = vec![
+    let layers = vec![
         LayerConfig {
             name: "domain".to_string(),
             path: "**/domain/**".to_string(),
@@ -19,7 +18,9 @@ fn get_layer_config() -> Config {
             allowed_imports: vec!["domain".to_string()],
         },
     ];
-    config
+
+    let options_yaml = format!("layers:\n{}", serde_yaml::to_string(&layers).unwrap());
+    create_config_with_rule("layer_violation", Some(&options_yaml))
 }
 
 #[test]

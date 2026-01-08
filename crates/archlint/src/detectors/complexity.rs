@@ -40,19 +40,30 @@ impl Detector for ComplexityDetector {
 
     fn detect(&self, ctx: &AnalysisContext) -> Vec<ArchSmell> {
         let mut smells = Vec::new();
-        let thresholds = &ctx.config.thresholds.complexity;
 
-        for (file_path, functions) in ctx.function_complexity.as_ref() {
+        for (path, functions) in ctx.function_complexity.as_ref() {
+            let rule = match ctx.get_rule_for_file("complexity", path) {
+                Some(r) => r,
+                None => continue,
+            };
+
+            let function_threshold: usize = rule
+                .get_option("max_complexity")
+                .or(rule.get_option("function_threshold"))
+                .unwrap_or(15);
+
             for func in functions {
-                if func.complexity >= thresholds.function_threshold {
-                    smells.push(ArchSmell::new_high_complexity(
-                        file_path.clone(),
+                if func.complexity >= function_threshold {
+                    let mut smell = ArchSmell::new_high_complexity(
+                        path.clone(),
                         func.name.to_string(),
                         func.line,
                         func.complexity,
-                        thresholds.function_threshold,
+                        function_threshold,
                         Some(func.range),
-                    ));
+                    );
+                    smell.severity = rule.severity;
+                    smells.push(smell);
                 }
             }
         }

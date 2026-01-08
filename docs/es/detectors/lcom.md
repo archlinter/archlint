@@ -1,10 +1,10 @@
 # Cohesión Baja (LCOM4)
 
-**ID:** `lcom` | **Severity:** Medium (default)
+**ID:** `lcom` | **Severidad:** Medium (default)
 
-La cohesión mide qué tan estrechamente relacionados están los métodos y campos de una clase. archlint utiliza la métrica **LCOM4** (Lack of Cohesion of Methods).
+La cohesión mide qué tan estrechamente relacionados están los métodos y campos de una clase. `archlint` utiliza la métrica **LCOM4** (Lack of Cohesion of Methods).
 
-## Por qué es un "smell"
+## Por qué esto es un problema
 
 - **Violación del SRP**: Es probable que la clase esté haciendo dos o más cosas no relacionadas.
 - **Fragilidad**: Cambiar una parte de la clase podría afectar a partes no relacionadas.
@@ -18,7 +18,9 @@ La cohesión mide qué tan estrechamente relacionados están los métodos y camp
 ## Configuración
 
 ```yaml
-thresholds:
+rules:
   lcom:
-    threshold: 1 # Número de componentes desconectados permitidos (por defecto es 1)
+    severity: warn
+    max_lcom: 4
+    min_methods: 3
 ```

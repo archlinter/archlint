@@ -1,13 +1,23 @@
 # Abstractness Violation
 
-**ID:** `abstractness_violation` | **Severity:** Low (default)
+**ID:** `abstractness` | **Severity:** Low (default)
 
-Based on Robert C. Martin's "Main Sequence" metrics. It measures the balance between stability (I) and abstractness (A). A module should either be stable and abstract, or unstable and concrete.
+This detector uses Robert C. Martin's "Main Sequence" metrics to evaluate the relationship between a module's Stability (I) and its Abstractness (A). The goal is to ensure that modules sit near the "Main Sequence"—a line where abstractness increases as stability increases.
 
 ## Why this is a smell
 
-Modules that are stable and concrete are in the "Zone of Pain" (hard to change, but others depend on them). Modules that are unstable and abstract are in the "Zone of Uselessness" (no one depends on them, but they are abstract).
+- **Zone of Pain**: Modules that are highly stable (many things depend on them) but very concrete (no abstractions). These are extremely hard to change because of their dependencies, yet their concrete nature means they _will_ need to change.
+- **Zone of Uselessness**: Modules that are highly abstract (many interfaces/abstract classes) but very unstable (no one depends on them). These provide abstractions that aren't actually being used, adding unnecessary complexity.
 
 ## How to fix
 
-Adjust the module's abstractness (e.g., by introducing interfaces) or its stability (by changing who depends on it).
+- **In the Zone of Pain**: Introduce abstractions (interfaces, abstract classes) to decouple the module's implementation from its users.
+- **In the Zone of Uselessness**: Consider making the module more concrete or removing unused abstractions to simplify the code.
+
+## Configuration
+
+```yaml
+rules:
+  abstractness:
+    severity: warn
+```

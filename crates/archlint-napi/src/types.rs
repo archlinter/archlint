@@ -191,8 +191,12 @@ pub struct JsConfig {
     pub ignore: Vec<String>,
     #[napi(ts_type = "Record<string, string>")]
     pub aliases: serde_json::Value,
-    #[napi(ts_type = "Record<string, unknown>")]
-    pub thresholds: serde_json::Value,
+    #[napi(ts_type = "Record<string, any>")]
+    pub rules: serde_json::Value,
+    #[napi(ts_type = "any[]")]
+    pub overrides: serde_json::Value,
+    #[napi(ts_type = "any")]
+    pub scoring: serde_json::Value,
     pub entry_points: Vec<String>,
     pub enable_git: bool,
 }
@@ -430,7 +434,11 @@ impl From<archlint::Config> for JsConfig {
             ignore: c.ignore,
             aliases: serde_json::to_value(&c.aliases)
                 .unwrap_or(serde_json::Value::Object(Default::default())),
-            thresholds: serde_json::to_value(&c.thresholds)
+            rules: serde_json::to_value(&c.rules)
+                .unwrap_or(serde_json::Value::Object(Default::default())),
+            overrides: serde_json::to_value(&c.overrides)
+                .unwrap_or(serde_json::Value::Array(Default::default())),
+            scoring: serde_json::to_value(&c.scoring)
                 .unwrap_or(serde_json::Value::Object(Default::default())),
             entry_points: c.entry_points,
             enable_git: c.enable_git,

@@ -99,6 +99,8 @@ pub struct AnalysisReport {
     pub function_complexity:
         std::collections::HashMap<std::path::PathBuf, Vec<crate::parser::FunctionComplexity>>,
     pub churn_map: std::collections::HashMap<std::path::PathBuf, usize>,
+    pub min_severity: Option<crate::detectors::Severity>,
+    pub min_score: Option<u32>,
 }
 
 impl AnalysisReport {
@@ -214,7 +216,17 @@ impl AnalysisReport {
             file_metrics,
             function_complexity,
             churn_map,
+            min_severity: None,
+            min_score: None,
         }
+    }
+
+    pub fn set_min_severity(&mut self, severity: crate::detectors::Severity) {
+        self.min_severity = Some(severity);
+    }
+
+    pub fn set_min_score(&mut self, score: u32) {
+        self.min_score = Some(score);
     }
 
     pub fn set_files_analyzed(&mut self, count: usize) {
@@ -223,19 +235,26 @@ impl AnalysisReport {
 
     pub fn apply_severity_config(&mut self, config: &SeverityConfig) {
         // Filter by minimum severity
-        if let Some(min) = config.minimum.as_ref() {
-            self.smells
-                .retain(|(s, _)| s.effective_severity(config) >= *min);
+        let min_sev = self.min_severity.or(config.minimum);
+        if let Some(min) = min_sev {
+            // Note: effective_severity now just returns s.severity because we resolve severity at detection time
+            self.smells.retain(|(s, _)| s.severity >= min);
         }
 
         // Filter by minimum score
-        if let Some(min_score) = config.minimum_score {
-            self.smells.retain(|(s, _)| s.score(config) >= min_score);
+        let min_score = self.min_score.or(config.minimum_score);
+        if let Some(ms) = min_score {
+            self.smells
+                .retain(|(s, _)| config.weights.score(&s.severity) >= ms);
         }
 
         // Sort by score (descending)
-        self.smells
-            .sort_by(|(a, _), (b, _)| b.score(config).cmp(&a.score(config)));
+        self.smells.sort_by(|(a, _), (b, _)| {
+            config
+                .weights
+                .score(&b.severity)
+                .cmp(&config.weights.score(&a.severity))
+        });
 
         // Update counts
         self.cyclic_dependencies = self
@@ -312,10 +331,13 @@ impl AnalysisReport {
     }
 
     pub fn total_score(&self, config: &SeverityConfig) -> u32 {
-        self.smells.iter().map(|(s, _)| s.score(config)).sum()
+        self.smells
+            .iter()
+            .map(|(s, _)| config.weights.score(&s.severity))
+            .sum()
     }
 
-    pub fn grade(&self, config: &crate::config::SeverityConfig) -> ArchitectureGrade {
+    pub fn grade(&self, config: &SeverityConfig) -> ArchitectureGrade {
         let total_score = self.total_score(config) as f32;
         let files_analyzed = if self.files_analyzed == 0 {
             1
@@ -414,7 +436,7 @@ impl AnalysisReport {
             let severity_cell = Self::format_severity_cell(&smell.severity);
             let smell_type_str = Self::format_smell_type(&smell.smell_type);
             let locations_str = Self::format_file_paths(&smell, &canonical_scan_root);
-            let score = smell.score(severity_config);
+            let score = severity_config.weights.score(&smell.severity);
 
             table.add_row(vec![
                 severity_cell,
@@ -636,11 +658,7 @@ impl AnalysisReport {
         markdown::write_report(self, path, graph, include_diagram, severity_config)
     }
 
-    pub fn write_json<P: AsRef<Path>>(
-        &self,
-        path: P,
-        config: &crate::config::SeverityConfig,
-    ) -> Result<()> {
+    pub fn write_json<P: AsRef<Path>>(&self, path: P, config: &SeverityConfig) -> Result<()> {
         json::write_report(self, path, config)
     }
 }

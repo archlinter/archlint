@@ -140,7 +140,9 @@ export interface JsDetectorInfo {
 export interface JsConfig {
   ignore: Array<string>
   aliases: Record<string, string>
-  thresholds: Record<string, unknown>
+  rules: Record<string, any>
+  overrides: any[]
+  scoring: any
   entryPoints: Array<string>
   enableGit: boolean
 }

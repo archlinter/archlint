@@ -1,6 +1,6 @@
 # 过深嵌套
 
-**ID:** `deep_nesting` | **Severity:** Low (default)
+**ID:** `deep_nesting` | **严重程度:** 低 (默认)
 
 识别嵌套过深的代码块（if、for、while 等）。
 
@@ -17,7 +17,25 @@
 ## 配置
 
 ```yaml
-thresholds:
+rules:
   deep_nesting:
+    severity: info
     max_depth: 4
 ```
+
+## ESLint 规则
+
+此检测器可作为 ESLint 规则使用，以便在编辑器中获得实时反馈。
+
+```javascript
+// eslint.config.js
+export default [
+  {
+    rules: {
+      '@archlinter/no-deep-nesting': 'warn',
+    },
+  },
+];
+```
+
+详见 [ESLint 集成](/zh/integrations/eslint) 了解设置说明。

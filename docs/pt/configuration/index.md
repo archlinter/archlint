@@ -1,53 +1,96 @@
 ---
 title: Configuração
-description: Saiba como configurar o archlint usando archlint.yaml, definir camadas arquiteturais e definir limites personalizados para detectores.
+description: Aprenda como configurar o archlint usando .archlint.yaml, definir camadas arquiteturais e configurar regras para detectores.
 ---
 
 # Configuração
 
-O archlint pode ser configurado usando um arquivo `archlint.yaml` na raiz do seu projeto. Se nenhum arquivo de configuração for encontrado, a ferramenta usa padrões sensatos para todos os detectores.
+O archlint pode ser configurado usando um arquivo `.archlint.yaml` na raiz do seu projeto. Se nenhum arquivo de configuração for encontrado, a ferramenta usará padrões sensatos para todos os detectores.
 
 ## Estrutura do Arquivo de Configuração
 
 ```yaml
-# Arquivos para ignorar
+# Arquivos e diretórios a serem ignorados (global)
 ignore:
   - '**/dist/**'
+  - '**/node_modules/**'
 
-# Aliases de caminho (ex: do tsconfig.json)
+# Aliases de caminho (semelhante ao tsconfig.json ou webpack)
 aliases:
   '@/*': 'src/*'
 
-# Pontos de entrada para análise de código morto
+# Pontos de entrada para análise (usados para detecção de código morto)
 entry_points:
-  - 'src/index.ts'
+  - 'src/main.ts'
 
-# Limites personalizados para detectores
-thresholds:
-  cycles:
-    exclude_patterns: []
+# Configuração de regras para cada detector
+rules:
+  # Forma curta: nível de severidade ou "off"
+  cycles: error
+  dead_code: warn
+
+  # Forma completa: com opções adicionais
   god_module:
+    severity: error
+    enabled: true
+    exclude: ['**/generated/**']
+    # Opções específicas do detector
     fan_in: 15
     fan_out: 15
+    churn: 20
 
-# Camadas arquiteturais
-layers:
-  - name: domain
-    paths: ['**/domain/**']
-    can_import: []
+# Substituições de regras para caminhos específicos
+overrides:
+  - files: ['**/legacy/**']
+    rules:
+      complexity: warn
+      god_module: off
 
-# Presets de frameworks
-frameworks:
-  - nestjs
+# Configuração de pontuação e graduação
+scoring:
+  # Nível mínimo de severidade para relatar (info, warn, error, critical)
+  minimum: warn
+  # Pesos para o cálculo da pontuação total
+  weights:
+    critical: 100
+    high: 50
+    medium: 20
+    low: 5
+  # Limites para graduação (Densidade = Pontuação Total / Arquivos)
+  grade_rules:
+    excellent: 1.0
+    good: 3.0
+    fair: 7.0
+    moderate: 15.0
+    poor: 30.0
 
-# Sobrescritas de severidade
-severity:
-  cycles: critical
+# Uso de framework
+framework: nestjs
+
+# Detecção automática de framework (padrão true)
+auto_detect_framework: true
+
+# Habilitar análise de histórico do Git (padrão true)
+enable_git: true
+
+# Configurações do Git
+git:
+  history_period: '1y'
 ```
+
+## Níveis de Severidade
+
+Na seção `rules`, você pode usar os seguintes níveis:
+
+- `critical`: Problema crítico que requer atenção imediata.
+- `error`: Erro arquitetural.
+- `warn`: Aviso sobre um problema potencial.
+- `info`: Mensagem informativa.
+- `off`: Desativa completamente o detector.
 
 ## Configuração via CLI
 
-Você também pode especificar o caminho do arquivo de configuração via CLI:
+Você pode especificar o caminho do arquivo de configuração explicitamente:
 
 ```bash
 archlint scan --config custom-config.yaml

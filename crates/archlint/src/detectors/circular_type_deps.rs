@@ -39,12 +39,22 @@ impl Detector for CircularTypeDepsDetector {
     }
 
     fn detect(&self, ctx: &AnalysisContext) -> Vec<ArchSmell> {
-        let mut smells = Vec::new();
+        let type_graph = self.build_type_graph(ctx);
+        self.process_sccs(&type_graph, ctx)
+    }
+}
 
-        let mut type_graph = DiGraph::<std::path::PathBuf, ()>::new();
+impl CircularTypeDepsDetector {
+    fn build_type_graph(&self, ctx: &AnalysisContext) -> DiGraph<std::path::PathBuf, ()> {
+        let mut type_graph = DiGraph::new();
         let mut path_to_node = HashMap::new();
 
         for (path, symbols) in ctx.file_symbols.as_ref() {
+            let _rule = match ctx.get_rule_for_file("circular_type_deps", path) {
+                Some(r) => r,
+                None => continue,
+            };
+
             let from_node = *path_to_node
                 .entry(path.clone())
                 .or_insert_with(|| type_graph.add_node(path.clone()));
@@ -60,14 +70,25 @@ impl Detector for CircularTypeDepsDetector {
                 }
             }
         }
+        type_graph
+    }
 
-        let sccs = petgraph::algo::tarjan_scc(&type_graph);
+    fn process_sccs(
+        &self,
+        type_graph: &DiGraph<std::path::PathBuf, ()>,
+        ctx: &AnalysisContext,
+    ) -> Vec<ArchSmell> {
+        let mut smells = Vec::new();
+        let sccs = petgraph::algo::tarjan_scc(type_graph);
+
         for scc in sccs {
             if scc.len() > 1 {
                 let files: Vec<_> = scc.iter().map(|&idx| type_graph[idx].clone()).collect();
+                let severity = self.get_severity(&files, ctx);
+
                 smells.push(ArchSmell {
                     smell_type: crate::detectors::SmellType::CircularTypeDependency,
-                    severity: crate::detectors::Severity::Low,
+                    severity,
                     files,
                     metrics: Vec::new(),
                     locations: Vec::new(),
@@ -78,9 +99,18 @@ impl Detector for CircularTypeDepsDetector {
 
         smells
     }
-}
 
-impl CircularTypeDepsDetector {
+    fn get_severity(
+        &self,
+        files: &[std::path::PathBuf],
+        ctx: &AnalysisContext,
+    ) -> crate::detectors::Severity {
+        if let Some(path) = files.first() {
+            ctx.resolve_rule("circular_type_deps", Some(path)).severity
+        } else {
+            crate::detectors::Severity::Low
+        }
+    }
     fn resolve_import(
         &self,
         import: &crate::parser::ImportedSymbol,

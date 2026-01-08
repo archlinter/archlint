@@ -104,9 +104,34 @@ impl Detector for HubDependencyDetector {
     }
 
     fn detect(&self, ctx: &AnalysisContext) -> Vec<ArchSmell> {
-        let thresholds = &ctx.config.thresholds.hub_dependency;
+        let rule = match ctx.get_rule("hub_dependency") {
+            Some(r) => r,
+            None => return Vec::new(),
+        };
+
+        let min_dependants: usize = rule.get_option("min_dependants").unwrap_or(20);
+        let ignore_packages: Vec<String> =
+            rule.get_option("ignore_packages").unwrap_or_else(|| {
+                vec![
+                    "react".to_string(),
+                    "lodash".to_string(),
+                    "typescript".to_string(),
+                ]
+            });
+
         let package_usage = Self::collect_package_usage(ctx, self);
-        Self::filter_hub_packages(package_usage, thresholds)
+
+        package_usage
+            .into_iter()
+            .filter(|(pkg, files)| {
+                !Self::is_ignored_package(pkg, &ignore_packages) && files.len() >= min_dependants
+            })
+            .map(|(pkg, files)| {
+                let mut smell = ArchSmell::new_hub_dependency(pkg, files);
+                smell.severity = rule.severity;
+                smell
+            })
+            .collect()
     }
 }
 
@@ -135,23 +160,8 @@ impl HubDependencyDetector {
         package_usage
     }
 
-    fn filter_hub_packages(
-        package_usage: HashMap<String, Vec<PathBuf>>,
-        thresholds: &crate::config::HubDependencyThresholds,
-    ) -> Vec<ArchSmell> {
-        package_usage
-            .into_iter()
-            .filter(|(pkg, files)| {
-                !Self::is_ignored_package(pkg, thresholds)
-                    && files.len() >= thresholds.min_dependants
-            })
-            .map(|(pkg, files)| ArchSmell::new_hub_dependency(pkg, files))
-            .collect()
-    }
-
-    fn is_ignored_package(pkg: &str, thresholds: &crate::config::HubDependencyThresholds) -> bool {
-        thresholds
-            .ignore_packages
+    fn is_ignored_package(pkg: &str, ignore_packages: &[String]) -> bool {
+        ignore_packages
             .iter()
             .any(|pattern_str| Self::matches_ignore_pattern(pkg, pattern_str))
     }

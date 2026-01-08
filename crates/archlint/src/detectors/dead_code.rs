@@ -43,6 +43,11 @@ impl Detector for DeadCodeDetector {
     }
 
     fn detect(&self, ctx: &AnalysisContext) -> Vec<ArchSmell> {
+        let _rule = match ctx.get_rule("dead_code") {
+            Some(r) => r,
+            None => return Vec::new(),
+        };
+
         let detector = DeadCodeDetector::new(
             &ctx.config,
             ctx.script_entry_points.clone(),
@@ -56,7 +61,12 @@ impl Detector for DeadCodeDetector {
 
         dead_files
             .into_iter()
-            .map(ArchSmell::new_dead_code)
+            .filter_map(|path| {
+                let file_rule = ctx.get_rule_for_file("dead_code", &path)?;
+                let mut smell = ArchSmell::new_dead_code(path);
+                smell.severity = file_rule.severity;
+                Some(smell)
+            })
             .collect()
     }
 }

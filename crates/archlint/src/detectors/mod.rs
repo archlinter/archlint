@@ -271,6 +271,43 @@ impl std::str::FromStr for ConfigurableSmellType {
     }
 }
 
+impl ConfigurableSmellType {
+    pub fn to_id(&self) -> &'static str {
+        match self {
+            ConfigurableSmellType::CyclicDependency => "cycles",
+            ConfigurableSmellType::CyclicDependencyCluster => "cycles_cluster",
+            ConfigurableSmellType::GodModule => "god_module",
+            ConfigurableSmellType::DeadCode => "dead_code",
+            ConfigurableSmellType::DeadSymbol => "dead_symbols",
+            ConfigurableSmellType::HighComplexity => "complexity",
+            ConfigurableSmellType::LargeFile => "large_file",
+            ConfigurableSmellType::UnstableInterface => "unstable_interface",
+            ConfigurableSmellType::FeatureEnvy => "feature_envy",
+            ConfigurableSmellType::ShotgunSurgery => "shotgun_surgery",
+            ConfigurableSmellType::HubDependency => "hub_dependency",
+            ConfigurableSmellType::TestLeakage => "test_leakage",
+            ConfigurableSmellType::LayerViolation => "layer_violation",
+            ConfigurableSmellType::SdpViolation => "sdp_violation",
+            ConfigurableSmellType::BarrelFileAbuse => "barrel_file",
+            ConfigurableSmellType::VendorCoupling => "vendor_coupling",
+            ConfigurableSmellType::SideEffectImport => "side_effect_import",
+            ConfigurableSmellType::HubModule => "hub_module",
+            ConfigurableSmellType::LowCohesion => "lcom",
+            ConfigurableSmellType::ScatteredModule => "module_cohesion",
+            ConfigurableSmellType::HighCoupling => "high_coupling",
+            ConfigurableSmellType::PackageCycle => "package_cycles",
+            ConfigurableSmellType::SharedMutableState => "shared_state",
+            ConfigurableSmellType::DeepNesting => "deep_nesting",
+            ConfigurableSmellType::LongParameterList => "long_params",
+            ConfigurableSmellType::PrimitiveObsession => "primitive_obsession",
+            ConfigurableSmellType::OrphanType => "orphan_types",
+            ConfigurableSmellType::CircularTypeDependency => "circular_type_deps",
+            ConfigurableSmellType::AbstractnessViolation => "abstractness",
+            ConfigurableSmellType::ScatteredConfiguration => "scattered_config",
+        }
+    }
+}
+
 impl SmellType {
     pub fn category(&self) -> ConfigurableSmellType {
         match self {
@@ -394,9 +431,9 @@ impl std::str::FromStr for Severity {
 
     fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
         match s.to_lowercase().as_str() {
-            "low" => Ok(Severity::Low),
-            "medium" => Ok(Severity::Medium),
-            "high" => Ok(Severity::High),
+            "low" | "info" => Ok(Severity::Low),
+            "medium" | "warn" => Ok(Severity::Medium),
+            "high" | "error" => Ok(Severity::High),
             "critical" => Ok(Severity::Critical),
             _ => Err(format!("Unknown severity: {}", s)),
         }
@@ -535,12 +572,8 @@ impl ArchSmell {
     }
 
     /// Get effective severity considering config overrides
-    pub fn effective_severity(&self, config: &SeverityConfig) -> Severity {
-        config
-            .overrides
-            .get(&self.smell_type.category())
-            .copied()
-            .unwrap_or(self.severity)
+    pub fn effective_severity(&self, _config: &SeverityConfig) -> Severity {
+        self.severity
     }
 
     /// Calculate weighted score

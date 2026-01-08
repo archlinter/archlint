@@ -18,7 +18,9 @@ Cohesion measures how closely related the methods and fields of a class are. arc
 ## Configuration
 
 ```yaml
-thresholds:
+rules:
   lcom:
-    threshold: 1 # Number of unconnected components allowed (default is 1)
+    severity: warn
+    max_lcom: 4
+    min_methods: 3
 ```

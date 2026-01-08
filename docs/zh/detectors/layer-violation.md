@@ -1,6 +1,6 @@
 # 分层违规
 
-**ID:** `layer_violation` | **Severity:** High (default)
+**ID:** `layer_violation` | **严重程度:** 高 (默认)
 
 分层违规（Layer violation）发生在当一个架构层中的代码导入了它不应该知道的层中的代码时（例如，Domain 层导入了 Infrastructure 层）。
 
@@ -15,19 +15,38 @@
 你必须在 `.archlint.yaml` 中定义你的层：
 
 ```yaml
-layers:
-  - name: domain
-    paths: ['**/domain/**']
-    can_import: [] # Domain 层不导入任何内容
+rules:
+  layer_violation:
+    layers:
+      - name: domain
+        path: ['**/domain/**']
+        allowed_imports: [] # Domain 层不导入任何内容
 
-  - name: application
-    paths: ['**/application/**']
-    can_import: ['domain']
+      - name: application
+        path: ['**/application/**']
+        allowed_imports: ['domain']
 
-  - name: infrastructure
-    paths: ['**/infrastructure/**']
-    can_import: ['domain', 'application']
+      - name: infrastructure
+        path: ['**/infrastructure/**']
+        allowed_imports: ['domain', 'application']
 ```
+
+## ESLint 规则
+
+此检测器可作为 ESLint 规则使用，以便在编辑器中获得实时反馈。
+
+```javascript
+// eslint.config.js
+export default [
+  {
+    rules: {
+      '@archlinter/no-layer-violations': 'error',
+    },
+  },
+];
+```
+
+详见 [ESLint 集成](/zh/integrations/eslint) 了解设置说明。
 
 ## 如何修复
 

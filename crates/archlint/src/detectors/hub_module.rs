@@ -39,11 +39,16 @@ impl Detector for HubModuleDetector {
     }
 
     fn detect(&self, ctx: &AnalysisContext) -> Vec<ArchSmell> {
-        let thresholds = &ctx.config.thresholds.hub_module;
-
         ctx.graph
             .nodes()
-            .filter_map(|node| Self::check_hub_node(ctx, node, thresholds))
+            .filter_map(|node| {
+                let path = ctx.graph.get_file_path(node)?;
+                let rule = ctx.get_rule_for_file("hub_module", path)?;
+
+                let mut smell = Self::check_hub_node(ctx, node, &rule)?;
+                smell.severity = rule.severity;
+                Some(smell)
+            })
             .collect()
     }
 }
@@ -52,19 +57,23 @@ impl HubModuleDetector {
     fn check_hub_node(
         ctx: &AnalysisContext,
         node: petgraph::graph::NodeIndex,
-        thresholds: &crate::config::HubModuleThresholds,
+        rule: &crate::rule_resolver::ResolvedRuleConfig,
     ) -> Option<ArchSmell> {
         let fan_in = ctx.graph.fan_in(node);
         let fan_out = ctx.graph.fan_out(node);
 
-        if !Self::meets_fan_thresholds(fan_in, fan_out, thresholds) {
+        let min_fan_in: usize = rule.get_option("min_fan_in").unwrap_or(5);
+        let min_fan_out: usize = rule.get_option("min_fan_out").unwrap_or(5);
+        let max_complexity_threshold: usize = rule.get_option("max_complexity").unwrap_or(5);
+
+        if fan_in < min_fan_in || fan_out < min_fan_out {
             return None;
         }
 
         let path = ctx.graph.get_file_path(node)?;
         let max_complexity = Self::get_max_complexity(ctx, path);
 
-        if max_complexity <= thresholds.max_complexity {
+        if max_complexity <= max_complexity_threshold {
             Some(ArchSmell::new_hub_module(
                 path.clone(),
                 fan_in,
@@ -74,14 +83,6 @@ impl HubModuleDetector {
         } else {
             None
         }
-    }
-
-    fn meets_fan_thresholds(
-        fan_in: usize,
-        fan_out: usize,
-        thresholds: &crate::config::HubModuleThresholds,
-    ) -> bool {
-        fan_in >= thresholds.min_fan_in && fan_out >= thresholds.min_fan_out
     }
 
     fn get_max_complexity(ctx: &AnalysisContext, path: &PathBuf) -> usize {

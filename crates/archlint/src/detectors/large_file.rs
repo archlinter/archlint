@@ -38,13 +38,24 @@ impl Detector for LargeFileDetector {
 
     fn detect(&self, ctx: &AnalysisContext) -> Vec<ArchSmell> {
         let mut smells = Vec::new();
-        let threshold = ctx.config.thresholds.large_file.lines;
 
         for node in ctx.graph.nodes() {
             if let Some(path) = ctx.graph.get_file_path(node) {
+                let rule = match ctx.get_rule_for_file("large_file", path) {
+                    Some(r) => r,
+                    None => continue,
+                };
+
+                let threshold: usize = rule
+                    .get_option("max_lines")
+                    .or(rule.get_option("lines"))
+                    .unwrap_or(1000);
+
                 if let Some(metrics) = ctx.file_metrics.get(path) {
                     if metrics.lines >= threshold {
-                        smells.push(ArchSmell::new_large_file(path.clone(), metrics.lines));
+                        let mut smell = ArchSmell::new_large_file(path.clone(), metrics.lines);
+                        smell.severity = rule.severity;
+                        smells.push(smell);
                     }
                 }
             }

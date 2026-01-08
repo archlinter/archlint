@@ -1,10 +1,12 @@
+use std::collections::{HashMap, HashSet};
+use std::path::{Path, PathBuf};
+
 use crate::config::Config;
 use crate::detectors::DetectorCategory;
 use crate::detectors::{ArchSmell, Detector, DetectorFactory, DetectorInfo};
 use crate::engine::AnalysisContext;
+use crate::parser::FileSymbols;
 use inventory;
-use std::collections::HashMap;
-use std::path::PathBuf;
 
 pub fn init() {}
 
@@ -39,48 +41,73 @@ impl Detector for VendorCouplingDetector {
     }
 
     fn detect(&self, ctx: &AnalysisContext) -> Vec<ArchSmell> {
-        let mut package_usage: HashMap<String, Vec<PathBuf>> = HashMap::new();
-        let thresholds = &ctx.config.thresholds.vendor_coupling;
-
-        for (path, symbols) in ctx.file_symbols.as_ref() {
-            for import in &symbols.imports {
-                if self.is_external_import(&import.source) {
-                    let package = self.extract_package_name(&import.source);
-
-                    if !self.should_ignore_package(&package, thresholds) {
-                        let entries = package_usage.entry(package).or_default();
-                        if !entries.contains(path) {
-                            entries.push(path.clone());
-                        }
-                    }
-                }
-            }
-        }
+        let package_usage = self.collect_package_usage(ctx);
+        let rule = match ctx.get_rule("vendor_coupling") {
+            Some(r) => r,
+            None => return Vec::new(),
+        };
+        let max_files: usize = rule.get_option("max_files_per_package").unwrap_or(10);
 
         package_usage
             .into_iter()
-            .filter(|(_, files)| files.len() >= thresholds.max_files_per_package)
-            .map(|(package, files)| ArchSmell::new_vendor_coupling(package, files))
+            .filter(|(_, files)| files.len() >= max_files)
+            .map(|(package, files)| {
+                let mut smell = ArchSmell::new_vendor_coupling(package, files);
+                smell.severity = rule.severity;
+                smell
+            })
             .collect()
     }
 }
 
 impl VendorCouplingDetector {
+    fn collect_package_usage(&self, ctx: &AnalysisContext) -> HashMap<String, Vec<PathBuf>> {
+        let mut package_usage: HashMap<String, Vec<PathBuf>> = HashMap::new();
+
+        for (path, symbols) in ctx.file_symbols.as_ref() {
+            if let Some(packages) = self.get_file_external_packages(ctx, path, symbols) {
+                for package in packages {
+                    package_usage.entry(package).or_default().push(path.clone());
+                }
+            }
+        }
+
+        package_usage
+    }
+
+    fn get_file_external_packages(
+        &self,
+        ctx: &AnalysisContext,
+        path: &Path,
+        symbols: &FileSymbols,
+    ) -> Option<HashSet<String>> {
+        let rule = ctx.get_rule_for_file("vendor_coupling", path)?;
+
+        let ignore_packages: Vec<String> = rule
+            .get_option("ignore_packages")
+            .unwrap_or_else(|| vec!["react".to_string(), "lodash".to_string()]);
+
+        let packages = symbols
+            .imports
+            .iter()
+            .filter(|import| self.is_external_import(&import.source))
+            .map(|import| self.extract_package_name(&import.source))
+            .filter(|package| !self.should_ignore_package(package, &ignore_packages))
+            .collect();
+
+        Some(packages)
+    }
+
     fn is_external_import(&self, source: &str) -> bool {
         !source.starts_with('.') && !source.starts_with('/')
     }
 
-    fn should_ignore_package(
-        &self,
-        package: &str,
-        thresholds: &crate::config::VendorCouplingThresholds,
-    ) -> bool {
+    fn should_ignore_package(&self, package: &str, ignore_packages: &[String]) -> bool {
         if self.is_builtin_package(package) {
             return true;
         }
 
-        thresholds
-            .ignore_packages
+        ignore_packages
             .iter()
             .any(|pattern_str| self.matches_ignore_pattern(package, pattern_str))
     }

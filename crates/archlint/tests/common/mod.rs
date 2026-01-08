@@ -1,4 +1,4 @@
-use archlint::config::Config;
+use archlint::config::{Config, RuleConfig, RuleFullConfig};
 use archlint::engine::{context::FileMetrics, AnalysisContext};
 use archlint::graph::DependencyGraph;
 use archlint::package_json::PackageJsonParser;
@@ -93,4 +93,33 @@ pub fn analyze_fixture_with_config(name: &str, config: Config) -> AnalysisContex
         detected_frameworks: Vec::new(),
         file_types: HashMap::new(),
     }
+}
+
+#[allow(dead_code)]
+pub fn create_config_with_rule(rule_name: &str, options_yaml: Option<&str>) -> Config {
+    let mut config = Config::default();
+    let options = options_yaml
+        .map(|s| serde_yaml::from_str(s).expect("Failed to parse options YAML"))
+        .unwrap_or(serde_yaml::Value::Mapping(serde_yaml::Mapping::new()));
+
+    config.rules.insert(
+        rule_name.to_string(),
+        RuleConfig::Full(RuleFullConfig {
+            enabled: Some(true),
+            severity: None,
+            exclude: Vec::new(),
+            options,
+        }),
+    );
+    config
+}
+
+#[allow(dead_code)]
+pub fn analyze_fixture_with_rule(
+    fixture: &str,
+    rule: &str,
+    options: Option<&str>,
+) -> AnalysisContext {
+    let config = create_config_with_rule(rule, options);
+    analyze_fixture_with_config(fixture, config)
 }

@@ -1,6 +1,6 @@
 # Acoplamento de Fornecedor (Vendor Coupling)
 
-**ID:** `vendor_coupling` | **Severity:** Medium (default)
+**ID:** `vendor_coupling` | **Gravidade:** Medium (default)
 
 Identifica módulos que estão muito fortemente acoplados a uma biblioteca ou framework externo específico.
 

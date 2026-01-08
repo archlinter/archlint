@@ -35,3 +35,20 @@ entry_points:
   - 'src/index.ts'
   - 'src/api/**/*.ts'
 ```
+
+## Regra ESLint
+
+Este detector está disponível como uma regra ESLint para feedback em tempo real no seu editor.
+
+```javascript
+// eslint.config.js
+export default [
+  {
+    rules: {
+      '@archlinter/no-dead-code': 'warn',
+    },
+  },
+];
+```
+
+Veja [Integração ESLint](/pt/integrations/eslint) para instruções de configuração.

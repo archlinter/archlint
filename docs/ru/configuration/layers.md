@@ -1,45 +1,48 @@
 # Слои
 
-Конфигурация `layers` позволяет определить архитектурные слои вашего проекта и обеспечить соблюдение правил зависимостей между ними.
+Конфигурация слоев позволяет определить архитектурные уровни вашего проекта и обеспечить соблюдение правил зависимостей между ними.
 
 ## Определение слоев
 
-Каждое определение слоя состоит из:
+Настройка слоев производится внутри правила `layer_violation`. Каждое определение слоя состоит из:
 
-- `name`: Уникальный идентификатор слоя.
-- `paths`: Массив glob-паттернов, идентифицирующих файлы в этом слое.
-- `can_import`: Массив имен слоев, от которых этот слой может зависеть.
+- `name`: Уникальное имя слоя.
+- `path` (или `paths`): Glob-паттерн, идентифицирующий файлы в этом слое.
+- `allowed_imports` (или `can_import`): Список имен слоев, которые этот слой может импортировать.
 
-## Пример: Clean Architecture
+## Пример: Чистая архитектура (Clean Architecture)
 
 ```yaml
-layers:
-  - name: domain
-    paths: ['**/domain/**']
-    can_import: [] # Слой Domain должен быть независимым
+rules:
+  layer_violation:
+    severity: error
+    layers:
+      - name: domain
+        path: '**/domain/**'
+        allowed_imports: [] # Слой Domain не должен ни от чего зависеть
 
-  - name: application
-    paths: ['**/application/**', '**/use-cases/**']
-    can_import:
-      - domain
+      - name: application
+        path: '**/application/**'
+        allowed_imports:
+          - domain
 
-  - name: infrastructure
-    paths: ['**/infrastructure/**', '**/adapters/**']
-    can_import:
-      - domain
-      - application
+      - name: infrastructure
+        path: '**/infrastructure/**'
+        allowed_imports:
+          - domain
+          - application
 
-  - name: presentation
-    paths: ['**/controllers/**', '**/api/**', '**/ui/**']
-    can_import:
-      - domain
-      - application
+      - name: presentation
+        path: '**/presentation/**'
+        allowed_imports:
+          - domain
+          - application
 ```
 
 ## Как это работает
 
 Когда включен детектор `layer_violation`:
 
-1. Он назначает каждый файл в вашем проекте определенному слою на основе паттернов `paths`.
-2. Он проверяет каждый импорт в этих файлах.
-3. Если файл в слое `A` импортирует файл в слое `B`, но `B` не указан в списке `can_import` слоя `A`, сообщается о нарушении.
+1. Он сопоставляет каждый файл в вашем проекте с определенным слоем на основе паттерна `path`.
+2. Если файл попадает под несколько паттернов, выбирается самый специфичный (наиболее длинный паттерн).
+3. Инструмент проверяет каждый импорт. Если файл в слое `A` импортирует файл в слое `B`, но `B` не указан в списке `allowed_imports` слоя `A`, сообщается о нарушении.

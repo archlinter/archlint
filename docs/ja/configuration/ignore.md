@@ -1,10 +1,10 @@
-# 無視パターン（Ignore Patterns）
+# ファイルの無視
 
-archlintは、分析からファイルやディレクトリを除外するためのいくつかの方法を提供します。
+archlint は、解析からファイルやディレクトリを除外するためのいくつかの方法を提供します。
 
-## グローバルな無視（Global Ignore）
+## グローバルな無視
 
-`archlint.yaml`の`ignore`セクションでは、すべての検出器によって完全にスキップされるファイルを指定します。
+`.archlint.yaml` のルートにある `ignore` セクションは、すべての検出器によって完全にスキップされるファイルを指定します。
 
 ```yaml
 ignore:
@@ -15,22 +15,35 @@ ignore:
   - '**/*.d.ts'
 ```
 
-## .gitignoreのサポート
+## .gitignore のサポート
 
-デフォルトでは、archlintは自動的に`.gitignore`ファイルを尊重します。これらのパターンを`archlint.yaml`に重複して記述する必要はありません。
+デフォルトでは、archlint は `.gitignore` ファイルを自動的に尊重します。`.archlint.yaml` でこれらのパターンを重複させる必要はありません。この動作を無効にするには、`enable_git: false` を設定してください。
 
-## 検出器固有の無視（Detector-Specific Ignore）
+## ルールごとの無視
 
-一部の検出器には、`thresholds`セクション内に独自の`exclude_patterns`があります。これは、あるファイルをほとんどの検出器で分析したいが、特定の検出器（例：サイクル検出からテストファイルを除外するなど）ではスキップしたい場合に便利です。
+`rules` セクション内の `exclude` フィールドを使用して、特定の検出器からファイルを除外できます。これは、ファイルをほとんどの検出器で解析したいが、特定の 1 つの検出器だけはスキップしたい場合に便利です。
 
 ```yaml
-thresholds:
+rules:
   cycles:
-    exclude_patterns:
-      - '**/*.test.ts'
-      - '**/*.spec.ts'
+    exclude:
+      - '**/generated/**'
+      - '**/*.entity.ts'
 ```
 
-## インライン無視（Inline Ignores）
+## パスのオーバーライド (Overrides)
 
-（近日公開予定）ソースコード内で直接、特定の行やファイルを無視するための`// archlint-disable`のようなインラインコメントのサポートに取り組んでいます。
+より複雑なロジック (例: 特定のディレクトリに対して設定を変更したり、複数のルールを無効にしたりする場合) には、`overrides` セクションを使用します。
+
+```yaml
+overrides:
+  - files: ['**/tests/**', '**/mocks/**']
+    rules:
+      complexity: off
+      god_module: off
+      large_file: warn
+```
+
+## インラインでの無視
+
+(開発中) コード内で直接特定の行やファイルを無視するための `// archlint-disable` のようなコメントのサポートに取り組んでいます。

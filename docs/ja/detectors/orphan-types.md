@@ -1,6 +1,6 @@
 # 孤立した型
 
-**ID:** `orphan_types` | **Severity:** Low (default)
+**ID:** `orphan_types` | **重要度:** Low (default)
 
 定義されているが、変数、引数、または戻り値の型として一度も使用されていない型やインターフェースを特定します。
 

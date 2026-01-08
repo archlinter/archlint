@@ -1,10 +1,10 @@
-# 忽略模式
+# 忽略文件
 
-archlint 提供了多种从分析中排除文件或目录的方法。
+archlint 提供了几种从分析中排除文件或目录的方法。
 
 ## 全局忽略
 
-`archlint.yaml` 中的 `ignore` 部分指定了应被所有探测器完全跳过的文件。
+`.archlint.yaml` 根目录下的 `ignore` 部分指定了所有检测器都应完全跳过的文件。
 
 ```yaml
 ignore:
@@ -17,20 +17,33 @@ ignore:
 
 ## .gitignore 支持
 
-默认情况下，archlint 会自动遵循您的 `.gitignore` 文件。您不需要在 `archlint.yaml` 中重复这些模式。
+默认情况下，archlint 会自动遵循您的 `.gitignore` 文件。您不需要在 `.archlint.yaml` 中重复这些模式。如果您想禁用此行为，请设置 `enable_git: false`。
 
-## 探测器特定忽略
+## 按规则忽略
 
-某些探测器在 `thresholds` 部分有自己的 `exclude_patterns`。如果您希望一个文件被大多数探测器分析，但被特定的探测器跳过（例如，从循环依赖检测中排除测试文件），这将非常有用。
+您可以使用 `rules` 部分内的 `exclude` 字段从特定检测器中排除文件。如果您希望一个文件被大多数检测器分析但被某个特定检测器跳过，这很有用。
 
 ```yaml
-thresholds:
+rules:
   cycles:
-    exclude_patterns:
-      - '**/*.test.ts'
-      - '**/*.spec.ts'
+    exclude:
+      - '**/generated/**'
+      - '**/*.entity.ts'
 ```
 
-## 行内忽略
+## 路径覆盖 (Overrides)
 
-（即将推出）我们正在努力支持像 `// archlint-disable` 这样的行内注释，以便直接在源代码中忽略特定的行或文件。
+对于更复杂的逻辑（例如，更改设置或为特定目录禁用多个规则），请使用 `overrides` 部分：
+
+```yaml
+overrides:
+  - files: ['**/tests/**', '**/mocks/**']
+    rules:
+      complexity: off
+      god_module: off
+      large_file: warn
+```
+
+## 内联忽略
+
+（开发中）我们正在支持类似于 `// archlint-disable` 的注释，以便直接在代码中忽略特定的行或文件。

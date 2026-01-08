@@ -16,7 +16,26 @@ Functions with many parameters are hard to use and hard to read. They often indi
 ## Configuration
 
 ```yaml
-thresholds:
+rules:
   long_params:
+    severity: info
     max_params: 5
+    ignore_constructors: true
 ```
+
+## ESLint Rule
+
+This detector is available as an ESLint rule for real-time feedback in your editor.
+
+```javascript
+// eslint.config.js
+export default [
+  {
+    rules: {
+      '@archlinter/no-long-params': 'warn',
+    },
+  },
+];
+```
+
+See [ESLint Integration](/integrations/eslint) for setup instructions.

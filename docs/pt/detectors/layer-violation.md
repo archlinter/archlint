@@ -1,10 +1,10 @@
 # Violação de Camada
 
-**ID:** `layer_violation` | **Severity:** High (default)
+**ID:** `layer_violation` | **Gravidade:** High (default)
 
 A violação de camada (Layer violation) ocorre quando o código em uma camada arquitetural importa código de uma camada que não deveria conhecer (por exemplo, a camada Domain importando da Infrastructure).
 
-## Por que isso é um "smell"
+## Por que isso é um smell
 
 - **Quebra a Abstração**: Detalhes de implementação interna vazam para a lógica de negócio de alto nível.
 - **Dificuldade de Teste**: A lógica de negócio torna-se difícil de testar sem mocks para a infraestrutura (BD, API, etc.).
@@ -15,19 +15,38 @@ A violação de camada (Layer violation) ocorre quando o código em uma camada a
 Você deve definir suas camadas em `.archlint.yaml`:
 
 ```yaml
-layers:
+rules:
+  layer_violation:
+    layers:
   - name: domain
-    paths: ['**/domain/**']
-    can_import: [] # Domain não importa nada
+    path: ['**/domain/**']
+    allowed_imports: [] # Domain não importa nada
 
   - name: application
-    paths: ['**/application/**']
-    can_import: ['domain']
+    path: ['**/application/**']
+    allowed_imports: ['domain']
 
   - name: infrastructure
-    paths: ['**/infrastructure/**']
-    can_import: ['domain', 'application']
+    path: ['**/infrastructure/**']
+    allowed_imports: ['domain', 'application']
 ```
+
+## Regra ESLint
+
+Este detector está disponível como uma regra ESLint para feedback em tempo real no seu editor.
+
+```javascript
+// eslint.config.js
+export default [
+  {
+    rules: {
+      '@archlinter/no-layer-violations': 'error',
+    },
+  },
+];
+```
+
+Veja [Integração ESLint](/pt/integrations/eslint) para instruções de configuração.
 
 ## Como corrigir
 

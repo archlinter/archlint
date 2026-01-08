@@ -2,14 +2,12 @@ mod common;
 
 use archlint::detectors::scattered_config::ScatteredConfigDetector;
 use archlint::detectors::Detector;
-use common::analyze_fixture_with_config;
+use common::analyze_fixture_with_rule;
 
 #[test]
 fn test_scattered_config_detected() {
-    let mut config = archlint::config::Config::default();
-    config.thresholds.scattered_config.max_files = 3;
-
-    let ctx = analyze_fixture_with_config("config/scattered", config);
+    let ctx =
+        analyze_fixture_with_rule("config/scattered", "scattered_config", Some("max_files: 3"));
     let detector = ScatteredConfigDetector;
     let smells = detector.detect(&ctx);
 
@@ -29,10 +27,11 @@ fn test_scattered_config_detected() {
 
 #[test]
 fn test_centralized_config_ok() {
-    let mut config = archlint::config::Config::default();
-    config.thresholds.scattered_config.max_files = 3;
-
-    let ctx = analyze_fixture_with_config("config/centralized", config);
+    let ctx = analyze_fixture_with_rule(
+        "config/centralized",
+        "scattered_config",
+        Some("max_files: 3"),
+    );
     let detector = ScatteredConfigDetector;
     let smells = detector.detect(&ctx);
 

@@ -11,6 +11,5 @@
 ## Рекомендуемая конфигурация
 
 ```yaml
-frameworks:
-  - react
+framework: react
 ```

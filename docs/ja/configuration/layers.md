@@ -1,45 +1,48 @@
-# レイヤー（Layers）
+# レイヤー
 
-`layers`設定を使用すると、プロジェクトのアーキテクチャレイヤーを定義し、それらの間の依存関係ルールを強制できます。
+レイヤー設定を使用すると、プロジェクトのアーキテクチャレベルを定義し、それらの間の依存関係ルールを強制できます。
 
 ## レイヤーの定義
 
-各レイヤーの定義は以下で構成されます：
+レイヤーは `layer_violation` ルール内で設定されます。各レイヤー定義は以下で構成されます。
 
-- `name`: レイヤーの一意の識別子。
-- `paths`: このレイヤーに含まれるファイルを識別するグロブパターンの配列。
-- `can_import`: このレイヤーが依存することを許可されているレイヤー名の配列。
+- `name`: レイヤーの一意の名前。
+- `path` (または `paths`): このレイヤーのファイルを特定する glob パターン。
+- `allowed_imports` (または `can_import`): このレイヤーがインポートを許可されているレイヤー名のリスト。
 
-## 例：クリーンアーキテクチャ（Clean Architecture）
+## 例: クリーンアーキテクチャ (Clean Architecture)
 
 ```yaml
-layers:
-  - name: domain
-    paths: ['**/domain/**']
-    can_import: [] # Domainレイヤーは独立している必要があります
+rules:
+  layer_violation:
+    severity: error
+    layers:
+      - name: domain
+        path: '**/domain/**'
+        allowed_imports: [] # Domain レイヤーは何にも依存してはいけません
 
-  - name: application
-    paths: ['**/application/**', '**/use-cases/**']
-    can_import:
-      - domain
+      - name: application
+        path: '**/application/**'
+        allowed_imports:
+          - domain
 
-  - name: infrastructure
-    paths: ['**/infrastructure/**', '**/adapters/**']
-    can_import:
-      - domain
-      - application
+      - name: infrastructure
+        path: '**/infrastructure/**'
+        allowed_imports:
+          - domain
+          - application
 
-  - name: presentation
-    paths: ['**/controllers/**', '**/api/**', '**/ui/**']
-    can_import:
-      - domain
-      - application
+      - name: presentation
+        path: '**/presentation/**'
+        allowed_imports:
+          - domain
+          - application
 ```
 
 ## 仕組み
 
-`layer_violation`検出器が有効な場合：
+`layer_violation` 検出器が有効な場合:
 
-1. `paths`パターンに基づいて、プロジェクト内の各ファイルがレイヤーに割り当てられます。
-2. それらのファイル内のすべてのインポート（import）がチェックされます。
-3. レイヤー `A` のファイルがレイヤー `B` のファイルをインポートしており、かつ `B` が `A` の `can_import` リストに含まれていない場合、違反（violation）が報告されます。
+1. `path` パターンに基づいて、プロジェクト内のすべてのファイルを特定のレイヤーにマッピングします。
+2. ファイルが複数のパターンに一致する場合、最も具体的なもの (最も長いパターン) が選択されます。
+3. ツールはすべてのインポートをチェックします。レイヤー `A` のファイルがレイヤー `B` のファイルをインポートし、`B` がレイヤー `A` の `allowed_imports` リストにない場合、違反が報告されます。

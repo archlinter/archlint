@@ -1,6 +1,6 @@
 # Vazamento de Teste (Test Leakage)
 
-**ID:** `test_leakage` | **Severity:** High (default)
+**ID:** `test_leakage` | **Gravidade:** High (default)
 
 Identifica código de produção que importa de arquivos de teste ou arquivos de mock.
 

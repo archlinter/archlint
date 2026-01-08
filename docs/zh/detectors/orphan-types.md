@@ -1,6 +1,6 @@
 # 孤立类型
 
-**ID:** `orphan_types` | **Severity:** Low (default)
+**ID:** `orphan_types` | **严重程度:** 低 (默认)
 
 识别已定义但从未用作变量、参数或返回值类型的类型或接口。
 

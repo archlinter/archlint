@@ -39,7 +39,12 @@ impl Detector for LayerViolationDetector {
     }
 
     fn detect(&self, ctx: &AnalysisContext) -> Vec<ArchSmell> {
-        let layers = &ctx.config.thresholds.layer_violation.layers;
+        let rule = match ctx.get_rule("layer_violation") {
+            Some(r) => r,
+            None => return Vec::new(),
+        };
+
+        let layers: Vec<LayerConfig> = rule.get_option("layers").unwrap_or_default();
 
         if layers.is_empty() {
             return Vec::new();
@@ -47,9 +52,9 @@ impl Detector for LayerViolationDetector {
 
         ctx.graph
             .nodes()
-            .filter_map(|node| self.get_node_info(ctx, node, layers))
+            .filter_map(|node| self.get_node_info(ctx, node, &layers))
             .flat_map(|from_info| {
-                Self::check_dependencies_for_violations(ctx, from_info, layers, self)
+                Self::check_dependencies_for_violations(ctx, from_info, &layers, self, &rule)
             })
             .collect()
     }
@@ -61,16 +66,24 @@ impl LayerViolationDetector {
         from_info: (&PathBuf, &LayerConfig),
         layers: &[LayerConfig],
         detector: &LayerViolationDetector,
+        _global_rule: &crate::rule_resolver::ResolvedRuleConfig,
     ) -> Vec<ArchSmell> {
         let (from_path, _) = from_info;
         let mut smells = Vec::new();
 
         // Find node index for from_path
         if let Some(node) = ctx.graph.get_node(from_path) {
+            let rule = match ctx.get_rule_for_file("layer_violation", from_path) {
+                Some(r) => r,
+                None => return Vec::new(),
+            };
+
             for to_node in ctx.graph.dependencies(node) {
                 if let Some(to_info) = detector.get_node_info(ctx, to_node, layers) {
                     let edge_data = ctx.graph.get_edge_data(node, to_node);
-                    if let Some(smell) = detector.check_violation(from_info, to_info, edge_data) {
+                    if let Some(mut smell) = detector.check_violation(from_info, to_info, edge_data)
+                    {
+                        smell.severity = rule.severity;
                         smells.push(smell);
                     }
                 }

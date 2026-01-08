@@ -11,8 +11,7 @@ Next.js 项目具有独特的文件路由和打包模式，archlint 能够理解
 ## 推荐配置
 
 ```yaml
-frameworks:
-  - nextjs
+framework: nextjs
 
 entry_points:
   - 'src/pages/**/*.tsx'

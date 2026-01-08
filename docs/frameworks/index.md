@@ -4,10 +4,10 @@ archlint is not just a generic linter; it understands the architectural patterns
 
 ## How it works
 
-archlint automatically detects which frameworks are used in your project by looking at `package.json` and file structures. You can also explicitly set or override this in your `archlint.yaml`:
+archlint automatically detects which frameworks are used in your project by looking at `package.json` and file structures. You can also explicitly set or override this in your `.archlint.yaml`:
 
 ```yaml
-frameworks:
+framework:
   - nestjs
   - react
 ```

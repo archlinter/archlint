@@ -14,7 +14,7 @@ pub struct BarrelFileAbuseDetectorFactory;
 impl DetectorFactory for BarrelFileAbuseDetectorFactory {
     fn info(&self) -> DetectorInfo {
         DetectorInfo {
-            id: "barrel_file_abuse",
+            id: "barrel_file",
             name: "Barrel File Abuse Detector",
             description:
                 "Detects excessive use of barrel files (index.ts) that inflate the dependency graph",
@@ -40,16 +40,18 @@ impl Detector for BarrelFileAbuseDetector {
 
     fn detect(&self, ctx: &AnalysisContext) -> Vec<ArchSmell> {
         let mut smells = Vec::new();
-        let thresholds = &ctx.config.thresholds.barrel_file;
 
         for (path, symbols) in ctx.file_symbols.as_ref() {
-            if ctx.should_skip_detector(path, "barrel_file_abuse") {
-                continue;
-            }
+            let rule = match ctx.get_rule_for_file("barrel_file", path) {
+                Some(r) => r,
+                None => continue,
+            };
 
             if !self.is_barrel_file(path) {
                 continue;
             }
+
+            let max_reexports: usize = rule.get_option("max_reexports").unwrap_or(10);
 
             let reexport_count = symbols
                 .exports
@@ -57,12 +59,10 @@ impl Detector for BarrelFileAbuseDetector {
                 .filter(|e| e.source.is_some()) // re-exports have a source
                 .count();
 
-            if reexport_count > thresholds.max_reexports {
-                smells.push(ArchSmell::new_barrel_abuse(
-                    path.clone(),
-                    reexport_count,
-                    false,
-                ));
+            if reexport_count > max_reexports {
+                let mut smell = ArchSmell::new_barrel_abuse(path.clone(), reexport_count, false);
+                smell.severity = rule.severity;
+                smells.push(smell);
             }
         }
 

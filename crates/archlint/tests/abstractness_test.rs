@@ -2,14 +2,15 @@ mod common;
 
 use archlint::detectors::abstractness::AbstractnessViolationDetector;
 use archlint::detectors::Detector;
-use common::analyze_fixture_with_config;
+use common::analyze_fixture_with_rule;
 
 #[test]
 fn test_zone_of_pain_detected() {
-    let mut config = archlint::config::Config::default();
-    config.thresholds.abstractness.distance_threshold = 0.5;
-
-    let ctx = analyze_fixture_with_config("abstractness/pain", config);
+    let ctx = analyze_fixture_with_rule(
+        "abstractness/pain",
+        "abstractness",
+        Some("distance_threshold: 0.5"),
+    );
     let detector = AbstractnessViolationDetector;
     let smells = detector.detect(&ctx);
 
@@ -22,10 +23,11 @@ fn test_zone_of_pain_detected() {
 
 #[test]
 fn test_zone_of_uselessness_detected() {
-    let mut config = archlint::config::Config::default();
-    config.thresholds.abstractness.distance_threshold = 0.5;
-
-    let ctx = analyze_fixture_with_config("abstractness/useless", config);
+    let ctx = analyze_fixture_with_rule(
+        "abstractness/useless",
+        "abstractness",
+        Some("distance_threshold: 0.5"),
+    );
     let detector = AbstractnessViolationDetector;
     let smells = detector.detect(&ctx);
 

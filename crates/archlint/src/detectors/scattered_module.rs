@@ -15,7 +15,7 @@ pub struct ScatteredModuleDetectorFactory;
 impl DetectorFactory for ScatteredModuleDetectorFactory {
     fn info(&self) -> DetectorInfo {
         DetectorInfo {
-            id: "scattered_module",
+            id: "module_cohesion",
             name: "Scattered Module Detector",
             description: "Detects modules where exports are unrelated to each other",
             default_enabled: false,
@@ -40,23 +40,27 @@ impl Detector for ScatteredModuleDetector {
 
     fn detect(&self, ctx: &AnalysisContext) -> Vec<ArchSmell> {
         let mut smells = Vec::new();
-        let thresholds = &ctx.config.thresholds.module_cohesion;
 
         for (path, symbols) in ctx.file_symbols.as_ref() {
-            if ctx.should_skip_detector(path, "scattered_module") {
-                continue;
-            }
+            let rule = match ctx.get_rule_for_file("module_cohesion", path) {
+                Some(r) => r,
+                None => continue,
+            };
+
+            let min_exports: usize = rule.get_option("min_exports").unwrap_or(5);
+            let max_components: usize = rule.get_option("max_components").unwrap_or(2);
 
             // Ignore small files and barrels (barrels are handled by BarrelFileAbuseDetector)
-            if symbols.exports.len() < thresholds.min_exports || self.is_barrel_file(path, symbols)
-            {
+            if symbols.exports.len() < min_exports || self.is_barrel_file(path, symbols) {
                 continue;
             }
 
             let components = self.calculate_components(symbols);
 
-            if components > thresholds.max_components {
-                smells.push(ArchSmell::new_scattered_module(path.clone(), components));
+            if components > max_components {
+                let mut smell = ArchSmell::new_scattered_module(path.clone(), components);
+                smell.severity = rule.severity;
+                smells.push(smell);
             }
         }
 

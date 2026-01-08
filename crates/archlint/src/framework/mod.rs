@@ -1,7 +1,6 @@
 pub mod classifier;
 pub mod detector;
 pub mod presets;
-pub mod selector;
 
 use serde::{Deserialize, Serialize};
 

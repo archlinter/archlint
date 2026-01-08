@@ -1,6 +1,6 @@
 # Package Cycles
 
-**ID:** `package_cycle` | **Severity:** High (default)
+**ID:** `package_cycles` | **Severity:** High (default)
 
 Detects circular dependencies between entire packages (folders with `package.json` or logical module boundaries).
 

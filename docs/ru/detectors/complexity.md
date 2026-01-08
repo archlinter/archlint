@@ -1,6 +1,6 @@
 # Высокая сложность
 
-**ID:** `complexity` | **Severity:** Medium (default)
+**ID:** `complexity` | **Степень критичности:** Средняя (по умолчанию)
 
 Этот детектор находит функции с высокой цикломатической сложностью.
 
@@ -19,7 +19,30 @@
 ## Конфигурация
 
 ```yaml
-thresholds:
+rules:
   complexity:
+    severity: warn
     max_complexity: 15
 ```
+
+## ESLint правило
+
+Этот детектор доступен как правило ESLint для получения обратной связи в реальном времени.
+
+```javascript
+// eslint.config.js
+export default [
+  {
+    rules: {
+      '@archlinter/no-high-complexity': 'warn',
+    },
+  },
+];
+```
+
+Смотрите [Интеграция с ESLint](/ru/integrations/eslint) для инструкций по настройке.
+
+### Параметры по умолчанию
+
+- `function_threshold`: `10` - максимальная цикломатическая сложность функции
+- `file_threshold`: `50` - максимальная цикломатическая сложность файла

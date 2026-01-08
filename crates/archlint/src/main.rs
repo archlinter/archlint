@@ -132,18 +132,16 @@ fn format_log_record(
     }
 }
 
-fn determine_exit_code(report: &report::AnalysisReport, config: &config::Config) -> i32 {
-    let severity_config = &config.severity;
-
+fn determine_exit_code(report: &report::AnalysisReport, _config: &config::Config) -> i32 {
     let has_critical = report
         .smells
         .iter()
-        .any(|(s, _)| s.effective_severity(severity_config) == detectors::Severity::Critical);
+        .any(|(s, _)| s.severity == detectors::Severity::Critical);
 
     let has_high = report
         .smells
         .iter()
-        .any(|(s, _)| s.effective_severity(severity_config) == detectors::Severity::High);
+        .any(|(s, _)| s.severity == detectors::Severity::High);
 
     if has_critical {
         2 // Critical issues found
@@ -298,7 +296,7 @@ fn write_report(
         args.report.as_deref(),
         args.output_format(),
         args.no_diagram,
-        &config.severity,
+        &config.scoring,
         Some(project_root),
     )?;
 
@@ -327,8 +325,8 @@ fn print_scan_results(
         );
 
         let total_smells = report.smells.len();
-        let total_score = report.total_score(&config.severity);
-        let grade = report.grade(&config.severity);
+        let total_score = report.total_score(&config.scoring);
+        let grade = report.grade(&config.scoring);
 
         info!(
             "{} Total smells found: {} (Total Score: {} pts)",

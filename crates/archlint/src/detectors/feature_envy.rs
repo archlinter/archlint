@@ -36,12 +36,17 @@ impl Detector for FeatureEnvyDetector {
     }
 
     fn detect(&self, ctx: &AnalysisContext) -> Vec<ArchSmell> {
-        let thresholds = &ctx.config.thresholds.feature_envy;
-
         ctx.file_symbols
             .iter()
             .filter_map(|(path, symbols)| {
-                Self::analyze_file_for_envy(path.as_path(), symbols, thresholds)
+                let rule = ctx.get_rule_for_file("feature_envy", path)?;
+
+                let ratio_threshold: f64 = rule.get_option("ratio").unwrap_or(3.0);
+
+                let mut smell =
+                    Self::analyze_file_for_envy(path.as_path(), symbols, ratio_threshold)?;
+                smell.severity = rule.severity;
+                Some(smell)
             })
             .collect()
     }
@@ -51,13 +56,13 @@ impl FeatureEnvyDetector {
     fn analyze_file_for_envy(
         path: &std::path::Path,
         symbols: &crate::parser::FileSymbols,
-        thresholds: &crate::config::FeatureEnvyThresholds,
+        ratio_threshold: f64,
     ) -> Option<ArchSmell> {
         let internal_refs = Self::count_internal_refs(symbols);
         let (external_refs, source_usages) = Self::count_external_refs(symbols);
         let ratio = external_refs as f64 / (internal_refs as f64 + 1.0);
 
-        if ratio >= thresholds.ratio && external_refs > 0 {
+        if ratio >= ratio_threshold && external_refs > 0 {
             let most_envied_path = Self::find_most_envied_path(path, source_usages)?;
             Some(ArchSmell::new_feature_envy(
                 path.to_path_buf(),

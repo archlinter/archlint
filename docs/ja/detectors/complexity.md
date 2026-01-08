@@ -4,7 +4,7 @@
 
 このディテクターは、循環的複雑度（Cyclomatic Complexity）が高い関数を特定します。
 
-## なぜこれが「不吉な臭い（スメル）」なのか
+## なぜこれが「不吉な臭い」なのか
 
 - **理解が困難**: 分岐が多すぎると、コードを追うのが難しくなります。
 - **バグの温床**: テスト中にエッジケースを見落とす可能性が高まります。
@@ -19,7 +19,25 @@
 ## 設定 (Configuration)
 
 ```yaml
-thresholds:
+rules:
   complexity:
+    severity: warn
     max_complexity: 15
 ```
+
+## ESLint ルール
+
+このディテクターは、エディター内でリアルタイムのフィードバックを提供する ESLint ルールとして利用可能です。
+
+```javascript
+// eslint.config.js
+export default [
+  {
+    rules: {
+      '@archlinter/no-high-complexity': 'warn',
+    },
+  },
+];
+```
+
+セットアップ手順については [ESLint Integration](/ja/integrations/eslint) を参照してください。

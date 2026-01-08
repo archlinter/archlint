@@ -16,7 +16,7 @@ pub struct PackageCycleDetectorFactory;
 impl DetectorFactory for PackageCycleDetectorFactory {
     fn info(&self) -> DetectorInfo {
         DetectorInfo {
-            id: "package_cycle",
+            id: "package_cycles",
             name: "Package-level Cycle Detector",
             description: "Detects circular dependencies between logical folders (packages)",
             default_enabled: false,
@@ -40,9 +40,23 @@ impl Detector for PackageCycleDetector {
     }
 
     fn detect(&self, ctx: &AnalysisContext) -> Vec<ArchSmell> {
-        let thresholds = &ctx.config.thresholds.package_cycles;
-        let pkg_graph = Self::build_package_graph(ctx, thresholds.package_depth);
-        Self::find_package_cycles(&pkg_graph)
+        let rule = match ctx.get_rule("package_cycles") {
+            Some(r) => r,
+            None => return Vec::new(),
+        };
+
+        let package_depth: usize = rule.get_option("package_depth").unwrap_or(2);
+
+        let pkg_graph = Self::build_package_graph(ctx, package_depth);
+        let smells = Self::find_package_cycles(&pkg_graph);
+
+        smells
+            .into_iter()
+            .map(|mut s| {
+                s.severity = rule.severity;
+                s
+            })
+            .collect()
     }
 }
 

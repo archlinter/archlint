@@ -1,10 +1,10 @@
 # 巨大なファイル
 
-**ID:** `large_file` | **Severity:** Medium (default)
+**ID:** `large_file` | **重要度:** Medium (default)
 
 指定された行数を超えるソースファイルを特定します。
 
-## なぜこれがコードの不吉な臭い（smell）なのか
+## なぜこれが「不吉な臭い」なのか
 
 極端に大きなファイルは、ナビゲート、理解、および保守が困難です。通常、これは単一責任の原則への違反を示しています。
 
@@ -15,7 +15,7 @@
 ## 設定
 
 ```yaml
-thresholds:
+rules:
   large_file:
     max_lines: 1000
 ```

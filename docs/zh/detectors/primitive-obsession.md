@@ -1,6 +1,6 @@
 # 基本类型偏执
 
-**ID:** `primitive_obsession` | **Severity:** Low (default)
+**ID:** `primitive_obsession` | **严重程度:** 低 (默认)
 
 基本类型偏执是指过度使用基本类型（字符串、数字、布尔值）来表示领域概念，而这些概念本可以由特定的类型或类更好地表示（例如，使用 `string` 表示电子邮件地址，或使用 `number` 表示货币）。
 

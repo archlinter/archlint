@@ -1,45 +1,48 @@
-# Camadas (Layers)
+# Camadas
 
-A configuração de `layers` permite definir as camadas arquiteturais do seu projeto e impor as regras de dependência entre elas.
+A configuração de camadas permite definir níveis arquiteturais do seu projeto e impor regras de dependência entre eles.
 
 ## Definindo Camadas
 
-Cada definição de camada consiste em:
+As camadas são configuradas dentro da regra `layer_violation`. Cada definição de camada consiste em:
 
-- `name`: Um identificador único para a camada.
-- `paths`: Um array de padrões glob que identificam os arquivos nesta camada.
-- `can_import`: Um array de nomes de camadas das quais esta camada pode depender.
+- `name`: Nome único da camada.
+- `path` (ou `paths`): Padrão glob identificando os arquivos nesta camada.
+- `allowed_imports` (ou `can_import`): Lista de nomes de camadas que esta camada tem permissão para importar.
 
-## Exemplo: Clean Architecture
+## Exemplo: Arquitetura Limpa (Clean Architecture)
 
 ```yaml
-layers:
-  - name: domain
-    paths: ['**/domain/**']
-    can_import: [] # A camada Domain deve ser independente
+rules:
+  layer_violation:
+    severity: error
+    layers:
+      - name: domain
+        path: '**/domain/**'
+        allowed_imports: [] # A camada Domain não deve depender de nada
 
-  - name: application
-    paths: ['**/application/**', '**/use-cases/**']
-    can_import:
-      - domain
+      - name: application
+        path: '**/application/**'
+        allowed_imports:
+          - domain
 
-  - name: infrastructure
-    paths: ['**/infrastructure/**', '**/adapters/**']
-    can_import:
-      - domain
-      - application
+      - name: infrastructure
+        path: '**/infrastructure/**'
+        allowed_imports:
+          - domain
+          - application
 
-  - name: presentation
-    paths: ['**/controllers/**', '**/api/**', '**/ui/**']
-    can_import:
-      - domain
-      - application
+      - name: presentation
+        path: '**/presentation/**'
+        allowed_imports:
+          - domain
+          - application
 ```
 
-## Como funciona
+## Como Funciona
 
-Quando o detector `layer_violation` está habilitado:
+Quando o detector `layer_violation` está ativado:
 
-1. Ele atribui cada arquivo no seu projeto a uma camada com base nos padrões `paths`.
-2. Ele verifica cada import nesses arquivos.
-3. Se um arquivo na camada `A` importa um arquivo na camada `B`, mas `B` não está na lista `can_import` de `A`, uma violação é relatada.
+1. Ele mapeia cada arquivo no seu projeto para uma camada específica com base no padrão `path`.
+2. Se um arquivo corresponder a vários padrões, o mais específico (padrão mais longo) será escolhido.
+3. A ferramenta verifica cada importação. Se um arquivo na camada `A` importar um arquivo na camada `B`, mas `B` não estiver na lista `allowed_imports` da camada `A`, uma violação será relatada.

@@ -22,6 +22,7 @@ pub mod parser;
 pub mod project_root;
 pub mod report;
 pub mod resolver;
+pub mod rule_resolver;
 pub mod scanner;
 pub mod snapshot;
 #[cfg(feature = "cli")]

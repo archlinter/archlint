@@ -18,7 +18,25 @@ High coupling occurs when a module depends on too many other modules (high Fan-o
 ## Configuration
 
 ```yaml
-thresholds:
+rules:
   high_coupling:
-    max_dependencies: 15
+    severity: warn
+    max_cbo: 20
 ```
+
+## ESLint Rule
+
+This detector is available as an ESLint rule for real-time feedback in your editor.
+
+```javascript
+// eslint.config.js
+export default [
+  {
+    rules: {
+      '@archlinter/no-high-coupling': 'warn',
+    },
+  },
+];
+```
+
+See [ESLint Integration](/integrations/eslint) for setup instructions.

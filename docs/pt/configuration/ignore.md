@@ -1,10 +1,10 @@
-# Padrões de Ignore
+# Ignorando Arquivos
 
-O archlint oferece várias maneiras de excluir arquivos ou diretórios da análise.
+O archlint fornece várias maneiras de excluir arquivos ou diretórios da análise.
 
-## Ignore Global
+## Ignorar Global
 
-A seção `ignore` no `archlint.yaml` especifica arquivos que devem ser completamente pulados por todos os detectores.
+A seção `ignore` na raiz do `.archlint.yaml` especifica arquivos que devem ser completamente ignorados por todos os detectores.
 
 ```yaml
 ignore:
@@ -17,20 +17,33 @@ ignore:
 
 ## Suporte ao .gitignore
 
-Por padrão, o archlint respeita automaticamente o seu arquivo `.gitignore`. Você não precisa duplicar esses padrões no seu `archlint.yaml`.
+Por padrão, o archlint respeita automaticamente seu arquivo `.gitignore`. Você não precisa duplicar esses padrões no `.archlint.yaml`. Se desejar desativar esse comportamento, defina `enable_git: false`.
 
-## Ignore Específico por Detector
+## Ignorar por Regra
 
-Alguns detectores têm seus próprios `exclude_patterns` dentro da seção `thresholds`. Isso é útil se você deseja que um arquivo seja analisado pela maioria dos detectores, mas pulado por um específico (por exemplo, excluindo arquivos de teste da detecção de ciclos).
+Você pode excluir arquivos de um detector específico usando o campo `exclude` dentro da seção `rules`. Isso é útil se você deseja que um arquivo seja analisado pela maioria dos detectores, mas ignorado por um detector específico.
 
 ```yaml
-thresholds:
+rules:
   cycles:
-    exclude_patterns:
-      - '**/*.test.ts'
-      - '**/*.spec.ts'
+    exclude:
+      - '**/generated/**'
+      - '**/*.entity.ts'
 ```
 
-## Ignores Inline
+## Substituições de Caminho (Overrides)
 
-(Em breve) Estamos trabalhando para oferecer suporte a comentários inline como `// archlint-disable` para ignorar linhas ou arquivos específicos diretamente no código-fonte.
+Para lógica mais complexa (por exemplo, alterar configurações ou desativar várias regras para um diretório específico), use a seção `overrides`:
+
+```yaml
+overrides:
+  - files: ['**/tests/**', '**/mocks/**']
+    rules:
+      complexity: off
+      god_module: off
+      large_file: warn
+```
+
+## Ignorar Inline
+
+(Em Desenvolvimento) Estamos trabalhando no suporte a comentários como `// archlint-disable` para ignorar linhas ou arquivos específicos diretamente no código.

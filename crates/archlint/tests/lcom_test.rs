@@ -2,13 +2,11 @@ mod common;
 
 use archlint::detectors::lcom::LcomDetector;
 use archlint::detectors::Detector;
-use common::analyze_fixture;
+use common::{analyze_fixture, analyze_fixture_with_rule};
 
 #[test]
 fn test_high_lcom_detected() {
-    let mut config = archlint::config::Config::default();
-    config.thresholds.lcom.max_lcom = 1; // 2+ components is a smell
-    let ctx = analyze_fixture_with_config("lcom/high", config);
+    let ctx = analyze_fixture_with_rule("lcom/high", "lcom", Some("max_lcom: 1"));
     let detector = LcomDetector;
     let smells = detector.detect(&ctx);
 
@@ -35,5 +33,3 @@ fn test_small_class_ignored() {
 
     assert!(smells.is_empty(), "Expected small class to be ignored");
 }
-
-use common::analyze_fixture_with_config;

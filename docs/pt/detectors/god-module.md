@@ -1,10 +1,10 @@
 # Módulo Deus
 
-**ID:** `god_module` | **Severity:** High (default)
+**ID:** `god_module` | **Gravidade:** High (default)
 
 Um "Módulo Deus" (God Module) é um arquivo que cresceu demais e assumiu muitas responsabilidades.
 
-## Por que isso é um "smell"
+## Por que isso é um smell
 
 - **Viola o Princípio da Responsabilidade Única**: O módulo faz coisas demais.
 - **Conflitos de Merge**: Mudanças frequentes por diferentes desenvolvedores levam a conflitos constantes.
@@ -13,7 +13,7 @@ Um "Módulo Deus" (God Module) é um arquivo que cresceu demais e assumiu muitas
 
 ## Critérios de Detecção
 
-O archlint identifica Módulos Deus com base em:
+O `archlint` identifica Módulos Deus com base em:
 
 - **Fan-in**: Número de outros módulos que dependem dele.
 - **Fan-out**: Número de módulos dos quais ele depende.
@@ -29,10 +29,27 @@ O archlint identifica Módulos Deus com base em:
 ## Configuração
 
 ```yaml
-thresholds:
+rules:
   god_module:
+    severity: error
     fan_in: 15
     fan_out: 15
     churn: 20
-    max_lines: 500
 ```
+
+## Regra ESLint
+
+Este detector está disponível como uma regra ESLint para feedback em tempo real no seu editor.
+
+```javascript
+// eslint.config.js
+export default [
+  {
+    rules: {
+      '@archlinter/no-god-modules': 'warn',
+    },
+  },
+];
+```
+
+Veja [Integração ESLint](/pt/integrations/eslint) para instruções de configuração.

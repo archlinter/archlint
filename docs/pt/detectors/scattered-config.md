@@ -1,10 +1,10 @@
 # Configuração Espalhada
 
-**ID:** `scattered_config` | **Severity:** Low (default)
+**ID:** `scattered_config` | **Gravidade:** Low (default)
 
 Identifica configurações (como acesso a variáveis de ambiente) que estão espalhadas por muitos arquivos diferentes em vez de serem centralizadas.
 
-## Por que isso é um "smell"
+## Por que isso é um smell
 
 Centralizar a configuração torna mais fácil:
 

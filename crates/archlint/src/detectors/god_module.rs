@@ -35,7 +35,6 @@ impl Detector for GodModuleDetector {
 
     fn detect(&self, ctx: &AnalysisContext) -> Vec<ArchSmell> {
         let mut smells = Vec::new();
-        let thresholds = &ctx.config.thresholds.god_module;
 
         // Check if git churn information is available
         let git_available = ctx.config.enable_git && !ctx.churn_map.is_empty();
@@ -45,18 +44,25 @@ impl Detector for GodModuleDetector {
             let fan_out = ctx.graph.fan_out(node);
 
             if let Some(path) = ctx.graph.get_file_path(node) {
+                let rule = match ctx.get_rule_for_file("god_module", path) {
+                    Some(r) => r,
+                    None => continue,
+                };
+
+                let fan_in_threshold: usize = rule.get_option("fan_in").unwrap_or(10);
+                let fan_out_threshold: usize = rule.get_option("fan_out").unwrap_or(10);
+                let churn_threshold: usize = rule.get_option("churn").unwrap_or(20);
+
                 let file_churn = ctx.churn_map.get(path).copied().unwrap_or(0);
 
                 // If git is not available, we skip the churn threshold check
-                let churn_ok = !git_available || file_churn >= thresholds.churn;
+                let churn_ok = !git_available || file_churn >= churn_threshold;
 
-                if fan_in >= thresholds.fan_in && fan_out >= thresholds.fan_out && churn_ok {
-                    smells.push(ArchSmell::new_god_module(
-                        path.clone(),
-                        fan_in,
-                        fan_out,
-                        file_churn,
-                    ));
+                if fan_in >= fan_in_threshold && fan_out >= fan_out_threshold && churn_ok {
+                    let mut smell =
+                        ArchSmell::new_god_module(path.clone(), fan_in, fan_out, file_churn);
+                    smell.severity = rule.severity;
+                    smells.push(smell);
                 }
             }
         }

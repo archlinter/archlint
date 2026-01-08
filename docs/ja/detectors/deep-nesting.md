@@ -1,10 +1,10 @@
 # 深いネスト
 
-**ID:** `deep_nesting` | **Severity:** Low (default)
+**ID:** `deep_nesting` | **重要度:** Low (default)
 
 ネストが深すぎるコードブロック（if、for、while など）を特定します。
 
-## なぜこれがコードの不吉な臭い（smell）なのか
+## なぜこれが「不吉な臭い」なのか
 
 深くネストされたコードは、指数関数的に読み取りや理解が困難になります。これは多くの場合、関数が多くのことを行いすぎているか、ロジックを簡素化できることを示しています。
 
@@ -17,7 +17,25 @@
 ## 設定
 
 ```yaml
-thresholds:
+rules:
   deep_nesting:
+    severity: info
     max_depth: 4
 ```
+
+## ESLint ルール
+
+このディテクターは、エディター内でリアルタイムのフィードバックを提供する ESLint ルールとして利用可能です。
+
+```javascript
+// eslint.config.js
+export default [
+  {
+    rules: {
+      '@archlinter/no-deep-nesting': 'warn',
+    },
+  },
+];
+```
+
+セットアップ手順については [ESLint Integration](/ja/integrations/eslint) を参照してください。

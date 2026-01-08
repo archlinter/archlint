@@ -19,7 +19,25 @@
 ## 配置
 
 ```yaml
-thresholds:
+rules:
   complexity:
+    severity: warn
     max_complexity: 15
 ```
+
+## ESLint 规则
+
+此检测器可作为 ESLint 规则使用，以便在编辑器中获得实时反馈。
+
+```javascript
+// eslint.config.js
+export default [
+  {
+    rules: {
+      '@archlinter/no-high-complexity': 'warn',
+    },
+  },
+];
+```
+
+详见 [ESLint 集成](/zh/integrations/eslint) 了解设置说明。

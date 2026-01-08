@@ -55,9 +55,10 @@ export const processPayment = (order: Order) => {
 ## Configuração
 
 ```yaml
-thresholds:
+rules:
   cycles:
-    exclude_patterns: ['**/*.test.ts']
+    severity: error
+    exclude: ['**/*.test.ts']
 ```
 
 ## Como corrigir
@@ -65,3 +66,20 @@ thresholds:
 1. **Extrair lógica compartilhada**: Mova as partes comuns para um novo módulo do qual ambos os módulos existentes dependam.
 2. **Injeção de Dependência**: Passe as dependências como argumentos em vez de importá-las.
 3. **Usar Eventos**: Use um barramento de eventos ou callbacks para desacoplar os módulos.
+
+## Regra ESLint
+
+Este detector está disponível como uma regra ESLint para feedback em tempo real no seu editor.
+
+```javascript
+// eslint.config.js
+export default [
+  {
+    rules: {
+      '@archlinter/no-cycles': 'error',
+    },
+  },
+];
+```
+
+Veja [Integração ESLint](/pt/integrations/eslint) para instruções de configuração.

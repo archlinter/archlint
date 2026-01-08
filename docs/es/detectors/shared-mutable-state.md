@@ -1,10 +1,10 @@
 # Estado Mutable Compartido
 
-**ID:** `shared_mutable_state` | **Severity:** Medium (default)
+**ID:** `shared_state` | **Severidad:** Medium (default)
 
 Identifica variables exportadas que son mutables (p. ej., `export let ...` o `export var ...`).
 
-## Por qué es un smell
+## Por qué esto es un problema
 
 El estado mutable global o compartido es una fuente común de errores que son extremadamente difíciles de rastrear. Hace que el comportamiento de un módulo sea impredecible y dependa del orden de ejecución.
 

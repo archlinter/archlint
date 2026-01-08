@@ -1,16 +1,16 @@
 mod common;
 
-use archlint::config::Config;
 use archlint::detectors::god_module::GodModuleDetector;
 use archlint::detectors::Detector;
-use common::analyze_fixture_with_config;
+use common::analyze_fixture_with_rule;
 
 #[test]
 fn test_god_module_detected() {
-    let mut config = Config::default();
-    config.thresholds.god_module.fan_in = 2;
-    config.thresholds.god_module.fan_out = 2;
-    config.thresholds.god_module.churn = 0; // Disable churn check for this test
+    let ctx = analyze_fixture_with_rule(
+        "god_module",
+        "god_module",
+        Some("fan_in: 2\nfan_out: 2\nchurn: 0"),
+    );
 
     // Create a fixture with 2 incoming and 2 outgoing dependencies
     // test_data/god_module/
@@ -20,7 +20,6 @@ fn test_god_module_detected() {
     //   dep1.ts
     //   dep2.ts
 
-    let ctx = analyze_fixture_with_config("god_module", config);
     let detector = GodModuleDetector;
     let smells = detector.detect(&ctx);
 

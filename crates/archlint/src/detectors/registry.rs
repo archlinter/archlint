@@ -1,7 +1,6 @@
 use crate::config::Config;
 use crate::detectors::{Detector, DetectorCategory};
 use crate::framework::presets::FrameworkPreset;
-use crate::framework::selector::DetectorSelector;
 use inventory;
 use std::collections::HashMap;
 
@@ -77,17 +76,19 @@ impl DetectorRegistry {
         let mut detectors = Vec::new();
         let mut needs_deep = false;
 
-        let selection = DetectorSelector::select(&config.detectors, presets);
-
         for factory in self.factories.values() {
             let info = factory.info();
+            let resolved = crate::rule_resolver::ResolvedRuleConfig::resolve(config, info.id, None);
+
             let is_enabled = if all_detectors {
                 true
-            } else if let Some(ref user_enabled) = selection.user_enabled {
-                user_enabled.contains(info.id)
+            } else if config.rules.contains_key(info.id) {
+                resolved.enabled
             } else {
-                (info.default_enabled || selection.preset_enabled.contains(info.id))
-                    && !selection.disabled.contains(info.id)
+                let preset_enabled = presets
+                    .iter()
+                    .any(|p| p.enabled_detectors.contains(&info.id));
+                info.default_enabled || preset_enabled
             };
 
             if is_enabled {

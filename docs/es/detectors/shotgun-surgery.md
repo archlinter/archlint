@@ -1,14 +1,25 @@
 # Cirugía de Escopeta (Shotgun Surgery)
 
-**ID:** `shotgun_surgery` | **Severity:** Medium (default)
+**ID:** `shotgun_surgery` | **Severidad:** Medium (default)
 
-La cirugía de escopeta ocurre cuando un solo cambio en tus requisitos requiere que realices muchos pequeños cambios en muchos módulos diferentes.
+La Cirugía de Escopeta ocurre cuando un solo cambio en los requisitos te obliga a hacer muchos pequeños cambios en muchos módulos diferentes. `archlint` detecta esto analizando el historial de git para encontrar archivos que cambian frecuentemente juntos (alta frecuencia de co-cambio).
 
-## Por qué es un smell
+## Por qué esto es un problema
 
-Indica que las responsabilidades están demasiado dispersas por la base de código. Hace que los cambios sean difíciles, lentos y propensos a errores.
+- **Alto Costo de Mantenimiento**: Cada funcionalidad o corrección de errores requiere tocar múltiples partes del sistema.
+- **Propenso a Errores**: Es fácil olvidar uno de los muchos cambios requeridos, lo que lleva a bugs.
+- **Encapsulación Deficiente**: Indica que una única responsabilidad está fragmentada a través de la base de código en lugar de estar encapsulada en un solo lugar.
 
 ## Cómo corregir
 
-- **Mover Método/Campo (Move Method/Field)**: Consolida la lógica relacionada en un solo módulo.
-- **Clase Inline (Inline Class)**: Si una clase es solo una colección de métodos que siempre se usan junto con otra clase, combínalas.
+- **Consolidar Responsabilidades**: Usa **Move Method** o **Move Field** para reunir la lógica relacionada en un solo módulo.
+- **Introduce Parameter Object**: Si múltiples módulos requieren el mismo conjunto de datos, agrúpalos en un solo objeto.
+- **Replace Data Value with Object**: Si tienes muchos módulos manejando los mismos datos primitivos, encapsula esos datos y su comportamiento en una nueva clase.
+
+## Configuración
+
+```yaml
+rules:
+  shotgun_surgery:
+    severity: warn
+```

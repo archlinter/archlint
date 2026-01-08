@@ -1,10 +1,10 @@
 # ゴッドモジュール
 
-**ID:** `god_module` | **Severity:** High (default)
+**ID:** `god_module` | **重要度:** High (default)
 
 「ゴッドモジュール」とは、ファイルが肥大化し、あまりにも多くの責任を負いすぎてしまった状態を指します。
 
-## なぜこれがコードの不吉な臭い（smell）なのか
+## なぜこれが「不吉な臭い」なのか
 
 - **単一責任の原則（SRP）への違反**: モジュールが多すぎることを行っています。
 - **マージ競合**: 複数の開発者による頻繁な変更により、常に競合が発生します。
@@ -13,7 +13,7 @@
 
 ## 検出基準
 
-archlint は以下の基準に基づいてゴッドモジュールを特定します：
+`archlint` は以下の基準に基づいてゴッドモジュールを特定します：
 
 - **ファンイン（Fan-in）**: そのモジュールに依存している他のモジュールの数。
 - **ファンアウト（Fan-out）**: そのモジュールが依存している他のモジュールの数。
@@ -29,10 +29,27 @@ archlint は以下の基準に基づいてゴッドモジュールを特定し�
 ## 設定
 
 ```yaml
-thresholds:
+rules:
   god_module:
+    severity: error
     fan_in: 15
     fan_out: 15
     churn: 20
-    max_lines: 500
 ```
+
+## ESLint ルール
+
+このディテクターは、エディター内でリアルタイムのフィードバックを提供する ESLint ルールとして利用可能です。
+
+```javascript
+// eslint.config.js
+export default [
+  {
+    rules: {
+      '@archlinter/no-god-modules': 'warn',
+    },
+  },
+];
+```
+
+セットアップ手順については [ESLint Integration](/ja/integrations/eslint) を参照してください。

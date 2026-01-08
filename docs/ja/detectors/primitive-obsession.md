@@ -1,6 +1,6 @@
 # 基本データ型への執着
 
-**ID:** `primitive_obsession` | **Severity:** Low (default)
+**ID:** `primitive_obsession` | **重要度:** Low (default)
 
 基本データ型への執着とは、特定の型やクラスで表現したほうがよいドメイン概念を、基本データ型（文字列、数値、真偽値）で過剰に表現することです（例：メールアドレスに `string` を使用したり、通貨に `number` を使用したりすること）。
 

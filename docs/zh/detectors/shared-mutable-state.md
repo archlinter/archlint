@@ -1,10 +1,10 @@
 # 共享可变状态
 
-**ID:** `shared_mutable_state` | **Severity:** Medium (default)
+**ID:** `shared_state` | **严重程度:** 中 (默认)
 
 识别导出的可变变量（例如 `export let ...` 或 `export var ...`）。
 
-## 为什么这是一个代码异味
+## 为什么这是一种坏味道
 
 全局或共享的可变状态是极难追踪的 Bug 的常见来源。它使模块的行为变得不可预测，并取决于执行顺序。
 

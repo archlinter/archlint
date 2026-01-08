@@ -39,20 +39,35 @@ impl Detector for TestLeakageDetector {
     }
 
     fn detect(&self, ctx: &AnalysisContext) -> Vec<ArchSmell> {
-        let thresholds = &ctx.config.thresholds.test_leakage;
-        let test_patterns = Self::get_test_patterns(thresholds);
+        let rule = match ctx.get_rule("test_leakage") {
+            Some(r) => r,
+            None => return Vec::new(),
+        };
+
+        let test_patterns: Vec<String> = rule.get_option("test_patterns").unwrap_or_else(|| {
+            vec![
+                "**/*.test.ts".to_string(),
+                "**/*.test.js".to_string(),
+                "**/*.spec.ts".to_string(),
+                "**/*.spec.js".to_string(),
+                "**/__tests__/**".to_string(),
+                "**/__mocks__/**".to_string(),
+            ]
+        });
 
         ctx.graph
             .nodes()
             .filter_map(|node| {
                 let from_path = ctx.graph.get_file_path(node)?;
-                if !self.is_test_file(from_path, test_patterns.as_deref()) {
-                    Some(Self::check_node_leakage(
-                        ctx,
-                        node,
-                        test_patterns.as_deref(),
-                        self,
-                    ))
+                let file_rule = ctx.get_rule_for_file("test_leakage", from_path)?;
+
+                if !self.is_test_file(from_path, Some(&test_patterns)) {
+                    let mut node_smells =
+                        Self::check_node_leakage(ctx, node, Some(&test_patterns), self);
+                    for smell in &mut node_smells {
+                        smell.severity = file_rule.severity;
+                    }
+                    Some(node_smells)
                 } else {
                     None
                 }
@@ -63,14 +78,6 @@ impl Detector for TestLeakageDetector {
 }
 
 impl TestLeakageDetector {
-    fn get_test_patterns(thresholds: &crate::config::TestLeakageThresholds) -> Option<Vec<String>> {
-        if thresholds.test_patterns.is_empty() {
-            None
-        } else {
-            Some(thresholds.test_patterns.clone())
-        }
-    }
-
     fn check_node_leakage(
         ctx: &AnalysisContext,
         node: petgraph::graph::NodeIndex,
