@@ -2,7 +2,7 @@ use super::types::{Cluster, Occurrence, WindowEntry};
 use crate::parser::tokenizer::NormalizedToken;
 use rustc_hash::FxHashMap;
 use sha2::{Digest, Sha256};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 /// Map to track processed ranges for each file pair.
 type ProcessedRangesMap = FxHashMap<(PathBuf, PathBuf), Vec<(usize, usize, usize)>>;
@@ -26,24 +26,8 @@ impl DetectionContext<'_> {
         let (file1, off1) = loc1;
         let (file2, off2) = loc2;
 
-        // Ensure deterministic key for processed_ranges
-        let (f1, f2, o1, o2) = if file1 <= file2 {
-            (file1, file2, *off1, *off2)
-        } else {
-            (file2, file1, *off2, *off1)
-        };
-
-        let pair_key = (f1.clone(), f2.clone());
-        if let Some(ranges) = self.processed_ranges.get(&pair_key) {
-            for &(s1, s2, len) in ranges {
-                if o1 >= s1
-                    && o1 <= s1 + len - self.min_tokens
-                    && o2 >= s2
-                    && o2 <= s2 + len - self.min_tokens
-                {
-                    return;
-                }
-            }
+        if self.is_range_already_processed(file1, file2, *off1, *off2) {
+            return;
         }
 
         let tokens1 = &self.file_tokens[file1];
@@ -62,34 +46,73 @@ impl DetectionContext<'_> {
             return;
         }
 
-        // Record the range to avoid re-processing overlapping windows
-        let (rs1, rs2) = if file1 <= file2 {
-            (start1, start2)
+        self.record_processed_range(file1, file2, start1, start2, length);
+
+        if let Some((occ1, occ2, hash)) =
+            self.validate_and_build_match(file1, file2, start1, start2, length)
+        {
+            self.update_clusters(occ1, occ2, hash, length);
+        }
+    }
+
+    fn is_range_already_processed(&self, f1: &Path, f2: &Path, o1: usize, o2: usize) -> bool {
+        let (key1, key2, off1, off2) = if f1 <= f2 {
+            (f1, f2, o1, o2)
         } else {
-            (start2, start1)
+            (f2, f1, o2, o1)
         };
+        let pair_key = (key1.to_path_buf(), key2.to_path_buf());
+
+        self.processed_ranges.get(&pair_key).is_some_and(|ranges| {
+            ranges.iter().any(|&(s1, s2, len)| {
+                off1 >= s1
+                    && off1 <= s1 + len - self.min_tokens
+                    && off2 >= s2
+                    && off2 <= s2 + len - self.min_tokens
+            })
+        })
+    }
+
+    fn record_processed_range(&mut self, f1: &Path, f2: &Path, s1: usize, s2: usize, len: usize) {
+        let (key1, key2, start1, start2) = if f1 <= f2 {
+            (f1, f2, s1, s2)
+        } else {
+            (f2, f1, s2, s1)
+        };
+        let pair_key = (key1.to_path_buf(), key2.to_path_buf());
         self.processed_ranges
             .entry(pair_key)
             .or_default()
-            .push((rs1, rs2, length));
+            .push((start1, start2, len));
+    }
+
+    fn validate_and_build_match(
+        &self,
+        file1: &Path,
+        file2: &Path,
+        start1: usize,
+        start2: usize,
+        length: usize,
+    ) -> Option<(Occurrence, Occurrence, [u8; 32])> {
+        let tokens1 = &self.file_tokens[file1];
+        let tokens2 = &self.file_tokens[file2];
 
         if !starts_at_line_boundary(tokens1, start1) || !starts_at_line_boundary(tokens2, start2) {
-            return;
+            return None;
         }
 
         let (sl1, sc1, el1, ec1) = calculate_range_bounds(tokens1, start1, length);
         let (sl2, sc2, el2, ec2) = calculate_range_bounds(tokens2, start2, length);
 
-        let lines1 = el1.saturating_sub(sl1) + 1;
-        let lines2 = el2.saturating_sub(sl2) + 1;
-
-        if lines1 < self.min_lines || lines2 < self.min_lines {
-            return;
+        if el1.saturating_sub(sl1) + 1 < self.min_lines
+            || el2.saturating_sub(sl2) + 1 < self.min_lines
+        {
+            return None;
         }
 
-        let range_hash = hash_tokens(&tokens1[start1..start1 + length]);
+        let hash = hash_tokens(&tokens1[start1..start1 + length]);
         let occ1 = Occurrence {
-            file: file1.clone(),
+            file: file1.to_path_buf(),
             token_start: start1,
             start_line: sl1,
             start_column: sc1,
@@ -97,7 +120,7 @@ impl DetectionContext<'_> {
             end_column: ec1,
         };
         let occ2 = Occurrence {
-            file: file2.clone(),
+            file: file2.to_path_buf(),
             token_start: start2,
             start_line: sl2,
             start_column: sc2,
@@ -105,7 +128,7 @@ impl DetectionContext<'_> {
             end_column: ec2,
         };
 
-        self.update_clusters(occ1, occ2, range_hash, length);
+        Some((occ1, occ2, hash))
     }
 
     /// Updates or merges clusters with a newly discovered match.

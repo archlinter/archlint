@@ -265,19 +265,21 @@ impl<'a> Visit<'a> for TokenCollector {
     }
 
     fn visit_import_declaration(&mut self, _it: &ast::ImportDeclaration<'a>) {
-        // Skip imports to avoid false positives from identical import lists
+        // Skip import statements to avoid false positives from identical import lists
     }
 
-    fn visit_export_named_declaration(&mut self, _it: &ast::ExportNamedDeclaration<'a>) {
-        // Skip exports to avoid false positives from identical export lists
+    fn visit_export_named_declaration(&mut self, it: &ast::ExportNamedDeclaration<'a>) {
+        if let Some(decl) = &it.declaration {
+            self.visit_declaration(decl);
+        }
     }
 
     fn visit_export_all_declaration(&mut self, _it: &ast::ExportAllDeclaration<'a>) {
-        // Skip exports
+        // Skip "export * from '...'"
     }
 
-    fn visit_export_default_declaration(&mut self, _it: &ast::ExportDefaultDeclaration<'a>) {
-        // Skip exports
+    fn visit_export_default_declaration(&mut self, it: &ast::ExportDefaultDeclaration<'a>) {
+        self.visit_export_default_declaration_kind(&it.declaration);
     }
 }
 
