@@ -52,7 +52,22 @@ pub fn merge_overlapping_occurrences(mut occurrences: Vec<Occurrence>) -> Vec<Oc
                     || (occ.end_line >= last.start_line && occ.end_line <= last.end_line);
 
                 if overlaps {
-                    last.end_line = last.end_line.max(occ.end_line);
+                    // Update start line/column if current occurrence starts earlier
+                    if occ.start_line < last.start_line {
+                        last.start_line = occ.start_line;
+                        last.start_column = occ.start_column;
+                    } else if occ.start_line == last.start_line {
+                        last.start_column = last.start_column.min(occ.start_column);
+                    }
+
+                    // Update end line/column if current occurrence ends later
+                    if occ.end_line > last.end_line {
+                        last.end_line = occ.end_line;
+                        last.end_column = occ.end_column;
+                    } else if occ.end_line == last.end_line {
+                        last.end_column = last.end_column.max(occ.end_column);
+                    }
+
                     last.token_start = last.token_start.min(occ.token_start);
                     continue;
                 }

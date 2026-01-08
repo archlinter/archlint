@@ -719,10 +719,9 @@ impl AnalysisEngine {
 
         detectors
             .into_iter()
-            .filter(|d| {
-                include
-                    .as_ref()
-                    .is_none_or(|set| set.contains(id_extractor(d)))
+            .filter(|d| match include.as_ref() {
+                Some(set) => set.contains(id_extractor(d)),
+                None => true,
             })
             .filter(|d| !exclude.contains(id_extractor(d)))
             .collect()
