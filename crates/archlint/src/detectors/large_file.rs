@@ -41,10 +41,10 @@ impl Detector for LargeFileDetector {
 
         for node in ctx.graph.nodes() {
             if let Some(path) = ctx.graph.get_file_path(node) {
-                let rule = ctx.resolve_rule("large_file", Some(path));
-                if !rule.enabled || ctx.is_excluded(path, &rule.exclude) {
-                    continue;
-                }
+                let rule = match ctx.get_rule_for_file("large_file", path) {
+                    Some(r) => r,
+                    None => continue,
+                };
 
                 let threshold: usize = rule
                     .get_option("max_lines")

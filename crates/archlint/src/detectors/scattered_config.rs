@@ -40,10 +40,10 @@ impl Detector for ScatteredConfigDetector {
     }
 
     fn detect(&self, ctx: &AnalysisContext) -> Vec<ArchSmell> {
-        let rule = ctx.resolve_rule("scattered_config", None);
-        if !rule.enabled {
-            return Vec::new();
-        }
+        let rule = match ctx.get_rule("scattered_config") {
+            Some(r) => r,
+            None => return Vec::new(),
+        };
 
         let mut var_usage: HashMap<String, Vec<PathBuf>> = HashMap::new();
         let max_files: usize = rule.get_option("max_files").unwrap_or(3);

@@ -41,10 +41,7 @@ impl Detector for UnstableInterfaceDetector {
             .nodes()
             .filter_map(|node| {
                 let path = ctx.graph.get_file_path(node)?;
-                let rule = ctx.resolve_rule("unstable_interface", Some(path));
-                if !rule.enabled || ctx.is_excluded(path, &rule.exclude) {
-                    return None;
-                }
+                let rule = ctx.get_rule_for_file("unstable_interface", path)?;
 
                 let min_churn: usize = rule.get_option("min_churn").unwrap_or(10);
                 let min_dependants: usize = rule.get_option("min_dependants").unwrap_or(5);

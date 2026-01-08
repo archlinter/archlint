@@ -74,10 +74,10 @@ impl Detector for OrphanTypesDetector {
     }
 
     fn detect(&self, ctx: &AnalysisContext) -> Vec<ArchSmell> {
-        let rule = ctx.resolve_rule("orphan_types", None);
-        if !rule.enabled {
-            return Vec::new();
-        }
+        let _rule = match ctx.get_rule("orphan_types") {
+            Some(r) => r,
+            None => return Vec::new(),
+        };
 
         let type_definitions = self.collect_type_definitions(ctx);
         let all_usages = self.collect_all_usages(ctx);
@@ -86,10 +86,7 @@ impl Detector for OrphanTypesDetector {
             .into_iter()
             .filter(|(_, name)| !all_usages.contains(*name))
             .filter_map(|(path, name)| {
-                let file_rule = ctx.resolve_rule("orphan_types", Some(path.as_path()));
-                if !file_rule.enabled || ctx.is_excluded(path.as_path(), &file_rule.exclude) {
-                    return None;
-                }
+                let file_rule = ctx.get_rule_for_file("orphan_types", path)?;
                 let mut smell = ArchSmell::new_orphan_type(path.clone(), name.to_string());
                 smell.severity = file_rule.severity;
                 Some(smell)

@@ -42,7 +42,10 @@ impl Detector for VendorCouplingDetector {
 
     fn detect(&self, ctx: &AnalysisContext) -> Vec<ArchSmell> {
         let package_usage = self.collect_package_usage(ctx);
-        let rule = ctx.resolve_rule("vendor_coupling", None);
+        let rule = match ctx.get_rule("vendor_coupling") {
+            Some(r) => r,
+            None => return Vec::new(),
+        };
         let max_files: usize = rule.get_option("max_files_per_package").unwrap_or(10);
 
         package_usage
@@ -78,13 +81,7 @@ impl VendorCouplingDetector {
         path: &Path,
         symbols: &FileSymbols,
     ) -> Option<HashSet<String>> {
-        let rule = ctx.resolve_rule("vendor_coupling", Some(path));
-        if !rule.enabled
-            || ctx.is_excluded(path, &rule.exclude)
-            || ctx.should_skip_detector(path, "vendor_coupling")
-        {
-            return None;
-        }
+        let rule = ctx.get_rule_for_file("vendor_coupling", path)?;
 
         let ignore_packages: Vec<String> = rule
             .get_option("ignore_packages")

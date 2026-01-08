@@ -39,10 +39,7 @@ impl Detector for FeatureEnvyDetector {
         ctx.file_symbols
             .iter()
             .filter_map(|(path, symbols)| {
-                let rule = ctx.resolve_rule("feature_envy", Some(path));
-                if !rule.enabled || ctx.is_excluded(path, &rule.exclude) {
-                    return None;
-                }
+                let rule = ctx.get_rule_for_file("feature_envy", path)?;
 
                 let ratio_threshold: f64 = rule.get_option("ratio").unwrap_or(3.0);
 

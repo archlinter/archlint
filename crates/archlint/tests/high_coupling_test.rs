@@ -2,22 +2,11 @@ mod common;
 
 use archlint::detectors::high_coupling::HighCouplingDetector;
 use archlint::detectors::Detector;
-use common::analyze_fixture_with_config;
+use common::analyze_fixture_with_rule;
 
 #[test]
 fn test_high_cbo_detected() {
-    let mut config = archlint::config::Config::default();
-    config.rules.insert(
-        "high_coupling".to_string(),
-        archlint::config::RuleConfig::Full(archlint::config::RuleFullConfig {
-            enabled: Some(true),
-            severity: None,
-            exclude: Vec::new(),
-            options: serde_yaml::from_str("max_cbo: 20").unwrap(),
-        }),
-    );
-
-    let ctx = analyze_fixture_with_config("coupling/high", config);
+    let ctx = analyze_fixture_with_rule("coupling/high", "high_coupling", Some("max_cbo: 20"));
     let detector = HighCouplingDetector;
     let smells = detector.detect(&ctx);
 

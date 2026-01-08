@@ -40,10 +40,10 @@ impl Detector for DeadSymbolsDetector {
     }
 
     fn detect(&self, ctx: &AnalysisContext) -> Vec<ArchSmell> {
-        let rule = ctx.resolve_rule("dead_symbols", None);
-        if !rule.enabled {
-            return Vec::new();
-        }
+        let _rule = match ctx.get_rule("dead_symbols") {
+            Some(r) => r,
+            None => return Vec::new(),
+        };
 
         let smells = Self::detect_symbols(ctx.file_symbols.as_ref(), &ctx.script_entry_points, ctx);
 
@@ -51,10 +51,10 @@ impl Detector for DeadSymbolsDetector {
             .into_iter()
             .filter_map(|mut smell| {
                 if let Some(path) = smell.files.first() {
-                    let file_rule = ctx.resolve_rule("dead_symbols", Some(path));
-                    if !file_rule.enabled || ctx.is_excluded(path, &file_rule.exclude) {
-                        return None;
-                    }
+                    let file_rule = match ctx.get_rule_for_file("dead_symbols", path) {
+                        Some(r) => r,
+                        None => return None,
+                    };
                     smell.severity = file_rule.severity;
                 }
                 Some(smell)

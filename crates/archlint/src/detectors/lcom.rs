@@ -42,13 +42,10 @@ impl Detector for LcomDetector {
         let mut smells = Vec::new();
 
         for (path, symbols) in ctx.file_symbols.as_ref() {
-            let rule = ctx.resolve_rule("lcom", Some(path));
-            if !rule.enabled
-                || ctx.is_excluded(path, &rule.exclude)
-                || ctx.should_skip_detector(path, "lcom")
-            {
-                continue;
-            }
+            let rule = match ctx.get_rule_for_file("lcom", path) {
+                Some(r) => r,
+                None => continue,
+            };
 
             let min_methods: usize = rule.get_option("min_methods").unwrap_or(3);
             let max_lcom: usize = rule.get_option("max_lcom").unwrap_or(4);

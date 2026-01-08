@@ -40,10 +40,10 @@ impl Detector for LongParameterListDetector {
         let mut smells = Vec::new();
 
         for (path, functions) in ctx.function_complexity.as_ref() {
-            let rule = ctx.resolve_rule("long_params", Some(path));
-            if !rule.enabled || ctx.is_excluded(path, &rule.exclude) {
-                continue;
-            }
+            let rule = match ctx.get_rule_for_file("long_params", path) {
+                Some(r) => r,
+                None => continue,
+            };
 
             let ignore_constructors: bool = rule.get_option("ignore_constructors").unwrap_or(true);
             let max_params: usize = rule.get_option("max_params").unwrap_or(5);

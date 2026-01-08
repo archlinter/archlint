@@ -40,10 +40,10 @@ impl Detector for PackageCycleDetector {
     }
 
     fn detect(&self, ctx: &AnalysisContext) -> Vec<ArchSmell> {
-        let rule = ctx.resolve_rule("package_cycles", None);
-        if !rule.enabled {
-            return Vec::new();
-        }
+        let rule = match ctx.get_rule("package_cycles") {
+            Some(r) => r,
+            None => return Vec::new(),
+        };
 
         let package_depth: usize = rule.get_option("package_depth").unwrap_or(2);
 

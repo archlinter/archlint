@@ -42,13 +42,10 @@ impl Detector for BarrelFileAbuseDetector {
         let mut smells = Vec::new();
 
         for (path, symbols) in ctx.file_symbols.as_ref() {
-            let rule = ctx.resolve_rule("barrel_file", Some(path));
-            if !rule.enabled
-                || ctx.is_excluded(path, &rule.exclude)
-                || ctx.should_skip_detector(path, "barrel_file")
-            {
-                continue;
-            }
+            let rule = match ctx.get_rule_for_file("barrel_file", path) {
+                Some(r) => r,
+                None => continue,
+            };
 
             if !self.is_barrel_file(path) {
                 continue;

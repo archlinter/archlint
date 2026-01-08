@@ -40,10 +40,10 @@ impl Detector for PrimitiveObsessionDetector {
         let mut smells = Vec::new();
 
         for (path, functions) in ctx.function_complexity.as_ref() {
-            let rule = ctx.resolve_rule("primitive_obsession", Some(path));
-            if !rule.enabled || ctx.is_excluded(path, &rule.exclude) {
-                continue;
-            }
+            let rule = match ctx.get_rule_for_file("primitive_obsession", path) {
+                Some(r) => r,
+                None => continue,
+            };
 
             let max_primitives: usize = rule.get_option("max_primitives").unwrap_or(3);
 

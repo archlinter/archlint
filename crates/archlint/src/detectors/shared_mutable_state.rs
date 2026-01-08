@@ -42,10 +42,10 @@ impl Detector for SharedMutableStateDetector {
         let mut smells = Vec::new();
 
         for (path, symbols) in ctx.file_symbols.as_ref() {
-            let rule = ctx.resolve_rule("shared_mutable_state", Some(path));
-            if !rule.enabled || ctx.is_excluded(path, &rule.exclude) {
-                continue;
-            }
+            let rule = match ctx.get_rule_for_file("shared_mutable_state", path) {
+                Some(r) => r,
+                None => continue,
+            };
 
             for export in &symbols.exports {
                 if export.is_mutable && export.kind == SymbolKind::Variable {

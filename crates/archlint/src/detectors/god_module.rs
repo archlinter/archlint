@@ -44,10 +44,10 @@ impl Detector for GodModuleDetector {
             let fan_out = ctx.graph.fan_out(node);
 
             if let Some(path) = ctx.graph.get_file_path(node) {
-                let rule = ctx.resolve_rule("god_module", Some(path));
-                if !rule.enabled || ctx.is_excluded(path, &rule.exclude) {
-                    continue;
-                }
+                let rule = match ctx.get_rule_for_file("god_module", path) {
+                    Some(r) => r,
+                    None => continue,
+                };
 
                 let fan_in_threshold: usize = rule.get_option("fan_in").unwrap_or(10);
                 let fan_out_threshold: usize = rule.get_option("fan_out").unwrap_or(10);

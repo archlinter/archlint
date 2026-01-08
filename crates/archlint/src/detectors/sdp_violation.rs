@@ -42,13 +42,10 @@ impl Detector for SdpViolationDetector {
             .nodes()
             .flat_map(|node| {
                 if let Some(path) = ctx.graph.get_file_path(node) {
-                    let rule = ctx.resolve_rule("sdp_violation", Some(path));
-                    if !rule.enabled
-                        || ctx.is_excluded(path, &rule.exclude)
-                        || ctx.should_skip_detector(path, "sdp_violation")
-                    {
-                        return Vec::new();
-                    }
+                    let rule = match ctx.get_rule_for_file("sdp_violation", path) {
+                        Some(r) => r,
+                        None => return Vec::new(),
+                    };
 
                     let mut node_smells = Self::check_node_violations(ctx, node, &rule);
                     for smell in &mut node_smells {

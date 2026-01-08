@@ -2,21 +2,11 @@ mod common;
 
 use archlint::detectors::lcom::LcomDetector;
 use archlint::detectors::Detector;
-use common::analyze_fixture;
+use common::{analyze_fixture, analyze_fixture_with_rule};
 
 #[test]
 fn test_high_lcom_detected() {
-    let mut config = archlint::config::Config::default();
-    config.rules.insert(
-        "lcom".to_string(),
-        archlint::config::RuleConfig::Full(archlint::config::RuleFullConfig {
-            enabled: Some(true),
-            severity: None,
-            exclude: Vec::new(),
-            options: serde_yaml::from_str("max_lcom: 1").unwrap(),
-        }),
-    );
-    let ctx = analyze_fixture_with_config("lcom/high", config);
+    let ctx = analyze_fixture_with_rule("lcom/high", "lcom", Some("max_lcom: 1"));
     let detector = LcomDetector;
     let smells = detector.detect(&ctx);
 
@@ -43,5 +33,3 @@ fn test_small_class_ignored() {
 
     assert!(smells.is_empty(), "Expected small class to be ignored");
 }
-
-use common::analyze_fixture_with_config;

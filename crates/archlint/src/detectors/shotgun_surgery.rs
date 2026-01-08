@@ -155,10 +155,10 @@ impl Detector for ShotgunSurgeryDetector {
     }
 
     fn detect(&self, ctx: &AnalysisContext) -> Vec<ArchSmell> {
-        let rule = ctx.resolve_rule("shotgun_surgery", None);
-        if !rule.enabled {
-            return Vec::new();
-        }
+        let rule = match ctx.get_rule("shotgun_surgery") {
+            Some(r) => r,
+            None => return Vec::new(),
+        };
 
         let lookback: usize = rule.get_option("lookback_commits").unwrap_or(500);
         let min_frequency: usize = rule.get_option("min_frequency").unwrap_or(5);
@@ -172,10 +172,10 @@ impl Detector for ShotgunSurgeryDetector {
         stats
             .into_iter()
             .filter_map(|(file, stat)| {
-                let file_rule = ctx.resolve_rule("shotgun_surgery", Some(&file));
-                if !file_rule.enabled || ctx.is_excluded(&file, &file_rule.exclude) {
-                    return None;
-                }
+                let file_rule = match ctx.get_rule_for_file("shotgun_surgery", &file) {
+                    Some(r) => r,
+                    None => return None,
+                };
 
                 // Only consider source code files that are part of the project
                 if !self.is_source_code(&file) || !ctx.file_symbols.contains_key(&file) {

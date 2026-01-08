@@ -42,10 +42,10 @@ impl Detector for ComplexityDetector {
         let mut smells = Vec::new();
 
         for (path, functions) in ctx.function_complexity.as_ref() {
-            let rule = ctx.resolve_rule("complexity", Some(path));
-            if !rule.enabled || ctx.is_excluded(path, &rule.exclude) {
-                continue;
-            }
+            let rule = match ctx.get_rule_for_file("complexity", path) {
+                Some(r) => r,
+                None => continue,
+            };
 
             let function_threshold: usize = rule
                 .get_option("max_complexity")

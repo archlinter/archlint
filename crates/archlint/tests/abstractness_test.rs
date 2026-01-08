@@ -2,22 +2,15 @@ mod common;
 
 use archlint::detectors::abstractness::AbstractnessViolationDetector;
 use archlint::detectors::Detector;
-use common::analyze_fixture_with_config;
+use common::analyze_fixture_with_rule;
 
 #[test]
 fn test_zone_of_pain_detected() {
-    let mut config = archlint::config::Config::default();
-    config.rules.insert(
-        "abstractness".to_string(),
-        archlint::config::RuleConfig::Full(archlint::config::RuleFullConfig {
-            enabled: Some(true),
-            severity: None,
-            exclude: Vec::new(),
-            options: serde_yaml::from_str("distance_threshold: 0.5").unwrap(),
-        }),
+    let ctx = analyze_fixture_with_rule(
+        "abstractness/pain",
+        "abstractness",
+        Some("distance_threshold: 0.5"),
     );
-
-    let ctx = analyze_fixture_with_config("abstractness/pain", config);
     let detector = AbstractnessViolationDetector;
     let smells = detector.detect(&ctx);
 
@@ -30,18 +23,11 @@ fn test_zone_of_pain_detected() {
 
 #[test]
 fn test_zone_of_uselessness_detected() {
-    let mut config = archlint::config::Config::default();
-    config.rules.insert(
-        "abstractness".to_string(),
-        archlint::config::RuleConfig::Full(archlint::config::RuleFullConfig {
-            enabled: Some(true),
-            severity: None,
-            exclude: Vec::new(),
-            options: serde_yaml::from_str("distance_threshold: 0.5").unwrap(),
-        }),
+    let ctx = analyze_fixture_with_rule(
+        "abstractness/useless",
+        "abstractness",
+        Some("distance_threshold: 0.5"),
     );
-
-    let ctx = analyze_fixture_with_config("abstractness/useless", config);
     let detector = AbstractnessViolationDetector;
     let smells = detector.detect(&ctx);
 

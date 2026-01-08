@@ -43,10 +43,10 @@ impl Detector for DeadCodeDetector {
     }
 
     fn detect(&self, ctx: &AnalysisContext) -> Vec<ArchSmell> {
-        let rule = ctx.resolve_rule("dead_code", None);
-        if !rule.enabled {
-            return Vec::new();
-        }
+        let _rule = match ctx.get_rule("dead_code") {
+            Some(r) => r,
+            None => return Vec::new(),
+        };
 
         let detector = DeadCodeDetector::new(
             &ctx.config,
@@ -62,10 +62,7 @@ impl Detector for DeadCodeDetector {
         dead_files
             .into_iter()
             .filter_map(|path| {
-                let file_rule = ctx.resolve_rule("dead_code", Some(&path));
-                if !file_rule.enabled || ctx.is_excluded(&path, &file_rule.exclude) {
-                    return None;
-                }
+                let file_rule = ctx.get_rule_for_file("dead_code", &path)?;
                 let mut smell = ArchSmell::new_dead_code(path);
                 smell.severity = file_rule.severity;
                 Some(smell)

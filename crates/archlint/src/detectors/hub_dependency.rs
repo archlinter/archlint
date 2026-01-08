@@ -104,10 +104,10 @@ impl Detector for HubDependencyDetector {
     }
 
     fn detect(&self, ctx: &AnalysisContext) -> Vec<ArchSmell> {
-        let rule = ctx.resolve_rule("hub_dependency", None);
-        if !rule.enabled {
-            return Vec::new();
-        }
+        let rule = match ctx.get_rule("hub_dependency") {
+            Some(r) => r,
+            None => return Vec::new(),
+        };
 
         let min_dependants: usize = rule.get_option("min_dependants").unwrap_or(20);
         let ignore_packages: Vec<String> =

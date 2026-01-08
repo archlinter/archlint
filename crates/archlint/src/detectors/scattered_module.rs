@@ -42,13 +42,10 @@ impl Detector for ScatteredModuleDetector {
         let mut smells = Vec::new();
 
         for (path, symbols) in ctx.file_symbols.as_ref() {
-            let rule = ctx.resolve_rule("module_cohesion", Some(path));
-            if !rule.enabled
-                || ctx.is_excluded(path, &rule.exclude)
-                || ctx.should_skip_detector(path, "module_cohesion")
-            {
-                continue;
-            }
+            let rule = match ctx.get_rule_for_file("module_cohesion", path) {
+                Some(r) => r,
+                None => continue,
+            };
 
             let min_exports: usize = rule.get_option("min_exports").unwrap_or(5);
             let max_components: usize = rule.get_option("max_components").unwrap_or(2);

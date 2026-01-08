@@ -41,13 +41,10 @@ impl Detector for HighCouplingDetector {
 
         for node in ctx.graph.nodes() {
             if let Some(path) = ctx.graph.get_file_path(node) {
-                let rule = ctx.resolve_rule("high_coupling", Some(path));
-                if !rule.enabled
-                    || ctx.is_excluded(path, &rule.exclude)
-                    || ctx.should_skip_detector(path, "high_coupling")
-                {
-                    continue;
-                }
+                let rule = match ctx.get_rule_for_file("high_coupling", path) {
+                    Some(r) => r,
+                    None => continue,
+                };
 
                 let max_cbo: usize = rule.get_option("max_cbo").unwrap_or(20);
 

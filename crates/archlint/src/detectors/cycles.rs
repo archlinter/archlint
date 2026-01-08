@@ -59,10 +59,7 @@ impl Detector for CycleDetector {
                 // or if it should be skipped due to framework context
                 !scc.iter().any(|&node| {
                     if let Some(path) = ctx.graph.get_file_path(node) {
-                        let rule = ctx.resolve_rule("cycles", Some(path));
-                        !rule.enabled
-                            || ctx.is_excluded(path, &rule.exclude)
-                            || ctx.should_skip_detector(path, "cycles")
+                        ctx.get_rule_for_file("cycles", path).is_none()
                     } else {
                         false
                     }
@@ -79,8 +76,9 @@ impl Detector for CycleDetector {
                 // Set severity based on the first node in the cycle (approximate)
                 if let Some(node) = scc.first() {
                     if let Some(path) = ctx.graph.get_file_path(*node) {
-                        let rule = ctx.resolve_rule("cycles", Some(path));
-                        smell.severity = rule.severity;
+                        if let Some(rule) = ctx.get_rule_for_file("cycles", path) {
+                            smell.severity = rule.severity;
+                        }
                     }
                 }
                 smell

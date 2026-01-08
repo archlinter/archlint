@@ -43,10 +43,7 @@ impl Detector for HubModuleDetector {
             .nodes()
             .filter_map(|node| {
                 let path = ctx.graph.get_file_path(node)?;
-                let rule = ctx.resolve_rule("hub_module", Some(path));
-                if !rule.enabled || ctx.is_excluded(path, &rule.exclude) {
-                    return None;
-                }
+                let rule = ctx.get_rule_for_file("hub_module", path)?;
 
                 let mut smell = Self::check_hub_node(ctx, node, &rule)?;
                 smell.severity = rule.severity;

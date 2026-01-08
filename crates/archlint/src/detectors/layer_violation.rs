@@ -39,10 +39,10 @@ impl Detector for LayerViolationDetector {
     }
 
     fn detect(&self, ctx: &AnalysisContext) -> Vec<ArchSmell> {
-        let rule = ctx.resolve_rule("layer_violation", None);
-        if !rule.enabled {
-            return Vec::new();
-        }
+        let rule = match ctx.get_rule("layer_violation") {
+            Some(r) => r,
+            None => return Vec::new(),
+        };
 
         let layers: Vec<LayerConfig> = rule.get_option("layers").unwrap_or_default();
 
@@ -73,10 +73,10 @@ impl LayerViolationDetector {
 
         // Find node index for from_path
         if let Some(node) = ctx.graph.get_node(from_path) {
-            let rule = ctx.resolve_rule("layer_violation", Some(from_path));
-            if !rule.enabled || ctx.is_excluded(from_path, &rule.exclude) {
-                return Vec::new();
-            }
+            let rule = match ctx.get_rule_for_file("layer_violation", from_path) {
+                Some(r) => r,
+                None => return Vec::new(),
+            };
 
             for to_node in ctx.graph.dependencies(node) {
                 if let Some(to_info) = detector.get_node_info(ctx, to_node, layers) {

@@ -68,6 +68,27 @@ impl AnalysisContext {
         false
     }
 
+    pub fn get_rule_for_file(&self, detector_id: &str, path: &Path) -> Option<ResolvedRuleConfig> {
+        let rule = self.resolve_rule(detector_id, Some(path));
+        if !rule.enabled
+            || self.is_excluded(path, &rule.exclude)
+            || self.should_skip_detector(path, detector_id)
+        {
+            None
+        } else {
+            Some(rule)
+        }
+    }
+
+    pub fn get_rule(&self, detector_id: &str) -> Option<ResolvedRuleConfig> {
+        let rule = self.resolve_rule(detector_id, None);
+        if !rule.enabled {
+            None
+        } else {
+            Some(rule)
+        }
+    }
+
     pub fn is_framework_entry_point(&self, path: &Path) -> bool {
         if let Some(file_type) = self.file_types.get(path) {
             let presets = crate::framework::presets::get_presets(&self.detected_frameworks);

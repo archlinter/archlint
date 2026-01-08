@@ -44,13 +44,10 @@ impl Detector for AbstractnessViolationDetector {
 
         for node in ctx.graph.nodes() {
             if let Some(path) = ctx.graph.get_file_path(node) {
-                let rule = ctx.resolve_rule("abstractness", Some(path));
-                if !rule.enabled
-                    || ctx.is_excluded(path, &rule.exclude)
-                    || ctx.should_skip_detector(path, "abstractness")
-                {
-                    continue;
-                }
+                let rule = match ctx.get_rule_for_file("abstractness", path) {
+                    Some(r) => r,
+                    None => continue,
+                };
 
                 let distance_threshold: f64 = rule.get_option("distance_threshold").unwrap_or(0.85);
 

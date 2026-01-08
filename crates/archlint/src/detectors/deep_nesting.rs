@@ -40,10 +40,10 @@ impl Detector for DeepNestingDetector {
         let mut smells = Vec::new();
 
         for (path, functions) in ctx.function_complexity.as_ref() {
-            let rule = ctx.resolve_rule("deep_nesting", Some(path));
-            if !rule.enabled || ctx.is_excluded(path, &rule.exclude) {
-                continue;
-            }
+            let rule = match ctx.get_rule_for_file("deep_nesting", path) {
+                Some(r) => r,
+                None => continue,
+            };
 
             let max_depth: usize = rule.get_option("max_depth").unwrap_or(4);
 

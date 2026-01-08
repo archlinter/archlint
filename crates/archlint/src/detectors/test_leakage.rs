@@ -39,10 +39,10 @@ impl Detector for TestLeakageDetector {
     }
 
     fn detect(&self, ctx: &AnalysisContext) -> Vec<ArchSmell> {
-        let rule = ctx.resolve_rule("test_leakage", None);
-        if !rule.enabled {
-            return Vec::new();
-        }
+        let rule = match ctx.get_rule("test_leakage") {
+            Some(r) => r,
+            None => return Vec::new(),
+        };
 
         let test_patterns: Vec<String> = rule.get_option("test_patterns").unwrap_or_else(|| {
             vec![
@@ -59,10 +59,7 @@ impl Detector for TestLeakageDetector {
             .nodes()
             .filter_map(|node| {
                 let from_path = ctx.graph.get_file_path(node)?;
-                let file_rule = ctx.resolve_rule("test_leakage", Some(from_path));
-                if !file_rule.enabled || ctx.is_excluded(from_path, &file_rule.exclude) {
-                    return None;
-                }
+                let file_rule = ctx.get_rule_for_file("test_leakage", from_path)?;
 
                 if !self.is_test_file(from_path, Some(&test_patterns)) {
                     let mut node_smells =

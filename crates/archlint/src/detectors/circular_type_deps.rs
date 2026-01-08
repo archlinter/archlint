@@ -50,10 +50,10 @@ impl CircularTypeDepsDetector {
         let mut path_to_node = HashMap::new();
 
         for (path, symbols) in ctx.file_symbols.as_ref() {
-            let rule = ctx.resolve_rule("circular_type_deps", Some(path));
-            if !rule.enabled || ctx.is_excluded(path, &rule.exclude) {
-                continue;
-            }
+            let _rule = match ctx.get_rule_for_file("circular_type_deps", path) {
+                Some(r) => r,
+                None => continue,
+            };
 
             let from_node = *path_to_node
                 .entry(path.clone())
