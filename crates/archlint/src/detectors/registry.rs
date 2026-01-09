@@ -78,30 +78,8 @@ impl DetectorRegistry {
 
         for factory in self.factories.values() {
             let info = factory.info();
-            let resolved = crate::rule_resolver::ResolvedRuleConfig::resolve(config, info.id, None);
 
-            let is_enabled = if all_detectors {
-                true
-            } else if config.rules.contains_key(info.id) {
-                resolved.enabled
-            } else {
-                let mut preset_enabled = None;
-                for preset in presets {
-                    if let Some(rule_config) = preset.rules.get(info.id) {
-                        let enabled = match rule_config {
-                            crate::config::RuleConfig::Short(sev) => {
-                                *sev != crate::config::RuleSeverity::Off
-                            }
-                            crate::config::RuleConfig::Full(full) => full.enabled.unwrap_or(true),
-                        };
-                        preset_enabled = Some(enabled);
-                        break;
-                    }
-                }
-                preset_enabled.unwrap_or(info.default_enabled)
-            };
-
-            if is_enabled {
+            if self.is_detector_enabled(&info, config, presets, all_detectors) {
                 if info.is_deep {
                     needs_deep = true;
                 }
@@ -110,6 +88,36 @@ impl DetectorRegistry {
         }
 
         (detectors, needs_deep)
+    }
+
+    fn is_detector_enabled(
+        &self,
+        info: &DetectorInfo,
+        config: &Config,
+        presets: &[FrameworkPreset],
+        all_detectors: bool,
+    ) -> bool {
+        if all_detectors {
+            return true;
+        }
+
+        if config.rules.contains_key(info.id) {
+            let resolved = crate::rule_resolver::ResolvedRuleConfig::resolve(config, info.id, None);
+            return resolved.enabled;
+        }
+
+        for preset in presets {
+            if let Some(rule_config) = preset.rules.get(info.id) {
+                return match rule_config {
+                    crate::config::RuleConfig::Short(sev) => {
+                        *sev != crate::config::RuleSeverity::Off
+                    }
+                    crate::config::RuleConfig::Full(full) => full.enabled.unwrap_or(true),
+                };
+            }
+        }
+
+        info.default_enabled
     }
 
     pub fn get_info(&self, id: &str) -> Option<DetectorInfo> {

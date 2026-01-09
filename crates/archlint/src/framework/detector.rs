@@ -45,20 +45,9 @@ impl FrameworkDetector {
         for name in PresetLoader::get_all_builtin_names() {
             if let Some(preset) = PresetLoader::get_builtin_yaml(name) {
                 if let Some(files_rules) = preset.detect.files {
-                    if let Some(any_of) = files_rules.any_of {
-                        for pattern in any_of {
-                            if root.join(&pattern).exists() {
-                                if let Some(fw) = Self::map_name_to_framework(&preset.name) {
-                                    frameworks.insert(fw);
-                                }
-                            }
-                        }
-                    }
-                    if let Some(all_of) = files_rules.all_of {
-                        if all_of.iter().all(|p| root.join(p).exists()) {
-                            if let Some(fw) = Self::map_name_to_framework(&preset.name) {
-                                frameworks.insert(fw);
-                            }
+                    if Self::matches_rules(&files_rules, |p| root.join(p).exists()) {
+                        if let Some(fw) = Self::map_name_to_framework(&preset.name) {
+                            frameworks.insert(fw);
                         }
                     }
                 }
@@ -72,27 +61,9 @@ impl FrameworkDetector {
         for name in PresetLoader::get_all_builtin_names() {
             if let Some(preset) = PresetLoader::get_builtin_yaml(name) {
                 if let Some(pkg_rules) = preset.detect.packages {
-                    let mut matched = false;
-                    if let Some(any_of) = pkg_rules.any_of {
-                        for pattern in any_of {
-                            if Self::has_package(json, &pattern, &dependencies) {
-                                matched = true;
-                                break;
-                            }
-                        }
-                    }
-                    if !matched {
-                        if let Some(all_of) = pkg_rules.all_of {
-                            if all_of
-                                .iter()
-                                .all(|p| Self::has_package(json, p, &dependencies))
-                            {
-                                matched = true;
-                            }
-                        }
-                    }
-
-                    if matched {
+                    if Self::matches_rules(&pkg_rules, |p| {
+                        Self::has_package(json, p, &dependencies)
+                    }) {
                         if let Some(fw) = Self::map_name_to_framework(&preset.name) {
                             frameworks.insert(fw);
                         }
@@ -100,9 +71,23 @@ impl FrameworkDetector {
                 }
             }
         }
+    }
 
-        // Keep legacy hardcoded detection for non-YAML frameworks if any
-        // But for now we migrated all to YAML
+    fn matches_rules<F>(rules: &crate::framework::preset_types::MatchRules, mut check: F) -> bool
+    where
+        F: FnMut(&str) -> bool,
+    {
+        if let Some(any_of) = &rules.any_of {
+            if any_of.iter().any(|p| check(p)) {
+                return true;
+            }
+        }
+        if let Some(all_of) = &rules.all_of {
+            if !all_of.is_empty() && all_of.iter().all(|p| check(p)) {
+                return true;
+            }
+        }
+        false
     }
 
     fn has_package(json: &Value, name: &str, dep_types: &[&str]) -> bool {
@@ -123,10 +108,10 @@ impl FrameworkDetector {
     }
 
     fn map_name_to_framework(name: &str) -> Option<Framework> {
-        match name {
-            "NestJS" => Some(Framework::NestJS),
-            "Next.js" => Some(Framework::NextJS),
-            "React" => Some(Framework::React),
+        match name.to_lowercase().as_str() {
+            "nestjs" => Some(Framework::NestJS),
+            "nextjs" | "next.js" => Some(Framework::NextJS),
+            "react" => Some(Framework::React),
             "oclif" => Some(Framework::Oclif),
             _ => None,
         }

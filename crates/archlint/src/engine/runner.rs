@@ -100,8 +100,107 @@ impl AnalysisEngine {
         self.log_start();
 
         let files = self.discover_files()?;
+        let (presets, detected_frameworks) = self.load_presets_and_detect()?;
 
-        // 1. Load presets
+        let final_config = self.apply_presets(&presets);
+
+        let active_ids = self.get_active_detectors(&final_config, &presets);
+        let parser_config = ParserConfig::from_active_detectors(&active_ids);
+
+        let mut cache = self.load_cache()?;
+        let parsed_files = self.parse_files(&files, &parser_config, use_progress, &cache)?;
+        self.update_cache(&mut cache, &parsed_files)?;
+
+        let (file_symbols, function_complexity, file_metrics) =
+            self.extract_parsed_data(parsed_files);
+        let runtime_files = self.get_runtime_files(&file_symbols);
+
+        self.log_runtime_info(runtime_files.len(), files.len());
+
+        let graph = self.build_graph(&runtime_files, &file_symbols, use_progress)?;
+        let churn_map = self.get_churn_map(&files, use_progress, &mut cache);
+        let resolved_file_symbols = self.resolve_symbols(file_symbols, use_progress);
+
+        let pkg_config = package_json::PackageJsonParser::parse(&self.project_root)?;
+
+        let ctx = AnalysisContext {
+            project_path: self.project_root.clone(),
+            graph: Arc::new(graph),
+            file_symbols: Arc::new(resolved_file_symbols),
+            function_complexity: Arc::new(function_complexity),
+            file_metrics: Arc::new(file_metrics),
+            churn_map,
+            config: final_config.clone(),
+            script_entry_points: pkg_config.entry_points,
+            dynamic_load_patterns: pkg_config.dynamic_load_patterns,
+            detected_frameworks,
+            presets: presets.clone(),
+        };
+
+        let all_smells = self.run_detectors(&ctx, use_progress, &presets)?;
+
+        let report = self.create_report(ctx, all_smells, files.len(), presets)?;
+
+        if let Some(c) = cache {
+            debug!("Saving cache...");
+            c.save()?;
+        }
+
+        Ok(report)
+    }
+
+    fn create_report(
+        &self,
+        ctx: AnalysisContext,
+        all_smells: Vec<detectors::ArchSmell>,
+        files_len: usize,
+        presets: Vec<FrameworkPreset>,
+    ) -> Result<AnalysisReport> {
+        // Filter smells: only keep smells that are NOT in ignored files
+        let filtered_smells: Vec<_> = all_smells
+            .into_iter()
+            .filter(|smell| {
+                // Clones are special: we want to see them even if they touch ignored files
+                if matches!(
+                    smell.smell_type,
+                    crate::detectors::SmellType::CodeClone { .. }
+                ) {
+                    return true;
+                }
+                // Keep the smell if at least one of the files it's associated with is NOT ignored
+                smell.files.is_empty() || smell.files.iter().any(|f| !self.is_file_ignored(f))
+            })
+            .collect();
+
+        let mut report = AnalysisReport::new(
+            filtered_smells,
+            Some(Arc::try_unwrap(ctx.graph).unwrap_or_else(|arc| (*arc).clone())),
+            Arc::try_unwrap(ctx.file_symbols).unwrap_or_else(|arc| (*arc).clone()),
+            Arc::try_unwrap(ctx.file_metrics).unwrap_or_else(|arc| (*arc).clone()),
+            Arc::try_unwrap(ctx.function_complexity).unwrap_or_else(|arc| (*arc).clone()),
+            ctx.churn_map,
+            presets,
+        );
+        report.set_files_analyzed(files_len);
+
+        if let Some(ref min_sev) = self.args.min_severity {
+            use std::str::FromStr;
+            if let Ok(s) = Severity::from_str(min_sev) {
+                report.set_min_severity(s);
+            }
+        }
+        if let Some(min_score) = self.args.min_score {
+            report.set_min_score(min_score);
+        }
+
+        report.apply_severity_config(&self.config.scoring);
+
+        Ok(report)
+    }
+
+    fn load_presets_and_detect(
+        &self,
+    ) -> Result<(Vec<FrameworkPreset>, Vec<crate::framework::Framework>)> {
         let mut presets = Vec::new();
 
         // From extends (explicit)
@@ -163,88 +262,7 @@ impl AnalysisEngine {
             Vec::new()
         };
 
-        let final_config = self.apply_presets(&presets);
-
-        let active_ids = self.get_active_detectors(&final_config, &presets);
-        let parser_config = ParserConfig::from_active_detectors(&active_ids);
-
-        let mut cache = self.load_cache()?;
-        let parsed_files = self.parse_files(&files, &parser_config, use_progress, &cache)?;
-        self.update_cache(&mut cache, &parsed_files)?;
-
-        let (file_symbols, function_complexity, file_metrics) =
-            self.extract_parsed_data(parsed_files);
-        let runtime_files = self.get_runtime_files(&file_symbols);
-
-        self.log_runtime_info(runtime_files.len(), files.len());
-
-        let graph = self.build_graph(&runtime_files, &file_symbols, use_progress)?;
-        let churn_map = self.get_churn_map(&files, use_progress, &mut cache);
-        let resolved_file_symbols = self.resolve_symbols(file_symbols, use_progress);
-
-        let pkg_config = package_json::PackageJsonParser::parse(&self.project_root)?;
-
-        let ctx = AnalysisContext {
-            project_path: self.project_root.clone(),
-            graph: Arc::new(graph),
-            file_symbols: Arc::new(resolved_file_symbols),
-            function_complexity: Arc::new(function_complexity),
-            file_metrics: Arc::new(file_metrics),
-            churn_map,
-            config: final_config.clone(),
-            script_entry_points: pkg_config.entry_points,
-            dynamic_load_patterns: pkg_config.dynamic_load_patterns,
-            detected_frameworks,
-            presets: presets.clone(),
-        };
-
-        let all_smells = self.run_detectors(&ctx, use_progress, &presets)?;
-
-        // Filter smells: only keep smells that are NOT in ignored files
-        let filtered_smells: Vec<_> = all_smells
-            .into_iter()
-            .filter(|smell| {
-                // Clones are special: we want to see them even if they touch ignored files
-                if matches!(
-                    smell.smell_type,
-                    crate::detectors::SmellType::CodeClone { .. }
-                ) {
-                    return true;
-                }
-                // Keep the smell if at least one of the files it's associated with is NOT ignored
-                smell.files.is_empty() || smell.files.iter().any(|f| !self.is_file_ignored(f))
-            })
-            .collect();
-
-        let mut report = AnalysisReport::new(
-            filtered_smells,
-            Some(Arc::try_unwrap(ctx.graph).unwrap_or_else(|arc| (*arc).clone())),
-            Arc::try_unwrap(ctx.file_symbols).unwrap_or_else(|arc| (*arc).clone()),
-            Arc::try_unwrap(ctx.file_metrics).unwrap_or_else(|arc| (*arc).clone()),
-            Arc::try_unwrap(ctx.function_complexity).unwrap_or_else(|arc| (*arc).clone()),
-            ctx.churn_map,
-            presets,
-        );
-        report.set_files_analyzed(files.len());
-
-        if let Some(ref min_sev) = self.args.min_severity {
-            use std::str::FromStr;
-            if let Ok(s) = Severity::from_str(min_sev) {
-                report.set_min_severity(s);
-            }
-        }
-        if let Some(min_score) = self.args.min_score {
-            report.set_min_score(min_score);
-        }
-
-        report.apply_severity_config(&self.config.scoring);
-
-        if let Some(c) = cache {
-            debug!("Saving cache...");
-            c.save()?;
-        }
-
-        Ok(report)
+        Ok((presets, detected_frameworks))
     }
 
     fn log_start(&self) {
@@ -327,34 +345,38 @@ impl AnalysisEngine {
     fn apply_presets(&self, presets: &[FrameworkPreset]) -> Config {
         let mut final_config = self.config.clone();
         for preset in presets {
-            // 1. Merge rules from presets
-            for (rule_name, preset_rule) in &preset.rules {
-                let user_rule = final_config
-                    .rules
-                    .entry(rule_name.clone())
-                    .or_insert_with(|| preset_rule.clone());
-
-                // If user already has this rule, we might want to merge options if it's not overriding everything
-                if let (RuleConfig::Full(preset_full), RuleConfig::Full(user_full)) =
-                    (preset_rule, user_rule)
-                {
-                    Self::merge_options(&mut user_full.options, &preset_full.options);
-                }
-            }
-
-            // 2. Merge entry points
-            for pattern in &preset.entry_points {
-                if !final_config.entry_points.contains(pattern) {
-                    final_config.entry_points.push(pattern.clone());
-                }
-            }
-
-            // 3. Merge overrides
-            for ov in &preset.overrides {
-                final_config.overrides.push(ov.clone());
-            }
+            self.merge_preset_into_config(&mut final_config, preset);
         }
         final_config
+    }
+
+    fn merge_preset_into_config(&self, config: &mut Config, preset: &FrameworkPreset) {
+        // 1. Merge rules from presets
+        for (rule_name, preset_rule) in &preset.rules {
+            let user_rule = config
+                .rules
+                .entry(rule_name.clone())
+                .or_insert_with(|| preset_rule.clone());
+
+            // If user already has this rule, we might want to merge options if it's not overriding everything
+            if let (RuleConfig::Full(preset_full), RuleConfig::Full(user_rule_full)) =
+                (preset_rule, user_rule)
+            {
+                Self::merge_options(&mut user_rule_full.options, &preset_full.options);
+            }
+        }
+
+        // 2. Merge entry points
+        for pattern in &preset.entry_points {
+            if !config.entry_points.contains(pattern) {
+                config.entry_points.push(pattern.clone());
+            }
+        }
+
+        // 3. Merge overrides
+        for ov in &preset.overrides {
+            config.overrides.push(ov.clone());
+        }
     }
 
     fn merge_options(user_options: &mut serde_yaml::Value, preset_options: &serde_yaml::Value) {
