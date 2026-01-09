@@ -63,14 +63,14 @@ pub enum RuleSeverity {
     Off,
 }
 
-#[derive(Debug, Clone, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
 #[serde(untagged)]
 pub enum RuleConfig {
     Short(RuleSeverity),
     Full(RuleFullConfig),
 }
 
-#[derive(Debug, Clone, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
 pub struct RuleFullConfig {
     #[serde(default)]
     pub severity: Option<RuleSeverity>,
@@ -82,7 +82,7 @@ pub struct RuleFullConfig {
     pub options: serde_yaml::Value,
 }
 
-#[derive(Debug, Clone, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
 pub struct Override {
     pub files: Vec<String>,
     pub rules: HashMap<String, RuleConfig>,

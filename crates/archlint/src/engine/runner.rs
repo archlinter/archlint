@@ -375,7 +375,9 @@ impl AnalysisEngine {
 
         // 3. Merge overrides
         for ov in &preset.overrides {
-            config.overrides.push(ov.clone());
+            if !config.overrides.contains(ov) {
+                config.overrides.push(ov.clone());
+            }
         }
     }
 

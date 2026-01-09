@@ -49,7 +49,6 @@ overrides:
     rules:
       high_coupling: off
       lcom: off
-      module_cohesion: off
       sdp_violation: off
   - files: ['**/*.entity.ts', '**/*.entity.js', '**/entities/**']
     rules:

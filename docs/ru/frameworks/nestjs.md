@@ -18,15 +18,15 @@ extends:
 rules:
   layer_violation:
     layers:
-  - name: presentation
-    path: ['**/*.controller.ts']
-    allowed_imports: ['application']
+      - name: presentation
+        path: ['**/*.controller.ts']
+        allowed_imports: ['application']
 
-  - name: application
-    path: ['**/*.service.ts']
-    allowed_imports: ['domain']
+      - name: application
+        path: ['**/*.service.ts']
+        allowed_imports: ['domain']
 
-  - name: domain
-    path: ['**/entities/**']
-    allowed_imports: []
+      - name: domain
+        path: ['**/entities/**']
+        allowed_imports: []
 ```

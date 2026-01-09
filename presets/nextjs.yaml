@@ -4,7 +4,7 @@ detect:
   packages:
     any_of: ['next']
   files:
-    any_of: ['next.config.js', 'next.config.mjs']
+    any_of: ['next.config.js', 'next.config.mjs', 'next.config.ts']
 
 rules:
   layer_violation: off

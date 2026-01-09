@@ -2,7 +2,7 @@
 
 **ID:** `hub_dependency` | **Severidad:** Media (predeterminado)
 
-Identifica paquetes externos que son importados por demasiados archivos en tu proyecto, creando un punto central de fallo.
+Identifica paquetes externos que son importados por demasiados archivos en tu proyecto, creando un punto central de fallo..
 
 ## Por qué esto es un problema
 

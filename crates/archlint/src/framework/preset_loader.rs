@@ -44,7 +44,8 @@ impl PresetLoader {
         if name_or_path_or_url.starts_with("http://") || name_or_path_or_url.starts_with("https://")
         {
             Self::load_url(name_or_path_or_url)
-        } else if name_or_path_or_url.contains('/')
+        } else if std::path::Path::new(name_or_path_or_url).exists()
+            || name_or_path_or_url.contains('/')
             || name_or_path_or_url.contains('\\')
             || name_or_path_or_url.ends_with(".yaml")
             || name_or_path_or_url.ends_with(".yml")

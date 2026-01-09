@@ -25,6 +25,6 @@ extends:
 - [React](/es/frameworks/react)
 - [oclif](/es/frameworks/oclif)
 
-## Uso Avanzado
+## Uso avanzado
 
-- [Presets Personalizados](/es/frameworks/custom-presets)
+- [Presets personalizados](/es/frameworks/custom-presets)
