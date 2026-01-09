@@ -70,6 +70,4 @@ scoring:
     medium: 20
     low: 5
 
-# Legacy framework field (use 'extends' instead)
-# framework: nestjs
 auto_detect_framework: true
