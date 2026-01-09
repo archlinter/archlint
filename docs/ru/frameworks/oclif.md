@@ -21,5 +21,5 @@ extends:
 
 Пресет oclif автоматически обнаруживается, если:
 
-1. `package.json` содержит `@oclif/core` в зависимостях.
+1. `package.json` содержит `@oclif/core` или `@oclif/command` в зависимостях.
 2. В проекте есть файл `oclif.manifest.json`.

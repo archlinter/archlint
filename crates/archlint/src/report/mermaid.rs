@@ -55,7 +55,10 @@ impl MermaidGenerator {
         file_smells: &HashMap<PathBuf, Vec<&SmellType>>,
     ) -> HashMap<PathBuf, String> {
         let mut node_ids = HashMap::new();
-        for (idx, file) in problem_files.iter().enumerate() {
+        let mut sorted_files: Vec<&PathBuf> = problem_files.iter().collect();
+        sorted_files.sort();
+
+        for (idx, file) in sorted_files.into_iter().enumerate() {
             let node_id = format!("file{}", idx);
             let file_name = Self::get_short_name(file);
 
@@ -80,7 +83,10 @@ impl MermaidGenerator {
         graph: &DependencyGraph,
     ) {
         let mut added_edges = HashSet::new();
-        for file in problem_files {
+        let mut sorted_files: Vec<&PathBuf> = problem_files.iter().collect();
+        sorted_files.sort();
+
+        for file in sorted_files {
             Self::generate_file_edges(
                 output,
                 file,
@@ -134,6 +140,7 @@ impl MermaidGenerator {
         output.push_str("    classDef godModule fill:#ffcccc,stroke:#cc0000\n");
         output.push_str("    classDef cycle fill:#ffffcc,stroke:#cccc00\n");
         output.push_str("    classDef complexity fill:#f9f,stroke:#333\n");
+        output.push_str("    classDef largeFile fill:#ffd699,stroke:#cc8400\n");
         output.push_str("    classDef unstableInterface fill:#ff9966,stroke:#993300\n");
         output.push_str("    classDef featureEnvy fill:#99ccff,stroke:#003366\n");
         output.push_str("    classDef shotgunSurgery fill:#ff6666,stroke:#660000\n");

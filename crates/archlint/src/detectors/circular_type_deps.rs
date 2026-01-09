@@ -104,11 +104,11 @@ impl CircularTypeDepsDetector {
     }
 
     fn get_severity(&self, files: &[PathBuf], ctx: &AnalysisContext) -> Severity {
-        if let Some(path) = files.first() {
-            ctx.resolve_rule("circular_type_deps", Some(path)).severity
-        } else {
-            Severity::Low
-        }
+        files
+            .iter()
+            .map(|path| ctx.resolve_rule("circular_type_deps", Some(path)).severity)
+            .max()
+            .unwrap_or(Severity::Low)
     }
 
     fn resolve_import(
@@ -131,14 +131,36 @@ impl CircularTypeDepsDetector {
                 // Since we don't store resolved path in ImportedSymbol yet,
                 // we'll use a slightly better heuristic.
                 let target_str = target_path.to_string_lossy();
-                let source_parts: Vec<&str> = import
-                    .source
+                let source_normalized = import.source.replace('\\', "/");
+                let source_parts: Vec<&str> = source_normalized
                     .split('/')
                     .filter(|s| !s.is_empty() && *s != "." && *s != "..")
                     .collect();
 
-                if source_parts.iter().all(|part| target_str.contains(part)) {
-                    return Some(target_path.clone());
+                if !source_parts.is_empty()
+                    && source_parts.iter().all(|part| target_str.contains(part))
+                {
+                    // Check if it ends with the components to be more precise
+                    let mut matches = true;
+                    let mut current_target = target_path.as_path();
+                    for part in source_parts.iter().rev() {
+                        if let Some(file_name) = current_target.file_name().and_then(|n| n.to_str())
+                        {
+                            if !file_name.starts_with(part) {
+                                matches = false;
+                                break;
+                            }
+                        }
+                        if let Some(parent) = current_target.parent() {
+                            current_target = parent;
+                        } else {
+                            break;
+                        }
+                    }
+
+                    if matches {
+                        return Some(target_path.clone());
+                    }
                 }
             }
         }

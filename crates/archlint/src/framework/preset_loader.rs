@@ -36,6 +36,29 @@ impl PresetLoader {
     }
 
     pub fn load_url(url: &str) -> Result<FrameworkPreset> {
+        let parsed_url =
+            reqwest::Url::parse(url).map_err(|e| anyhow!("Invalid URL '{}': {}", url, e))?;
+
+        if parsed_url.scheme() != "http" && parsed_url.scheme() != "https" {
+            return Err(anyhow!(
+                "Only http and https schemes are allowed for preset URLs"
+            ));
+        }
+
+        if let Some(host) = parsed_url.host_str() {
+            let is_local = host == "localhost"
+                || host == "127.0.0.1"
+                || host == "::1"
+                || host.starts_with("10.")
+                || host.starts_with("192.168.")
+                || host.starts_with("172.");
+            if is_local {
+                return Err(anyhow!(
+                    "Presets from local or private networks are not allowed for security reasons"
+                ));
+            }
+        }
+
         let client = reqwest::blocking::Client::builder()
             .timeout(std::time::Duration::from_secs(30))
             .build()

@@ -3,6 +3,8 @@ version: 1
 detect:
   packages:
     any_of: ['@oclif/core', '@oclif/command']
+  files:
+    any_of: ['oclif.manifest.json']
 
 rules:
   dead_symbols:

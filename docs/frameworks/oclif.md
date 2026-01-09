@@ -21,5 +21,5 @@ extends:
 
 The oclif preset is automatically detected if:
 
-1. `package.json` contains `@oclif/core` in dependencies.
+1. `package.json` contains `@oclif/core` or `@oclif/command` in dependencies.
 2. The project has an `oclif.manifest.json` file.

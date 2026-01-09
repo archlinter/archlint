@@ -1,7 +1,7 @@
 use crate::detectors::ArchSmell;
 use crate::explain::Explanation;
 use std::collections::BTreeMap;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 
 pub type SmellWithExplanation = (ArchSmell, Explanation);
 
@@ -92,21 +92,28 @@ pub fn filter_smells(smells: &[SmellWithExplanation]) -> FilteredSmells<'_> {
     }
 }
 
-fn extract_short_directory(file_path: &PathBuf) -> String {
-    let path = Path::new(file_path);
-
-    let parent = match path.parent().and_then(|p| p.to_str()) {
-        Some(s) => s,
+fn extract_short_directory(file_path: &Path) -> String {
+    let parent = match file_path.parent() {
+        Some(p) => p,
         None => return ".".to_string(),
     };
 
-    let components: Vec<_> = parent.split('/').collect();
-    let start = components.len().saturating_sub(3);
-    components[start..].join("/")
+    let components: Vec<_> = parent
+        .components()
+        .rev()
+        .take(3)
+        .filter_map(|c| c.as_os_str().to_str())
+        .collect();
+
+    let result: Vec<_> = components.into_iter().rev().collect();
+    if result.is_empty() {
+        return ".".to_string();
+    }
+    result.join("/")
 }
 
-fn extract_filename(file_path: &PathBuf) -> String {
-    Path::new(file_path)
+fn extract_filename(file_path: &Path) -> String {
+    file_path
         .file_name()
         .and_then(|s| s.to_str())
         .unwrap_or("unknown")
