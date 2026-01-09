@@ -12,7 +12,8 @@ archlintはNestJSのモジュール型アーキテクチャを理解し、それ
 ## 推奨設定
 
 ```yaml
-framework: nestjs
+extends:
+  - nestjs
 
 rules:
   layer_violation:

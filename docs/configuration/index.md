@@ -19,6 +19,11 @@ ignore:
 aliases:
   '@/*': 'src/*'
 
+# Extend from built-in or custom presets
+extends:
+  - nestjs
+  - ./my-company-preset.yaml
+
 # Entry points for analysis (used for dead code detection)
 entry_points:
   - 'src/main.ts'
@@ -38,6 +43,10 @@ rules:
     fan_in: 15
     fan_out: 15
     churn: 20
+
+  vendor_coupling:
+    severity: warn
+    ignore_packages: ['lodash', 'rxjs']
 
 # Rule overrides for specific paths
 overrides:
@@ -64,9 +73,6 @@ scoring:
     moderate: 15.0
     poor: 30.0
 
-# Framework usage
-framework: nestjs
-
 # Auto-detect framework (defaults to true)
 auto_detect_framework: true
 
@@ -78,9 +84,19 @@ git:
   history_period: '1y'
 ```
 
-## Severity Levels
+## Extends
 
-In the `rules` section, you can use the following levels:
+The `extends` field allows you to load presets from different sources:
+
+- **Built-in presets**: `nestjs`, `nextjs`, `react`, `oclif`.
+- **Local files**: Relative path to a YAML file (e.g., `./archlint-shared.yaml`).
+- **URLs**: Direct URL to a YAML file (e.g., `https://example.com/preset.yaml`).
+
+Presets are merged in the order they are listed. User configuration always has the highest priority.
+
+## Rules and Severity Levels
+
+In the `rules` section, you can use the following severity levels:
 
 - `critical`: Critical issue requiring immediate attention.
 - `error`: Architectural error.

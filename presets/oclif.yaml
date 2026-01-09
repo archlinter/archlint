@@ -1,0 +1,26 @@
+name: oclif
+version: 1
+detect:
+  packages:
+    any_of: ['@oclif/core', '@oclif/command']
+
+rules:
+  dead_symbols:
+    ignore_methods: ['run', 'init', 'finally', 'catch']
+  vendor_coupling:
+    ignore_packages: ['@oclif/*']
+  hub_dependency:
+    ignore_packages: ['@oclif/*']
+
+entry_points:
+  - '**/src/commands/**'
+  - '**/src/hooks/**'
+
+overrides:
+  - files: ['**/src/commands/**']
+    rules:
+      lcom: off
+      abstractness: off
+  - files: ['**/src/hooks/**']
+    rules:
+      lcom: off

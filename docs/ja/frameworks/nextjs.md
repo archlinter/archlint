@@ -11,7 +11,8 @@ Next.jsプロジェクトには、archlintが理解している独自のファ�
 ## 推奨設定
 
 ```yaml
-framework: nextjs
+extends:
+  - nextjs
 
 entry_points:
   - 'src/pages/**/*.tsx'

@@ -11,3 +11,21 @@ Si decides cambiar la biblioteca en el futuro, tendrás que cambiar el código e
 ## Cómo corregir
 
 Usa el **Patrón Adapter**. Crea una interfaz en tu dominio e impleméntala usando la biblioteca externa. El resto de tu código solo debería depender de tu interfaz.
+
+## Configuración
+
+```yaml
+rules:
+  vendor_coupling:
+    severity: warn
+    max_files_per_package: 10
+    ignore_packages:
+      - 'lodash'
+      - 'rxjs'
+      - '@nestjs/*'
+```
+
+### Opciones
+
+- `max_files_per_package` (predeterminado: 10): El número máximo de archivos que pueden importar un paquete específico antes de que se reporte un smell.
+- `ignore_packages`: Una lista de nombres de paquetes o patrones glob para ignorar.

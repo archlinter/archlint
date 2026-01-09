@@ -60,6 +60,7 @@ description: Explora los más de 28 detectores de code smells de arquitectura en
 | --------------------------------------------------------------------- | -------------------- | --------------------------------------------- | ----------- |
 | [Fuga de Pruebas](/es/detectors/test-leakage)                         | `test_leakage`       | El código de prueba se filtra a producción    | ❌          |
 | [Acoplamiento con Proveedor](/es/detectors/vendor-coupling)           | `vendor_coupling`    | Acoplamiento estrecho con librerías externas  | ❌          |
+| [Dependencia Hub](/es/detectors/hub-dependency)                       | `hub_dependency`     | Dependencia excesiva de paquetes externos     | ❌          |
 | [Importación con Efecto Secundario](/es/detectors/side-effect-import) | `side_effect_import` | Importaciones que activan efectos secundarios | ✅          |
 | [Estado Mutable Compartido](/es/detectors/shared-mutable-state)       | `shared_state`       | Variables mutables exportadas                 | ❌          |
 

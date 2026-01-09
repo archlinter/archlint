@@ -12,7 +12,8 @@ archlint понимает модульную архитектуру NestJS и п
 ## Рекомендуемая конфигурация
 
 ```yaml
-framework: nestjs
+extends:
+  - nestjs
 
 rules:
   layer_violation:

@@ -140,17 +140,16 @@ impl DeadCodeDetector {
     fn is_dead_file(
         path: &Path,
         fan_in: usize,
-        ctx: &AnalysisContext,
+        _ctx: &AnalysisContext,
         detector: &DeadCodeDetector,
         symbol_imports: &HashMap<(PathBuf, String), HashSet<PathBuf>>,
         reexport_map: &HashMap<PathBuf, HashSet<PathBuf>>,
     ) -> bool {
         fan_in == 0
-            && !ctx.is_framework_entry_point(path)
             && !detector.is_entry_point(path)
             && !detector.matches_dynamic_load_pattern(path)
-            && !detector.has_used_exports(path, ctx.file_symbols.as_ref(), symbol_imports)
-            && !detector.is_reexported(path, ctx.file_symbols.as_ref(), reexport_map)
+            && !detector.has_used_exports(path, _ctx.file_symbols.as_ref(), symbol_imports)
+            && !detector.is_reexported(path, _ctx.file_symbols.as_ref(), reexport_map)
     }
 
     pub fn new_default(config: &Config) -> Self {

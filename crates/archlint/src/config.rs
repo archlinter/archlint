@@ -29,6 +29,9 @@ pub struct Config {
     pub watch: WatchConfig,
 
     #[serde(default)]
+    pub extends: Vec<String>,
+
+    #[serde(default)]
     pub framework: Option<String>,
 
     #[serde(default = "default_true")]
@@ -259,6 +262,7 @@ impl Default for Config {
             overrides: Vec::new(),
             scoring: SeverityConfig::default(),
             watch: WatchConfig::default(),
+            extends: Vec::new(),
             framework: None,
             auto_detect_framework: true,
             enable_git: true,

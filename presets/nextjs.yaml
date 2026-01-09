@@ -1,0 +1,33 @@
+name: nextjs
+version: 1
+detect:
+  packages:
+    any_of: ['next']
+  files:
+    any_of: ['next.config.js', 'next.config.mjs']
+
+rules:
+  layer_violation: off
+  barrel_file: off
+  dead_symbols:
+    ignore_methods: ['getServerSideProps', 'getStaticProps', 'getStaticPaths']
+  vendor_coupling:
+    ignore_packages: ['next/*']
+  hub_dependency:
+    ignore_packages: ['next/*']
+
+entry_points:
+  - '**/pages/**'
+  - '**/app/**/page.tsx'
+  - '**/app/**/page.js'
+  - '**/app/**/route.ts'
+  - '**/app/**/route.js'
+
+overrides:
+  - files: ['**/pages/**', '**/app/**/page.tsx', '**/app/**/page.js']
+    rules:
+      lcom: off
+      high_coupling: off
+  - files: ['**/app/**/route.ts', '**/app/**/route.js', '**/pages/api/**']
+    rules:
+      lcom: off

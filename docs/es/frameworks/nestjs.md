@@ -12,7 +12,8 @@ archlint comprende la arquitectura modular de NestJS y proporciona un análisis 
 ## Configuración Recomendada
 
 ```yaml
-framework: nestjs
+extends:
+  - nestjs
 
 rules:
   layer_violation:

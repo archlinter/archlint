@@ -11,3 +11,21 @@
 ## 如何修复
 
 使用**适配器模式 (Adapter Pattern)**。在您的领域中创建一个接口，并使用外部库实现它。代码的其余部分应该只依赖于您的接口。
+
+## 配置
+
+```yaml
+rules:
+  vendor_coupling:
+    severity: warn
+    max_files_per_package: 10
+    ignore_packages:
+      - 'lodash'
+      - 'rxjs'
+      - '@nestjs/*'
+```
+
+### 选项
+
+- `max_files_per_package`（默认：10）：在报告坏味道之前可以导入特定包的最大文件数。
+- `ignore_packages`：要忽略的包名称或 glob 模式列表。

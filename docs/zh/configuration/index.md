@@ -19,6 +19,11 @@ ignore:
 aliases:
   '@/*': 'src/*'
 
+# 从内置或自定义预设扩展
+extends:
+  - nestjs
+  - ./my-company-preset.yaml
+
 # 分析的入口点（用于死代码检测）
 entry_points:
   - 'src/main.ts'
@@ -38,6 +43,10 @@ rules:
     fan_in: 15
     fan_out: 15
     churn: 20
+
+  vendor_coupling:
+    severity: warn
+    ignore_packages: ['lodash', 'rxjs']
 
 # 特定路径的规则覆盖
 overrides:
@@ -64,9 +73,6 @@ scoring:
     moderate: 15.0
     poor: 30.0
 
-# 框架使用
-framework: nestjs
-
 # 自动检测框架（默认为 true）
 auto_detect_framework: true
 
@@ -78,7 +84,17 @@ git:
   history_period: '1y'
 ```
 
-## 严重程度级别
+## 扩展 (Extends)
+
+`extends` 字段允许您从不同的来源加载预设：
+
+- **内置预设**：`nestjs`、`nextjs`、`react`、`oclif`。
+- **本地文件**：YAML 文件的相对路径（例如 `./archlint-shared.yaml`）。
+- **URL**：YAML 文件的直接 URL（例如 `https://example.com/preset.yaml`）。
+
+预设按照列出的顺序合并。用户配置始终具有最高优先级。
+
+## 规则和严重程度级别
 
 在 `rules` 部分，您可以使用以下级别：
 

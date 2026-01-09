@@ -139,6 +139,7 @@ pub struct AnalysisReport {
     pub function_complexity:
         std::collections::HashMap<std::path::PathBuf, Vec<crate::parser::FunctionComplexity>>,
     pub churn_map: std::collections::HashMap<std::path::PathBuf, usize>,
+    pub presets: Vec<crate::framework::presets::FrameworkPreset>,
     pub min_severity: Option<crate::detectors::Severity>,
     pub min_score: Option<u32>,
 }
@@ -157,6 +158,7 @@ impl AnalysisReport {
             Vec<crate::parser::FunctionComplexity>,
         >,
         churn_map: std::collections::HashMap<std::path::PathBuf, usize>,
+        presets: Vec<crate::framework::presets::FrameworkPreset>,
     ) -> Self {
         // ... (rest of the logic stays same)
         let cyclic_dependencies = smells
@@ -262,6 +264,7 @@ impl AnalysisReport {
             file_metrics,
             function_complexity,
             churn_map,
+            presets,
             min_severity: None,
             min_score: None,
         }

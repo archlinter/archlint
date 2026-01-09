@@ -1,0 +1,95 @@
+name: nestjs
+version: 1
+detect:
+  packages:
+    any_of:
+      - '@nestjs/core'
+      - '@nestjs/common'
+
+rules:
+  layer_violation: error
+  module_cohesion: off
+  dead_symbols:
+    ignore_methods:
+      - 'onModuleInit'
+      - 'onApplicationBootstrap'
+      - 'onModuleDestroy'
+      - 'beforeApplicationShutdown'
+      - 'onApplicationShutdown'
+      - 'intercept'
+      - 'transform'
+      - 'canActivate'
+      - 'resolve'
+      - 'validate'
+  vendor_coupling:
+    ignore_packages:
+      - '@nestjs/*'
+      - 'class-validator'
+      - 'class-transformer'
+      - 'rxjs'
+      - 'reflect-metadata'
+  hub_dependency:
+    ignore_packages:
+      - '@nestjs/*'
+      - 'rxjs'
+      - 'reflect-metadata'
+
+entry_points:
+  - '**/*.controller.ts'
+  - '**/*.controller.js'
+  - '**/*.module.ts'
+  - '**/*.module.js'
+
+overrides:
+  - files: ['**/*.controller.ts', '**/*.controller.js']
+    rules:
+      lcom: off
+      sdp_violation: off
+  - files: ['**/*.module.ts', '**/*.module.js']
+    rules:
+      high_coupling: off
+      lcom: off
+      module_cohesion: off
+      sdp_violation: off
+  - files: ['**/*.entity.ts', '**/*.entity.js', '**/entities/**']
+    rules:
+      cycles: off
+      lcom: off
+      abstractness: off
+  - files: ['**/*.dto.ts', '**/*.dto.js', '**/dto/**', '**/dtos/**']
+    rules:
+      abstractness: off
+  - files: ['**/*.interface.ts', '**/*.interface.js', '**/interfaces/**']
+    rules:
+      abstractness: off
+  - files: ['**/*.config.ts', '**/*.config.js', '**/config/**']
+    rules:
+      abstractness: off
+  - files: ['**/*.event.ts', '**/events/**']
+    rules:
+      abstractness: off
+  - files: ['**/*.exception.ts', '**/exceptions/**', '**/errors/**']
+    rules:
+      abstractness: off
+  - files: ['**/*.guard.ts', '**/*.guard.js', '**/guards/**']
+    rules:
+      lcom: off
+      abstractness: off
+  - files: ['**/*.pipe.ts', '**/*.pipe.js', '**/pipes/**']
+    rules:
+      lcom: off
+      abstractness: off
+  - files: ['**/*.interceptor.ts', '**/*.interceptor.js', '**/interceptors/**']
+    rules:
+      lcom: off
+      abstractness: off
+  - files: ['**/*.decorator.ts', '**/*.decorator.js', '**/decorators/**']
+    rules:
+      abstractness: off
+  - files: ['**/*.middleware.ts', '**/*.middleware.js', '**/middlewares/**']
+    rules:
+      lcom: off
+  - files: ['**/*.repository.ts', '**/*.repository.js', '**/repositories/**']
+    rules:
+      lcom: off
+      high_coupling: off

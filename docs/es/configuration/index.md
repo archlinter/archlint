@@ -19,6 +19,11 @@ ignore:
 aliases:
   '@/*': 'src/*'
 
+# Extender desde presets integrados o personalizados
+extends:
+  - nestjs
+  - ./my-company-preset.yaml
+
 # Puntos de entrada para el análisis (utilizados para detección de código muerto)
 entry_points:
   - 'src/main.ts'
@@ -38,6 +43,10 @@ rules:
     fan_in: 15
     fan_out: 15
     churn: 20
+
+  vendor_coupling:
+    severity: warn
+    ignore_packages: ['lodash', 'rxjs']
 
 # Sobrescritura de reglas para rutas específicas
 overrides:
@@ -64,9 +73,6 @@ scoring:
     moderate: 15.0
     poor: 30.0
 
-# Uso de framework
-framework: nestjs
-
 # Autodetección de framework (por defecto true)
 auto_detect_framework: true
 
@@ -78,7 +84,17 @@ git:
   history_period: '1y'
 ```
 
-## Niveles de Severidad
+## Extends (Extensión)
+
+El campo `extends` le permite cargar presets desde diferentes fuentes:
+
+- **Presets integrados**: `nestjs`, `nextjs`, `react`, `oclif`.
+- **Archivos locales**: Ruta relativa a un archivo YAML (por ejemplo, `./archlint-shared.yaml`).
+- **URLs**: URL directa a un archivo YAML (por ejemplo, `https://example.com/preset.yaml`).
+
+Los presets se fusionan en el orden en que se listan. La configuración del usuario siempre tiene la prioridad más alta.
+
+## Reglas y Niveles de Severidad
 
 En la sección `rules`, puede usar los siguientes niveles:
 

@@ -85,10 +85,20 @@ impl DetectorRegistry {
             } else if config.rules.contains_key(info.id) {
                 resolved.enabled
             } else {
-                let preset_enabled = presets
-                    .iter()
-                    .any(|p| p.enabled_detectors.contains(&info.id));
-                info.default_enabled || preset_enabled
+                let mut preset_enabled = None;
+                for preset in presets {
+                    if let Some(rule_config) = preset.rules.get(info.id) {
+                        let enabled = match rule_config {
+                            crate::config::RuleConfig::Short(sev) => {
+                                *sev != crate::config::RuleSeverity::Off
+                            }
+                            crate::config::RuleConfig::Full(full) => full.enabled.unwrap_or(true),
+                        };
+                        preset_enabled = Some(enabled);
+                        break;
+                    }
+                }
+                preset_enabled.unwrap_or(info.default_enabled)
             };
 
             if is_enabled {

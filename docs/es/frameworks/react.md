@@ -11,5 +11,6 @@ Los componentes de React tienen características arquitectónicas diferentes a l
 ## Configuración Recomendada
 
 ```yaml
-framework: react
+extends:
+  - react
 ```

@@ -44,5 +44,5 @@ pub use detectors::registry::DetectorInfo;
 pub use detectors::{ArchSmell, CodeRange, CycleCluster, LocationDetail, Severity, SmellType};
 pub use error::{AnalysisError, Result};
 pub use explain::Explanation;
-pub use framework::{FileType, Framework};
+pub use framework::Framework;
 pub use report::{AnalysisReport, ArchitectureGrade, GradeLevel};
