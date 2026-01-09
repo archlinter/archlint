@@ -4,8 +4,8 @@ archlint proporciona soporte integrado para [oclif](https://oclif.io/), el Open 
 
 ## Características
 
-- **Puntos de entrada CLI**: Reconoce automáticamente los archivos de comando como puntos de entrada.
-- **Detección de hooks**: Identifica hooks de oclif para evitar falsos positivos en el análisis de código muerto.
+- **Puntos de entrada de la CLI**: Reconoce automáticamente los archivos de comando como puntos de entrada.
+- **Detección de hooks**: Identifica hooks de oclif en sus dependencias para evitar falsos positivos en el análisis de código muerto.
 - **Reglas arquitectónicas**: Proporciona presets que siguen la estructura de directorios recomendada por oclif.
 
 ## Configuración
@@ -22,4 +22,4 @@ extends:
 El preset de oclif se detecta automáticamente si:
 
 1. `package.json` contiene `@oclif/core` en las dependencias.
-2. El proyecto tiene un archivo `oclif.manifest.json`.
+2. Houver un archivo `oclif.manifest.json` en el proyecto.

@@ -1,4 +1,5 @@
 use napi_derive::napi;
+use std::path::PathBuf;
 
 // ============ Options ============
 
@@ -241,7 +242,7 @@ impl From<archlint::IncrementalResult> for JsIncrementalResult {
             affected_files: res
                 .affected_files
                 .into_iter()
-                .map(|p: std::path::PathBuf| p.to_string_lossy().to_string())
+                .map(|p: PathBuf| p.to_string_lossy().to_string())
                 .collect(),
             changed_count: res.changed_count as u32,
             affected_count: res.affected_count as u32,

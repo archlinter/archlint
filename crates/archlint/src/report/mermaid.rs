@@ -1,7 +1,7 @@
 use crate::detectors::{ArchSmell, SmellType};
 use crate::graph::DependencyGraph;
 use std::collections::{HashMap, HashSet};
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 pub struct MermaidGenerator;
 
@@ -32,12 +32,9 @@ impl MermaidGenerator {
 
     fn collect_problem_data(
         smells: &[(ArchSmell, crate::explain::Explanation)],
-    ) -> (
-        HashSet<std::path::PathBuf>,
-        HashMap<std::path::PathBuf, Vec<&SmellType>>,
-    ) {
+    ) -> (HashSet<PathBuf>, HashMap<PathBuf, Vec<&SmellType>>) {
         let mut problem_files = HashSet::new();
-        let mut file_smells: HashMap<std::path::PathBuf, Vec<&SmellType>> = HashMap::new();
+        let mut file_smells: HashMap<PathBuf, Vec<&SmellType>> = HashMap::new();
 
         for (smell, _) in smells {
             for file in &smell.files {
@@ -54,9 +51,9 @@ impl MermaidGenerator {
 
     fn generate_nodes(
         output: &mut String,
-        problem_files: &HashSet<std::path::PathBuf>,
-        file_smells: &HashMap<std::path::PathBuf, Vec<&SmellType>>,
-    ) -> HashMap<std::path::PathBuf, String> {
+        problem_files: &HashSet<PathBuf>,
+        file_smells: &HashMap<PathBuf, Vec<&SmellType>>,
+    ) -> HashMap<PathBuf, String> {
         let mut node_ids = HashMap::new();
         for (idx, file) in problem_files.iter().enumerate() {
             let node_id = format!("file{}", idx);
@@ -78,8 +75,8 @@ impl MermaidGenerator {
 
     fn generate_edges(
         output: &mut String,
-        problem_files: &HashSet<std::path::PathBuf>,
-        node_ids: &HashMap<std::path::PathBuf, String>,
+        problem_files: &HashSet<PathBuf>,
+        node_ids: &HashMap<PathBuf, String>,
         graph: &DependencyGraph,
     ) {
         let mut added_edges = HashSet::new();
@@ -97,9 +94,9 @@ impl MermaidGenerator {
 
     fn generate_file_edges(
         output: &mut String,
-        file: &std::path::PathBuf,
-        problem_files: &HashSet<std::path::PathBuf>,
-        node_ids: &HashMap<std::path::PathBuf, String>,
+        file: &PathBuf,
+        problem_files: &HashSet<PathBuf>,
+        node_ids: &HashMap<PathBuf, String>,
         graph: &DependencyGraph,
         added_edges: &mut HashSet<(String, String)>,
     ) {

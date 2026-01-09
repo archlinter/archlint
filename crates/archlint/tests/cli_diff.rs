@@ -2,9 +2,10 @@ use assert_cmd::cargo_bin;
 use assert_cmd::Command;
 use predicates::prelude::*;
 use std::fs;
+use std::path::{Path, PathBuf};
 use tempfile::{tempdir, TempDir};
 
-fn setup_test_project() -> (TempDir, std::path::PathBuf) {
+fn setup_test_project() -> (TempDir, PathBuf) {
     let dir = tempdir().unwrap();
     fs::create_dir(dir.path().join("src")).unwrap();
     fs::write(dir.path().join("src/index.ts"), "export const x = 1;").unwrap();
@@ -12,7 +13,7 @@ fn setup_test_project() -> (TempDir, std::path::PathBuf) {
     (dir, project_path)
 }
 
-fn run_archlint_snapshot(project_path: &std::path::Path, output_path: &std::path::Path) {
+fn run_archlint_snapshot(project_path: &Path, output_path: &Path) {
     let mut cmd = Command::new(cargo_bin!("archlint"));
     cmd.arg("snapshot")
         .arg("-o")

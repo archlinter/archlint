@@ -1,3 +1,4 @@
+use crate::config::{Override, RuleConfig};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
@@ -5,19 +6,20 @@ use std::collections::HashMap;
 pub struct PresetYaml {
     pub name: String,
     pub version: u32,
+    #[serde(default)]
     pub detect: DetectRules,
 
     #[serde(default)]
-    pub rules: HashMap<String, crate::config::RuleConfig>,
+    pub rules: HashMap<String, RuleConfig>,
 
     #[serde(default)]
     pub entry_points: Vec<String>,
 
     #[serde(default)]
-    pub overrides: Vec<crate::config::Override>,
+    pub overrides: Vec<Override>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct DetectRules {
     pub packages: Option<MatchRules>,
     pub files: Option<MatchRules>,

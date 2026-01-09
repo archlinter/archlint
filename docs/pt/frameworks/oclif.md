@@ -22,4 +22,4 @@ extends:
 O preset do oclif é detectado automaticamente se:
 
 1. O `package.json` contiver `@oclif/core` nas dependências.
-2. O projeto tiver um arquivo `oclif.manifest.json`.
+2. Houver um arquivo `oclif.manifest.json` no projeto.

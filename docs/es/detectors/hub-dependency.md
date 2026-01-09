@@ -1,8 +1,8 @@
 # Dependencia Hub
 
-**ID:** `hub_dependency` | **Severidad:** Media (predeterminado)
+**ID:** `hub_dependency` | **Severidad:** Media (predeterminada)
 
-Identifica paquetes externos que son importados por demasiados archivos en tu proyecto, creando un punto central de fallo..
+Identifica paquetes externos que son importados por demasiados archivos en tu proyecto, creando un punto central de fallo.
 
 ## Por qué esto es un problema
 
@@ -23,9 +23,9 @@ rules:
 
 ### Opciones
 
-- `min_dependants` (predeterminado: 20): El número mínimo de archivos que importan un paquete para activar este smell.
+- `min_dependants` (predeterminada: 20): El número mínimo de archivos que importan un paquete para activar este _smell_.
 - `ignore_packages`: Una lista de nombres de paquetes o patrones glob para ignorar.
 
 ## Cómo corregir
 
-Identifica por qué el paquete se usa tan ampliamente. Si es una biblioteca de utilidades como `lodash`, considera si realmente necesitas todas esas importaciones o si puedes usar características nativas del lenguaje. Para bibliotecas de infraestructura, usa el **Patrón Adapter** para aislar la dependencia.
+Identifica por qué el paquete se usa tan ampliamente. Si es una biblioteca de utilidades como `lodash`, considera si realmente necesitas todas esas importaciones o si puedes usar características nativas del lenguaje. Para bibliotecas de infraestructura, usa el **patrón adaptador (Adapter)** para aislar la dependencia.

@@ -6,28 +6,46 @@ use std::path::Path;
 
 pub struct PresetLoader;
 
+const BUILTIN_PRESETS: &[(&str, &str)] = &[
+    ("nestjs", include_str!("../../../../presets/nestjs.yaml")),
+    ("nextjs", include_str!("../../../../presets/nextjs.yaml")),
+    ("react", include_str!("../../../../presets/react.yaml")),
+    ("oclif", include_str!("../../../../presets/oclif.yaml")),
+];
+
 impl PresetLoader {
     pub fn load_builtin(name: &str) -> Result<FrameworkPreset> {
-        let content = match name {
-            "nestjs" => include_str!("../../../../presets/nestjs.yaml"),
-            "nextjs" => include_str!("../../../../presets/nextjs.yaml"),
-            "react" => include_str!("../../../../presets/react.yaml"),
-            "oclif" => include_str!("../../../../presets/oclif.yaml"),
-            _ => return Err(anyhow!("Built-in preset not found: {}", name)),
-        };
+        let content = BUILTIN_PRESETS
+            .iter()
+            .find(|(n, _)| *n == name)
+            .map(|(_, c)| *c)
+            .ok_or_else(|| anyhow!("Built-in preset not found: {}", name))?;
 
-        let yaml: PresetYaml = serde_yaml::from_str(content)?;
+        let yaml: PresetYaml = serde_yaml::from_str(content)
+            .map_err(|e| anyhow!("Failed to parse built-in preset '{}': {}", name, e))?;
         Ok(Self::convert(yaml))
     }
 
     pub fn load_file<P: AsRef<Path>>(path: P) -> Result<FrameworkPreset> {
-        let content = fs::read_to_string(path)?;
-        let yaml: PresetYaml = serde_yaml::from_str(&content)?;
+        let path_ref = path.as_ref();
+        let content = fs::read_to_string(path_ref)
+            .map_err(|e| anyhow!("Failed to read preset file '{:?}': {}", path_ref, e))?;
+        let yaml: PresetYaml = serde_yaml::from_str(&content)
+            .map_err(|e| anyhow!("Failed to parse preset file '{:?}': {}", path_ref, e))?;
         Ok(Self::convert(yaml))
     }
 
     pub fn load_url(url: &str) -> Result<FrameworkPreset> {
-        let response = reqwest::blocking::get(url)?;
+        let client = reqwest::blocking::Client::builder()
+            .timeout(std::time::Duration::from_secs(30))
+            .build()
+            .map_err(|e| anyhow!("Failed to create HTTP client: {}", e))?;
+
+        let response = client
+            .get(url)
+            .send()
+            .map_err(|e| anyhow!("Failed to fetch preset from URL '{}': {}", url, e))?;
+
         if !response.status().is_success() {
             return Err(anyhow!(
                 "Failed to load preset from URL: {}, status: {}",
@@ -35,8 +53,11 @@ impl PresetLoader {
                 response.status()
             ));
         }
-        let content = response.text()?;
-        let yaml: PresetYaml = serde_yaml::from_str(&content)?;
+        let content = response
+            .text()
+            .map_err(|e| anyhow!("Failed to read response body from URL '{}': {}", url, e))?;
+        let yaml: PresetYaml = serde_yaml::from_str(&content)
+            .map_err(|e| anyhow!("Failed to parse preset from URL '{}': {}", url, e))?;
         Ok(Self::convert(yaml))
     }
 
@@ -44,7 +65,7 @@ impl PresetLoader {
         if name_or_path_or_url.starts_with("http://") || name_or_path_or_url.starts_with("https://")
         {
             Self::load_url(name_or_path_or_url)
-        } else if std::path::Path::new(name_or_path_or_url).exists()
+        } else if Path::new(name_or_path_or_url).exists()
             || name_or_path_or_url.contains('/')
             || name_or_path_or_url.contains('\\')
             || name_or_path_or_url.ends_with(".yaml")
@@ -66,18 +87,15 @@ impl PresetLoader {
     }
 
     pub fn get_builtin_yaml(name: &str) -> Option<PresetYaml> {
-        let content = match name {
-            "nestjs" => Some(include_str!("../../../../presets/nestjs.yaml")),
-            "nextjs" => Some(include_str!("../../../../presets/nextjs.yaml")),
-            "react" => Some(include_str!("../../../../presets/react.yaml")),
-            "oclif" => Some(include_str!("../../../../presets/oclif.yaml")),
-            _ => None,
-        }?;
+        let content = BUILTIN_PRESETS
+            .iter()
+            .find(|(n, _)| *n == name)
+            .map(|(_, c)| *c)?;
         serde_yaml::from_str(content).ok()
     }
 
     pub fn get_all_builtin_names() -> Vec<&'static str> {
-        vec!["nestjs", "nextjs", "react", "oclif"]
+        BUILTIN_PRESETS.iter().map(|(n, _)| *n).collect()
     }
 }
 

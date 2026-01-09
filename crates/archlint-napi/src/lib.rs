@@ -3,7 +3,7 @@
 use napi::bindgen_prelude::*;
 use napi_derive::napi;
 use std::collections::HashMap;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
 
 mod types;
@@ -14,11 +14,11 @@ use types::{
 
 #[napi]
 pub fn run_diff(options: JsDiffOptions) -> Result<JsDiffResult> {
-    let baseline = archlint::snapshot::read_snapshot(std::path::Path::new(&options.baseline_path))
+    let baseline = archlint::snapshot::read_snapshot(Path::new(&options.baseline_path))
         .map_err(|e| Error::from_reason(e.to_string()))?;
 
     let current = if let Some(path) = options.current_path {
-        archlint::snapshot::read_snapshot(std::path::Path::new(&path))
+        archlint::snapshot::read_snapshot(Path::new(&path))
             .map_err(|e| Error::from_reason(e.to_string()))?
     } else {
         // Analyze current state

@@ -5,6 +5,7 @@ use crate::engine::AnalysisContext;
 use inventory;
 use petgraph::graph::UnGraph;
 use std::collections::HashSet;
+use std::path::Path;
 
 pub fn init() {}
 
@@ -69,7 +70,7 @@ impl Detector for ScatteredModuleDetector {
 }
 
 impl ScatteredModuleDetector {
-    fn is_barrel_file(&self, path: &std::path::Path, symbols: &crate::parser::FileSymbols) -> bool {
+    fn is_barrel_file(&self, path: &Path, symbols: &crate::parser::FileSymbols) -> bool {
         let is_index = path
             .file_name()
             .and_then(|n| n.to_str())

@@ -17,6 +17,7 @@ use comfy_table::{Attribute, Cell, Color, ContentArrangement, Table};
 use console::style;
 
 use crate::diff::{DiffResult, Regression, RegressionType};
+use std::path::PathBuf;
 
 pub fn print_diff_result(result: &DiffResult, verbose: bool) {
     if !result.has_regressions && result.improvements.is_empty() {
@@ -150,7 +151,7 @@ fn format_reg_locations(reg: &Regression) -> String {
 
 fn format_snapshot_location(loc: &crate::snapshot::types::Location) -> String {
     crate::report::format_location_parts(
-        &std::path::PathBuf::from(&loc.file),
+        &PathBuf::from(&loc.file),
         loc.line,
         loc.column,
         loc.range.as_ref(),

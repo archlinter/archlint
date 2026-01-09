@@ -1,10 +1,13 @@
 use crate::config::Config;
-use crate::detectors::DetectorCategory;
-use crate::detectors::{ArchSmell, Detector, DetectorFactory, DetectorInfo};
+use crate::detectors::{
+    ArchSmell, Detector, DetectorCategory, DetectorFactory, DetectorInfo, Severity, SmellType,
+};
 use crate::engine::AnalysisContext;
+use crate::parser::ImportedSymbol;
 use inventory;
 use petgraph::graph::DiGraph;
 use std::collections::HashMap;
+use std::path::{Path, PathBuf};
 
 pub fn init() {}
 
@@ -45,7 +48,7 @@ impl Detector for CircularTypeDepsDetector {
 }
 
 impl CircularTypeDepsDetector {
-    fn build_type_graph(&self, ctx: &AnalysisContext) -> DiGraph<std::path::PathBuf, ()> {
+    fn build_type_graph(&self, ctx: &AnalysisContext) -> DiGraph<PathBuf, ()> {
         let mut type_graph = DiGraph::new();
         let mut path_to_node = HashMap::new();
 
@@ -75,7 +78,7 @@ impl CircularTypeDepsDetector {
 
     fn process_sccs(
         &self,
-        type_graph: &DiGraph<std::path::PathBuf, ()>,
+        type_graph: &DiGraph<PathBuf, ()>,
         ctx: &AnalysisContext,
     ) -> Vec<ArchSmell> {
         let mut smells = Vec::new();
@@ -87,7 +90,7 @@ impl CircularTypeDepsDetector {
                 let severity = self.get_severity(&files, ctx);
 
                 smells.push(ArchSmell {
-                    smell_type: crate::detectors::SmellType::CircularTypeDependency,
+                    smell_type: SmellType::CircularTypeDependency,
                     severity,
                     files,
                     metrics: Vec::new(),
@@ -100,23 +103,20 @@ impl CircularTypeDepsDetector {
         smells
     }
 
-    fn get_severity(
-        &self,
-        files: &[std::path::PathBuf],
-        ctx: &AnalysisContext,
-    ) -> crate::detectors::Severity {
+    fn get_severity(&self, files: &[PathBuf], ctx: &AnalysisContext) -> Severity {
         if let Some(path) = files.first() {
             ctx.resolve_rule("circular_type_deps", Some(path)).severity
         } else {
-            crate::detectors::Severity::Low
+            Severity::Low
         }
     }
+
     fn resolve_import(
         &self,
-        import: &crate::parser::ImportedSymbol,
-        from: &std::path::Path,
+        import: &ImportedSymbol,
+        from: &Path,
         ctx: &AnalysisContext,
-    ) -> Option<std::path::PathBuf> {
+    ) -> Option<PathBuf> {
         let node_idx = ctx.graph.get_node(from)?;
         for target_node in ctx.graph.dependencies(node_idx) {
             if let Some(target_path) = ctx.graph.get_file_path(target_node) {

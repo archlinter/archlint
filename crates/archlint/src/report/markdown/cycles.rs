@@ -1,7 +1,9 @@
 use super::common::{append_explanation, SmellWithExplanation};
 use crate::config::SeverityConfig;
+use crate::detectors::{ArchSmell, CriticalEdge, CycleCluster, HotspotInfo, LocationDetail};
 use crate::explain::ExplainEngine;
 use crate::report::{format_location, format_location_detail};
+use std::path::PathBuf;
 
 pub fn generate(
     cycles: &[&SmellWithExplanation],
@@ -42,8 +44,8 @@ pub fn generate(
 fn generate_cluster(
     output: &mut String,
     cluster_num: usize,
-    cluster: &crate::detectors::CycleCluster,
-    smell: &crate::detectors::ArchSmell,
+    cluster: &CycleCluster,
+    smell: &ArchSmell,
     severity_config: &SeverityConfig,
 ) {
     let score = smell.score(severity_config);
@@ -60,7 +62,7 @@ fn generate_cluster(
     generate_cluster_edges(output, &cluster.internal_edges);
 }
 
-fn generate_hotspots(output: &mut String, hotspots: &[crate::detectors::HotspotInfo]) {
+fn generate_hotspots(output: &mut String, hotspots: &[HotspotInfo]) {
     if hotspots.is_empty() {
         return;
     }
@@ -79,7 +81,7 @@ fn generate_hotspots(output: &mut String, hotspots: &[crate::detectors::HotspotI
     output.push('\n');
 }
 
-fn generate_critical_edges(output: &mut String, critical_edges: &[crate::detectors::CriticalEdge]) {
+fn generate_critical_edges(output: &mut String, critical_edges: &[CriticalEdge]) {
     if critical_edges.is_empty() {
         return;
     }
@@ -100,7 +102,7 @@ fn generate_critical_edges(output: &mut String, critical_edges: &[crate::detecto
     output.push('\n');
 }
 
-fn generate_cluster_files(output: &mut String, files: &[std::path::PathBuf]) {
+fn generate_cluster_files(output: &mut String, files: &[PathBuf]) {
     output.push_str("<details>\n");
     output.push_str(&format!(
         "<summary>All {} files in cluster</summary>\n\n",
@@ -113,10 +115,7 @@ fn generate_cluster_files(output: &mut String, files: &[std::path::PathBuf]) {
     output.push_str("\n</details>\n\n");
 }
 
-fn generate_cluster_edges(
-    output: &mut String,
-    internal_edges: &[crate::detectors::LocationDetail],
-) {
+fn generate_cluster_edges(output: &mut String, internal_edges: &[LocationDetail]) {
     if internal_edges.is_empty() {
         return;
     }

@@ -1,4 +1,4 @@
-use crate::config::Config;
+use crate::config::{Config, RuleConfig, RuleSeverity};
 use crate::detectors::{Detector, DetectorCategory};
 use crate::framework::presets::FrameworkPreset;
 use inventory;
@@ -109,16 +109,14 @@ impl DetectorRegistry {
         for preset in presets.iter().rev() {
             if let Some(rule_config) = preset.rules.get(info.id) {
                 return match rule_config {
-                    crate::config::RuleConfig::Short(sev) => {
-                        *sev != crate::config::RuleSeverity::Off
-                    }
-                    crate::config::RuleConfig::Full(full) => {
+                    RuleConfig::Short(sev) => *sev != RuleSeverity::Off,
+                    RuleConfig::Full(full) => {
                         if let Some(enabled) = full.enabled {
                             enabled
                         } else if let Some(severity) = &full.severity {
-                            *severity != crate::config::RuleSeverity::Off
+                            *severity != RuleSeverity::Off
                         } else {
-                            true
+                            info.default_enabled
                         }
                     }
                 };

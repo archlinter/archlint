@@ -2,11 +2,12 @@ use crate::args::{Language, ScanArgs};
 use crate::cache::hash::file_content_hash;
 use crate::cache::AnalysisCache;
 use crate::config::{Config, RuleConfig, RuleSeverity};
-use crate::detectors::{self, Severity};
+use crate::detectors::{self, Severity, SmellType};
 use crate::engine::AnalysisContext;
 use crate::framework::detector::FrameworkDetector;
 use crate::framework::preset_loader::PresetLoader;
 use crate::framework::presets::FrameworkPreset;
+use crate::framework::Framework;
 use crate::git_cache::GitHistoryCache;
 use crate::graph::{DependencyGraph, EdgeData};
 #[cfg(not(feature = "cli"))]
@@ -161,10 +162,7 @@ impl AnalysisEngine {
             .into_iter()
             .filter(|smell| {
                 // Clones are special: we want to see them even if they touch ignored files
-                if matches!(
-                    smell.smell_type,
-                    crate::detectors::SmellType::CodeClone { .. }
-                ) {
+                if matches!(smell.smell_type, SmellType::CodeClone { .. }) {
                     return true;
                 }
                 // Keep the smell if at least one of the files it's associated with is NOT ignored
@@ -198,11 +196,16 @@ impl AnalysisEngine {
         Ok(report)
     }
 
-    fn load_presets_and_detect(
-        &self,
-    ) -> Result<(Vec<FrameworkPreset>, Vec<crate::framework::Framework>)> {
+    fn load_presets_and_detect(&self) -> Result<(Vec<FrameworkPreset>, Vec<Framework>)> {
         let mut presets = Vec::new();
 
+        self.load_explicit_presets(&mut presets)?;
+        let detected_frameworks = self.auto_detect_and_load_presets(&mut presets);
+
+        Ok((presets, detected_frameworks))
+    }
+
+    fn load_explicit_presets(&self, presets: &mut Vec<FrameworkPreset>) -> Result<()> {
         // From extends (explicit)
         for preset_name in &self.config.extends {
             match PresetLoader::load_any(preset_name) {
@@ -224,45 +227,49 @@ impl AnalysisEngine {
             }
         }
 
-        // Auto-detect frameworks
-        let detected_frameworks = if self.config.auto_detect_framework {
-            let detected = FrameworkDetector::detect(&self.project_root);
-            if !detected.is_empty() {
-                info!(
-                    "{}  Detected frameworks: {}",
-                    style("🛠️").magenta().bold(),
-                    style(
-                        detected
-                            .iter()
-                            .map(|f| format!("{:?}", f))
-                            .collect::<Vec<_>>()
-                            .join(", ")
-                    )
-                    .yellow()
-                );
+        Ok(())
+    }
 
-                // Load presets for detected frameworks if they are not already loaded via extends
-                for fw in &detected {
-                    let name = match fw {
-                        crate::framework::Framework::NestJS => "nestjs",
-                        crate::framework::Framework::NextJS => "nextjs",
-                        crate::framework::Framework::React => "react",
-                        crate::framework::Framework::Oclif => "oclif",
-                        _ => continue,
-                    };
-                    if !self.config.extends.contains(&name.to_string()) {
-                        if let Ok(p) = PresetLoader::load_builtin(name) {
-                            presets.push(p);
-                        }
-                    }
+    fn auto_detect_and_load_presets(&self, presets: &mut Vec<FrameworkPreset>) -> Vec<Framework> {
+        if !self.config.auto_detect_framework {
+            return Vec::new();
+        }
+
+        let detected = FrameworkDetector::detect(&self.project_root);
+        if detected.is_empty() {
+            return Vec::new();
+        }
+
+        info!(
+            "{}  Detected frameworks: {}",
+            style("🛠️").magenta().bold(),
+            style(
+                detected
+                    .iter()
+                    .map(|f| format!("{:?}", f))
+                    .collect::<Vec<_>>()
+                    .join(", ")
+            )
+            .yellow()
+        );
+
+        // Load presets for detected frameworks if they are not already loaded via extends
+        for fw in &detected {
+            let name = match fw {
+                Framework::NestJS => "nestjs",
+                Framework::NextJS => "nextjs",
+                Framework::React => "react",
+                Framework::Oclif => "oclif",
+                _ => continue,
+            };
+            if !self.config.extends.contains(&name.to_string()) {
+                if let Ok(p) = PresetLoader::load_builtin(name) {
+                    presets.push(p);
                 }
             }
-            detected
-        } else {
-            Vec::new()
-        };
+        }
 
-        Ok((presets, detected_frameworks))
+        detected
     }
 
     fn log_start(&self) {
@@ -382,24 +389,30 @@ impl AnalysisEngine {
     }
 
     fn merge_options(user_options: &mut serde_yaml::Value, preset_options: &serde_yaml::Value) {
-        if let (Some(user_map), Some(preset_map)) =
+        let (Some(user_map), Some(preset_map)) =
             (user_options.as_mapping_mut(), preset_options.as_mapping())
+        else {
+            return;
+        };
+
+        for (key, preset_val) in preset_map {
+            if !user_map.contains_key(key) {
+                user_map.insert(key.clone(), preset_val.clone());
+            } else {
+                // If both are sequences (like ignore_methods), merge them
+                let user_val = user_map.get_mut(key).unwrap();
+                Self::merge_sequences(user_val, preset_val);
+            }
+        }
+    }
+
+    fn merge_sequences(user_val: &mut serde_yaml::Value, preset_val: &serde_yaml::Value) {
+        if let (Some(user_seq), Some(preset_seq)) =
+            (user_val.as_sequence_mut(), preset_val.as_sequence())
         {
-            for (key, preset_val) in preset_map {
-                if !user_map.contains_key(key) {
-                    user_map.insert(key.clone(), preset_val.clone());
-                } else {
-                    // If both are sequences (like ignore_methods), merge them
-                    let user_val = user_map.get_mut(key).unwrap();
-                    if let (Some(user_seq), Some(preset_seq)) =
-                        (user_val.as_sequence_mut(), preset_val.as_sequence())
-                    {
-                        for item in preset_seq {
-                            if !user_seq.contains(item) {
-                                user_seq.push(item.clone());
-                            }
-                        }
-                    }
+            for item in preset_seq {
+                if !user_seq.contains(item) {
+                    user_seq.push(item.clone());
                 }
             }
         }

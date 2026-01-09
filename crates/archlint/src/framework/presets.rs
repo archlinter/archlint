@@ -1,13 +1,14 @@
 use super::preset_loader::PresetLoader;
 use super::Framework;
+use crate::config::{Override, RuleConfig};
 use std::collections::HashMap;
 
 #[derive(Debug, Clone)]
 pub struct FrameworkPreset {
     pub name: String,
-    pub rules: HashMap<String, crate::config::RuleConfig>,
+    pub rules: HashMap<String, RuleConfig>,
     pub entry_points: Vec<String>,
-    pub overrides: Vec<crate::config::Override>,
+    pub overrides: Vec<Override>,
 }
 
 pub fn get_presets(frameworks: &[Framework]) -> Vec<FrameworkPreset> {

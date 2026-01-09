@@ -2,6 +2,7 @@ use super::common::{append_explanation, SmellWithExplanation};
 use crate::config::SeverityConfig;
 use crate::explain::ExplainEngine;
 use crate::graph::DependencyGraph;
+use std::path::{Path, PathBuf};
 
 pub fn generate(
     gods: &[&SmellWithExplanation],
@@ -20,7 +21,7 @@ pub fn generate(
             .files
             .first()
             .cloned()
-            .unwrap_or_else(|| std::path::PathBuf::from("Unknown"));
+            .unwrap_or_else(|| PathBuf::from("Unknown"));
 
         let formatted_path = ExplainEngine::format_file_path(&file_path);
         let score = smell.score(severity_config);
@@ -49,11 +50,7 @@ fn generate_metrics(output: &mut String, smell: &crate::detectors::ArchSmell) {
     output.push('\n');
 }
 
-fn generate_dependencies(
-    output: &mut String,
-    file_path: &std::path::Path,
-    graph: Option<&DependencyGraph>,
-) {
+fn generate_dependencies(output: &mut String, file_path: &Path, graph: Option<&DependencyGraph>) {
     let Some(graph) = graph else { return };
     let Some(node_idx) = graph.get_node(file_path) else {
         return;

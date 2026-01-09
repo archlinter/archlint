@@ -28,7 +28,7 @@ pub struct Config {
     #[serde(default)]
     pub watch: WatchConfig,
 
-    #[serde(default)]
+    #[serde(default, deserialize_with = "deserialize_extends")]
     pub extends: Vec<String>,
 
     #[serde(default)]
@@ -106,6 +106,24 @@ fn default_true() -> bool {
 
 fn default_max_file_size() -> u64 {
     1024 * 1024 // 1MB
+}
+
+fn deserialize_extends<'de, D>(deserializer: D) -> std::result::Result<Vec<String>, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    use serde::Deserialize;
+    #[derive(Deserialize)]
+    #[serde(untagged)]
+    enum StringOrVec {
+        String(String),
+        Vec(Vec<String>),
+    }
+
+    match StringOrVec::deserialize(deserializer)? {
+        StringOrVec::String(s) => Ok(vec![s]),
+        StringOrVec::Vec(v) => Ok(v),
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
