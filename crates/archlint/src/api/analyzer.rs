@@ -61,31 +61,15 @@ impl Analyzer {
         self.state.file_metrics = Arc::new(report.file_metrics.clone());
         self.state.function_complexity = Arc::new(report.function_complexity.clone());
         self.state.churn_map = report.churn_map.clone();
+        self.state.presets = report.presets.clone();
         self.state.last_full_scan = Some(Instant::now());
 
-        // Update framework and project info from engine/context if possible
-        // Since we don't have access to engine's internal context here easily,
-        // we might need to recreate some of it or store it in the report.
-        // For now, let's assume we can get it from the next incremental run or store it here.
-
-        // Re-calculate framework and project info for the state
+        // Update framework and project info
         let detected_frameworks =
             crate::framework::detector::FrameworkDetector::detect(&self.project_root);
-        let file_types = self
-            .state
-            .file_symbols
-            .keys()
-            .map(|f| {
-                (
-                    f.clone(),
-                    crate::framework::classifier::FileClassifier::classify(f, &detected_frameworks),
-                )
-            })
-            .collect();
         let pkg_config = crate::package_json::PackageJsonParser::parse(&self.project_root)?;
 
         self.state.detected_frameworks = detected_frameworks;
-        self.state.file_types = file_types;
         self.state.script_entry_points = pkg_config.entry_points;
         self.state.dynamic_load_patterns = pkg_config.dynamic_load_patterns;
 
@@ -147,7 +131,7 @@ impl Analyzer {
             script_entry_points: self.state.script_entry_points.clone(),
             dynamic_load_patterns: self.state.dynamic_load_patterns.clone(),
             detected_frameworks: self.state.detected_frameworks.clone(),
-            file_types: self.state.file_types.clone(),
+            presets: self.state.presets.clone(),
         }
     }
 
@@ -293,7 +277,6 @@ impl Analyzer {
             self.state.file_metrics_mut().remove(file);
             self.state.function_complexity_mut().remove(file);
             self.state.file_hashes.remove(file);
-            self.state.file_types.remove(file);
             self.state.reverse_deps.remove(file);
 
             // Remove from reverse_deps of other files

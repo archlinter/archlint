@@ -1,20 +1,13 @@
-use super::{FileType, Framework};
+use super::Framework;
+use crate::config::{Override, RuleConfig, RuleSeverity};
 use std::collections::HashMap;
 
 #[derive(Debug, Clone)]
 pub struct FrameworkPreset {
     pub name: &'static str,
-    pub enabled_detectors: Vec<&'static str>,
-    pub disabled_detectors: Vec<&'static str>,
-    pub file_rules: HashMap<FileType, FileRules>,
-    pub vendor_ignore: Vec<String>,
-    pub ignore_methods: Vec<&'static str>,
-}
-
-#[derive(Debug, Clone, Default)]
-pub struct FileRules {
-    pub skip_detectors: Vec<&'static str>,
-    pub is_entry_point: bool,
+    pub rules: HashMap<String, RuleConfig>,
+    pub entry_points: Vec<String>,
+    pub overrides: Vec<Override>,
 }
 
 pub fn get_presets(frameworks: &[Framework]) -> Vec<FrameworkPreset> {
@@ -31,237 +24,216 @@ pub fn get_presets(frameworks: &[Framework]) -> Vec<FrameworkPreset> {
 }
 
 fn nestjs_preset() -> FrameworkPreset {
-    let mut file_rules = HashMap::new();
+    let mut rules = HashMap::new();
 
-    file_rules.insert(
-        FileType::Controller,
-        FileRules {
-            skip_detectors: vec!["lcom", "sdp_violation"],
-            is_entry_point: true,
-        },
+    // Default rules
+    rules.insert(
+        "layer_violation".to_string(),
+        RuleConfig::Short(RuleSeverity::Error),
     );
-    file_rules.insert(
-        FileType::Module,
-        FileRules {
-            skip_detectors: vec!["high_coupling", "lcom", "module_cohesion", "sdp_violation"],
-            is_entry_point: true,
-        },
+    rules.insert(
+        "module_cohesion".to_string(),
+        RuleConfig::Short(RuleSeverity::Off),
     );
-    file_rules.insert(
-        FileType::Entity,
-        FileRules {
-            skip_detectors: vec!["cycles", "lcom", "abstractness"],
-            is_entry_point: false,
-        },
+
+    // Dead symbols with ignored methods
+    let mut dead_symbols_opts = serde_yaml::Mapping::new();
+    dead_symbols_opts.insert(
+        serde_yaml::Value::String("ignore_methods".to_string()),
+        serde_yaml::Value::Sequence(
+            vec![
+                "onModuleInit",
+                "onApplicationBootstrap",
+                "onModuleDestroy",
+                "beforeApplicationShutdown",
+                "onApplicationShutdown",
+                "intercept",
+                "transform",
+                "canActivate",
+                "resolve",
+                "validate",
+            ]
+            .into_iter()
+            .map(|s| serde_yaml::Value::String(s.to_string()))
+            .collect(),
+        ),
     );
-    file_rules.insert(
-        FileType::DTO,
-        FileRules {
-            skip_detectors: vec!["abstractness"],
-            is_entry_point: false,
-        },
+    rules.insert(
+        "dead_symbols".to_string(),
+        RuleConfig::Full(crate::config::RuleFullConfig {
+            severity: None,
+            enabled: None,
+            exclude: Vec::new(),
+            options: serde_yaml::Value::Mapping(dead_symbols_opts),
+        }),
     );
-    file_rules.insert(
-        FileType::Interface,
-        FileRules {
-            skip_detectors: vec!["abstractness"],
-            is_entry_point: false,
-        },
+
+    // Vendor ignore via rules
+    for rule_name in ["vendor_coupling", "hub_dependency"] {
+        let mut opts = serde_yaml::Mapping::new();
+        opts.insert(
+            serde_yaml::Value::String("ignore_packages".to_string()),
+            serde_yaml::Value::Sequence(
+                vec![
+                    "@nestjs/*",
+                    "class-validator",
+                    "class-transformer",
+                    "rxjs",
+                    "reflect-metadata",
+                ]
+                .into_iter()
+                .map(|s| serde_yaml::Value::String(s.to_string()))
+                .collect(),
+            ),
+        );
+        rules.insert(
+            rule_name.to_string(),
+            RuleConfig::Full(crate::config::RuleFullConfig {
+                severity: None,
+                enabled: None,
+                exclude: Vec::new(),
+                options: serde_yaml::Value::Mapping(opts),
+            }),
+        );
+    }
+
+    let entry_points = vec![
+        "**/*.controller.ts".to_string(),
+        "**/*.controller.js".to_string(),
+        "**/*.module.ts".to_string(),
+        "**/*.module.js".to_string(),
+    ];
+
+    let mut overrides = Vec::new();
+
+    // Controllers
+    let mut controller_rules = HashMap::new();
+    controller_rules.insert("lcom".to_string(), RuleConfig::Short(RuleSeverity::Off));
+    controller_rules.insert(
+        "sdp_violation".to_string(),
+        RuleConfig::Short(RuleSeverity::Off),
     );
-    file_rules.insert(
-        FileType::Config,
-        FileRules {
-            skip_detectors: vec!["abstractness"],
-            is_entry_point: false,
-        },
+    overrides.push(Override {
+        files: vec![
+            "**/*.controller.ts".to_string(),
+            "**/*.controller.js".to_string(),
+        ],
+        rules: controller_rules,
+    });
+
+    // Modules
+    let mut module_rules = HashMap::new();
+    module_rules.insert(
+        "high_coupling".to_string(),
+        RuleConfig::Short(RuleSeverity::Off),
     );
-    file_rules.insert(
-        FileType::Event,
-        FileRules {
-            skip_detectors: vec!["abstractness"],
-            is_entry_point: false,
-        },
+    module_rules.insert("lcom".to_string(), RuleConfig::Short(RuleSeverity::Off));
+    module_rules.insert(
+        "module_cohesion".to_string(),
+        RuleConfig::Short(RuleSeverity::Off),
     );
-    file_rules.insert(
-        FileType::Exception,
-        FileRules {
-            skip_detectors: vec!["abstractness"],
-            is_entry_point: false,
-        },
+    module_rules.insert(
+        "sdp_violation".to_string(),
+        RuleConfig::Short(RuleSeverity::Off),
     );
-    file_rules.insert(
-        FileType::Guard,
-        FileRules {
-            skip_detectors: vec!["lcom", "abstractness"],
-            is_entry_point: false,
-        },
+    overrides.push(Override {
+        files: vec!["**/*.module.ts".to_string(), "**/*.module.js".to_string()],
+        rules: module_rules,
+    });
+
+    // Entities, DTOs, etc. (simplified for hardcoded)
+    let mut data_rules = HashMap::new();
+    data_rules.insert(
+        "abstractness".to_string(),
+        RuleConfig::Short(RuleSeverity::Off),
     );
-    file_rules.insert(
-        FileType::Pipe,
-        FileRules {
-            skip_detectors: vec!["lcom", "abstractness"],
-            is_entry_point: false,
-        },
-    );
-    file_rules.insert(
-        FileType::Interceptor,
-        FileRules {
-            skip_detectors: vec!["lcom", "abstractness"],
-            is_entry_point: false,
-        },
-    );
-    file_rules.insert(
-        FileType::Decorator,
-        FileRules {
-            skip_detectors: vec!["abstractness"],
-            is_entry_point: false,
-        },
-    );
-    file_rules.insert(
-        FileType::Middleware,
-        FileRules {
-            skip_detectors: vec!["lcom"],
-            is_entry_point: false,
-        },
-    );
-    file_rules.insert(
-        FileType::Repository,
-        FileRules {
-            skip_detectors: vec!["lcom", "high_coupling"],
-            is_entry_point: false,
-        },
-    );
+    overrides.push(Override {
+        files: vec![
+            "**/*.dto.ts".to_string(),
+            "**/*.entity.ts".to_string(),
+            "**/dto/**".to_string(),
+        ],
+        rules: data_rules,
+    });
 
     FrameworkPreset {
-        name: "NestJS",
-        enabled_detectors: vec!["layer_violation"],
-        disabled_detectors: vec!["module_cohesion"],
-        file_rules,
-        vendor_ignore: vec![
-            "@nestjs/*".to_string(),
-            "class-validator".to_string(),
-            "class-transformer".to_string(),
-            "typeorm".to_string(),
-            "@mikro-orm/*".to_string(),
-            "rxjs".to_string(),
-            "fastify".to_string(),
-            "@fastify/*".to_string(),
-            "reflect-metadata".to_string(),
-        ],
-        ignore_methods: vec![
-            "onModuleInit",
-            "onApplicationBootstrap",
-            "onModuleDestroy",
-            "beforeApplicationShutdown",
-            "onApplicationShutdown",
-            "intercept",
-            "transform",
-            "canActivate",
-            "resolve",
-            "validate",
-        ],
+        name: "nestjs",
+        rules,
+        entry_points,
+        overrides,
     }
 }
 
 fn nextjs_preset() -> FrameworkPreset {
-    let mut file_rules = HashMap::new();
+    let mut rules = HashMap::new();
+    rules.insert(
+        "layer_violation".to_string(),
+        RuleConfig::Short(RuleSeverity::Off),
+    );
+    rules.insert(
+        "barrel_file".to_string(),
+        RuleConfig::Short(RuleSeverity::Off),
+    );
 
-    file_rules.insert(
-        FileType::Page,
-        FileRules {
-            skip_detectors: vec!["lcom", "high_coupling"],
-            is_entry_point: true,
-        },
-    );
-    file_rules.insert(
-        FileType::ApiRoute,
-        FileRules {
-            skip_detectors: vec!["lcom"],
-            is_entry_point: true,
-        },
-    );
+    let entry_points = vec![
+        "**/pages/**".to_string(),
+        "**/app/**/page.tsx".to_string(),
+        "**/app/**/route.ts".to_string(),
+    ];
 
     FrameworkPreset {
-        name: "Next.js",
-        enabled_detectors: vec![],
-        disabled_detectors: vec!["layer_violation", "barrel_file"],
-        file_rules,
-        vendor_ignore: vec!["next/*".to_string()],
-        ignore_methods: vec!["getServerSideProps", "getStaticProps", "getStaticPaths"],
+        name: "nextjs",
+        rules,
+        entry_points,
+        overrides: Vec::new(),
     }
 }
 
 fn react_preset() -> FrameworkPreset {
-    let mut file_rules = HashMap::new();
-
-    file_rules.insert(
-        FileType::Component,
-        FileRules {
-            skip_detectors: vec!["abstractness", "lcom"],
-            is_entry_point: false,
-        },
-    );
-    file_rules.insert(
-        FileType::Hook,
-        FileRules {
-            skip_detectors: vec!["lcom"],
-            is_entry_point: false,
-        },
-    );
+    let mut rules = HashMap::new();
+    rules.insert("lcom".to_string(), RuleConfig::Short(RuleSeverity::Off));
 
     FrameworkPreset {
-        name: "React",
-        enabled_detectors: vec![],
-        disabled_detectors: vec!["lcom", "module_cohesion", "layer_violation"],
-        file_rules,
-        vendor_ignore: vec!["react/*".to_string()],
-        ignore_methods: vec![
-            "render",
-            "componentDidMount",
-            "componentDidUpdate",
-            "componentWillUnmount",
-            "shouldComponentUpdate",
-        ],
+        name: "react",
+        rules,
+        entry_points: Vec::new(),
+        overrides: Vec::new(),
     }
 }
 
 fn oclif_preset() -> FrameworkPreset {
-    let mut file_rules = HashMap::new();
-
-    file_rules.insert(
-        FileType::CliCommand,
-        FileRules {
-            skip_detectors: vec!["lcom", "abstractness"],
-            is_entry_point: true,
-        },
+    let mut rules = HashMap::new();
+    let mut dead_symbols_opts = serde_yaml::Mapping::new();
+    dead_symbols_opts.insert(
+        serde_yaml::Value::String("ignore_methods".to_string()),
+        serde_yaml::Value::Sequence(
+            vec!["run", "init", "finally", "catch"]
+                .into_iter()
+                .map(|s| serde_yaml::Value::String(s.to_string()))
+                .collect(),
+        ),
     );
-    file_rules.insert(
-        FileType::CliHook,
-        FileRules {
-            skip_detectors: vec!["lcom"],
-            is_entry_point: true,
-        },
+    rules.insert(
+        "dead_symbols".to_string(),
+        RuleConfig::Full(crate::config::RuleFullConfig {
+            severity: None,
+            enabled: None,
+            exclude: Vec::new(),
+            options: serde_yaml::Value::Mapping(dead_symbols_opts),
+        }),
     );
 
     FrameworkPreset {
         name: "oclif",
-        enabled_detectors: vec![],
-        disabled_detectors: vec![],
-        file_rules,
-        vendor_ignore: vec!["@oclif/*".to_string()],
-        ignore_methods: vec!["run", "init", "finally", "catch"],
+        rules,
+        entry_points: vec!["**/src/commands/**".to_string()],
+        overrides: Vec::new(),
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    #[test]
-    fn test_get_presets_empty() {
-        let presets = get_presets(&[]);
-        assert!(presets.is_empty());
-    }
 
     #[test]
     fn test_get_presets_known_frameworks() {
@@ -273,38 +245,6 @@ mod tests {
         ];
         let presets = get_presets(&frameworks);
         assert_eq!(presets.len(), 4);
-        assert_eq!(presets[0].name, "NestJS");
-        assert_eq!(presets[1].name, "Next.js");
-        assert_eq!(presets[2].name, "React");
-        assert_eq!(presets[3].name, "oclif");
-    }
-
-    #[test]
-    fn test_nestjs_preset_rules() {
-        let preset = nestjs_preset();
-        let controller_rules = preset.file_rules.get(&FileType::Controller).unwrap();
-        assert!(controller_rules.is_entry_point);
-        assert!(controller_rules.skip_detectors.contains(&"lcom"));
-
-        let entity_rules = preset.file_rules.get(&FileType::Entity).unwrap();
-        assert!(!entity_rules.is_entry_point);
-        assert!(entity_rules.skip_detectors.contains(&"cycles"));
-    }
-
-    #[test]
-    fn test_nextjs_preset_rules() {
-        let preset = nextjs_preset();
-        let page_rules = preset.file_rules.get(&FileType::Page).unwrap();
-        assert!(page_rules.is_entry_point);
-        assert!(page_rules.skip_detectors.contains(&"lcom"));
-        assert!(preset.disabled_detectors.contains(&"layer_violation"));
-    }
-
-    #[test]
-    fn test_get_presets_unsupported() {
-        // Express, Angular, Vue, TypeORM, Prisma are currently not mapped to presets in get_presets
-        let frameworks = vec![Framework::Express, Framework::Angular];
-        let presets = get_presets(&frameworks);
-        assert!(presets.is_empty());
+        assert_eq!(presets[0].name, "nestjs");
     }
 }

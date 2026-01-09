@@ -146,7 +146,6 @@ impl DeadCodeDetector {
         reexport_map: &HashMap<PathBuf, HashSet<PathBuf>>,
     ) -> bool {
         fan_in == 0
-            && !ctx.is_framework_entry_point(path)
             && !detector.is_entry_point(path)
             && !detector.matches_dynamic_load_pattern(path)
             && !detector.has_used_exports(path, ctx.file_symbols.as_ref(), symbol_imports)

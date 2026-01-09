@@ -70,7 +70,7 @@ impl DetectorRegistry {
     pub fn get_enabled_full(
         &self,
         config: &Config,
-        presets: &[FrameworkPreset],
+        _presets: &[FrameworkPreset],
         all_detectors: bool,
     ) -> (Vec<RegisteredDetector>, bool) {
         let mut detectors = Vec::new();
@@ -85,10 +85,7 @@ impl DetectorRegistry {
             } else if config.rules.contains_key(info.id) {
                 resolved.enabled
             } else {
-                let preset_enabled = presets
-                    .iter()
-                    .any(|p| p.enabled_detectors.contains(&info.id));
-                info.default_enabled || preset_enabled
+                info.default_enabled
             };
 
             if is_enabled {

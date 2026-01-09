@@ -1,5 +1,6 @@
 use crate::config::Config;
-use crate::framework::{FileType, Framework};
+use crate::framework::presets::FrameworkPreset;
+use crate::framework::Framework;
 use crate::graph::DependencyGraph;
 use crate::parser::{FileSymbols, FunctionComplexity};
 use crate::rule_resolver::ResolvedRuleConfig;
@@ -25,7 +26,7 @@ pub struct AnalysisContext {
     pub script_entry_points: HashSet<PathBuf>,
     pub dynamic_load_patterns: Vec<String>,
     pub detected_frameworks: Vec<Framework>,
-    pub file_types: HashMap<PathBuf, FileType>,
+    pub presets: Vec<FrameworkPreset>,
 }
 
 impl AnalysisContext {
@@ -54,26 +55,9 @@ impl AnalysisContext {
         false
     }
 
-    pub fn should_skip_detector(&self, path: &Path, detector_id: &str) -> bool {
-        if let Some(file_type) = self.file_types.get(path) {
-            let presets = crate::framework::presets::get_presets(&self.detected_frameworks);
-            for preset in presets {
-                if let Some(rules) = preset.file_rules.get(file_type) {
-                    if rules.skip_detectors.contains(&detector_id) {
-                        return true;
-                    }
-                }
-            }
-        }
-        false
-    }
-
     pub fn get_rule_for_file(&self, detector_id: &str, path: &Path) -> Option<ResolvedRuleConfig> {
         let rule = self.resolve_rule(detector_id, Some(path));
-        if !rule.enabled
-            || self.is_excluded(path, &rule.exclude)
-            || self.should_skip_detector(path, detector_id)
-        {
+        if !rule.enabled || self.is_excluded(path, &rule.exclude) {
             None
         } else {
             Some(rule)
@@ -89,20 +73,6 @@ impl AnalysisContext {
         }
     }
 
-    pub fn is_framework_entry_point(&self, path: &Path) -> bool {
-        if let Some(file_type) = self.file_types.get(path) {
-            let presets = crate::framework::presets::get_presets(&self.detected_frameworks);
-            for preset in presets {
-                if let Some(rules) = preset.file_rules.get(file_type) {
-                    if rules.is_entry_point {
-                        return true;
-                    }
-                }
-            }
-        }
-        false
-    }
-
     pub fn default_for_test() -> Self {
         Self {
             project_path: PathBuf::new(),
@@ -115,7 +85,7 @@ impl AnalysisContext {
             script_entry_points: HashSet::new(),
             dynamic_load_patterns: Vec::new(),
             detected_frameworks: Vec::new(),
-            file_types: HashMap::new(),
+            presets: Vec::new(),
         }
     }
 
@@ -139,7 +109,6 @@ impl AnalysisContext {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::framework::Framework;
 
     #[test]
     fn test_is_excluded_empty() {
@@ -155,31 +124,5 @@ mod tests {
         assert!(ctx.is_excluded(Path::new("src/main.test.rs"), &patterns));
         assert!(ctx.is_excluded(Path::new("some/path/ignored/file.rs"), &patterns));
         assert!(!ctx.is_excluded(Path::new("src/main.rs"), &patterns));
-    }
-
-    #[test]
-    fn test_should_skip_detector() {
-        let mut ctx = AnalysisContext::default_for_test();
-        ctx.detected_frameworks = vec![Framework::NestJS];
-        let path = PathBuf::from("src/user.controller.ts");
-        ctx.file_types.insert(path.clone(), FileType::Controller);
-
-        // NestJS preset skips "lcom" for Controller
-        assert!(ctx.should_skip_detector(&path, "lcom"));
-        assert!(!ctx.should_skip_detector(&path, "dead_code"));
-    }
-
-    #[test]
-    fn test_is_framework_entry_point() {
-        let mut ctx = AnalysisContext::default_for_test();
-        ctx.detected_frameworks = vec![Framework::NextJS];
-        let page_path = PathBuf::from("src/pages/index.tsx");
-        let util_path = PathBuf::from("src/utils.ts");
-
-        ctx.file_types.insert(page_path.clone(), FileType::Page);
-        ctx.file_types.insert(util_path.clone(), FileType::Unknown);
-
-        assert!(ctx.is_framework_entry_point(&page_path));
-        assert!(!ctx.is_framework_entry_point(&util_path));
     }
 }
