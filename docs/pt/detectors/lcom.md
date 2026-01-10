@@ -20,7 +20,7 @@ A coesão mede o quão intimamente relacionados estão os métodos e campos de u
 ```yaml
 rules:
   lcom:
-    severity: warn
+    severity: medium
     max_lcom: 4
     min_methods: 3
 ```

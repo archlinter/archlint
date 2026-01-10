@@ -21,5 +21,5 @@ Shotgun Surgery occurs when a single change in requirements forces you to make m
 ```yaml
 rules:
   shotgun_surgery:
-    severity: warn
+    severity: medium
 ```

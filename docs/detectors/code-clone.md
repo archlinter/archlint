@@ -22,7 +22,7 @@ This detector identifies duplicated code blocks across your project. It uses AST
 rules:
   code_clone:
     enabled: true
-    severity: warn
+    severity: medium
     min_tokens: 50
     min_lines: 6
 ```

@@ -17,6 +17,6 @@ Break the file into smaller, more focused modules.
 ```yaml
 rules:
   large_file:
-    severity: warn
+    severity: medium
     max_lines: 1000
 ```

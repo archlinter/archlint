@@ -17,7 +17,7 @@
 ```yaml
 rules:
   package_cycles:
-    severity: error
+    severity: high
     package_depth: 2
 ```
 

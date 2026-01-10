@@ -15,7 +15,7 @@ As camadas são configuradas dentro da regra `layer_violation`. Cada definição
 ```yaml
 rules:
   layer_violation:
-    severity: error
+    severity: high
     layers:
       - name: domain
         path: '**/domain/**'

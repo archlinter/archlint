@@ -37,7 +37,7 @@ impl Detector for GodModuleDetector {
         let mut smells = Vec::new();
 
         // Check if git churn information is available
-        let git_available = ctx.config.enable_git && !ctx.churn_map.is_empty();
+        let git_available = ctx.config.git.enabled && !ctx.churn_map.is_empty();
 
         for node in ctx.graph.nodes() {
             let fan_in = ctx.graph.fan_in(node);

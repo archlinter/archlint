@@ -16,8 +16,12 @@ ignore:
   - '**/node_modules/**'
 
 # Path aliases (similar to tsconfig.json or webpack)
+# By default, archlint automatically loads aliases from tsconfig.json
 aliases:
   '@/*': 'src/*'
+
+# TypeScript integration settings (true, false, or path to file)
+tsconfig: true
 
 # Extend from built-in or custom presets
 extends:
@@ -31,12 +35,12 @@ entry_points:
 # Rules configuration for each detector
 rules:
   # Short form: severity level or "off"
-  cycles: error
-  dead_code: warn
+  cycles: high
+  dead_code: medium
 
   # Full form: with additional options
   god_module:
-    severity: error
+    severity: high
     enabled: true
     exclude: ['**/generated/**']
     # Detector-specific options
@@ -45,20 +49,20 @@ rules:
     churn: 20
 
   vendor_coupling:
-    severity: warn
+    severity: medium
     ignore_packages: ['lodash', 'rxjs']
 
 # Rule overrides for specific paths
 overrides:
   - files: ['**/legacy/**']
     rules:
-      complexity: warn
+      complexity: medium
       god_module: off
 
 # Scoring and grading configuration
 scoring:
-  # Minimum severity level to report (info, warn, error, critical)
-  minimum: warn
+  # Minimum severity level to report (low, medium, high, critical)
+  minimum: low
   # Weights for total score calculation
   weights:
     critical: 100
@@ -76,11 +80,9 @@ scoring:
 # Auto-detect framework (defaults to true)
 auto_detect_framework: true
 
-# Enable Git history analysis (defaults to true)
-enable_git: true
-
 # Git settings
 git:
+  enabled: true # default: true
   history_period: '1y'
 ```
 
@@ -105,9 +107,9 @@ For remote presets (via URL), the following constraints apply:
 In the `rules` section, you can use the following severity levels:
 
 - `critical`: Critical issue requiring immediate attention.
-- `error`: Architectural error.
-- `warn`: Warning about a potential issue.
-- `info`: Informational message.
+- `high`: High severity architectural issue.
+- `medium`: Medium severity issue or warning.
+- `low`: Low severity or informational message.
 - `off`: Completely disables the detector.
 
 ## CLI Configuration
@@ -117,3 +119,17 @@ You can specify the configuration file path explicitly:
 ```bash
 archlint scan --config custom-config.yaml
 ```
+
+## TypeScript Integration
+
+archlint can automatically synchronize with your `tsconfig.json`. Use the `tsconfig` field to control this:
+
+- `tsconfig: true` (default): Automatically searches for `tsconfig.json` in the project root.
+- `tsconfig: false` or `tsconfig: null`: Disables TypeScript integration.
+- `tsconfig: "./path/to/tsconfig.json"`: Uses a specific configuration file.
+
+When enabled, the tool:
+
+1. **Loads Aliases**: Extracts `compilerOptions.paths` and `compilerOptions.baseUrl` to automatically configure `aliases`.
+2. **Auto-ignore**: Adds `compilerOptions.outDir` to the global `ignore` list.
+3. **Excludes**: Incorporates patterns from the `exclude` field into the `ignore` list.

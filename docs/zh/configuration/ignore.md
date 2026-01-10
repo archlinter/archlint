@@ -17,7 +17,7 @@ ignore:
 
 ## .gitignore 支持
 
-默认情况下，archlint 会自动遵循您的 `.gitignore` 文件。您不需要在 `.archlint.yaml` 中重复这些模式。如果您想禁用此行为，请设置 `enable_git: false`。
+默认情况下，archlint 会自动遵循您的 `.gitignore` 文件。您不需要在 `.archlint.yaml` 中重复这些模式。如果您想禁用此行为，请设置 `git: { enabled: false }`。
 
 ## 按规则忽略
 
@@ -41,7 +41,7 @@ overrides:
     rules:
       complexity: off
       god_module: off
-      large_file: warn
+      large_file: medium
 ```
 
 ## 内联忽略

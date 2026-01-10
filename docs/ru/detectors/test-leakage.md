@@ -18,7 +18,7 @@
 ```yaml
 rules:
   test_leakage:
-    severity: error
+    severity: high
     test_patterns:
       - '**/*.test.ts'
       - '**/*.spec.ts'

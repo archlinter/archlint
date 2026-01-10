@@ -16,8 +16,12 @@ ignore:
   - '**/node_modules/**'
 
 # Алиасы путей (аналогично tsconfig.json или webpack)
+# По умолчанию archlint автоматически загружает алиасы из tsconfig.json
 aliases:
   '@/*': 'src/*'
+
+# Настройка интеграции с TypeScript (true, false или путь к файлу)
+tsconfig: true
 
 # Расширение из встроенных или кастомных пресетов
 extends:
@@ -31,12 +35,12 @@ entry_points:
 # Настройка правил для каждого детектора
 rules:
   # Короткая форма: только уровень серьезности или "off"
-  cycles: error
-  dead_code: warn
+  cycles: high
+  dead_code: medium
 
   # Полная форма: с дополнительными параметрами
   god_module:
-    severity: error
+    severity: high
     enabled: true
     exclude: ['**/generated/**']
     # Специфичные для детектора параметры
@@ -48,13 +52,13 @@ rules:
 overrides:
   - files: ['**/legacy/**']
     rules:
-      complexity: warn
+      complexity: medium
       god_module: off
 
 # Настройка оценки и грейдинга
 scoring:
-  # Минимальный уровень серьезности для отображения (info, warn, error, critical)
-  minimum: warn
+  # Минимальный уровень серьезности для отображения (low, medium, high, critical)
+  minimum: low
   # Веса для расчета общего балла
   weights:
     critical: 100
@@ -72,11 +76,9 @@ scoring:
 # Автоматическое определение фреймворка (по умолчанию true)
 auto_detect_framework: true
 
-# Включить анализ истории Git (по умолчанию true)
-enable_git: true
-
 # Настройки Git
 git:
+  enabled: true # включить анализ (по умолчанию true)
   history_period: '1y'
 ```
 
@@ -85,9 +87,9 @@ git:
 В секции `rules` вы можете использовать следующие уровни:
 
 - `critical`: Критическая проблема, требующая немедленного исправления.
-- `error`: Ошибка архитектуры.
-- `warn`: Предупреждение о потенциальной проблеме.
-- `info`: Информационное сообщение.
+- `high`: Высокий уровень серьезности, архитектурная ошибка.
+- `medium`: Средний уровень серьезности или предупреждение.
+- `low`: Низкий уровень серьезности или информационное сообщение.
 - `off`: Полностью отключает детектор.
 
 ## Конфигурация через CLI
@@ -97,6 +99,20 @@ git:
 ```bash
 archlint scan --config custom-config.yaml
 ```
+
+## Интеграция с TypeScript
+
+archlint может автоматически синхронизироваться с вашим `tsconfig.json`. Используйте поле `tsconfig` для управления этой функцией:
+
+- `tsconfig: true` (по умолчанию): Автоматически ищет `tsconfig.json` в корне проекта.
+- `tsconfig: false` или `tsconfig: null`: Отключает интеграцию с TypeScript.
+- `tsconfig: "./path/to/tsconfig.json"`: Использует конкретный файл конфигурации.
+
+Когда интеграция включена, инструмент:
+
+1. **Загружает алиасы**: Извлекает `compilerOptions.paths` и `compilerOptions.baseUrl` для автоматической настройки `aliases`.
+2. **Автоматическое игнорирование**: Добавляет `compilerOptions.outDir` в глобальный список `ignore`.
+3. **Исключения**: Добавляет паттерны из поля `exclude` в список `ignore`.
 
 ## Расширение (Extends)
 

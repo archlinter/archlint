@@ -19,7 +19,7 @@
 ```yaml
 rules:
   deep_nesting:
-    severity: info
+    severity: low
     max_depth: 4
 ```
 

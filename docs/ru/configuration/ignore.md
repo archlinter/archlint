@@ -17,7 +17,7 @@ ignore:
 
 ## Поддержка .gitignore
 
-По умолчанию archlint автоматически учитывает ваш файл `.gitignore`. Вам не нужно дублировать эти паттерны в `.archlint.yaml`. Если вы хотите отключить это поведение, установите `enable_git: false`.
+По умолчанию archlint автоматически учитывает ваш файл `.gitignore`. Вам не нужно дублировать эти паттерны в `.archlint.yaml`. Если вы хотите отключить это поведение, установите `git: { enabled: false }`.
 
 ## Игнорирование для конкретного правила
 
@@ -41,7 +41,7 @@ overrides:
     rules:
       complexity: off
       god_module: off
-      large_file: warn
+      large_file: medium
 ```
 
 ## Инлайновое игнорирование

@@ -21,7 +21,7 @@ Barrel-файлы (например, файлы `index.ts`, которые то�
 ```yaml
 rules:
   barrel_file:
-    severity: warn
+    severity: medium
     max_reexports: 10
 ```
 

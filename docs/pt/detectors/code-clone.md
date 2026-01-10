@@ -22,7 +22,7 @@ Este detector identifica blocos de código duplicados em seu projeto. Utiliza a 
 rules:
   code_clone:
     enabled: true
-    severity: warn
+    severity: medium
     min_tokens: 50
     min_lines: 6
 ```

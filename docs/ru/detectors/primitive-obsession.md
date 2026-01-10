@@ -17,7 +17,7 @@
 ```yaml
 rules:
   primitive_obsession:
-    severity: info
+    severity: low
     max_primitives: 3
 ```
 

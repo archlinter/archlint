@@ -21,11 +21,11 @@
 ```yaml
 rules:
   shotgun_surgery:
-    severity: warn
+    severity: medium
 ```
 
 ### Параметры по умолчанию
 
 - `min_co_changes`: `3` - минимальное количество совместных изменений файлов для обнаружения
 - `min_frequency`: `5` - минимальная частота совместных изменений
-- `lookback_commits`: `500` - количество коммитов для анализа истории (требует `enable_git: true`)
+- `lookback_commits`: `500` - количество коммитов для анализа истории (требует `git: { enabled: true }`)

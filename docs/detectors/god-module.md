@@ -31,7 +31,7 @@ archlint identifies God Modules based on:
 ```yaml
 rules:
   god_module:
-    severity: error
+    severity: high
     fan_in: 15
     fan_out: 15
     churn: 20

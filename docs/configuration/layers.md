@@ -15,7 +15,7 @@ Layers are configured inside the `layer_violation` rule. Each layer definition c
 ```yaml
 rules:
   layer_violation:
-    severity: error
+    severity: high
     layers:
       - name: domain
         path: '**/domain/**'

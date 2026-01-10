@@ -13,7 +13,7 @@ Quando seu projeto depende muito de uma √∫nica biblioteca externa, torna-se dif√
 ```yaml
 rules:
   hub_dependency:
-    severity: warn
+    severity: medium
     min_dependants: 20
     ignore_packages:
       - 'react'

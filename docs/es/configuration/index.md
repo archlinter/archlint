@@ -16,8 +16,12 @@ ignore:
   - '**/node_modules/**'
 
 # Alias de rutas (similar a tsconfig.json o webpack)
+# Por defecto, archlint carga automáticamente los alias desde tsconfig.json
 aliases:
   '@/*': 'src/*'
+
+# Configuración de integración con TypeScript (true, false o ruta al archivo)
+tsconfig: true
 
 # Extender desde presets integrados o personalizados
 extends:
@@ -31,12 +35,12 @@ entry_points:
 # Configuración de reglas para cada detector
 rules:
   # Forma corta: nivel de severidad o "off"
-  cycles: error
-  dead_code: warn
+  cycles: high
+  dead_code: medium
 
   # Forma completa: con opciones adicionales
   god_module:
-    severity: error
+    severity: high
     enabled: true
     exclude: ['**/generated/**']
     # Opciones específicas del detector
@@ -45,20 +49,20 @@ rules:
     churn: 20
 
   vendor_coupling:
-    severity: warn
+    severity: medium
     ignore_packages: ['lodash', 'rxjs']
 
 # Sobrescritura de reglas para rutas específicas
 overrides:
   - files: ['**/legacy/**']
     rules:
-      complexity: warn
+      complexity: medium
       god_module: off
 
 # Configuración de puntuación y calificación
 scoring:
-  # Nivel mínimo de severidad para informar (info, warn, error, critical)
-  minimum: warn
+  # Nivel mínimo de severidad para informar (low, medium, high, critical)
+  minimum: low
   # Pesos para el cálculo de la puntuación total
   weights:
     critical: 100
@@ -76,11 +80,9 @@ scoring:
 # Autodetección de framework (por defecto true)
 auto_detect_framework: true
 
-# Habilitar análisis de historial de Git (por defecto true)
-enable_git: true
-
 # Configuración de Git
 git:
+  enabled: true # habilitar análisis (por defecto true)
   history_period: '1y'
 ```
 
@@ -99,9 +101,9 @@ Los presets se fusionan en el orden en que se listan. La configuración del usua
 En la sección `rules`, puede usar los siguientes niveles:
 
 - `critical`: Problema crítico que requiere atención inmediata.
-- `error`: Error arquitectónico.
-- `warn`: Advertencia sobre un problema potencial.
-- `info`: Mensaje informativo.
+- `high`: Error arquitectónico de alta severidad.
+- `medium`: Advertencia o problema de severidad media.
+- `low`: Mensaje informativo o de baja severidad.
 - `off`: Desactiva completamente el detector.
 
 ## Configuración vía CLI
@@ -111,3 +113,17 @@ Puede especificar la ruta del archivo de configuración explícitamente:
 ```bash
 archlint scan --config custom-config.yaml
 ```
+
+## Integración con TypeScript
+
+archlint puede sincronizarse automáticamente con su `tsconfig.json`. Use el campo `tsconfig` para controlar esto:
+
+- `tsconfig: true` (por defecto): Busca automáticamente `tsconfig.json` en la raíz del proyecto.
+- `tsconfig: false` o `tsconfig: null`: Desactiva la integración con TypeScript.
+- `tsconfig: "./ruta/al/tsconfig.json"`: Utiliza un archivo de configuración específico.
+
+Cuando está habilitado, la herramienta:
+
+1. **Carga Alias**: Extrae `compilerOptions.paths` y `compilerOptions.baseUrl` para configurar automáticamente `aliases`.
+2. **Auto-ignorar**: Agrega `compilerOptions.outDir` a la lista global de `ignore`.
+3. **Exclusiones**: Incorpora patrones del campo `exclude` en la lista de `ignore`.

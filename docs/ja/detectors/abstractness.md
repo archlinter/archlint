@@ -19,5 +19,5 @@
 ```yaml
 rules:
   abstractness:
-    severity: warn
+    severity: medium
 ```

@@ -66,7 +66,7 @@ impl AnalysisEngine {
 
         // Overrides for git
         if args.no_git {
-            config.enable_git = false;
+            config.git.enabled = false;
         }
         if let Some(ref period) = args.git_history_period {
             config.git.history_period = period.clone();
@@ -637,7 +637,7 @@ impl AnalysisEngine {
         cache: &mut Option<AnalysisCache>,
     ) -> HashMap<PathBuf, usize> {
         info!("{} Calculating metrics...", style("📊").blue().bold());
-        if !self.config.enable_git {
+        if !self.config.git.enabled {
             debug!("Git integration disabled, skipping churn calculation");
             return HashMap::new();
         }

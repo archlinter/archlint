@@ -20,7 +20,7 @@
 ```yaml
 rules:
   high_coupling:
-    severity: warn
+    severity: medium
     max_cbo: 20
     exclude: []
 ```

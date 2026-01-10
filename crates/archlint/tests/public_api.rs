@@ -107,7 +107,7 @@ fn test_load_config() {
     let config_path = get_test_data("config/.archlint.yaml");
     if config_path.exists() {
         let config = archlint::load_config(Some(config_path)).expect("Failed to load config file");
-        assert!(config.enable_git);
+        assert!(config.git.enabled);
     }
 }
 

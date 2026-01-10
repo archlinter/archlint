@@ -18,7 +18,7 @@ Funções com muitos parâmetros são difíceis de usar e de ler. Elas geralment
 ```yaml
 rules:
   long_params:
-    severity: info
+    severity: low
     max_params: 5
     ignore_constructors: true
 ```

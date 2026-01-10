@@ -18,7 +18,7 @@
 ```yaml
 rules:
   long_params:
-    severity: info
+    severity: low
     max_params: 5
     ignore_constructors: true
 ```

@@ -7,7 +7,7 @@ detect:
       - '@nestjs/common'
 
 rules:
-  layer_violation: error
+  layer_violation: high
   module_cohesion: off
   dead_symbols:
     ignore_methods:

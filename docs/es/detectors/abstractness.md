@@ -19,5 +19,5 @@ Este detector utiliza las métricas de la "Secuencia Principal" de Robert C. Mar
 ```yaml
 rules:
   abstractness:
-    severity: warn
+    severity: medium
 ```

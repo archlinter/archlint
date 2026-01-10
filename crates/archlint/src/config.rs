@@ -1,6 +1,8 @@
 use crate::detectors::Severity;
+use crate::tsconfig::TsConfig;
 use crate::Result;
 use serde::{Deserialize, Serialize};
+use std::collections::hash_map::Entry;
 use std::collections::HashMap;
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -37,8 +39,8 @@ pub struct Config {
     #[serde(default = "default_true")]
     pub auto_detect_framework: bool,
 
-    #[serde(default = "default_true")]
-    pub enable_git: bool,
+    #[serde(default = "default_tsconfig_config")]
+    pub tsconfig: Option<TsConfigConfig>,
 
     #[serde(default = "default_max_file_size")]
     pub max_file_size: u64,
@@ -47,8 +49,27 @@ pub struct Config {
     pub git: GitConfig,
 }
 
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
+#[serde(untagged)]
+pub enum TsConfigConfig {
+    Boolean(bool),
+    Path(String),
+}
+
+impl Default for TsConfigConfig {
+    fn default() -> Self {
+        TsConfigConfig::Boolean(true)
+    }
+}
+
+fn default_tsconfig_config() -> Option<TsConfigConfig> {
+    Some(TsConfigConfig::default())
+}
+
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct GitConfig {
+    #[serde(default = "default_true")]
+    pub enabled: bool,
     #[serde(default = "default_history_period")]
     pub history_period: String,
 }
@@ -91,6 +112,7 @@ pub struct Override {
 impl Default for GitConfig {
     fn default() -> Self {
         Self {
+            enabled: true,
             history_period: default_history_period(),
         }
     }
@@ -285,7 +307,7 @@ impl Default for Config {
             extends: Vec::new(),
             framework: None,
             auto_detect_framework: true,
-            enable_git: true,
+            tsconfig: Some(TsConfigConfig::default()),
             max_file_size: default_max_file_size(),
             git: GitConfig::default(),
         }
@@ -300,34 +322,97 @@ impl Config {
     }
 
     pub fn load_or_default(path: Option<&Path>, project_root: Option<&Path>) -> Result<Self> {
-        if let Some(p) = path {
-            return Self::load(p);
-        }
+        let mut config = if let Some(p) = path {
+            Self::load(p)?
+        } else {
+            let filenames = [
+                ".archlint.yaml",
+                ".archlint.yml",
+                "archlint.yaml",
+                "archlint.yml",
+            ];
 
-        let filenames = [
-            ".archlint.yaml",
-            ".archlint.yml",
-            "archlint.yaml",
-            "archlint.yml",
-        ];
+            let mut found_config = None;
+            for filename in filenames {
+                let p = project_root
+                    .map(|root| root.join(filename))
+                    .unwrap_or_else(|| PathBuf::from(filename));
 
-        for filename in filenames {
-            let p = project_root
-                .map(|root| root.join(filename))
-                .unwrap_or_else(|| PathBuf::from(filename));
+                if p.exists() {
+                    found_config = Some(Self::load(p)?);
+                    break;
+                }
+            }
 
-            if p.exists() {
-                return Self::load(p);
+            found_config.unwrap_or_else(Self::default)
+        };
+
+        if let Some(tsconfig_opt) = &config.tsconfig {
+            if !matches!(tsconfig_opt, TsConfigConfig::Boolean(false)) {
+                if let Some(root) = project_root {
+                    config.enrich_from_tsconfig(root)?;
+                }
             }
         }
 
-        Ok(Self::default())
+        Ok(config)
+    }
+
+    pub fn enrich_from_tsconfig(&mut self, project_root: &Path) -> Result<()> {
+        let explicit_path = match &self.tsconfig {
+            Some(TsConfigConfig::Path(p)) => Some(p.as_str()),
+            _ => None,
+        };
+
+        if let Some(tsconfig) = TsConfig::find_and_load(project_root, explicit_path)? {
+            if let Some(opts) = tsconfig.compiler_options {
+                // Enrich aliases
+                if let Some(paths) = opts.paths {
+                    for (alias, targets) in paths {
+                        if let Entry::Vacant(e) = self.aliases.entry(alias) {
+                            if let Some(target) = targets.first() {
+                                // tsconfig paths are relative to baseUrl
+                                let actual_path = if let Some(base_url) = &opts.base_url {
+                                    format!("{}/{}", base_url.trim_end_matches('/'), target)
+                                } else {
+                                    target.clone()
+                                };
+                                e.insert(actual_path);
+                            }
+                        }
+                    }
+                }
+
+                // Add outDir to ignore
+                if let Some(out_dir) = opts.out_dir {
+                    let ignore_pattern = format!("**/{}/**", out_dir.trim_matches('/'));
+                    if !self.ignore.contains(&ignore_pattern) {
+                        self.ignore.push(ignore_pattern);
+                    }
+                }
+            }
+
+            // Add excludes to ignore
+            for exclude in tsconfig.exclude {
+                let pattern = if exclude.contains('*') {
+                    exclude
+                } else {
+                    format!("**/{}/**", exclude.trim_matches('/'))
+                };
+                if !self.ignore.contains(&pattern) {
+                    self.ignore.push(pattern);
+                }
+            }
+        }
+
+        Ok(())
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use tempfile::tempdir;
 
     #[test]
     fn test_deserialize_extends_single_string() {
@@ -355,5 +440,174 @@ mod tests {
         let yaml = "extends: null";
         let config: Config = serde_yaml::from_str(yaml).unwrap();
         assert!(config.extends.is_empty());
+    }
+
+    #[test]
+    fn test_tsconfig_disabled_boolean() {
+        let yaml = "tsconfig: false";
+        let config: Config = serde_yaml::from_str(yaml).unwrap();
+        assert!(matches!(
+            config.tsconfig,
+            Some(TsConfigConfig::Boolean(false))
+        ));
+    }
+
+    #[test]
+    fn test_tsconfig_disabled_null() {
+        let yaml = "tsconfig: null";
+        let config: Config = serde_yaml::from_str(yaml).unwrap();
+        assert!(config.tsconfig.is_none());
+    }
+
+    #[test]
+    fn test_tsconfig_path() {
+        let yaml = "tsconfig: ./custom.json";
+        let config: Config = serde_yaml::from_str(yaml).unwrap();
+        if let Some(TsConfigConfig::Path(p)) = &config.tsconfig {
+            assert_eq!(p, "./custom.json");
+        } else {
+            panic!("Expected TsConfigConfig::Path");
+        }
+    }
+
+    #[test]
+    fn test_enrich_from_tsconfig() -> Result<()> {
+        let dir = tempdir()?;
+        fs::write(
+            dir.path().join("tsconfig.json"),
+            r#"{
+                "compilerOptions": {
+                    "baseUrl": "./src",
+                    "paths": {
+                        "@app/*": ["app/*"],
+                        "@shared/*": ["shared/*"]
+                    },
+                    "outDir": "dist"
+                },
+                "exclude": ["temp"]
+            }"#,
+        )?;
+
+        let mut config = Config::default();
+        config
+            .aliases
+            .insert("@app/*".to_string(), "custom/app/*".to_string());
+
+        config.enrich_from_tsconfig(dir.path())?;
+
+        // @app/* should be kept from config (priority)
+        assert_eq!(config.aliases.get("@app/*").unwrap(), "custom/app/*");
+        // @shared/* should be loaded from tsconfig
+        assert_eq!(config.aliases.get("@shared/*").unwrap(), "./src/shared/*");
+
+        // dist and temp should be in ignore
+        assert!(config.ignore.contains(&"**/dist/**".to_string()));
+        assert!(config.ignore.contains(&"**/temp/**".to_string()));
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_enrich_from_tsconfig_with_extends() -> Result<()> {
+        let dir = tempdir()?;
+
+        // Create base tsconfig
+        fs::write(
+            dir.path().join("tsconfig.base.json"),
+            r#"{
+                "compilerOptions": {
+                    "baseUrl": ".",
+                    "paths": {
+                        "@core/*": ["core/*"],
+                        "@utils/*": ["utils/*"]
+                    },
+                    "outDir": "build"
+                },
+                "exclude": ["node_modules"]
+            }"#,
+        )?;
+
+        // Create main tsconfig that extends base
+        fs::write(
+            dir.path().join("tsconfig.json"),
+            r#"{
+                "extends": "./tsconfig.base.json",
+                "compilerOptions": {
+                    "paths": {
+                        "@app/*": ["src/app/*"]
+                    }
+                },
+                "exclude": ["tmp"]
+            }"#,
+        )?;
+
+        let mut config = Config::default();
+        config.enrich_from_tsconfig(dir.path())?;
+
+        // Should have paths from both base and main tsconfig
+        assert_eq!(config.aliases.get("@core/*").unwrap(), "./core/*");
+        assert_eq!(config.aliases.get("@utils/*").unwrap(), "./utils/*");
+        assert_eq!(config.aliases.get("@app/*").unwrap(), "./src/app/*");
+
+        // Should have excludes from both
+        assert!(config.ignore.contains(&"**/node_modules/**".to_string()));
+        assert!(config.ignore.contains(&"**/tmp/**".to_string()));
+        assert!(config.ignore.contains(&"**/build/**".to_string()));
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_enrich_from_tsconfig_real_project_structure() -> Result<()> {
+        let dir = tempdir()?;
+
+        // Simulate real project structure: packages/plugin-api/tsconfig.json extends ../../tsconfig.base.json
+        fs::create_dir_all(dir.path().join("packages/plugin-api"))?;
+
+        // Create base tsconfig at root
+        fs::write(
+            dir.path().join("tsconfig.base.json"),
+            r#"{
+                "compilerOptions": {
+                    "target": "ES2022",
+                    "strict": true,
+                    "outDir": "dist",
+                    "baseUrl": ".",
+                    "paths": {
+                        "@shared/*": ["shared/*"]
+                    }
+                },
+                "exclude": ["node_modules", "dist"]
+            }"#,
+        )?;
+
+        // Create package tsconfig that extends base with relative path
+        fs::write(
+            dir.path().join("packages/plugin-api/tsconfig.json"),
+            r#"{
+                "extends": "../../tsconfig.base.json",
+                "compilerOptions": {
+                    "rootDir": "src",
+                    "paths": {
+                        "@plugin/*": ["src/plugin/*"]
+                    }
+                }
+            }"#,
+        )?;
+
+        // Load config from package directory
+        let mut config = Config::default();
+        let package_dir = dir.path().join("packages/plugin-api");
+        config.enrich_from_tsconfig(&package_dir)?;
+
+        // Should have paths from both root base and package tsconfig
+        assert_eq!(config.aliases.get("@shared/*").unwrap(), "./shared/*");
+        assert_eq!(config.aliases.get("@plugin/*").unwrap(), "./src/plugin/*");
+
+        // Should have excludes from base
+        assert!(config.ignore.contains(&"**/node_modules/**".to_string()));
+        assert!(config.ignore.contains(&"**/dist/**".to_string()));
+
+        Ok(())
     }
 }

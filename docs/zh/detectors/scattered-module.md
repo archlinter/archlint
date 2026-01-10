@@ -39,7 +39,7 @@ export const validateEmail = (email: string) => { ... };
 ```yaml
 rules:
   module_cohesion:
-    severity: warn
+    severity: medium
     min_exports: 5
     max_components: 2
 ```

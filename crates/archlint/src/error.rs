@@ -17,6 +17,9 @@ pub enum AnalysisError {
     #[error("JSON error: {0}")]
     Json(#[from] serde_json::Error),
 
+    #[error("JSON5 error: {0}")]
+    Json5(#[from] json5::Error),
+
     #[error("Ignore error: {0}")]
     Ignore(#[from] ignore::Error),
 

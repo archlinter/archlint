@@ -38,7 +38,7 @@ detect:
 
 # グローバルルール
 rules:
-  layer_violation: error
+  layer_violation: high
   dead_symbols:
     ignore_methods: ['onInit', 'onDestroy']
   vendor_coupling:

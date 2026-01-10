@@ -20,7 +20,7 @@ La cohesión mide qué tan estrechamente relacionados están los métodos y camp
 ```yaml
 rules:
   lcom:
-    severity: warn
+    severity: medium
     max_lcom: 4
     min_methods: 3
 ```

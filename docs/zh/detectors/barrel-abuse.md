@@ -15,7 +15,7 @@ Barrel 文件（例如仅重新导出其他文件的 `index.ts` 文件）在变�
 ```yaml
 rules:
   barrel_file:
-    severity: error
+    severity: high
     max_reexports: 10
 ```
 

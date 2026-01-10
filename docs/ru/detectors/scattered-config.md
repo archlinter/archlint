@@ -22,7 +22,7 @@
 ```yaml
 rules:
   scattered_config:
-    severity: info
+    severity: low
     max_files: 3
 ```
 

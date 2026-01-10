@@ -21,7 +21,7 @@
 ```yaml
 rules:
   complexity:
-    severity: warn
+    severity: medium
     max_complexity: 15
 ```
 

@@ -20,7 +20,7 @@ Cohesion measures how closely related the methods and fields of a class are. arc
 ```yaml
 rules:
   lcom:
-    severity: warn
+    severity: medium
     max_lcom: 4
     min_methods: 3
 ```

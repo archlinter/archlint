@@ -20,7 +20,7 @@
 ```yaml
 rules:
   lcom:
-    severity: warn
+    severity: medium
     max_lcom: 4
     min_methods: 3
     exclude: ['**/*.controller.ts']

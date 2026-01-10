@@ -19,7 +19,7 @@ El código profundamente anidado es exponencialmente más difícil de leer y com
 ```yaml
 rules:
   deep_nesting:
-    severity: info
+    severity: low
     max_depth: 4
 ```
 

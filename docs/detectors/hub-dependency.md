@@ -13,7 +13,7 @@ When your project depends too heavily on a single external library, it becomes d
 ```yaml
 rules:
   hub_dependency:
-    severity: warn
+    severity: medium
     min_dependants: 20
     ignore_packages:
       - 'react'
