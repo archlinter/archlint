@@ -173,8 +173,8 @@ importers:
         specifier: workspace:*
         version: link:../core
       '@modelcontextprotocol/sdk':
-        specifier: ^1.25.1
-        version: 1.25.1(hono@4.11.3)(zod@4.3.4)
+        specifier: ^1.25.2
+        version: 1.25.2(hono@4.11.3)(zod@4.3.4)
       zod:
         specifier: ^4.2.1
         version: 4.3.4
@@ -645,8 +645,8 @@ packages:
   '@jridgewell/trace-mapping@0.3.31':
     resolution: {integrity: sha512-zzNR+SdQSDJzc8joaeP8QQoCQr8NuYx2dIIytl1QeBEZHJ9uW6hebsrYgbz8hJwUQao3TWCMtmfV8Nu1twOLAw==}
 
-  '@modelcontextprotocol/sdk@1.25.1':
-    resolution: {integrity: sha512-yO28oVFFC7EBoiKdAn+VqRm+plcfv4v0xp6osG/VsCB0NlPZWi87ajbCZZ8f/RvOFLEu7//rSRmuZZ7lMoe3gQ==}
+  '@modelcontextprotocol/sdk@1.25.2':
+    resolution: {integrity: sha512-LZFeo4F9M5qOhC/Uc1aQSrBHxMrvxett+9KLHt7OhcExtoiRN9DKgbZffMP/nxjutWDQpfMDfP3nkHI4X9ijww==}
     engines: {node: '>=18'}
     peerDependencies:
       '@cfworker/json-schema': ^4.1.1
@@ -3837,7 +3837,7 @@ snapshots:
       '@jridgewell/resolve-uri': 3.1.2
       '@jridgewell/sourcemap-codec': 1.5.5
 
-  '@modelcontextprotocol/sdk@1.25.1(hono@4.11.3)(zod@4.3.4)':
+  '@modelcontextprotocol/sdk@1.25.2(hono@4.11.3)(zod@4.3.4)':
     dependencies:
       '@hono/node-server': 1.19.7(hono@4.11.3)
       ajv: 8.17.1
