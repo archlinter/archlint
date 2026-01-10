@@ -1,7 +1,7 @@
 use crate::detectors::ArchSmell;
 use crate::explain::Explanation;
 use std::collections::BTreeMap;
-use std::path::Path;
+use std::path::{Component, Path};
 
 pub type SmellWithExplanation = (ArchSmell, Explanation);
 
@@ -101,8 +101,11 @@ fn extract_short_directory(file_path: &Path) -> String {
     let components: Vec<_> = parent
         .components()
         .rev()
+        .filter_map(|c| match c {
+            Component::Normal(s) => Some(s.to_string_lossy().into_owned()),
+            _ => None,
+        })
         .take(3)
-        .filter_map(|c| c.as_os_str().to_str())
         .collect();
 
     let result: Vec<_> = components.into_iter().rev().collect();

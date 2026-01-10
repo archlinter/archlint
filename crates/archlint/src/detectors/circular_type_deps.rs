@@ -130,23 +130,27 @@ impl CircularTypeDepsDetector {
 
                 // Since we don't store resolved path in ImportedSymbol yet,
                 // we'll use a slightly better heuristic.
-                let target_str = target_path.to_string_lossy();
+                let _target_str = target_path.to_string_lossy();
                 let source_normalized = import.source.replace('\\', "/");
                 let source_parts: Vec<&str> = source_normalized
                     .split('/')
                     .filter(|s| !s.is_empty() && *s != "." && *s != "..")
                     .collect();
 
-                if !source_parts.is_empty()
-                    && source_parts.iter().all(|part| target_str.contains(part))
-                {
-                    // Check if it ends with the components to be more precise
+                if !source_parts.is_empty() {
+                    // Check if path components match exactly in reverse order
                     let mut matches = true;
+                    let mut matched_count = 0;
                     let mut current_target = target_path.as_path();
                     for part in source_parts.iter().rev() {
-                        if let Some(file_name) = current_target.file_name().and_then(|n| n.to_str())
-                        {
-                            if !file_name.starts_with(part) {
+                        match current_target.file_name().and_then(|n| n.to_str()) {
+                            Some(file_name)
+                                if file_name == *part
+                                    || file_name.starts_with(&format!("{}.", part)) =>
+                            {
+                                matched_count += 1;
+                            }
+                            _ => {
                                 matches = false;
                                 break;
                             }
@@ -158,7 +162,7 @@ impl CircularTypeDepsDetector {
                         }
                     }
 
-                    if matches {
+                    if matches && matched_count == source_parts.len() {
                         return Some(target_path.clone());
                     }
                 }

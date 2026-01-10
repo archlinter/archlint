@@ -322,3 +322,29 @@ impl Config {
         Ok(Self::default())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_deserialize_extends_single_string() {
+        let yaml = "extends: nestjs";
+        let config: Config = serde_yaml::from_str(yaml).unwrap();
+        assert_eq!(config.extends, vec!["nestjs"]);
+    }
+
+    #[test]
+    fn test_deserialize_extends_list() {
+        let yaml = "extends:\n  - nestjs\n  - react";
+        let config: Config = serde_yaml::from_str(yaml).unwrap();
+        assert_eq!(config.extends, vec!["nestjs", "react"]);
+    }
+
+    #[test]
+    fn test_deserialize_extends_missing() {
+        let yaml = "{}";
+        let config: Config = serde_yaml::from_str(yaml).unwrap();
+        assert!(config.extends.is_empty());
+    }
+}

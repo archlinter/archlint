@@ -94,6 +94,12 @@ The `extends` field allows you to load presets from different sources:
 
 Presets are merged in the order they are listed. User configuration always has the highest priority.
 
+For remote presets (via URL), the following constraints apply:
+
+- **Security**: Requests to local or private networks (localhost, 127.0.0.1, 10.x.x.x, 192.168.x.x, 172.16-31.x.x) are blocked for SSRF protection.
+- **Timeout**: Preset loading has a 30-second timeout. If the server does not respond in time or the URL is unreachable, an error will be reported.
+- **Validation**: Only `http` and `https` schemes are supported. Malformed URLs will cause a configuration error.
+
 ## Rules and Severity Levels
 
 In the `rules` section, you can use the following severity levels:

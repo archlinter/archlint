@@ -12,9 +12,9 @@ rules:
   dead_symbols:
     ignore_methods: ['getServerSideProps', 'getStaticProps', 'getStaticPaths']
   vendor_coupling:
-    ignore_packages: ['next/*']
+    ignore_packages: ['next', 'next/*']
   hub_dependency:
-    ignore_packages: ['next/*']
+    ignore_packages: ['next', 'next/*']
 
 entry_points:
   - '**/pages/**'
