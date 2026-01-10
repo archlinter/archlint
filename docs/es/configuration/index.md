@@ -100,7 +100,7 @@ Los presets se fusionan en el orden en que se listan. La configuración del usua
 
 En la sección `rules`, puede usar los siguientes niveles:
 
-- `critical`: Problema crítico que requiere atención inmediata.
+- `critical`: Problema crítico que requiere atención inmediata
 - `high`: Error arquitectónico de alta severidad.
 - `medium`: Advertencia o problema de severidad media.
 - `low`: Mensaje informativo o de baja severidad.

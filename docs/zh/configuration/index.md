@@ -82,7 +82,7 @@ auto_detect_framework: true
 
 # Git 设置
 git:
-  enabled: true # 启用分析（默认为 true）
+  enabled: true # 启用 Git 分析（默认为 true）
   history_period: '1y'
 ```
 

@@ -1,6 +1,6 @@
 use crate::Result;
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::fs;
 use std::path::{Path, PathBuf};
 
@@ -24,32 +24,51 @@ pub struct CompilerOptions {
 
 impl CompilerOptions {
     fn merge(&mut self, other: CompilerOptions) {
-        if let Some(other_paths) = other.paths {
+        let CompilerOptions {
+            paths,
+            base_url,
+            out_dir,
+            root_dir,
+        } = other;
+
+        if let Some(other_paths) = paths {
             let paths = self.paths.get_or_insert_with(HashMap::new);
             for (k, v) in other_paths {
                 paths.entry(k).or_insert(v);
             }
         }
         if self.base_url.is_none() {
-            self.base_url = other.base_url;
+            self.base_url = base_url;
         }
         if self.out_dir.is_none() {
-            self.out_dir = other.out_dir;
+            self.out_dir = out_dir;
         }
         if self.root_dir.is_none() {
-            self.root_dir = other.root_dir;
+            self.root_dir = root_dir;
         }
     }
 }
 
 impl TsConfig {
     pub fn load(path: &Path) -> Result<Self> {
+        let mut visited = HashSet::new();
+        Self::load_internal(path, &mut visited)
+    }
+
+    fn load_internal(path: &Path, visited: &mut HashSet<PathBuf>) -> Result<Self> {
+        let canonical_path = path.canonicalize().unwrap_or_else(|_| path.to_path_buf());
+        if !visited.insert(canonical_path) {
+            return Err(anyhow::anyhow!("Circular extends detected: {:?}", path).into());
+        }
+
         let contents = fs::read_to_string(path)?;
         let mut config: TsConfig = json5::from_str(&contents)?;
 
         if let Some(extends) = &config.extends {
             let parent_path = if extends.starts_with('.') {
-                path.parent().unwrap().join(extends)
+                path.parent()
+                    .ok_or_else(|| anyhow::anyhow!("tsconfig path has no parent directory"))?
+                    .join(extends)
             } else {
                 // For now, only relative extends are supported easily.
                 // In a real TS environment, this could be an npm package.
@@ -58,7 +77,7 @@ impl TsConfig {
             };
 
             if parent_path.exists() {
-                let parent_config = Self::load(&parent_path)?;
+                let parent_config = Self::load_internal(&parent_path, visited)?;
                 config = config.merge_with_parent(parent_config);
             }
         }

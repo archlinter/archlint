@@ -418,7 +418,8 @@ impl Config {
     }
 
     fn add_ignore_pattern(&mut self, path: &str) {
-        let pattern = format!("**/{}/**", path.trim_matches('/'));
+        let path = path.trim_matches('/').trim_start_matches("./");
+        let pattern = format!("**/{}/**", path);
         if !self.ignore.contains(&pattern) {
             self.ignore.push(pattern);
         }
