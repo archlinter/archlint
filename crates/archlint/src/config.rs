@@ -7,6 +7,8 @@ use std::collections::HashMap;
 use std::fs;
 use std::path::{Path, PathBuf};
 
+/// Main configuration structure for archlint.
+/// Defines project settings, rules, and framework extensions.
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct Config {
     #[serde(default)]
@@ -361,6 +363,8 @@ impl Config {
         Ok(config)
     }
 
+    /// Enriches the current configuration with settings from a TypeScript configuration file.
+    /// This includes loading path aliases, adding `outDir` to ignores, and including `exclude` patterns.
     pub fn enrich_from_tsconfig(&mut self, project_root: &Path) -> Result<()> {
         let explicit_path = match &self.tsconfig {
             Some(TsConfigConfig::Path(p)) => Some(p.as_str()),
@@ -381,6 +385,7 @@ impl Config {
         Ok(())
     }
 
+    /// Applies path aliases from a `CompilerOptions` to the current configuration.
     fn apply_tsconfig_aliases(&mut self, opts: &CompilerOptions) {
         let Some(paths) = &opts.paths else { return };
         let base_url = opts.base_url.as_deref().unwrap_or("").trim_end_matches('/');
@@ -399,12 +404,14 @@ impl Config {
         }
     }
 
+    /// Adds the `outDir` from a `CompilerOptions` to the ignore patterns.
     fn apply_tsconfig_out_dir(&mut self, opts: &CompilerOptions) {
         if let Some(out_dir) = &opts.out_dir {
             self.add_ignore_pattern(out_dir);
         }
     }
 
+    /// Adds standard TypeScript exclude patterns to the ignore list.
     fn apply_tsconfig_excludes(&mut self, excludes: Vec<String>) {
         for exclude in excludes {
             if exclude.contains('*') {
@@ -417,6 +424,7 @@ impl Config {
         }
     }
 
+    /// Helper to add a path to the ignore list, ensuring it's formatted as a glob pattern.
     fn add_ignore_pattern(&mut self, path: &str) {
         let path = path.trim_matches('/').trim_start_matches("./");
         let pattern = format!("**/{}/**", path);

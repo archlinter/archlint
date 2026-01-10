@@ -22,7 +22,7 @@ jobs:
           fetch-tags: true
           token: ${{ secrets.GH_PAT }}
 
-      - uses: pnpm/action-setup@v3
+      - uses: pnpm/action-setup@v4
         with:
           version: 9
 

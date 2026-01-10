@@ -1,3 +1,7 @@
+/**
+ * Provides a comprehensive help guide for the archlint MCP server tools.
+ * Returns a list of tool descriptions and usage tips.
+ */
 export function archlintHelp(): { content: { type: 'text'; text: string }[] } {
   const helpText = `
 # archlint MCP Server Usage Guide

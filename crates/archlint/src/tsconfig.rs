@@ -4,25 +4,36 @@ use std::collections::{HashMap, HashSet};
 use std::fs;
 use std::path::{Path, PathBuf};
 
+/// Represents a TypeScript configuration file (tsconfig.json).
 #[derive(Debug, Clone, Deserialize, Serialize, Default)]
 #[serde(rename_all = "camelCase")]
 pub struct TsConfig {
+    /// Compiler options section.
     pub compiler_options: Option<CompilerOptions>,
+    /// Patterns to exclude from the project.
     #[serde(default)]
     pub exclude: Vec<String>,
+    /// Path to a parent configuration file to extend.
     pub extends: Option<String>,
 }
 
+/// Represents the `compilerOptions` section of a tsconfig file.
 #[derive(Debug, Clone, Deserialize, Serialize, Default)]
 #[serde(rename_all = "camelCase")]
 pub struct CompilerOptions {
+    /// Path mapping aliases.
     pub paths: Option<HashMap<String, Vec<String>>>,
+    /// Base directory to resolve non-relative module names.
     pub base_url: Option<String>,
+    /// Output directory for compiled files.
     pub out_dir: Option<String>,
+    /// Root directory of source files.
     pub root_dir: Option<String>,
 }
 
 impl CompilerOptions {
+    /// Merges another `CompilerOptions` into this one.
+    /// Existing values take precedence over the ones from `other`.
     fn merge(&mut self, other: CompilerOptions) {
         let CompilerOptions {
             paths,
@@ -50,11 +61,13 @@ impl CompilerOptions {
 }
 
 impl TsConfig {
+    /// Loads a tsconfig file from the given path, resolving `extends` recursively.
     pub fn load(path: &Path) -> Result<Self> {
         let mut visited = HashSet::new();
         Self::load_internal(path, &mut visited)
     }
 
+    /// Internal implementation of `load` with cycle detection.
     fn load_internal(path: &Path, visited: &mut HashSet<PathBuf>) -> Result<Self> {
         let canonical_path = path.canonicalize().unwrap_or_else(|_| path.to_path_buf());
         if !visited.insert(canonical_path) {
@@ -85,6 +98,9 @@ impl TsConfig {
         Ok(config)
     }
 
+    /// Attempts to find and load a tsconfig file in the project root.
+    /// If `explicit_path` is provided, it tries to load that specific file.
+    /// Otherwise, it looks for the standard `tsconfig.json`.
     pub fn find_and_load(project_root: &Path, explicit_path: Option<&str>) -> Result<Option<Self>> {
         if let Some(p) = explicit_path {
             let path = project_root.join(p);
@@ -103,6 +119,8 @@ impl TsConfig {
         Ok(None)
     }
 
+    /// Merges a parent `TsConfig` into this one.
+    /// This config's values take precedence over the parent's.
     fn merge_with_parent(mut self, parent: TsConfig) -> Self {
         // Simple merge: current config overrides parent
         if let Some(parent_opts) = parent.compiler_options {
