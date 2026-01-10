@@ -72,8 +72,8 @@ impl PresetLoader {
         }
 
         // Check content length if available
+        const MAX_PRESET_SIZE: u64 = 10 * 1024 * 1024; // 10MB
         if let Some(content_length) = response.content_length() {
-            const MAX_PRESET_SIZE: u64 = 10 * 1024 * 1024; // 10MB
             if content_length > MAX_PRESET_SIZE {
                 return Err(anyhow!(
                     "Preset file from URL '{}' is too large: {} bytes (max: {} bytes)",
@@ -84,15 +84,18 @@ impl PresetLoader {
             }
         }
 
-        let content = response
-            .text()
+        use std::io::Read;
+        let mut content = String::new();
+        response
+            .take(MAX_PRESET_SIZE + 1)
+            .read_to_string(&mut content)
             .map_err(|e| anyhow!("Failed to read response body from URL '{}': {}", url, e))?;
 
-        // Also check actual size after reading
-        if content.len() > (10 * 1024 * 1024) {
+        if content.len() > MAX_PRESET_SIZE as usize {
             return Err(anyhow!(
-                "Preset file from URL '{}' exceeded size limit",
-                url
+                "Preset file from URL '{}' exceeded size limit of {} bytes",
+                url,
+                MAX_PRESET_SIZE
             ));
         }
 
