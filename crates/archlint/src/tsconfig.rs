@@ -85,11 +85,13 @@ impl TsConfig {
                 path.parent()
                     .ok_or_else(|| anyhow::anyhow!("tsconfig path has no parent directory"))?
                     .join(extends)
-            } else {
-                // For now, only relative extends are supported easily.
-                // In a real TS environment, this could be an npm package.
-                // We'll skip non-relative for now to avoid complexity with node_modules.
+            } else if Path::new(extends).is_absolute() {
                 PathBuf::from(extends)
+            } else {
+                let base_dir = path.parent().unwrap_or_else(|| Path::new("."));
+                Self::resolve_node_modules_path(base_dir, extends).ok_or_else(|| {
+                    anyhow::anyhow!("Could not resolve tsconfig extends: {}", extends)
+                })?
             };
 
             if parent_path.exists() {
@@ -121,6 +123,39 @@ impl TsConfig {
         }
 
         Ok(None)
+    }
+
+    /// Resolves a tsconfig path from node_modules by searching upwards.
+    fn resolve_node_modules_path(base_dir: &Path, specifier: &str) -> Option<PathBuf> {
+        let mut current = base_dir.to_path_buf();
+        loop {
+            let node_modules = current.join("node_modules");
+            if node_modules.is_dir() {
+                let pkg_path = node_modules.join(specifier);
+
+                // 1. Try directly (could be a file or a path to one)
+                if pkg_path.is_file() {
+                    return Some(pkg_path);
+                }
+
+                // 2. Try with .json
+                let with_json = pkg_path.with_extension("json");
+                if with_json.is_file() {
+                    return Some(with_json);
+                }
+
+                // 3. Try pkg/tsconfig.json
+                let tsconfig_json = pkg_path.join("tsconfig.json");
+                if tsconfig_json.is_file() {
+                    return Some(tsconfig_json);
+                }
+            }
+
+            if !current.pop() {
+                break;
+            }
+        }
+        None
     }
 
     /// Merges a parent `TsConfig` into this one (the child config).
@@ -331,6 +366,32 @@ mod tests {
         // This works because join(extends) works on path.parent().
         let config = TsConfig::load(&tsconfig_path)?;
         assert!(config.extends.is_some());
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_extends_from_node_modules() -> Result<()> {
+        let dir = tempdir()?;
+        let project_root = dir.path();
+
+        let node_modules = project_root.join("node_modules");
+        let pkg_dir = node_modules.join("@my-org/config");
+        fs::create_dir_all(&pkg_dir)?;
+
+        fs::write(
+            pkg_dir.join("base.json"),
+            r#"{"compilerOptions": {"baseUrl": "from-pkg"}}"#,
+        )?;
+
+        let tsconfig_path = project_root.join("tsconfig.json");
+        fs::write(&tsconfig_path, r#"{"extends": "@my-org/config/base.json"}"#)?;
+
+        let config = TsConfig::load(&tsconfig_path)?;
+        assert_eq!(
+            config.compiler_options.unwrap().base_url.unwrap(),
+            "from-pkg"
+        );
 
         Ok(())
     }
