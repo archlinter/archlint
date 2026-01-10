@@ -129,8 +129,9 @@ impl TsConfig {
                 .merge(parent_opts);
         }
 
+        let mut seen: HashSet<_> = self.exclude.iter().cloned().collect();
         for ex in parent.exclude {
-            if !self.exclude.contains(&ex) {
+            if seen.insert(ex.clone()) {
                 self.exclude.push(ex);
             }
         }
@@ -264,6 +265,68 @@ mod tests {
 
         let config = TsConfig::find_and_load(dir.path(), Some("tsconfig.build.json"))?.unwrap();
         assert_eq!(config.compiler_options.unwrap().base_url.unwrap(), "build");
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_circular_extends() -> Result<()> {
+        let dir = tempdir()?;
+        let path1 = dir.path().join("tsconfig.1.json");
+        let path2 = dir.path().join("tsconfig.2.json");
+
+        fs::write(&path1, r#"{"extends": "./tsconfig.2.json"}"#)?;
+        fs::write(&path2, r#"{"extends": "./tsconfig.1.json"}"#)?;
+
+        let result = TsConfig::load(&path1);
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("Circular extends"));
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_invalid_json5() -> Result<()> {
+        let dir = tempdir()?;
+        let path = dir.path().join("tsconfig.json");
+        fs::write(&path, r#"{"compilerOptions": { "baseUrl": "." "#)?; // Missing closing braces
+
+        let result = TsConfig::load(&path);
+        assert!(result.is_err());
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_non_existent_extends() -> Result<()> {
+        let dir = tempdir()?;
+        let path = dir.path().join("tsconfig.json");
+        fs::write(&path, r#"{"extends": "./non-existent.json"}"#)?;
+
+        // Should not error, just skip if it doesn't exist (matching current logic)
+        let config = TsConfig::load(&path)?;
+        assert!(config.compiler_options.is_none());
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_missing_parent_directory() -> Result<()> {
+        // Path with no parent (just a filename)
+        let _path = Path::new("tsconfig.json");
+        // This would normally be handled by the fact that we can't read the file,
+        // but if it has "extends": "./something", it should fail safely.
+
+        // We can't easily test filesystem root, but we can test a relative path with "extends": "./..."
+        // which triggers path.parent() call.
+
+        let dir = tempdir()?;
+        let tsconfig_path = dir.path().join("tsconfig.json");
+        fs::write(&tsconfig_path, r#"{"extends": "./base.json"}"#)?;
+
+        // This works because join(extends) works on path.parent().
+        let config = TsConfig::load(&tsconfig_path)?;
+        assert!(config.extends.is_some());
 
         Ok(())
     }

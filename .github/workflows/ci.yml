@@ -235,6 +235,10 @@ jobs:
         if: matrix.target == 'x86_64-unknown-linux-musl'
         run: sudo apt-get install -y musl-tools
 
+      - name: Configure RUSTFLAGS for Linux (mold)
+        if: runner.os == 'Linux' && matrix.target != 'x86_64-unknown-linux-musl'
+        run: echo "RUSTFLAGS=-C link-arg=-fuse-ld=mold" >> $GITHUB_ENV
+
       - name: Install dependencies
         run: pnpm install
 
@@ -246,13 +250,11 @@ jobs:
           CC_aarch64_unknown_linux_gnu: aarch64-linux-gnu-gcc
           CC_x86_64_unknown_linux_musl: musl-gcc
           PKG_CONFIG_ALLOW_CROSS: '1'
-          RUSTFLAGS: ${{ runner.os == 'Linux' && matrix.target != 'x86_64-unknown-linux-musl' && '-C link-arg=-fuse-ld=mold' || '' }}
 
       - name: Build CLI
         run: cargo build --release --target ${{ matrix.target }} -p archlint
         env:
           CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER: aarch64-linux-gnu-gcc
-          RUSTFLAGS: ${{ runner.os == 'Linux' && matrix.target != 'x86_64-unknown-linux-musl' && '-C link-arg=-fuse-ld=mold' || '' }}
 
       - name: Upload NAPI artifact
         uses: actions/upload-artifact@v4
