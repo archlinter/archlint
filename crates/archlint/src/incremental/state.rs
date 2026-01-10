@@ -1,6 +1,7 @@
 use crate::detectors::ArchSmell;
 use crate::engine::context::FileMetrics;
-use crate::framework::{FileType, Framework};
+use crate::framework::presets::FrameworkPreset;
+use crate::framework::Framework;
 use crate::graph::DependencyGraph;
 use crate::parser::{FileSymbols, FunctionComplexity};
 use std::collections::{HashMap, HashSet};
@@ -30,7 +31,7 @@ pub struct IncrementalState {
 
     // Framework and project info
     pub detected_frameworks: Vec<Framework>,
-    pub file_types: HashMap<PathBuf, FileType>,
+    pub presets: Vec<FrameworkPreset>,
     pub script_entry_points: HashSet<PathBuf>,
     pub dynamic_load_patterns: Vec<String>,
 
@@ -53,7 +54,7 @@ impl IncrementalState {
             created_at: Instant::now(),
             last_full_scan: None,
             detected_frameworks: Vec::new(),
-            file_types: HashMap::new(),
+            presets: Vec::new(),
             script_entry_points: HashSet::new(),
             dynamic_load_patterns: Vec::new(),
             file_local_cache: HashMap::new(),
@@ -70,7 +71,7 @@ impl IncrementalState {
         self.reverse_deps.clear();
         self.last_full_scan = None;
         self.detected_frameworks.clear();
-        self.file_types.clear();
+        self.presets.clear();
         self.script_entry_points.clear();
         self.dynamic_load_patterns.clear();
         self.file_local_cache.clear();

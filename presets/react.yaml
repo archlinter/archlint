@@ -1,0 +1,30 @@
+name: react
+version: 1
+detect:
+  packages:
+    any_of: ['react']
+
+rules:
+  lcom: off
+  module_cohesion: off
+  layer_violation: off
+  dead_symbols:
+    ignore_methods:
+      - 'render'
+      - 'componentDidMount'
+      - 'componentDidUpdate'
+      - 'componentWillUnmount'
+      - 'shouldComponentUpdate'
+  vendor_coupling:
+    ignore_packages: ['react/*']
+  hub_dependency:
+    ignore_packages: ['react/*']
+
+overrides:
+  - files: ['**/*.component.tsx', '**/*.component.ts', '**/*.component.js', '**/*.component.jsx']
+    rules:
+      abstractness: off
+      lcom: off
+  - files: ['**/use*.ts', '**/use*.js']
+    rules:
+      lcom: off

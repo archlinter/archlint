@@ -1,6 +1,6 @@
 use crate::detectors::{ArchSmell, SmellType};
 use crate::snapshot::SnapshotSmell;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct Explanation {
@@ -111,7 +111,7 @@ impl ExplainEngine {
                     .and_then(|d| match d {
                         crate::snapshot::SmellDetails::FeatureEnvy {
                             most_envied_module, ..
-                        } => Some(std::path::PathBuf::from(most_envied_module)),
+                        } => Some(PathBuf::from(most_envied_module)),
                         _ => None,
                     })
                     .unwrap_or_default();
@@ -124,7 +124,7 @@ impl ExplainEngine {
                     .as_ref()
                     .and_then(|d| match d {
                         crate::snapshot::SmellDetails::TestLeakage { test_file, .. } => {
-                            Some(std::path::PathBuf::from(test_file))
+                            Some(PathBuf::from(test_file))
                         }
                         _ => None,
                     })
@@ -324,7 +324,7 @@ impl ExplainEngine {
                 .severity
                 .parse()
                 .unwrap_or(crate::detectors::Severity::Medium),
-            files: smell.files.iter().map(std::path::PathBuf::from).collect(),
+            files: smell.files.iter().map(PathBuf::from).collect(),
             metrics,
             locations: vec![],
             cluster: None,

@@ -11,6 +11,10 @@ ignore:
 aliases:
   "@/*": "src/*"
 
+# Presets to extend
+extends:
+  - nestjs
+
 # Entry points for dead code analysis
 entry_points:
   - "src/main.ts"
@@ -23,6 +27,14 @@ rules:
   # Short form: level or "off"
   cycles: error
   dead_code: warn
+
+  vendor_coupling:
+    severity: warn
+    ignore_packages: ["lodash", "rxjs"]
+
+  hub_dependency:
+    severity: error
+    ignore_packages: ["lodash", "rxjs"]
 
   # Full form: with additional parameters
   god_module:
@@ -58,6 +70,4 @@ scoring:
     medium: 20
     low: 5
 
-# Framework preset
-framework: nestjs
 auto_detect_framework: true

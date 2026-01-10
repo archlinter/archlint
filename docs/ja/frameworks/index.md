@@ -4,10 +4,11 @@ archlintは単なる汎用リンターではありません。人気のあるフ
 
 ## 仕組み
 
-archlintは、`package.json`やファイル構造を確認することで、プロジェクトで使用されているフレームワークを自動的に検出します。また、`.archlint.yaml`で明示的に設定または上書きすることも可能です。
+archlintは、`package.json`やファイル構造を確認することで、プロジェクトで使用されているフレームワークを自動的に検出します。また、`.archlint.yaml`で明示的にプリセットを読み込むこともできます。
 
 ```yaml
-framework: nestjs
+extends:
+  - nestjs
   - react
 ```
 
@@ -22,3 +23,8 @@ framework: nestjs
 - [NestJS](/ja/frameworks/nestjs)
 - [Next.js](/ja/frameworks/nextjs)
 - [React](/ja/frameworks/react)
+- [oclif](/ja/frameworks/oclif)
+
+## 高度な使用方法
+
+- [カスタムプリセット](/ja/frameworks/custom-presets)

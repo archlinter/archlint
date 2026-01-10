@@ -11,3 +11,21 @@
 ## 修正方法
 
 **Adapter パターン**を使用してください。ドメイン内にインターフェースを作成し、外部ライブラリを使用してそれを実装します。残りのコードは、作成したインターフェースにのみ依存するようにします。
+
+## 設定
+
+```yaml
+rules:
+  vendor_coupling:
+    severity: warn
+    max_files_per_package: 10
+    ignore_packages:
+      - 'lodash'
+      - 'rxjs'
+      - '@nestjs/*'
+```
+
+### オプション
+
+- `max_files_per_package`（デフォルト: 10）: 不吉な臭いが報告される前に、特定のパッケージをインポートできるファイルの最大数。
+- `ignore_packages`: 無視するパッケージ名またはglobパターンのリスト。

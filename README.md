@@ -210,7 +210,7 @@ rules:
     max_cbo: 20
 
 # Framework-aware analysis
-framework: nestjs # knows controllers are entry points
+extends: nestjs # knows controllers are entry points
 ```
 
 ---

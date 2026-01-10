@@ -11,7 +11,8 @@
 ## Рекомендуемая конфигурация
 
 ```yaml
-framework: nextjs
+extends:
+  - nextjs
 
 entry_points:
   - 'src/pages/**/*.tsx'

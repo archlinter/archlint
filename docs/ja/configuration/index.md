@@ -19,6 +19,11 @@ ignore:
 aliases:
   '@/*': 'src/*'
 
+# 組み込みまたはカスタムプリセットから拡張
+extends:
+  - nestjs
+  - ./my-company-preset.yaml
+
 # 解析のエントリポイント (デッドコード検出に使用)
 entry_points:
   - 'src/main.ts'
@@ -38,6 +43,10 @@ rules:
     fan_in: 15
     fan_out: 15
     churn: 20
+
+  vendor_coupling:
+    severity: warn
+    ignore_packages: ['lodash', 'rxjs']
 
 # 特定のパスに対するルールのオーバーライド
 overrides:
@@ -64,9 +73,6 @@ scoring:
     moderate: 15.0
     poor: 30.0
 
-# フレームワークの使用
-framework: nestjs
-
 # フレームワークの自動検出 (デフォルトは true)
 auto_detect_framework: true
 
@@ -78,7 +84,17 @@ git:
   history_period: '1y'
 ```
 
-## 重要度レベル (Severity Levels)
+## 拡張 (Extends)
+
+`extends` フィールドを使用すると、異なるソースからプリセットを読み込むことができます：
+
+- **組み込みプリセット**: `nestjs`、`nextjs`、`react`、`oclif`。
+- **ローカルファイル**: YAMLファイルへの相対パス（例：`./archlint-shared.yaml`）。
+- **URL**: YAMLファイルへの直接URL（例：`https://example.com/preset.yaml`）。
+
+プリセットはリストされた順序でマージされます。ユーザー設定が常に最優先されます。
+
+## ルールと重要度レベル (Rules and Severity Levels)
 
 `rules` セクションでは、以下のレベルを使用できます。
 

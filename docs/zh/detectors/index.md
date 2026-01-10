@@ -60,6 +60,7 @@ description: 探索 `archlint` 中的 28+ 个架构异味检测器，包括循�
 | -------------------------------------------------- | -------------------- | ---------------------- | ---- |
 | [测试泄漏](/zh/detectors/test-leakage)             | `test_leakage`       | 测试代码泄漏到生产环境 | ❌   |
 | [供应商耦合](/zh/detectors/vendor-coupling)        | `vendor_coupling`    | 与外部库的紧密耦合     | ❌   |
+| [枢纽依赖](/zh/detectors/hub-dependency)           | `hub_dependency`     | 对外部包的过度依赖     | ❌   |
 | [副作用导入](/zh/detectors/side-effect-import)     | `side_effect_import` | 触发副作用的导入       | ✅   |
 | [共享可变状态](/zh/detectors/shared-mutable-state) | `shared_state`       | 导出的可变变量         | ❌   |
 

@@ -28,6 +28,9 @@ pub struct Config {
     #[serde(default)]
     pub watch: WatchConfig,
 
+    #[serde(default, deserialize_with = "deserialize_extends")]
+    pub extends: Vec<String>,
+
     #[serde(default)]
     pub framework: Option<String>,
 
@@ -60,14 +63,14 @@ pub enum RuleSeverity {
     Off,
 }
 
-#[derive(Debug, Clone, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
 #[serde(untagged)]
 pub enum RuleConfig {
     Short(RuleSeverity),
     Full(RuleFullConfig),
 }
 
-#[derive(Debug, Clone, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
 pub struct RuleFullConfig {
     #[serde(default)]
     pub severity: Option<RuleSeverity>,
@@ -79,7 +82,7 @@ pub struct RuleFullConfig {
     pub options: serde_yaml::Value,
 }
 
-#[derive(Debug, Clone, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
 pub struct Override {
     pub files: Vec<String>,
     pub rules: HashMap<String, RuleConfig>,
@@ -103,6 +106,26 @@ fn default_true() -> bool {
 
 fn default_max_file_size() -> u64 {
     1024 * 1024 // 1MB
+}
+
+fn deserialize_extends<'de, D>(deserializer: D) -> std::result::Result<Vec<String>, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    use serde::Deserialize;
+    #[derive(Deserialize)]
+    #[serde(untagged)]
+    enum StringOrVec {
+        String(String),
+        Vec(Vec<String>),
+    }
+
+    let parsed = Option::<StringOrVec>::deserialize(deserializer)?;
+    match parsed {
+        Some(StringOrVec::String(s)) => Ok(vec![s]),
+        Some(StringOrVec::Vec(v)) => Ok(v),
+        None => Ok(Vec::new()),
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -259,6 +282,7 @@ impl Default for Config {
             overrides: Vec::new(),
             scoring: SeverityConfig::default(),
             watch: WatchConfig::default(),
+            extends: Vec::new(),
             framework: None,
             auto_detect_framework: true,
             enable_git: true,
@@ -298,5 +322,38 @@ impl Config {
         }
 
         Ok(Self::default())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_deserialize_extends_single_string() {
+        let yaml = "extends: nestjs";
+        let config: Config = serde_yaml::from_str(yaml).unwrap();
+        assert_eq!(config.extends, vec!["nestjs"]);
+    }
+
+    #[test]
+    fn test_deserialize_extends_list() {
+        let yaml = "extends:\n  - nestjs\n  - react";
+        let config: Config = serde_yaml::from_str(yaml).unwrap();
+        assert_eq!(config.extends, vec!["nestjs", "react"]);
+    }
+
+    #[test]
+    fn test_deserialize_extends_missing() {
+        let yaml = "{}";
+        let config: Config = serde_yaml::from_str(yaml).unwrap();
+        assert!(config.extends.is_empty());
+    }
+
+    #[test]
+    fn test_deserialize_extends_null() {
+        let yaml = "extends: null";
+        let config: Config = serde_yaml::from_str(yaml).unwrap();
+        assert!(config.extends.is_empty());
     }
 }

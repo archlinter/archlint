@@ -298,13 +298,6 @@ impl DeadSymbolsDetector {
         let mut ignored_methods: HashSet<String> =
             ["constructor".to_string()].into_iter().collect();
 
-        let presets = crate::framework::presets::get_presets(&ctx.detected_frameworks);
-        for preset in presets {
-            for method in preset.ignore_methods {
-                ignored_methods.insert(method.to_string());
-            }
-        }
-
         let rule = ctx.resolve_rule("dead_symbols", None);
         if let Some(methods) = rule.get_option::<Vec<String>>("ignore_methods") {
             for method in methods {

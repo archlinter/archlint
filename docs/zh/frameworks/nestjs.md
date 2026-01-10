@@ -12,7 +12,8 @@ archlint 理解 NestJS 的模块化架构，并为其提供专门的分析。
 ## 推荐配置
 
 ```yaml
-framework: nestjs
+extends:
+  - nestjs
 
 rules:
   layer_violation:

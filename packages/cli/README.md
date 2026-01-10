@@ -213,7 +213,7 @@ scoring:
     low: 5
 
 # Framework preset
-framework: nestjs
+extends: nestjs
 ```
 
 ## Available Detectors

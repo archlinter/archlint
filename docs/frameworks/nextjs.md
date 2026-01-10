@@ -11,7 +11,8 @@ Next.js projects have unique file-based routing and bundling patterns that archl
 ## Recommended Configuration
 
 ```yaml
-framework: nextjs
+extends:
+  - nextjs
 
 entry_points:
   - 'src/pages/**/*.tsx'

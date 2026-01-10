@@ -91,7 +91,7 @@ pub fn analyze_fixture_with_config(name: &str, config: Config) -> AnalysisContex
         script_entry_points,
         dynamic_load_patterns,
         detected_frameworks: Vec::new(),
-        file_types: HashMap::new(),
+        presets: Vec::new(),
     }
 }
 

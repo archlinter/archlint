@@ -1,10 +1,13 @@
 use crate::config::Config;
-use crate::detectors::DetectorCategory;
-use crate::detectors::{ArchSmell, Detector, DetectorFactory, DetectorInfo};
+use crate::detectors::{
+    ArchSmell, Detector, DetectorCategory, DetectorFactory, DetectorInfo, Severity, SmellType,
+};
 use crate::engine::AnalysisContext;
+use crate::parser::ImportedSymbol;
 use inventory;
 use petgraph::graph::DiGraph;
 use std::collections::HashMap;
+use std::path::{Path, PathBuf};
 
 pub fn init() {}
 
@@ -45,7 +48,7 @@ impl Detector for CircularTypeDepsDetector {
 }
 
 impl CircularTypeDepsDetector {
-    fn build_type_graph(&self, ctx: &AnalysisContext) -> DiGraph<std::path::PathBuf, ()> {
+    fn build_type_graph(&self, ctx: &AnalysisContext) -> DiGraph<PathBuf, ()> {
         let mut type_graph = DiGraph::new();
         let mut path_to_node = HashMap::new();
 
@@ -75,7 +78,7 @@ impl CircularTypeDepsDetector {
 
     fn process_sccs(
         &self,
-        type_graph: &DiGraph<std::path::PathBuf, ()>,
+        type_graph: &DiGraph<PathBuf, ()>,
         ctx: &AnalysisContext,
     ) -> Vec<ArchSmell> {
         let mut smells = Vec::new();
@@ -87,7 +90,7 @@ impl CircularTypeDepsDetector {
                 let severity = self.get_severity(&files, ctx);
 
                 smells.push(ArchSmell {
-                    smell_type: crate::detectors::SmellType::CircularTypeDependency,
+                    smell_type: SmellType::CircularTypeDependency,
                     severity,
                     files,
                     metrics: Vec::new(),
@@ -100,48 +103,62 @@ impl CircularTypeDepsDetector {
         smells
     }
 
-    fn get_severity(
-        &self,
-        files: &[std::path::PathBuf],
-        ctx: &AnalysisContext,
-    ) -> crate::detectors::Severity {
-        if let Some(path) = files.first() {
-            ctx.resolve_rule("circular_type_deps", Some(path)).severity
-        } else {
-            crate::detectors::Severity::Low
-        }
+    fn get_severity(&self, files: &[PathBuf], ctx: &AnalysisContext) -> Severity {
+        files
+            .iter()
+            .map(|path| ctx.resolve_rule("circular_type_deps", Some(path)).severity)
+            .max()
+            .unwrap_or(Severity::Low)
     }
+
     fn resolve_import(
         &self,
-        import: &crate::parser::ImportedSymbol,
-        from: &std::path::Path,
+        import: &ImportedSymbol,
+        from: &Path,
         ctx: &AnalysisContext,
-    ) -> Option<std::path::PathBuf> {
+    ) -> Option<PathBuf> {
         let node_idx = ctx.graph.get_node(from)?;
         for target_node in ctx.graph.dependencies(node_idx) {
             if let Some(target_path) = ctx.graph.get_file_path(target_node) {
-                // If it's a relative import, check if target_path matches resolved version
-                // For now, let's use a simpler check: does the target_path match the import.source
-                // when resolved relative to 'from'?
-
-                // We can't easily resolve here without PathResolver,
-                // but we know that an edge already exists in ctx.graph.
-                // We just need to find WHICH edge corresponds to this specific import.
-
-                // Since we don't store resolved path in ImportedSymbol yet,
-                // we'll use a slightly better heuristic.
-                let target_str = target_path.to_string_lossy();
-                let source_parts: Vec<&str> = import
-                    .source
-                    .split('/')
-                    .filter(|s| !s.is_empty() && *s != "." && *s != "..")
-                    .collect();
-
-                if source_parts.iter().all(|part| target_str.contains(part)) {
+                if self.path_matches_source(target_path, &import.source) {
                     return Some(target_path.clone());
                 }
             }
         }
         None
+    }
+
+    fn path_matches_source(&self, target_path: &Path, source: &str) -> bool {
+        let source_normalized = source.replace('\\', "/");
+        let source_parts: Vec<&str> = source_normalized
+            .split('/')
+            .filter(|s| !s.is_empty() && *s != "." && *s != "..")
+            .collect();
+
+        if source_parts.is_empty() {
+            return false;
+        }
+
+        let mut current_target = target_path;
+        for part in source_parts.iter().rev() {
+            let matches_part = match current_target.file_name().and_then(|n| n.to_str()) {
+                Some(file_name) => {
+                    file_name == *part || file_name.starts_with(&format!("{}.", part))
+                }
+                None => false,
+            };
+
+            if !matches_part {
+                return false;
+            }
+
+            if let Some(parent) = current_target.parent() {
+                current_target = parent;
+            } else {
+                // No more parents, check if this was the last part
+                return source_parts.len() == 1 || *part == source_parts[0];
+            }
+        }
+        true
     }
 }

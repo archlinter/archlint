@@ -60,6 +60,7 @@ archlint comes with 28+ built-in detectors categorized by the type of architectu
 | ------------------------------------------------------- | -------------------- | ------------------------------------ | ------- |
 | [Test Leakage](/detectors/test-leakage)                 | `test_leakage`       | Test code leaking into production    | ❌      |
 | [Vendor Coupling](/detectors/vendor-coupling)           | `vendor_coupling`    | Tight coupling to external libraries | ❌      |
+| [Hub Dependency](/detectors/hub-dependency)             | `hub_dependency`     | Over-reliance on external packages   | ❌      |
 | [Side Effect Import](/detectors/side-effect-import)     | `side_effect_import` | Imports that trigger side effects    | ✅      |
 | [Shared Mutable State](/detectors/shared-mutable-state) | `shared_state`       | Exported mutable variables           | ❌      |
 

@@ -3,7 +3,7 @@ use crate::detectors::DetectorCategory;
 use crate::detectors::{ArchSmell, Detector, DetectorFactory, DetectorInfo};
 use crate::engine::AnalysisContext;
 use std::collections::HashMap;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 pub struct FeatureEnvyDetector;
 
@@ -54,7 +54,7 @@ impl Detector for FeatureEnvyDetector {
 
 impl FeatureEnvyDetector {
     fn analyze_file_for_envy(
-        path: &std::path::Path,
+        path: &Path,
         symbols: &crate::parser::FileSymbols,
         ratio_threshold: f64,
     ) -> Option<ArchSmell> {
@@ -108,7 +108,7 @@ impl FeatureEnvyDetector {
     }
 
     fn find_most_envied_path(
-        path: &std::path::Path,
+        path: &Path,
         source_usages: HashMap<String, usize>,
     ) -> Option<PathBuf> {
         let (most_envied_source, _) = source_usages.into_iter().max_by_key(|&(_, count)| count)?;

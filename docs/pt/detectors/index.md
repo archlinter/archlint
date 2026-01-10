@@ -60,6 +60,7 @@ O `archlint` vem com mais de 28 detectores integrados categorizados pelo tipo de
 | ------------------------------------------------------------------- | -------------------- | ------------------------------------------- | ------ |
 | [Vazamento de Testes](/pt/detectors/test-leakage)                   | `test_leakage`       | Código de teste vazando para produção       | ❌     |
 | [Acoplamento com Fornecedor](/pt/detectors/vendor-coupling)         | `vendor_coupling`    | Acoplamento forte com bibliotecas externas  | ❌     |
+| [Dependência Hub](/pt/detectors/hub-dependency)                     | `hub_dependency`     | Dependência excessiva de pacotes externos   | ❌     |
 | [Importação com Efeito Colateral](/pt/detectors/side-effect-import) | `side_effect_import` | Importações que disparam efeitos colaterais | ✅     |
 | [Estado Mutável Compartilhado](/pt/detectors/shared-mutable-state)  | `shared_state`       | Variáveis mutáveis exportadas               | ❌     |
 

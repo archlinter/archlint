@@ -9,6 +9,7 @@ use comfy_table::{Attribute, Cell, Color, ContentArrangement, Table};
 use console::style;
 use log::info;
 use std::io::Write;
+use std::path::Path;
 use std::process;
 use std::time::Instant;
 
@@ -287,7 +288,7 @@ fn write_report(
     args: &ScanArgs,
     report: &report::AnalysisReport,
     config: &config::Config,
-    project_root: &std::path::Path,
+    project_root: &Path,
 ) -> Result<()> {
     if args.report.is_some() {
         info!("{}  Generating report...", style("📝").dim());
@@ -432,7 +433,7 @@ fn handle_detectors_command(args: cli::DetectorArgs) -> Result<()> {
 fn handle_cache_command(args: cli::CacheArgs) -> Result<()> {
     match args.command {
         cli::CacheCommand::Clear => {
-            cache::AnalysisCache::clear(std::path::Path::new("."))?;
+            cache::AnalysisCache::clear(Path::new("."))?;
             info!("{}  Cache cleared successfully", style("✔").green());
             Ok(())
         }

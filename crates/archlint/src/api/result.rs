@@ -1,6 +1,6 @@
 use super::file_info::FileInfo;
 use crate::config::SeverityConfig;
-use crate::detectors::ArchSmell;
+use crate::detectors::{ArchSmell, SmellType};
 use crate::explain::Explanation;
 use crate::report::AnalysisReport;
 use crate::report::ArchitectureGrade;
@@ -84,22 +84,12 @@ impl ScanResult {
             cycle_clusters: report
                 .smells
                 .iter()
-                .filter(|(s, _)| {
-                    matches!(
-                        s.smell_type,
-                        crate::detectors::SmellType::CyclicDependencyCluster
-                    )
-                })
+                .filter(|(s, _)| matches!(s.smell_type, SmellType::CyclicDependencyCluster))
                 .count(),
             files_in_cycles: report
                 .smells
                 .iter()
-                .filter(|(s, _)| {
-                    matches!(
-                        s.smell_type,
-                        crate::detectors::SmellType::CyclicDependencyCluster
-                    )
-                })
+                .filter(|(s, _)| matches!(s.smell_type, SmellType::CyclicDependencyCluster))
                 .map(|(s, _)| s.files.len())
                 .sum(),
             god_modules: report.god_modules,

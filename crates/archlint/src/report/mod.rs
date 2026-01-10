@@ -4,8 +4,10 @@ pub mod markdown;
 pub mod mermaid;
 
 use crate::config::SeverityConfig;
-use crate::detectors::{ArchSmell, LocationDetail};
+use crate::detectors::{ArchSmell, CodeRange, LocationDetail, Severity, SmellType};
+use crate::engine::context::FileMetrics;
 use crate::explain::{ExplainEngine, Explanation};
+use crate::framework::presets::FrameworkPreset;
 use crate::graph::DependencyGraph;
 #[cfg(not(feature = "cli"))]
 use crate::no_cli_mocks::comfy_table::modifiers::UTF8_ROUND_CORNERS;
@@ -15,6 +17,7 @@ use crate::no_cli_mocks::comfy_table::presets::UTF8_FULL;
 use crate::no_cli_mocks::comfy_table::{Attribute, Cell, Color, ContentArrangement, Table};
 #[cfg(not(feature = "cli"))]
 use crate::no_cli_mocks::console::style;
+use crate::parser::{FileSymbols, FunctionComplexity};
 use crate::Result;
 #[cfg(feature = "cli")]
 use comfy_table::modifiers::UTF8_ROUND_CORNERS;
@@ -85,7 +88,7 @@ pub(crate) fn format_location_parts(
     file: &Path,
     line: usize,
     column: Option<usize>,
-    range: Option<&crate::detectors::CodeRange>,
+    range: Option<&CodeRange>,
     description: &str,
 ) -> String {
     let line_str = if let Some(range) = range {
@@ -133,13 +136,12 @@ pub struct AnalysisReport {
     pub code_clones: usize,
     pub smells: Vec<(ArchSmell, Explanation)>,
     pub graph: Option<DependencyGraph>,
-    pub file_symbols: std::collections::HashMap<std::path::PathBuf, crate::parser::FileSymbols>,
-    pub file_metrics:
-        std::collections::HashMap<std::path::PathBuf, crate::engine::context::FileMetrics>,
-    pub function_complexity:
-        std::collections::HashMap<std::path::PathBuf, Vec<crate::parser::FunctionComplexity>>,
-    pub churn_map: std::collections::HashMap<std::path::PathBuf, usize>,
-    pub min_severity: Option<crate::detectors::Severity>,
+    pub file_symbols: std::collections::HashMap<PathBuf, FileSymbols>,
+    pub file_metrics: std::collections::HashMap<PathBuf, FileMetrics>,
+    pub function_complexity: std::collections::HashMap<PathBuf, Vec<FunctionComplexity>>,
+    pub churn_map: std::collections::HashMap<PathBuf, usize>,
+    pub presets: Vec<FrameworkPreset>,
+    pub min_severity: Option<Severity>,
     pub min_score: Option<u32>,
 }
 
@@ -147,16 +149,11 @@ impl AnalysisReport {
     pub fn new(
         smells: Vec<ArchSmell>,
         graph: Option<DependencyGraph>,
-        file_symbols: std::collections::HashMap<std::path::PathBuf, crate::parser::FileSymbols>,
-        file_metrics: std::collections::HashMap<
-            std::path::PathBuf,
-            crate::engine::context::FileMetrics,
-        >,
-        function_complexity: std::collections::HashMap<
-            std::path::PathBuf,
-            Vec<crate::parser::FunctionComplexity>,
-        >,
-        churn_map: std::collections::HashMap<std::path::PathBuf, usize>,
+        file_symbols: std::collections::HashMap<PathBuf, FileSymbols>,
+        file_metrics: std::collections::HashMap<PathBuf, FileMetrics>,
+        function_complexity: std::collections::HashMap<PathBuf, Vec<FunctionComplexity>>,
+        churn_map: std::collections::HashMap<PathBuf, usize>,
+        presets: Vec<FrameworkPreset>,
     ) -> Self {
         // ... (rest of the logic stays same)
         let cyclic_dependencies = smells
@@ -164,75 +161,59 @@ impl AnalysisReport {
             .filter(|s| {
                 matches!(
                     s.smell_type,
-                    crate::detectors::SmellType::CyclicDependency
-                        | crate::detectors::SmellType::CyclicDependencyCluster
+                    SmellType::CyclicDependency | SmellType::CyclicDependencyCluster
                 )
             })
             .count();
 
         let god_modules = smells
             .iter()
-            .filter(|s| matches!(s.smell_type, crate::detectors::SmellType::GodModule))
+            .filter(|s| matches!(s.smell_type, SmellType::GodModule))
             .count();
 
         let dead_code = smells
             .iter()
-            .filter(|s| matches!(s.smell_type, crate::detectors::SmellType::DeadCode))
+            .filter(|s| matches!(s.smell_type, SmellType::DeadCode))
             .count();
 
         let dead_symbols = smells
             .iter()
-            .filter(|s| matches!(s.smell_type, crate::detectors::SmellType::DeadSymbol { .. }))
+            .filter(|s| matches!(s.smell_type, SmellType::DeadSymbol { .. }))
             .count();
 
         let high_complexity_functions = smells
             .iter()
-            .filter(|s| {
-                matches!(
-                    s.smell_type,
-                    crate::detectors::SmellType::HighComplexity { .. }
-                )
-            })
+            .filter(|s| matches!(s.smell_type, SmellType::HighComplexity { .. }))
             .count();
 
         let large_files = smells
             .iter()
-            .filter(|s| matches!(s.smell_type, crate::detectors::SmellType::LargeFile))
+            .filter(|s| matches!(s.smell_type, SmellType::LargeFile))
             .count();
 
         let unstable_interfaces = smells
             .iter()
-            .filter(|s| matches!(s.smell_type, crate::detectors::SmellType::UnstableInterface))
+            .filter(|s| matches!(s.smell_type, SmellType::UnstableInterface))
             .count();
 
         let feature_envy = smells
             .iter()
-            .filter(|s| {
-                matches!(
-                    s.smell_type,
-                    crate::detectors::SmellType::FeatureEnvy { .. }
-                )
-            })
+            .filter(|s| matches!(s.smell_type, SmellType::FeatureEnvy { .. }))
             .count();
 
         let shotgun_surgery = smells
             .iter()
-            .filter(|s| matches!(s.smell_type, crate::detectors::SmellType::ShotgunSurgery))
+            .filter(|s| matches!(s.smell_type, SmellType::ShotgunSurgery))
             .count();
 
         let hub_dependencies = smells
             .iter()
-            .filter(|s| {
-                matches!(
-                    s.smell_type,
-                    crate::detectors::SmellType::HubDependency { .. }
-                )
-            })
+            .filter(|s| matches!(s.smell_type, SmellType::HubDependency { .. }))
             .count();
 
         let code_clones = smells
             .iter()
-            .filter(|s| matches!(s.smell_type, crate::detectors::SmellType::CodeClone { .. }))
+            .filter(|s| matches!(s.smell_type, SmellType::CodeClone { .. }))
             .count();
 
         let smells_with_explanations = smells
@@ -262,12 +243,13 @@ impl AnalysisReport {
             file_metrics,
             function_complexity,
             churn_map,
+            presets,
             min_severity: None,
             min_score: None,
         }
     }
 
-    pub fn set_min_severity(&mut self, severity: crate::detectors::Severity) {
+    pub fn set_min_severity(&mut self, severity: Severity) {
         self.min_severity = Some(severity);
     }
 
@@ -309,75 +291,59 @@ impl AnalysisReport {
             .filter(|(s, _)| {
                 matches!(
                     s.smell_type,
-                    crate::detectors::SmellType::CyclicDependency
-                        | crate::detectors::SmellType::CyclicDependencyCluster
+                    SmellType::CyclicDependency | SmellType::CyclicDependencyCluster
                 )
             })
             .count();
         self.god_modules = self
             .smells
             .iter()
-            .filter(|(s, _)| matches!(s.smell_type, crate::detectors::SmellType::GodModule))
+            .filter(|(s, _)| matches!(s.smell_type, SmellType::GodModule))
             .count();
         self.dead_code = self
             .smells
             .iter()
-            .filter(|(s, _)| matches!(s.smell_type, crate::detectors::SmellType::DeadCode))
+            .filter(|(s, _)| matches!(s.smell_type, SmellType::DeadCode))
             .count();
         self.dead_symbols = self
             .smells
             .iter()
-            .filter(|(s, _)| matches!(s.smell_type, crate::detectors::SmellType::DeadSymbol { .. }))
+            .filter(|(s, _)| matches!(s.smell_type, SmellType::DeadSymbol { .. }))
             .count();
         self.high_complexity_functions = self
             .smells
             .iter()
-            .filter(|(s, _)| {
-                matches!(
-                    s.smell_type,
-                    crate::detectors::SmellType::HighComplexity { .. }
-                )
-            })
+            .filter(|(s, _)| matches!(s.smell_type, SmellType::HighComplexity { .. }))
             .count();
         self.large_files = self
             .smells
             .iter()
-            .filter(|(s, _)| matches!(s.smell_type, crate::detectors::SmellType::LargeFile))
+            .filter(|(s, _)| matches!(s.smell_type, SmellType::LargeFile))
             .count();
         self.unstable_interfaces = self
             .smells
             .iter()
-            .filter(|(s, _)| matches!(s.smell_type, crate::detectors::SmellType::UnstableInterface))
+            .filter(|(s, _)| matches!(s.smell_type, SmellType::UnstableInterface))
             .count();
         self.feature_envy = self
             .smells
             .iter()
-            .filter(|(s, _)| {
-                matches!(
-                    s.smell_type,
-                    crate::detectors::SmellType::FeatureEnvy { .. }
-                )
-            })
+            .filter(|(s, _)| matches!(s.smell_type, SmellType::FeatureEnvy { .. }))
             .count();
         self.shotgun_surgery = self
             .smells
             .iter()
-            .filter(|(s, _)| matches!(s.smell_type, crate::detectors::SmellType::ShotgunSurgery))
+            .filter(|(s, _)| matches!(s.smell_type, SmellType::ShotgunSurgery))
             .count();
         self.hub_dependencies = self
             .smells
             .iter()
-            .filter(|(s, _)| {
-                matches!(
-                    s.smell_type,
-                    crate::detectors::SmellType::HubDependency { .. }
-                )
-            })
+            .filter(|(s, _)| matches!(s.smell_type, SmellType::HubDependency { .. }))
             .count();
         self.code_clones = self
             .smells
             .iter()
-            .filter(|(s, _)| matches!(s.smell_type, crate::detectors::SmellType::CodeClone { .. }))
+            .filter(|(s, _)| matches!(s.smell_type, SmellType::CodeClone { .. }))
             .count();
     }
 
@@ -539,83 +505,83 @@ impl AnalysisReport {
         })
     }
 
-    fn format_severity_cell(severity: &crate::detectors::Severity) -> Cell {
+    fn format_severity_cell(severity: &Severity) -> Cell {
         let (severity_text, color) = match severity {
-            crate::detectors::Severity::Critical => ("🔴 CRITICAL", Color::Red),
-            crate::detectors::Severity::High => ("🟠 HIGH", Color::Red),
-            crate::detectors::Severity::Medium => ("🟡 MEDIUM", Color::Yellow),
-            crate::detectors::Severity::Low => ("🔵 LOW", Color::Cyan),
+            Severity::Critical => ("🔴 CRITICAL", Color::Red),
+            Severity::High => ("🟠 HIGH", Color::Red),
+            Severity::Medium => ("🟡 MEDIUM", Color::Yellow),
+            Severity::Low => ("🔵 LOW", Color::Cyan),
         };
 
         let mut cell = Cell::new(severity_text).fg(color);
-        if *severity == crate::detectors::Severity::Critical {
+        if *severity == Severity::Critical {
             cell = cell.add_attribute(Attribute::Bold);
         }
         cell
     }
 
-    fn format_smell_type(smell_type: &crate::detectors::SmellType) -> String {
+    fn format_smell_type(smell_type: &SmellType) -> String {
         match smell_type {
-            crate::detectors::SmellType::CyclicDependency => "Cyclic Dependency".to_string(),
-            crate::detectors::SmellType::CyclicDependencyCluster => "Cycle Cluster".to_string(),
-            crate::detectors::SmellType::GodModule => "God Module".to_string(),
-            crate::detectors::SmellType::DeadCode => "Dead Code".to_string(),
-            crate::detectors::SmellType::DeadSymbol { name, .. } => {
+            SmellType::CyclicDependency => "Cyclic Dependency".to_string(),
+            SmellType::CyclicDependencyCluster => "Cycle Cluster".to_string(),
+            SmellType::GodModule => "God Module".to_string(),
+            SmellType::DeadCode => "Dead Code".to_string(),
+            SmellType::DeadSymbol { name, .. } => {
                 format!("Dead Symbol\n({})", name)
             }
-            crate::detectors::SmellType::HighComplexity {
+            SmellType::HighComplexity {
                 name, complexity, ..
             } => {
                 format!("Complexity\n({}: {})", name, complexity)
             }
-            crate::detectors::SmellType::LargeFile => "Large File".to_string(),
-            crate::detectors::SmellType::UnstableInterface => "Unstable Interface".to_string(),
-            crate::detectors::SmellType::FeatureEnvy { .. } => "Feature Envy".to_string(),
-            crate::detectors::SmellType::ShotgunSurgery => "Shotgun Surgery".to_string(),
-            crate::detectors::SmellType::HubDependency { package } => {
+            SmellType::LargeFile => "Large File".to_string(),
+            SmellType::UnstableInterface => "Unstable Interface".to_string(),
+            SmellType::FeatureEnvy { .. } => "Feature Envy".to_string(),
+            SmellType::ShotgunSurgery => "Shotgun Surgery".to_string(),
+            SmellType::HubDependency { package } => {
                 format!("Hub Dependency\n({})", package)
             }
-            crate::detectors::SmellType::OrphanType { name } => {
+            SmellType::OrphanType { name } => {
                 format!("Orphan Type\n({})", name)
             }
-            crate::detectors::SmellType::TestLeakage { test_file } => {
+            SmellType::TestLeakage { test_file } => {
                 format!("Test Leakage\n({})", test_file.display())
             }
-            crate::detectors::SmellType::LayerViolation {
+            SmellType::LayerViolation {
                 from_layer,
                 to_layer,
             } => {
                 format!("Layer Violation\n({} -> {})", from_layer, to_layer)
             }
-            crate::detectors::SmellType::SdpViolation => "SDP Violation".to_string(),
-            crate::detectors::SmellType::BarrelFileAbuse => "Barrel File Abuse".to_string(),
-            crate::detectors::SmellType::VendorCoupling { package } => {
+            SmellType::SdpViolation => "SDP Violation".to_string(),
+            SmellType::BarrelFileAbuse => "Barrel File Abuse".to_string(),
+            SmellType::VendorCoupling { package } => {
                 format!("Vendor Coupling\n({})", package)
             }
-            crate::detectors::SmellType::SideEffectImport => "Side-Effect Import".to_string(),
-            crate::detectors::SmellType::HubModule => "Hub Module".to_string(),
-            crate::detectors::SmellType::LowCohesion { lcom } => {
+            SmellType::SideEffectImport => "Side-Effect Import".to_string(),
+            SmellType::HubModule => "Hub Module".to_string(),
+            SmellType::LowCohesion { lcom } => {
                 format!("Low Cohesion\n(LCOM: {})", lcom)
             }
-            crate::detectors::SmellType::ScatteredModule { components } => {
+            SmellType::ScatteredModule { components } => {
                 format!("Scattered Module\n({} components)", components)
             }
-            crate::detectors::SmellType::HighCoupling { cbo } => {
+            SmellType::HighCoupling { cbo } => {
                 format!("High Coupling\n(CBO: {})", cbo)
             }
-            crate::detectors::SmellType::PackageCycle { packages } => {
+            SmellType::PackageCycle { packages } => {
                 format!("Package Cycle\n({} packages)", packages.len())
             }
-            crate::detectors::SmellType::SharedMutableState { symbol } => {
+            SmellType::SharedMutableState { symbol } => {
                 format!("Shared Mutable State\n({})", symbol)
             }
-            crate::detectors::SmellType::DeepNesting { depth } => {
+            SmellType::DeepNesting { depth } => {
                 format!("Deep Nesting\n(depth: {})", depth)
             }
-            crate::detectors::SmellType::LongParameterList { count, function } => {
+            SmellType::LongParameterList { count, function } => {
                 format!("Long Parameter List\n({}: {} params)", function, count)
             }
-            crate::detectors::SmellType::PrimitiveObsession {
+            SmellType::PrimitiveObsession {
                 primitives,
                 function,
             } => {
@@ -624,13 +590,9 @@ impl AnalysisReport {
                     function, primitives
                 )
             }
-            crate::detectors::SmellType::CircularTypeDependency => {
-                "Circular Type Dependency".to_string()
-            }
-            crate::detectors::SmellType::AbstractnessViolation => {
-                "Abstractness Violation".to_string()
-            }
-            crate::detectors::SmellType::ScatteredConfiguration {
+            SmellType::CircularTypeDependency => "Circular Type Dependency".to_string(),
+            SmellType::AbstractnessViolation => "Abstractness Violation".to_string(),
+            SmellType::ScatteredConfiguration {
                 env_var,
                 files_count,
             } => {
@@ -639,7 +601,7 @@ impl AnalysisReport {
                     env_var, files_count
                 )
             }
-            crate::detectors::SmellType::CodeClone { .. } => "Code Clone".to_string(),
+            SmellType::CodeClone { .. } => "Code Clone".to_string(),
         }
     }
 

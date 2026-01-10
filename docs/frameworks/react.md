@@ -11,5 +11,6 @@ React components have different architectural characteristics than traditional c
 ## Recommended Configuration
 
 ```yaml
-framework: react
+extends:
+  - react
 ```

@@ -11,7 +11,8 @@ Los proyectos de Next.js tienen patrones de enrutamiento basados en archivos y d
 ## Configuración Recomendada
 
 ```yaml
-framework: nextjs
+extends:
+  - nextjs
 
 entry_points:
   - 'src/pages/**/*.tsx'

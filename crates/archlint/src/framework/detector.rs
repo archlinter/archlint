@@ -1,3 +1,4 @@
+use super::preset_loader::PresetLoader;
 use super::Framework;
 use ignore::WalkBuilder;
 use serde_json::Value;
@@ -12,6 +13,10 @@ impl FrameworkDetector {
         let root = root.as_ref();
         let mut frameworks = HashSet::new();
 
+        // 1. Detect by config files (fast)
+        Self::detect_by_files(root, &mut frameworks);
+
+        // 2. Detect by package.json (requires walking)
         let walker = WalkBuilder::new(root)
             .standard_filters(true)
             .hidden(false)
@@ -36,44 +41,79 @@ impl FrameworkDetector {
         frameworks.into_iter().collect()
     }
 
-    fn detect_from_json(json: &Value, frameworks: &mut HashSet<Framework>) {
-        let dependencies = ["dependencies", "devDependencies", "peerDependencies"];
-
-        for dep_type in dependencies {
-            if let Some(deps) = json.get(dep_type).and_then(|d| d.as_object()) {
-                for dep_name in deps.keys() {
-                    match dep_name.as_str() {
-                        "@nestjs/core" | "@nestjs/common" => {
-                            frameworks.insert(Framework::NestJS);
+    fn detect_by_files(root: &Path, frameworks: &mut HashSet<Framework>) {
+        for name in PresetLoader::get_all_builtin_names() {
+            if let Some(preset) = PresetLoader::get_builtin_yaml(name) {
+                if let Some(files_rules) = preset.detect.files {
+                    if Self::matches_rules(&files_rules, |p| root.join(p).exists()) {
+                        if let Some(fw) = Self::map_name_to_framework(&preset.name) {
+                            frameworks.insert(fw);
                         }
-                        "next" => {
-                            frameworks.insert(Framework::NextJS);
-                        }
-                        "express" => {
-                            frameworks.insert(Framework::Express);
-                        }
-                        "react" => {
-                            frameworks.insert(Framework::React);
-                        }
-                        "@angular/core" => {
-                            frameworks.insert(Framework::Angular);
-                        }
-                        "vue" => {
-                            frameworks.insert(Framework::Vue);
-                        }
-                        "typeorm" => {
-                            frameworks.insert(Framework::TypeORM);
-                        }
-                        "@prisma/client" => {
-                            frameworks.insert(Framework::Prisma);
-                        }
-                        "@oclif/core" | "@oclif/command" => {
-                            frameworks.insert(Framework::Oclif);
-                        }
-                        _ => {}
                     }
                 }
             }
+        }
+    }
+
+    fn detect_from_json(json: &Value, frameworks: &mut HashSet<Framework>) {
+        let dependencies = ["dependencies", "devDependencies", "peerDependencies"];
+
+        for name in PresetLoader::get_all_builtin_names() {
+            if let Some(preset) = PresetLoader::get_builtin_yaml(name) {
+                if let Some(pkg_rules) = preset.detect.packages {
+                    if Self::matches_rules(&pkg_rules, |p| {
+                        Self::has_package(json, p, &dependencies)
+                    }) {
+                        if let Some(fw) = Self::map_name_to_framework(&preset.name) {
+                            frameworks.insert(fw);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    fn matches_rules<F>(rules: &crate::framework::preset_types::MatchRules, mut check: F) -> bool
+    where
+        F: FnMut(&str) -> bool,
+    {
+        if let Some(any_of) = &rules.any_of {
+            if any_of.iter().any(|p| check(p)) {
+                return true;
+            }
+        }
+        if let Some(all_of) = &rules.all_of {
+            if !all_of.is_empty() && all_of.iter().all(|p| check(p)) {
+                return true;
+            }
+        }
+        false
+    }
+
+    fn has_package(json: &Value, name: &str, dep_types: &[&str]) -> bool {
+        for dep_type in dep_types {
+            if let Some(deps) = json.get(*dep_type).and_then(|d| d.as_object()) {
+                if deps.contains_key(name) {
+                    return true;
+                }
+                // Support simple glob for package name (e.g. "@nestjs/*")
+                if let Some(prefix) = name.strip_suffix('*') {
+                    if deps.keys().any(|k| k.starts_with(prefix)) {
+                        return true;
+                    }
+                }
+            }
+        }
+        false
+    }
+
+    fn map_name_to_framework(name: &str) -> Option<Framework> {
+        match name.to_lowercase().as_str() {
+            "nestjs" => Some(Framework::NestJS),
+            "nextjs" | "next.js" => Some(Framework::NextJS),
+            "react" => Some(Framework::React),
+            "oclif" => Some(Framework::Oclif),
+            _ => None,
         }
     }
 }
@@ -96,17 +136,29 @@ mod tests {
     }
 
     #[test]
-    fn test_detect_multiple() {
+    fn test_detect_nextjs() {
         let json = json!({
             "dependencies": {
-                "next": "latest",
-                "typeorm": "latest"
+                "next": "latest"
             }
         });
         let mut frameworks = HashSet::new();
         FrameworkDetector::detect_from_json(&json, &mut frameworks);
         assert!(frameworks.contains(&Framework::NextJS));
-        assert!(frameworks.contains(&Framework::TypeORM));
+    }
+
+    #[test]
+    fn test_detect_multiple() {
+        let json = json!({
+            "dependencies": {
+                "next": "latest",
+                "@nestjs/common": "latest"
+            }
+        });
+        let mut frameworks = HashSet::new();
+        FrameworkDetector::detect_from_json(&json, &mut frameworks);
+        assert!(frameworks.contains(&Framework::NextJS));
+        assert!(frameworks.contains(&Framework::NestJS));
     }
 
     #[test]
@@ -119,24 +171,6 @@ mod tests {
         let mut frameworks = HashSet::new();
         FrameworkDetector::detect_from_json(&json, &mut frameworks);
         assert!(frameworks.contains(&Framework::React));
-    }
-
-    #[test]
-    fn test_detect_all_frameworks() {
-        let cases = [
-            ("express", Framework::Express),
-            ("@angular/core", Framework::Angular),
-            ("vue", Framework::Vue),
-            ("@prisma/client", Framework::Prisma),
-            ("@oclif/core", Framework::Oclif),
-        ];
-
-        for (dep, expected) in cases {
-            let json = json!({ "dependencies": { dep: "latest" } });
-            let mut frameworks = HashSet::new();
-            FrameworkDetector::detect_from_json(&json, &mut frameworks);
-            assert!(frameworks.contains(&expected), "Failed to detect {}", dep);
-        }
     }
 
     #[test]

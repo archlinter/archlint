@@ -1,4 +1,4 @@
-use crate::config::Config;
+use crate::config::{Config, RuleConfig, RuleSeverity};
 use crate::detectors::{Detector, DetectorCategory};
 use crate::framework::presets::FrameworkPreset;
 use inventory;
@@ -78,20 +78,8 @@ impl DetectorRegistry {
 
         for factory in self.factories.values() {
             let info = factory.info();
-            let resolved = crate::rule_resolver::ResolvedRuleConfig::resolve(config, info.id, None);
 
-            let is_enabled = if all_detectors {
-                true
-            } else if config.rules.contains_key(info.id) {
-                resolved.enabled
-            } else {
-                let preset_enabled = presets
-                    .iter()
-                    .any(|p| p.enabled_detectors.contains(&info.id));
-                info.default_enabled || preset_enabled
-            };
-
-            if is_enabled {
+            if self.is_detector_enabled(&info, config, presets, all_detectors) {
                 if info.is_deep {
                     needs_deep = true;
                 }
@@ -100,6 +88,42 @@ impl DetectorRegistry {
         }
 
         (detectors, needs_deep)
+    }
+
+    fn is_detector_enabled(
+        &self,
+        info: &DetectorInfo,
+        config: &Config,
+        presets: &[FrameworkPreset],
+        all_detectors: bool,
+    ) -> bool {
+        if all_detectors {
+            return true;
+        }
+
+        if config.rules.contains_key(info.id) {
+            let resolved = crate::rule_resolver::ResolvedRuleConfig::resolve(config, info.id, None);
+            return resolved.enabled;
+        }
+
+        for preset in presets.iter().rev() {
+            if let Some(rule_config) = preset.rules.get(info.id) {
+                return match rule_config {
+                    RuleConfig::Short(sev) => *sev != RuleSeverity::Off,
+                    RuleConfig::Full(full) => {
+                        if let Some(enabled) = full.enabled {
+                            enabled
+                        } else if let Some(severity) = &full.severity {
+                            *severity != RuleSeverity::Off
+                        } else {
+                            info.default_enabled
+                        }
+                    }
+                };
+            }
+        }
+
+        info.default_enabled
     }
 
     pub fn get_info(&self, id: &str) -> Option<DetectorInfo> {

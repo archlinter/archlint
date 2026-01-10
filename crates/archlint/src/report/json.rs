@@ -1,3 +1,4 @@
+use crate::detectors::SmellType;
 use crate::report::AnalysisReport;
 use crate::Result;
 use serde_json::json;
@@ -12,20 +13,20 @@ pub fn generate_json(
         .map(|(smell, explanation)| {
             let mut smell_json = json!({
                 "type": match &smell.smell_type {
-                    crate::detectors::SmellType::CyclicDependency => "cyclic_dependency".to_string(),
-                    crate::detectors::SmellType::CyclicDependencyCluster => "cyclic_dependency_cluster".to_string(),
-                    crate::detectors::SmellType::GodModule => "god_module".to_string(),
-                    crate::detectors::SmellType::DeadCode => "dead_code".to_string(),
-                    crate::detectors::SmellType::DeadSymbol { name, kind } => format!("dead_symbol: {} ({})", name, kind),
-                    crate::detectors::SmellType::HighComplexity { name, line, complexity } => format!("high_complexity: {} at line {} (complexity: {})", name, line, complexity),
-                    crate::detectors::SmellType::LargeFile => "large_file".to_string(),
-                    crate::detectors::SmellType::UnstableInterface => "unstable_interface".to_string(),
-                    crate::detectors::SmellType::FeatureEnvy { most_envied_module } => format!("feature_envy: envies {}", most_envied_module.display()),
-                    crate::detectors::SmellType::ShotgunSurgery => "shotgun_surgery".to_string(),
-                    crate::detectors::SmellType::HubDependency { package } => format!("hub_dependency: {}", package),
-                    crate::detectors::SmellType::TestLeakage { test_file } => format!("test_leakage: imports {}", test_file.display()),
-                    crate::detectors::SmellType::LayerViolation { from_layer, to_layer } => format!("layer_violation: {} -> {}", from_layer, to_layer),
-                    crate::detectors::SmellType::SdpViolation => "sdp_violation".to_string(),
+                    SmellType::CyclicDependency => "cyclic_dependency".to_string(),
+                    SmellType::CyclicDependencyCluster => "cyclic_dependency_cluster".to_string(),
+                    SmellType::GodModule => "god_module".to_string(),
+                    SmellType::DeadCode => "dead_code".to_string(),
+                    SmellType::DeadSymbol { name, kind } => format!("dead_symbol: {} ({})", name, kind),
+                    SmellType::HighComplexity { name, line, complexity } => format!("high_complexity: {} at line {} (complexity: {})", name, line, complexity),
+                    SmellType::LargeFile => "large_file".to_string(),
+                    SmellType::UnstableInterface => "unstable_interface".to_string(),
+                    SmellType::FeatureEnvy { most_envied_module } => format!("feature_envy: envies {}", most_envied_module.display()),
+                    SmellType::ShotgunSurgery => "shotgun_surgery".to_string(),
+                    SmellType::HubDependency { package } => format!("hub_dependency: {}", package),
+                    SmellType::TestLeakage { test_file } => format!("test_leakage: imports {}", test_file.display()),
+                    SmellType::LayerViolation { from_layer, to_layer } => format!("layer_violation: {} -> {}", from_layer, to_layer),
+                    SmellType::SdpViolation => "sdp_violation".to_string(),
                     _ => format!("{:?}", smell.smell_type),
                 },
                 "severity": format!("{:?}", smell.severity),
@@ -99,23 +100,13 @@ pub fn generate_json(
     let cycle_clusters_count = report
         .smells
         .iter()
-        .filter(|(s, _)| {
-            matches!(
-                s.smell_type,
-                crate::detectors::SmellType::CyclicDependencyCluster
-            )
-        })
+        .filter(|(s, _)| matches!(s.smell_type, SmellType::CyclicDependencyCluster))
         .count();
 
     let files_in_cycles: usize = report
         .smells
         .iter()
-        .filter(|(s, _)| {
-            matches!(
-                s.smell_type,
-                crate::detectors::SmellType::CyclicDependencyCluster
-            )
-        })
+        .filter(|(s, _)| matches!(s.smell_type, SmellType::CyclicDependencyCluster))
         .map(|(s, _)| s.files.len())
         .sum();
 

@@ -11,5 +11,6 @@ React 组件与传统的类或模块具有不同的架构特征。
 ## 推荐配置
 
 ```yaml
-framework: react
+extends:
+  - react
 ```

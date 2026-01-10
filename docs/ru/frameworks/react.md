@@ -11,5 +11,6 @@
 ## Рекомендуемая конфигурация
 
 ```yaml
-framework: react
+extends:
+  - react
 ```

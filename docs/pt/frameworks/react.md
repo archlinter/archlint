@@ -11,5 +11,6 @@ Componentes React têm características arquiteturais diferentes das classes ou 
 ## Configuração Recomendada
 
 ```yaml
-framework: react
+extends:
+  - react
 ```

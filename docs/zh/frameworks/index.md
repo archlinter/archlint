@@ -4,10 +4,10 @@ archlint 不仅仅是一个通用的 linter；它理解流行框架的架构模�
 
 ## 工作原理
 
-archlint 通过查看 `package.json` 和文件结构，自动检测您的项目中使用了哪些框架。您还可以在 `.archlint.yaml` 中显式设置或覆盖此设置：
+archlint 通过查看 `package.json` 和文件结构，自动检测您的项目中使用了哪些框架。您还可以在 `.archlint.yaml` 中显式加载预设：
 
 ```yaml
-framework:
+extends:
   - nestjs
   - react
 ```
@@ -23,3 +23,8 @@ framework:
 - [NestJS](/zh/frameworks/nestjs)
 - [Next.js](/zh/frameworks/nextjs)
 - [React](/zh/frameworks/react)
+- [oclif](/zh/frameworks/oclif)
+
+## 高级用法
+
+- [自定义预设](/zh/frameworks/custom-presets)

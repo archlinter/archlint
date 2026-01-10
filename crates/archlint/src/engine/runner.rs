@@ -2,11 +2,12 @@ use crate::args::{Language, ScanArgs};
 use crate::cache::hash::file_content_hash;
 use crate::cache::AnalysisCache;
 use crate::config::{Config, RuleConfig, RuleSeverity};
-use crate::detectors::{self, Severity};
+use crate::detectors::{self, Severity, SmellType};
 use crate::engine::AnalysisContext;
-use crate::framework::classifier::FileClassifier;
 use crate::framework::detector::FrameworkDetector;
-use crate::framework::presets;
+use crate::framework::preset_loader::PresetLoader;
+use crate::framework::presets::FrameworkPreset;
+use crate::framework::Framework;
 use crate::git_cache::GitHistoryCache;
 use crate::graph::{DependencyGraph, EdgeData};
 #[cfg(not(feature = "cli"))]
@@ -100,9 +101,8 @@ impl AnalysisEngine {
         self.log_start();
 
         let files = self.discover_files()?;
-        let detected_frameworks = self.detect_frameworks();
-        let file_types = self.classify_files(&files, &detected_frameworks);
-        let presets = presets::get_presets(&detected_frameworks);
+        let (presets, detected_frameworks) = self.load_presets_and_detect()?;
+
         let final_config = self.apply_presets(&presets);
 
         let active_ids = self.get_active_detectors(&final_config, &presets);
@@ -135,20 +135,34 @@ impl AnalysisEngine {
             script_entry_points: pkg_config.entry_points,
             dynamic_load_patterns: pkg_config.dynamic_load_patterns,
             detected_frameworks,
-            file_types,
+            presets: presets.clone(),
         };
 
         let all_smells = self.run_detectors(&ctx, use_progress, &presets)?;
 
+        let report = self.create_report(ctx, all_smells, files.len(), presets)?;
+
+        if let Some(c) = cache {
+            debug!("Saving cache...");
+            c.save()?;
+        }
+
+        Ok(report)
+    }
+
+    fn create_report(
+        &self,
+        ctx: AnalysisContext,
+        all_smells: Vec<detectors::ArchSmell>,
+        files_len: usize,
+        presets: Vec<FrameworkPreset>,
+    ) -> Result<AnalysisReport> {
         // Filter smells: only keep smells that are NOT in ignored files
         let filtered_smells: Vec<_> = all_smells
             .into_iter()
             .filter(|smell| {
                 // Clones are special: we want to see them even if they touch ignored files
-                if matches!(
-                    smell.smell_type,
-                    crate::detectors::SmellType::CodeClone { .. }
-                ) {
+                if matches!(smell.smell_type, SmellType::CodeClone { .. }) {
                     return true;
                 }
                 // Keep the smell if at least one of the files it's associated with is NOT ignored
@@ -163,8 +177,9 @@ impl AnalysisEngine {
             Arc::try_unwrap(ctx.file_metrics).unwrap_or_else(|arc| (*arc).clone()),
             Arc::try_unwrap(ctx.function_complexity).unwrap_or_else(|arc| (*arc).clone()),
             ctx.churn_map,
+            presets,
         );
-        report.set_files_analyzed(files.len());
+        report.set_files_analyzed(files_len);
 
         if let Some(ref min_sev) = self.args.min_severity {
             use std::str::FromStr;
@@ -178,12 +193,83 @@ impl AnalysisEngine {
 
         report.apply_severity_config(&self.config.scoring);
 
-        if let Some(c) = cache {
-            debug!("Saving cache...");
-            c.save()?;
+        Ok(report)
+    }
+
+    fn load_presets_and_detect(&self) -> Result<(Vec<FrameworkPreset>, Vec<Framework>)> {
+        let mut presets = Vec::new();
+
+        self.load_explicit_presets(&mut presets)?;
+        let detected_frameworks = self.auto_detect_and_load_presets(&mut presets);
+
+        Ok((presets, detected_frameworks))
+    }
+
+    fn load_explicit_presets(&self, presets: &mut Vec<FrameworkPreset>) -> Result<()> {
+        // From extends (explicit)
+        for preset_name in &self.config.extends {
+            match PresetLoader::load_any(preset_name) {
+                Ok(p) => presets.push(p),
+                Err(e) => {
+                    return Err(
+                        anyhow::anyhow!("Failed to load preset '{}': {}", preset_name, e).into(),
+                    );
+                }
+            }
         }
 
-        Ok(report)
+        // From explicit framework field (legacy)
+        if let Some(ref fw) = self.config.framework {
+            if !self.config.extends.contains(fw) {
+                if let Ok(p) = PresetLoader::load_any(fw) {
+                    presets.push(p);
+                }
+            }
+        }
+
+        Ok(())
+    }
+
+    fn auto_detect_and_load_presets(&self, presets: &mut Vec<FrameworkPreset>) -> Vec<Framework> {
+        if !self.config.auto_detect_framework {
+            return Vec::new();
+        }
+
+        let detected = FrameworkDetector::detect(&self.project_root);
+        if detected.is_empty() {
+            return Vec::new();
+        }
+
+        info!(
+            "{}  Detected frameworks: {}",
+            style("🛠️").magenta().bold(),
+            style(
+                detected
+                    .iter()
+                    .map(|f| format!("{:?}", f))
+                    .collect::<Vec<_>>()
+                    .join(", ")
+            )
+            .yellow()
+        );
+
+        // Load presets for detected frameworks if they are not already loaded via extends
+        for fw in &detected {
+            let name = match fw {
+                Framework::NestJS => "nestjs",
+                Framework::NextJS => "nextjs",
+                Framework::React => "react",
+                Framework::Oclif => "oclif",
+                _ => continue,
+            };
+            if !self.config.extends.contains(&name.to_string()) {
+                if let Ok(p) = PresetLoader::load_builtin(name) {
+                    presets.push(p);
+                }
+            }
+        }
+
+        detected
     }
 
     fn log_start(&self) {
@@ -263,87 +349,79 @@ impl AnalysisEngine {
         })
     }
 
-    fn detect_frameworks(&self) -> Vec<crate::framework::Framework> {
-        if self.config.auto_detect_framework {
-            let frameworks = FrameworkDetector::detect(&self.project_root);
-            if !frameworks.is_empty() {
-                info!(
-                    "{}  Detected frameworks: {}",
-                    style("🛠️").magenta().bold(),
-                    style(
-                        frameworks
-                            .iter()
-                            .map(|f| format!("{:?}", f))
-                            .collect::<Vec<_>>()
-                            .join(", ")
-                    )
-                    .yellow()
-                );
-            }
-            frameworks
-        } else {
-            Vec::new()
-        }
-    }
-
-    fn classify_files(
-        &self,
-        files: &[PathBuf],
-        frameworks: &[crate::framework::Framework],
-    ) -> HashMap<PathBuf, crate::framework::FileType> {
-        files
-            .iter()
-            .map(|f| (f.clone(), FileClassifier::classify(f, frameworks)))
-            .collect()
-    }
-
-    fn apply_presets(&self, presets: &[presets::FrameworkPreset]) -> Config {
+    fn apply_presets(&self, presets: &[FrameworkPreset]) -> Config {
         let mut final_config = self.config.clone();
         for preset in presets {
-            for ignore in &preset.vendor_ignore {
-                for rule_name in ["vendor_coupling", "hub_dependency"] {
-                    Self::add_ignore_to_rule(&mut final_config, rule_name, ignore);
-                }
-            }
+            self.merge_preset_into_config(&mut final_config, preset);
         }
         final_config
     }
 
-    fn add_ignore_to_rule(config: &mut Config, rule_name: &str, ignore: &str) {
-        let rule = config
-            .rules
-            .entry(rule_name.to_string())
-            .or_insert_with(|| {
-                RuleConfig::Full(crate::config::RuleFullConfig {
-                    severity: None,
-                    enabled: None,
-                    exclude: Vec::new(),
-                    options: serde_yaml::Value::Mapping(serde_yaml::Mapping::new()),
-                })
-            });
+    fn merge_preset_into_config(&self, config: &mut Config, preset: &FrameworkPreset) {
+        // 1. Merge rules from presets
+        for (rule_name, preset_rule) in &preset.rules {
+            let user_rule = config
+                .rules
+                .entry(rule_name.clone())
+                .or_insert_with(|| preset_rule.clone());
 
-        let RuleConfig::Full(full) = rule else { return };
-        let serde_yaml::Value::Mapping(m) = &mut full.options else {
+            // If user already has this rule, we might want to merge options if it's not overriding everything
+            if let (RuleConfig::Full(preset_full), RuleConfig::Full(user_rule_full)) =
+                (preset_rule, user_rule)
+            {
+                Self::merge_options(&mut user_rule_full.options, &preset_full.options);
+            }
+        }
+
+        // 2. Merge entry points
+        for pattern in &preset.entry_points {
+            if !config.entry_points.contains(pattern) {
+                config.entry_points.push(pattern.clone());
+            }
+        }
+
+        // 3. Merge overrides
+        for ov in &preset.overrides {
+            if !config.overrides.contains(ov) {
+                config.overrides.push(ov.clone());
+            }
+        }
+    }
+
+    fn merge_options(user_options: &mut serde_yaml::Value, preset_options: &serde_yaml::Value) {
+        let (Some(user_map), Some(preset_map)) =
+            (user_options.as_mapping_mut(), preset_options.as_mapping())
+        else {
             return;
         };
 
-        let ignore_packages = m
-            .entry(serde_yaml::Value::String("ignore_packages".to_string()))
-            .or_insert_with(|| serde_yaml::Value::Sequence(Vec::new()));
+        for (key, preset_val) in preset_map {
+            if !user_map.contains_key(key) {
+                user_map.insert(key.clone(), preset_val.clone());
+            } else {
+                // If both are sequences (like ignore_methods), merge them
+                let user_val = user_map.get_mut(key).unwrap();
+                Self::merge_sequences(user_val, preset_val);
+            }
+        }
+    }
 
-        let serde_yaml::Value::Sequence(seq) = ignore_packages else {
-            return;
-        };
-
-        if !seq.iter().any(|v| v.as_str() == Some(ignore)) {
-            seq.push(serde_yaml::Value::String(ignore.to_string()));
+    fn merge_sequences(user_val: &mut serde_yaml::Value, preset_val: &serde_yaml::Value) {
+        if let (Some(user_seq), Some(preset_seq)) =
+            (user_val.as_sequence_mut(), preset_val.as_sequence())
+        {
+            for item in preset_seq {
+                if !user_seq.contains(item) {
+                    user_seq.push(item.clone());
+                }
+            }
         }
     }
 
     fn get_active_detectors(
         &self,
         config: &Config,
-        presets: &[presets::FrameworkPreset],
+        presets: &[FrameworkPreset],
     ) -> HashSet<String> {
         let registry = detectors::registry::DetectorRegistry::new();
         let (enabled_detectors, _) =
@@ -656,7 +734,7 @@ impl AnalysisEngine {
         &self,
         ctx: &AnalysisContext,
         use_progress: bool,
-        presets: &[presets::FrameworkPreset],
+        presets: &[FrameworkPreset],
     ) -> Result<Vec<detectors::ArchSmell>> {
         let registry = detectors::registry::DetectorRegistry::new();
         let (final_detectors, _) =
