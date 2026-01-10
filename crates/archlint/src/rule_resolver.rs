@@ -83,15 +83,15 @@ impl ResolvedRuleConfig {
     fn apply_severity(rule_severity: RuleSeverity, enabled: &mut bool, severity: &mut Severity) {
         match rule_severity {
             RuleSeverity::Off => *enabled = false,
-            RuleSeverity::Info => {
+            RuleSeverity::Info | RuleSeverity::Low => {
                 *enabled = true;
                 *severity = Severity::Low;
             }
-            RuleSeverity::Warn => {
+            RuleSeverity::Warn | RuleSeverity::Medium => {
                 *enabled = true;
                 *severity = Severity::Medium;
             }
-            RuleSeverity::Error => {
+            RuleSeverity::Error | RuleSeverity::High => {
                 *enabled = true;
                 *severity = Severity::High;
             }

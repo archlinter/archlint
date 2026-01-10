@@ -78,8 +78,11 @@ pub struct GitConfig {
 #[serde(rename_all = "lowercase")]
 pub enum RuleSeverity {
     Info,
+    Low,
     Warn,
+    Medium,
     Error,
+    High,
     Critical,
     Off,
 }
