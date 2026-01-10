@@ -20,7 +20,7 @@
     "docs:preview": "vitepress preview docs",
     "test": "pnpm test:node && pnpm test:rust",
     "test:node": "vitest run",
-    "test:rust": "cargo test --workspace",
+    "test:rust": "cargo nextest run --workspace --all-features",
     "lint": "eslint .",
     "format": "prettier --write \"**/*.{json,md,yml,yaml}\"",
     "format:check": "prettier --check \"**/*.{json,md,yml,yaml}\"",
