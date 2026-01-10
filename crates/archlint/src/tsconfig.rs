@@ -22,6 +22,26 @@ pub struct CompilerOptions {
     pub root_dir: Option<String>,
 }
 
+impl CompilerOptions {
+    fn merge(&mut self, other: CompilerOptions) {
+        if let Some(other_paths) = other.paths {
+            let paths = self.paths.get_or_insert_with(HashMap::new);
+            for (k, v) in other_paths {
+                paths.entry(k).or_insert(v);
+            }
+        }
+        if self.base_url.is_none() {
+            self.base_url = other.base_url;
+        }
+        if self.out_dir.is_none() {
+            self.out_dir = other.out_dir;
+        }
+        if self.root_dir.is_none() {
+            self.root_dir = other.root_dir;
+        }
+    }
+}
+
 impl TsConfig {
     pub fn load(path: &Path) -> Result<Self> {
         let contents = fs::read_to_string(path)?;
@@ -67,41 +87,14 @@ impl TsConfig {
     fn merge_with_parent(mut self, parent: TsConfig) -> Self {
         // Simple merge: current config overrides parent
         if let Some(parent_opts) = parent.compiler_options {
-            if let Some(mut current_opts) = self.compiler_options.take() {
-                if current_opts.paths.is_none() {
-                    current_opts.paths = parent_opts.paths;
-                } else if let (Some(curr_paths), Some(parent_paths)) =
-                    (current_opts.paths.as_mut(), parent_opts.paths)
-                {
-                    // Merge paths: current entries take precedence
-                    for (k, v) in parent_paths {
-                        curr_paths.entry(k).or_insert(v);
-                    }
-                }
-
-                if current_opts.base_url.is_none() {
-                    current_opts.base_url = parent_opts.base_url;
-                }
-                if current_opts.out_dir.is_none() {
-                    current_opts.out_dir = parent_opts.out_dir;
-                }
-                if current_opts.root_dir.is_none() {
-                    current_opts.root_dir = parent_opts.root_dir;
-                }
-                self.compiler_options = Some(current_opts);
-            } else {
-                self.compiler_options = Some(parent_opts);
-            }
+            self.compiler_options
+                .get_or_insert_with(CompilerOptions::default)
+                .merge(parent_opts);
         }
 
-        if self.exclude.is_empty() {
-            self.exclude = parent.exclude;
-        } else if !parent.exclude.is_empty() {
-            // Merge excludes
-            for ex in parent.exclude {
-                if !self.exclude.contains(&ex) {
-                    self.exclude.push(ex);
-                }
+        for ex in parent.exclude {
+            if !self.exclude.contains(&ex) {
+                self.exclude.push(ex);
             }
         }
 

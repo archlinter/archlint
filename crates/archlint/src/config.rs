@@ -1,5 +1,5 @@
 use crate::detectors::Severity;
-use crate::tsconfig::TsConfig;
+use crate::tsconfig::{CompilerOptions, TsConfig};
 use crate::Result;
 use serde::{Deserialize, Serialize};
 use std::collections::hash_map::Entry;
@@ -367,48 +367,61 @@ impl Config {
             _ => None,
         };
 
-        if let Some(tsconfig) = TsConfig::find_and_load(project_root, explicit_path)? {
-            if let Some(opts) = tsconfig.compiler_options {
-                // Enrich aliases
-                if let Some(paths) = opts.paths {
-                    for (alias, targets) in paths {
-                        if let Entry::Vacant(e) = self.aliases.entry(alias) {
-                            if let Some(target) = targets.first() {
-                                // tsconfig paths are relative to baseUrl
-                                let actual_path = if let Some(base_url) = &opts.base_url {
-                                    format!("{}/{}", base_url.trim_end_matches('/'), target)
-                                } else {
-                                    target.clone()
-                                };
-                                e.insert(actual_path);
-                            }
-                        }
-                    }
-                }
+        let Some(tsconfig) = TsConfig::find_and_load(project_root, explicit_path)? else {
+            return Ok(());
+        };
 
-                // Add outDir to ignore
-                if let Some(out_dir) = opts.out_dir {
-                    let ignore_pattern = format!("**/{}/**", out_dir.trim_matches('/'));
-                    if !self.ignore.contains(&ignore_pattern) {
-                        self.ignore.push(ignore_pattern);
-                    }
-                }
-            }
-
-            // Add excludes to ignore
-            for exclude in tsconfig.exclude {
-                let pattern = if exclude.contains('*') {
-                    exclude
-                } else {
-                    format!("**/{}/**", exclude.trim_matches('/'))
-                };
-                if !self.ignore.contains(&pattern) {
-                    self.ignore.push(pattern);
-                }
-            }
+        if let Some(opts) = tsconfig.compiler_options {
+            self.apply_tsconfig_aliases(&opts);
+            self.apply_tsconfig_out_dir(&opts);
         }
 
+        self.apply_tsconfig_excludes(tsconfig.exclude);
+
         Ok(())
+    }
+
+    fn apply_tsconfig_aliases(&mut self, opts: &CompilerOptions) {
+        let Some(paths) = &opts.paths else { return };
+        let base_url = opts.base_url.as_deref().unwrap_or("").trim_end_matches('/');
+
+        for (alias, targets) in paths {
+            if let (Entry::Vacant(e), Some(target)) =
+                (self.aliases.entry(alias.clone()), targets.first())
+            {
+                let actual_path = if base_url.is_empty() {
+                    target.clone()
+                } else {
+                    format!("{}/{}", base_url, target)
+                };
+                e.insert(actual_path);
+            }
+        }
+    }
+
+    fn apply_tsconfig_out_dir(&mut self, opts: &CompilerOptions) {
+        if let Some(out_dir) = &opts.out_dir {
+            self.add_ignore_pattern(out_dir);
+        }
+    }
+
+    fn apply_tsconfig_excludes(&mut self, excludes: Vec<String>) {
+        for exclude in excludes {
+            if exclude.contains('*') {
+                if !self.ignore.contains(&exclude) {
+                    self.ignore.push(exclude);
+                }
+            } else {
+                self.add_ignore_pattern(&exclude);
+            }
+        }
+    }
+
+    fn add_ignore_pattern(&mut self, path: &str) {
+        let pattern = format!("**/{}/**", path.trim_matches('/'));
+        if !self.ignore.contains(&pattern) {
+            self.ignore.push(pattern);
+        }
     }
 }
 
