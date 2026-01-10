@@ -33,7 +33,7 @@ pub struct CompilerOptions {
 
 impl CompilerOptions {
     /// Merges another `CompilerOptions` into this one.
-    /// Existing values take precedence over the ones from `other`.
+    /// Existing values in `self` take precedence over values from `other`.
     fn merge(&mut self, other: CompilerOptions) {
         let CompilerOptions {
             paths,
@@ -68,8 +68,11 @@ impl TsConfig {
     }
 
     /// Internal implementation of `load` with cycle detection.
+    /// Recursively follows `extends` fields and merges the configurations.
     fn load_internal(path: &Path, visited: &mut HashSet<PathBuf>) -> Result<Self> {
-        let canonical_path = path.canonicalize().unwrap_or_else(|_| path.to_path_buf());
+        let canonical_path = path.canonicalize().map_err(|e| {
+            anyhow::anyhow!("Failed to canonicalize tsconfig path {:?}: {}", path, e)
+        })?;
         if !visited.insert(canonical_path) {
             return Err(anyhow::anyhow!("Circular extends detected: {:?}", path).into());
         }
@@ -104,9 +107,10 @@ impl TsConfig {
     pub fn find_and_load(project_root: &Path, explicit_path: Option<&str>) -> Result<Option<Self>> {
         if let Some(p) = explicit_path {
             let path = project_root.join(p);
-            if path.exists() {
-                return Ok(Some(Self::load(&path)?));
+            if !path.exists() {
+                return Err(anyhow::anyhow!("tsconfig path not found: {}", path.display()).into());
             }
+            return Ok(Some(Self::load(&path)?));
         }
 
         // Look for standard tsconfig.json only
@@ -119,8 +123,8 @@ impl TsConfig {
         Ok(None)
     }
 
-    /// Merges a parent `TsConfig` into this one.
-    /// This config's values take precedence over the parent's.
+    /// Merges a parent `TsConfig` into this one (the child config).
+    /// This configuration's values take precedence over the parent's values.
     fn merge_with_parent(mut self, parent: TsConfig) -> Self {
         // Simple merge: current config overrides parent
         if let Some(parent_opts) = parent.compiler_options {

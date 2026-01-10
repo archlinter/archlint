@@ -100,7 +100,7 @@ Los presets se fusionan en el orden en que se listan. La configuración del usua
 
 En la sección `rules`, puede usar los siguientes niveles:
 
-- `critical`: Problema crítico que requiere atención inmediata
+- `critical`: Nivel más alto — problema crítico que requiere atención inmediata.
 - `high`: Error arquitectónico de alta severidad.
 - `medium`: Advertencia o problema de severidad media.
 - `low`: Mensaje informativo o de baja severidad.
@@ -124,6 +124,6 @@ archlint puede sincronizarse automáticamente con su `tsconfig.json`. Use el cam
 
 Cuando está habilitado, la herramienta:
 
-1. **Carga Alias**: Extrae `compilerOptions.paths` y `compilerOptions.baseUrl` para configurar automáticamente `aliases`.
+1. **Carga Alias**: Extrae `compilerOptions.paths` y `compilerOptions.baseUrl` para configurar automáticamente `aliases`
 2. **Auto-ignorar**: Agrega `compilerOptions.outDir` a la lista global de `ignore`.
 3. **Exclusiones**: Incorpora patrones del campo `exclude` en la lista de `ignore`.

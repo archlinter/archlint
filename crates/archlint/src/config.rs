@@ -51,10 +51,13 @@ pub struct Config {
     pub git: GitConfig,
 }
 
+/// Configuration options for TypeScript integration.
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
 #[serde(untagged)]
 pub enum TsConfigConfig {
+    /// Enable or disable automatic tsconfig discovery.
     Boolean(bool),
+    /// Use a specific tsconfig file path.
     Path(String),
 }
 
@@ -68,49 +71,72 @@ fn default_tsconfig_config() -> Option<TsConfigConfig> {
     Some(TsConfigConfig::default())
 }
 
+/// Configuration for Git-based analysis features.
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct GitConfig {
+    /// Whether to enable Git analysis (e.g., for calculating churn).
     #[serde(default = "default_true")]
     pub enabled: bool,
+    /// Time period to look back in Git history (e.g., "1y", "6m").
     #[serde(default = "default_history_period")]
     pub history_period: String,
 }
 
+/// Severity levels for architectural rules.
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "lowercase")]
 pub enum RuleSeverity {
+    /// Informational message (internally mapped to Low).
     Info,
+    /// Low severity issue.
     Low,
+    /// Warning message (internally mapped to Medium).
     Warn,
+    /// Medium severity issue.
     Medium,
+    /// Error message (internally mapped to High).
     Error,
+    /// High severity issue.
     High,
+    /// Critical architectural violation.
     Critical,
+    /// Rule is disabled.
     Off,
 }
 
+/// Flexible configuration for a single rule.
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
 #[serde(untagged)]
 pub enum RuleConfig {
+    /// Short form: just the severity level.
     Short(RuleSeverity),
+    /// Full form: includes severity, enabled flag, and custom options.
     Full(RuleFullConfig),
 }
 
+/// Detailed configuration for a single rule.
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
 pub struct RuleFullConfig {
+    /// Override the default severity for this rule.
     #[serde(default)]
     pub severity: Option<RuleSeverity>,
+    /// Explicitly enable or disable this rule.
     #[serde(default)]
     pub enabled: Option<bool>,
+    /// Patterns to exclude from this specific rule.
     #[serde(default)]
     pub exclude: Vec<String>,
+    /// Additional detector-specific options.
     #[serde(flatten)]
     pub options: serde_yaml::Value,
 }
 
+/// Configuration overrides for specific file patterns.
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
 pub struct Override {
+    /// Files or directories to apply these overrides to.
     pub files: Vec<String>,
+    /// Rule configurations to override.
     pub rules: HashMap<String, RuleConfig>,
 }
 
@@ -155,14 +181,18 @@ where
     }
 }
 
+/// Configuration for the file watcher (watch mode).
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct WatchConfig {
+    /// Delay in milliseconds before triggering a re-scan after a change.
     #[serde(default = "default_debounce_ms")]
     pub debounce_ms: u64,
 
+    /// Whether to clear the terminal screen before each re-scan.
     #[serde(default = "default_clear_screen")]
     pub clear_screen: bool,
 
+    /// Patterns to ignore during watch mode.
     #[serde(default)]
     pub ignore: Vec<String>,
 }
@@ -185,17 +215,22 @@ impl Default for WatchConfig {
     }
 }
 
+/// Configuration for issue scoring and project grading.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SeverityConfig {
+    /// Weights for each severity level.
     #[serde(default = "default_weights")]
     pub weights: SeverityWeights,
 
+    /// Thresholds for calculating the final project grade.
     #[serde(default)]
     pub grade_thresholds: GradeThresholds,
 
+    /// Minimum severity level to report.
     #[serde(default = "default_min_severity")]
     pub minimum: Option<Severity>,
 
+    /// Minimum score required to report a smell.
     #[serde(default)]
     pub minimum_score: Option<u32>,
 }
@@ -215,20 +250,31 @@ fn default_min_severity() -> Option<Severity> {
     Some(Severity::Low)
 }
 
+/// Weights assigned to each severity level for score calculation.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SeverityWeights {
+    /// Score weight for Critical issues.
     pub critical: u32,
+    /// Score weight for High issues.
     pub high: u32,
+    /// Score weight for Medium issues.
     pub medium: u32,
+    /// Score weight for Low issues.
     pub low: u32,
 }
 
+/// Thresholds for project grades based on smell density.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct GradeThresholds {
+    /// Maximum density for 'Excellent' grade.
     pub excellent: f32,
+    /// Maximum density for 'Good' grade.
     pub good: f32,
+    /// Maximum density for 'Fair' grade.
     pub fair: f32,
+    /// Maximum density for 'Moderate' grade.
     pub moderate: f32,
+    /// Maximum density for 'Poor' grade.
     pub poor: f32,
 }
 
@@ -386,6 +432,7 @@ impl Config {
     }
 
     /// Applies path aliases from a `CompilerOptions` to the current configuration.
+    /// Aliases already present in the configuration take precedence.
     fn apply_tsconfig_aliases(&mut self, opts: &CompilerOptions) {
         let Some(paths) = &opts.paths else { return };
         let base_url = opts.base_url.as_deref().unwrap_or("").trim_end_matches('/');
@@ -405,6 +452,7 @@ impl Config {
     }
 
     /// Adds the `outDir` from a `CompilerOptions` to the ignore patterns.
+    /// This prevents analyzing compiled artifacts.
     fn apply_tsconfig_out_dir(&mut self, opts: &CompilerOptions) {
         if let Some(out_dir) = &opts.out_dir {
             self.add_ignore_pattern(out_dir);
@@ -412,6 +460,7 @@ impl Config {
     }
 
     /// Adds standard TypeScript exclude patterns to the ignore list.
+    /// Patterns containing glob characters are added directly, others are converted to directory globs.
     fn apply_tsconfig_excludes(&mut self, excludes: Vec<String>) {
         for exclude in excludes {
             if exclude.contains('*') {
@@ -425,8 +474,12 @@ impl Config {
     }
 
     /// Helper to add a path to the ignore list, ensuring it's formatted as a glob pattern.
+    /// Trims common prefixes and suffixes before creating a `**/{path}/**` pattern.
     fn add_ignore_pattern(&mut self, path: &str) {
         let path = path.trim_matches('/').trim_start_matches("./");
+        if path.is_empty() {
+            return;
+        }
         let pattern = format!("**/{}/**", path);
         if !self.ignore.contains(&pattern) {
             self.ignore.push(pattern);
