@@ -209,7 +209,7 @@ jobs:
         run: sudo apt-get update
 
       - name: Install mold
-        if: runner.os == 'Linux' && matrix.target != 'x86_64-unknown-linux-musl'
+        if: runner.os == 'Linux' && matrix.target != 'x86_64-unknown-linux-musl' && matrix.target != 'aarch64-unknown-linux-gnu'
         run: |
           sudo apt-get install -y mold
           sudo ln -sf /usr/bin/mold /usr/bin/ld.mold
@@ -230,7 +230,7 @@ jobs:
         run: sudo apt-get install -y musl-tools
 
       - name: Configure RUSTFLAGS for Linux (mold)
-        if: runner.os == 'Linux' && matrix.target != 'x86_64-unknown-linux-musl'
+        if: runner.os == 'Linux' && matrix.target != 'x86_64-unknown-linux-musl' && matrix.target != 'aarch64-unknown-linux-gnu'
         run: echo "RUSTFLAGS=-C link-arg=-fuse-ld=mold" >> $GITHUB_ENV
 
       - name: Install dependencies
