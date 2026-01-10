@@ -120,54 +120,45 @@ impl CircularTypeDepsDetector {
         let node_idx = ctx.graph.get_node(from)?;
         for target_node in ctx.graph.dependencies(node_idx) {
             if let Some(target_path) = ctx.graph.get_file_path(target_node) {
-                // If it's a relative import, check if target_path matches resolved version
-                // For now, let's use a simpler check: does the target_path match the import.source
-                // when resolved relative to 'from'?
-
-                // We can't easily resolve here without PathResolver,
-                // but we know that an edge already exists in ctx.graph.
-                // We just need to find WHICH edge corresponds to this specific import.
-
-                // Since we don't store resolved path in ImportedSymbol yet,
-                // we'll use a slightly better heuristic.
-                let _target_str = target_path.to_string_lossy();
-                let source_normalized = import.source.replace('\\', "/");
-                let source_parts: Vec<&str> = source_normalized
-                    .split('/')
-                    .filter(|s| !s.is_empty() && *s != "." && *s != "..")
-                    .collect();
-
-                if !source_parts.is_empty() {
-                    // Check if path components match exactly in reverse order
-                    let mut matches = true;
-                    let mut matched_count = 0;
-                    let mut current_target = target_path.as_path();
-                    for part in source_parts.iter().rev() {
-                        match current_target.file_name().and_then(|n| n.to_str()) {
-                            Some(file_name)
-                                if file_name == *part
-                                    || file_name.starts_with(&format!("{}.", part)) =>
-                            {
-                                matched_count += 1;
-                            }
-                            _ => {
-                                matches = false;
-                                break;
-                            }
-                        }
-                        if let Some(parent) = current_target.parent() {
-                            current_target = parent;
-                        } else {
-                            break;
-                        }
-                    }
-
-                    if matches && matched_count == source_parts.len() {
-                        return Some(target_path.clone());
-                    }
+                if self.path_matches_source(target_path, &import.source) {
+                    return Some(target_path.clone());
                 }
             }
         }
         None
+    }
+
+    fn path_matches_source(&self, target_path: &Path, source: &str) -> bool {
+        let source_normalized = source.replace('\\', "/");
+        let source_parts: Vec<&str> = source_normalized
+            .split('/')
+            .filter(|s| !s.is_empty() && *s != "." && *s != "..")
+            .collect();
+
+        if source_parts.is_empty() {
+            return false;
+        }
+
+        let mut current_target = target_path;
+        for part in source_parts.iter().rev() {
+            let matches_part = match current_target.file_name().and_then(|n| n.to_str()) {
+                Some(file_name) => {
+                    file_name == *part || file_name.starts_with(&format!("{}.", part))
+                }
+                None => false,
+            };
+
+            if !matches_part {
+                return false;
+            }
+
+            if let Some(parent) = current_target.parent() {
+                current_target = parent;
+            } else {
+                // No more parents, check if this was the last part
+                return source_parts.len() == 1 || *part == source_parts[0];
+            }
+        }
+        true
     }
 }

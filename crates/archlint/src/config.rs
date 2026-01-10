@@ -120,9 +120,11 @@ where
         Vec(Vec<String>),
     }
 
-    match StringOrVec::deserialize(deserializer)? {
-        StringOrVec::String(s) => Ok(vec![s]),
-        StringOrVec::Vec(v) => Ok(v),
+    let parsed = Option::<StringOrVec>::deserialize(deserializer)?;
+    match parsed {
+        Some(StringOrVec::String(s)) => Ok(vec![s]),
+        Some(StringOrVec::Vec(v)) => Ok(v),
+        None => Ok(Vec::new()),
     }
 }
 
@@ -344,6 +346,13 @@ mod tests {
     #[test]
     fn test_deserialize_extends_missing() {
         let yaml = "{}";
+        let config: Config = serde_yaml::from_str(yaml).unwrap();
+        assert!(config.extends.is_empty());
+    }
+
+    #[test]
+    fn test_deserialize_extends_null() {
+        let yaml = "extends: null";
         let config: Config = serde_yaml::from_str(yaml).unwrap();
         assert!(config.extends.is_empty());
     }

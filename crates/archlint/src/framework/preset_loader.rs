@@ -46,13 +46,7 @@ impl PresetLoader {
         }
 
         if let Some(host) = parsed_url.host_str() {
-            let is_local = host == "localhost"
-                || host == "127.0.0.1"
-                || host == "::1"
-                || host.starts_with("10.")
-                || host.starts_with("192.168.")
-                || host.starts_with("172.");
-            if is_local {
+            if Self::is_blocked_host(host) {
                 return Err(anyhow!(
                     "Presets from local or private networks are not allowed for security reasons"
                 ));
@@ -98,6 +92,40 @@ impl PresetLoader {
         } else {
             Self::load_builtin(name_or_path_or_url)
         }
+    }
+
+    fn is_blocked_host(host: &str) -> bool {
+        if host == "localhost" {
+            return true;
+        }
+
+        use std::net::IpAddr;
+        if let Ok(ip) = host.parse::<IpAddr>() {
+            return match ip {
+                IpAddr::V4(v4) => {
+                    v4.is_loopback()
+                        || v4.is_private()
+                        || v4.is_link_local()
+                        || v4.is_unspecified()
+                        || (v4.octets()[0] == 100 && (v4.octets()[1] & 0b1100_0000 == 64))
+                    // CGNAT 100.64.0.0/10
+                }
+                IpAddr::V6(v6) => {
+                    v6.is_loopback()
+                        || v6.is_unspecified()
+                        || (v6.segments()[0] & 0xffc0) == 0xfe80 // Link-local fe80::/10
+                        || (v6.segments()[0] & 0xfe00) == 0xfc00 // ULA fc00::/7
+                        || v6.to_ipv4_mapped().is_some_and(|v4| {
+                            v4.is_loopback()
+                                || v4.is_private()
+                                || v4.is_link_local()
+                                || v4.is_unspecified()
+                        })
+                }
+            };
+        }
+
+        false
     }
 
     fn convert(yaml: PresetYaml) -> FrameworkPreset {
@@ -164,5 +192,26 @@ rules:
         let preset = PresetLoader::load_file(temp_file.path()).unwrap();
         assert_eq!(preset.name, "Custom");
         assert!(preset.rules.contains_key("custom-detector"));
+    }
+
+    #[test]
+    fn test_is_blocked_host() {
+        assert!(PresetLoader::is_blocked_host("localhost"));
+        assert!(PresetLoader::is_blocked_host("127.0.0.1"));
+        assert!(PresetLoader::is_blocked_host("::1"));
+        assert!(PresetLoader::is_blocked_host("10.0.0.1"));
+        assert!(PresetLoader::is_blocked_host("192.168.1.1"));
+        assert!(PresetLoader::is_blocked_host("172.16.0.1"));
+        assert!(PresetLoader::is_blocked_host("172.31.255.255"));
+        assert!(PresetLoader::is_blocked_host("169.254.1.1"));
+        assert!(PresetLoader::is_blocked_host("100.64.0.1"));
+        assert!(PresetLoader::is_blocked_host("fe80::1"));
+        assert!(PresetLoader::is_blocked_host("fc00::1"));
+        assert!(PresetLoader::is_blocked_host("::ffff:127.0.0.1"));
+
+        assert!(!PresetLoader::is_blocked_host("google.com"));
+        assert!(!PresetLoader::is_blocked_host("8.8.8.8"));
+        assert!(!PresetLoader::is_blocked_host("172.15.255.255"));
+        assert!(!PresetLoader::is_blocked_host("172.32.0.1"));
     }
 }
