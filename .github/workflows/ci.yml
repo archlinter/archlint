@@ -145,7 +145,6 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y mold
-          sudo ln -sf /usr/bin/mold /usr/bin/ld.mold
 
       - name: Install cargo-nextest
         uses: taiki-e/install-action@v2
@@ -212,7 +211,6 @@ jobs:
         if: runner.os == 'Linux' && matrix.target != 'x86_64-unknown-linux-musl' && matrix.target != 'aarch64-unknown-linux-gnu'
         run: |
           sudo apt-get install -y mold
-          sudo ln -sf /usr/bin/mold /usr/bin/ld.mold
 
       - uses: pnpm/action-setup@v4
 

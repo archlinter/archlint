@@ -53,7 +53,7 @@ impl AnalysisEngine {
             for id in detectors.split(',').map(|s| s.trim()) {
                 config
                     .rules
-                    .insert(id.to_string(), RuleConfig::Short(RuleSeverity::Error));
+                    .insert(id.to_string(), RuleConfig::Short(RuleSeverity::High));
             }
         }
         if let Some(ref exclude) = args.exclude_detectors {
@@ -471,9 +471,6 @@ impl AnalysisEngine {
                     }
                     let parsed = parser.parse_file_with_config(file, config)?;
                     pb.inc(1);
-                    if let Some(name) = file.file_name() {
-                        pb.set_message(name.to_string_lossy().to_string());
-                    }
                     Ok((file.clone(), parsed))
                 })
                 .collect::<Result<HashMap<_, _>>>();
@@ -678,7 +675,7 @@ impl AnalysisEngine {
     ) -> HashMap<PathBuf, crate::parser::FileSymbols> {
         info!("{} Resolving symbols...", style("🔗").cyan().bold());
         let resolver = PathResolver::new(&self.project_root, &self.config);
-        let mut resolved_file_symbols = HashMap::new();
+
         let pb = if use_progress {
             let pb = ProgressBar::new(file_symbols.len() as u64);
             pb.set_style(
@@ -694,35 +691,34 @@ impl AnalysisEngine {
             None
         };
 
-        for (file, symbols) in file_symbols {
-            if let Some(ref pb) = pb {
-                if let Some(name) = file.file_name() {
-                    pb.set_message(name.to_string_lossy().to_string());
-                }
-            }
-            let mut resolved_symbols = symbols.clone();
-            for import in &mut resolved_symbols.imports {
-                if let Some(resolved) = resolver
-                    .resolve(import.source.as_str(), &file)
-                    .ok()
-                    .flatten()
-                {
-                    import.source = resolved.to_string_lossy().to_string().into();
-                }
-            }
-            for export in &mut resolved_symbols.exports {
-                if let Some(ref source) = export.source {
-                    if let Some(resolved) = resolver.resolve(source.as_str(), &file).ok().flatten()
+        let resolved_file_symbols: HashMap<_, _> = file_symbols
+            .into_par_iter()
+            .map(|(file, symbols)| {
+                let mut resolved_symbols = symbols.clone();
+                for import in &mut resolved_symbols.imports {
+                    if let Some(resolved) = resolver
+                        .resolve(import.source.as_str(), &file)
+                        .ok()
+                        .flatten()
                     {
-                        export.source = Some(resolved.to_string_lossy().to_string().into());
+                        import.source = resolved.to_string_lossy().to_string().into();
                     }
                 }
-            }
-            resolved_file_symbols.insert(file, resolved_symbols);
-            if let Some(ref pb) = pb {
-                pb.inc(1);
-            }
-        }
+                for export in &mut resolved_symbols.exports {
+                    if let Some(ref source) = export.source {
+                        if let Some(resolved) =
+                            resolver.resolve(source.as_str(), &file).ok().flatten()
+                        {
+                            export.source = Some(resolved.to_string_lossy().to_string().into());
+                        }
+                    }
+                }
+                if let Some(ref pb) = pb {
+                    pb.inc(1);
+                }
+                (file, resolved_symbols)
+            })
+            .collect();
 
         if let Some(pb) = pb {
             pb.finish_and_clear();
@@ -758,7 +754,6 @@ impl AnalysisEngine {
                 "".to_string()
             }
         );
-        let mut all_smells = Vec::new();
 
         let pb = if use_progress {
             let pb = ProgressBar::new(final_detectors.len() as u64);
@@ -775,16 +770,20 @@ impl AnalysisEngine {
             None
         };
 
-        for (_id, detector) in final_detectors {
-            if let Some(ref pb) = pb {
-                pb.set_message(detector.name());
-            }
-            let smells = detector.detect(ctx);
+        let results: Vec<_> = final_detectors
+            .into_par_iter()
+            .map(|(_id, detector)| {
+                let smells = detector.detect(ctx);
+                (detector.name().to_string(), smells)
+            })
+            .collect();
 
+        let mut all_smells = Vec::new();
+        for (name, smells) in results {
             let status = format!(
                 "   {} {:<27} found: {}",
                 style("↳").dim(),
-                detector.name(),
+                name,
                 if smells.is_empty() {
                     style("0".to_string()).dim()
                 } else {
@@ -793,6 +792,7 @@ impl AnalysisEngine {
             );
 
             if let Some(ref pb) = pb {
+                pb.set_message(name);
                 pb.println(status);
                 pb.inc(1);
             } else {

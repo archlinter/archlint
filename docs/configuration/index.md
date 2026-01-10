@@ -16,7 +16,8 @@ ignore:
   - '**/node_modules/**'
 
 # Path aliases (similar to tsconfig.json or webpack)
-# By default, archlint automatically loads aliases from tsconfig.json
+# By default, archlint automatically loads aliases from tsconfig.json.
+# Explicit aliases defined here take precedence over tsconfig-derived values.
 aliases:
   '@/*': 'src/*'
 
@@ -107,9 +108,9 @@ For remote presets (via URL), the following constraints apply:
 In the `rules` section, you can use the following severity levels:
 
 - `critical`: Critical issue requiring immediate attention.
-- `high`: High severity architectural issue.
-- `medium`: Medium severity issue or warning.
-- `low`: Low severity or informational message.
+- `high`: High-severity architectural issue.
+- `medium`: Medium-severity issue or warning.
+- `low`: Low-severity or informational message.
 - `off`: Completely disables the detector.
 
 ## CLI Configuration

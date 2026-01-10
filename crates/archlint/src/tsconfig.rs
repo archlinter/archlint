@@ -81,23 +81,10 @@ impl TsConfig {
         let mut config: TsConfig = json5::from_str(&contents)?;
 
         if let Some(extends) = &config.extends {
-            let parent_path = if extends.starts_with('.') {
-                path.parent()
-                    .ok_or_else(|| anyhow::anyhow!("tsconfig path has no parent directory"))?
-                    .join(extends)
-            } else if Path::new(extends).is_absolute() {
-                PathBuf::from(extends)
-            } else {
-                let base_dir = path.parent().unwrap_or_else(|| Path::new("."));
-                Self::resolve_node_modules_path(base_dir, extends).ok_or_else(|| {
-                    anyhow::anyhow!("Could not resolve tsconfig extends: {}", extends)
-                })?
-            };
-
-            if parent_path.exists() {
-                let parent_config = Self::load_internal(&parent_path, visited)?;
-                config = config.merge_with_parent(parent_config);
-            }
+            let base_dir = path.parent().unwrap_or_else(|| Path::new("."));
+            let parent_path = Self::resolve_extends_path(base_dir, extends)?;
+            let parent_config = Self::load_internal(&parent_path, visited)?;
+            config = config.merge_with_parent(parent_config);
         }
 
         Ok(config)
@@ -126,31 +113,43 @@ impl TsConfig {
     }
 
     /// Resolves a tsconfig path from node_modules by searching upwards.
+    fn resolve_path_with_fallbacks(path: PathBuf) -> Option<PathBuf> {
+        if path.is_file() {
+            return Some(path);
+        }
+        let with_json = path.with_extension("json");
+        if with_json.is_file() {
+            return Some(with_json);
+        }
+        let tsconfig_json = path.join("tsconfig.json");
+        if tsconfig_json.is_file() {
+            return Some(tsconfig_json);
+        }
+        None
+    }
+
+    fn resolve_extends_path(base_dir: &Path, extends: &str) -> Result<PathBuf> {
+        if extends.starts_with('.') {
+            Self::resolve_path_with_fallbacks(base_dir.join(extends))
+        } else if Path::new(extends).is_absolute() {
+            Self::resolve_path_with_fallbacks(PathBuf::from(extends))
+        } else {
+            Self::resolve_node_modules_path(base_dir, extends)
+        }
+        .ok_or_else(|| anyhow::anyhow!("Could not resolve tsconfig extends: {}", extends).into())
+    }
+
     fn resolve_node_modules_path(base_dir: &Path, specifier: &str) -> Option<PathBuf> {
         let mut current = base_dir.to_path_buf();
         loop {
             let node_modules = current.join("node_modules");
             if node_modules.is_dir() {
-                let pkg_path = node_modules.join(specifier);
-
-                // 1. Try directly (could be a file or a path to one)
-                if pkg_path.is_file() {
-                    return Some(pkg_path);
-                }
-
-                // 2. Try with .json
-                let with_json = pkg_path.with_extension("json");
-                if with_json.is_file() {
-                    return Some(with_json);
-                }
-
-                // 3. Try pkg/tsconfig.json
-                let tsconfig_json = pkg_path.join("tsconfig.json");
-                if tsconfig_json.is_file() {
-                    return Some(tsconfig_json);
+                if let Some(resolved) =
+                    Self::resolve_path_with_fallbacks(node_modules.join(specifier))
+                {
+                    return Some(resolved);
                 }
             }
-
             if !current.pop() {
                 break;
             }
@@ -342,30 +341,22 @@ mod tests {
         let path = dir.path().join("tsconfig.json");
         fs::write(&path, r#"{"extends": "./non-existent.json"}"#)?;
 
-        // Should not error, just skip if it doesn't exist (matching current logic)
-        let config = TsConfig::load(&path)?;
-        assert!(config.compiler_options.is_none());
+        // Should error if it doesn't exist
+        let result = TsConfig::load(&path);
+        assert!(result.is_err());
 
         Ok(())
     }
 
     #[test]
     fn test_missing_parent_directory() -> Result<()> {
-        // Path with no parent (just a filename)
-        let _path = Path::new("tsconfig.json");
-        // This would normally be handled by the fact that we can't read the file,
-        // but if it has "extends": "./something", it should fail safely.
-
-        // We can't easily test filesystem root, but we can test a relative path with "extends": "./..."
-        // which triggers path.parent() call.
-
         let dir = tempdir()?;
         let tsconfig_path = dir.path().join("tsconfig.json");
         fs::write(&tsconfig_path, r#"{"extends": "./base.json"}"#)?;
 
-        // This works because join(extends) works on path.parent().
-        let config = TsConfig::load(&tsconfig_path)?;
-        assert!(config.extends.is_some());
+        // Should error if base.json doesn't exist
+        let result = TsConfig::load(&tsconfig_path);
+        assert!(result.is_err());
 
         Ok(())
     }

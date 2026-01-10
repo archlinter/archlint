@@ -211,7 +211,7 @@ detect:
   packages:
     any_of: ["custom-pkg"]
 rules:
-  custom-detector: error
+  custom-detector: high
 "#;
         temp_file.write_all(yaml_content.as_bytes()).unwrap();
 

@@ -16,7 +16,8 @@ ignore:
   - '**/node_modules/**'
 
 # Алиасы путей (аналогично tsconfig.json или webpack)
-# По умолчанию archlint автоматически загружает алиасы из tsconfig.json
+# По умолчанию archlint автоматически загружает алиасы из tsconfig.json.
+# Явные алиасы, определенные здесь, имеют приоритет над значениями из tsconfig.json.
 aliases:
   '@/*': 'src/*'
 

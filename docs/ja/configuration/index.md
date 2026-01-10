@@ -16,7 +16,8 @@ ignore:
   - '**/node_modules/**'
 
 # パスエイリアス (tsconfig.json や webpack と同様)
-# デフォルトでは、archlint は tsconfig.json からエイリアスを自動的に読み込みます
+# デフォルトでは、archlint は tsconfig.json からエイリアスを自動的に読み込みます。
+# ここで明示的に定義されたエイリアスは、tsconfig.json から派生した値よりも優先されます。
 aliases:
   '@/*': 'src/*'
 
@@ -121,6 +122,8 @@ archlint は `tsconfig.json` と自動的に同期できます。`tsconfig` フ�
 - `tsconfig: true` (デフォルト): プロジェクトルートで `tsconfig.json` を自動的に検索します。
 - `tsconfig: false` または `tsconfig: null`: TypeScript 統合を無効にします。
 - `tsconfig: "./path/to/tsconfig.json"`: 特定の設定ファイルを使用します。
+
+有効にすると、ツールは：
 
 1. **エイリアスの読み込み**: `compilerOptions.paths` と `compilerOptions.baseUrl` を抽出し、`aliases` を自動的に設定します。
 2. **自動無視**: `compilerOptions.outDir` をグローバルな `ignore` リストに追加します。

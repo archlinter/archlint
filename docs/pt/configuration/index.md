@@ -16,7 +16,8 @@ ignore:
   - '**/node_modules/**'
 
 # Aliases de caminho (semelhante ao tsconfig.json ou webpack)
-# Por padrão, o archlint carrega automaticamente os aliases do tsconfig.json
+# Por padrão, o archlint carrega automaticamente os aliases do tsconfig.json.
+# Aliases explícitos definidos aqui têm precedência sobre os valores derivados do tsconfig.json.
 aliases:
   '@/*': 'src/*'
 
@@ -121,6 +122,8 @@ O archlint pode sincronizar automaticamente com seu `tsconfig.json`. Use o campo
 - `tsconfig: true` (padrão): Busca automaticamente `tsconfig.json` na raiz do projeto.
 - `tsconfig: false` ou `tsconfig: null`: Desativa a integração com TypeScript.
 - `tsconfig: "./caminho/para/tsconfig.json"`: Utiliza um arquivo de configuração específico.
+
+Quando habilitado, a ferramenta:
 
 1. **Carrega Aliases**: Extrai `compilerOptions.paths` e `compilerOptions.baseUrl` para configurar automaticamente os `aliases`.
 2. **Auto-ignorar**: Adiciona `compilerOptions.outDir` à lista global de `ignore`.

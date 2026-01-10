@@ -16,7 +16,8 @@ ignore:
   - '**/node_modules/**'
 
 # 路径别名（类似于 tsconfig.json 或 webpack）
-# 默认情况下，archlint 会自动从 tsconfig.json 加载别名
+# 默认情况下，archlint 会自动从 tsconfig.json 加载别名。
+# 在此显式定义的别名优先级高于 tsconfig.json 中的别名。
 aliases:
   '@/*': 'src/*'
 
@@ -121,6 +122,8 @@ archlint 可以自动与您的 `tsconfig.json` 同步。使用 `tsconfig` 字段
 - `tsconfig: true` (默认)：自动在项目根目录中查找 `tsconfig.json`。
 - `tsconfig: false` 或 `tsconfig: null`：禁用 TypeScript 集成。
 - `tsconfig: "./path/to/tsconfig.json"`：使用特定的配置文件。
+
+启用后，该工具将：
 
 1. **加载别名**：提取 `compilerOptions.paths` 和 `compilerOptions.baseUrl` 以自动配置 `aliases`。
 2. **自动忽略**：将 `compilerOptions.outDir` 添加到全局 `ignore` 列表中。

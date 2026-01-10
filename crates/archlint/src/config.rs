@@ -86,16 +86,10 @@ pub struct GitConfig {
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "lowercase")]
 pub enum RuleSeverity {
-    /// Informational message (internally mapped to Low).
-    Info,
     /// Low severity issue.
     Low,
-    /// Warning message (internally mapped to Medium).
-    Warn,
     /// Medium severity issue.
     Medium,
-    /// Error message (internally mapped to High).
-    Error,
     /// High severity issue.
     High,
     /// Critical architectural violation.
@@ -463,24 +457,25 @@ impl Config {
     /// Patterns containing glob characters are added directly, others are converted to directory globs.
     fn apply_tsconfig_excludes(&mut self, excludes: Vec<String>) {
         for exclude in excludes {
-            if exclude.contains('*') {
-                if !self.ignore.contains(&exclude) {
-                    self.ignore.push(exclude);
-                }
-            } else {
-                self.add_ignore_pattern(&exclude);
-            }
+            self.add_ignore_pattern(&exclude);
         }
     }
 
     /// Helper to add a path to the ignore list, ensuring it's formatted as a glob pattern.
-    /// Trims common prefixes and suffixes before creating a `**/{path}/**` pattern.
+    /// Normalizes path separators and trims common prefixes before creating a `**/{path}/**` pattern.
     fn add_ignore_pattern(&mut self, path: &str) {
-        let path = path.trim_matches('/').trim_start_matches("./");
-        if path.is_empty() {
+        let normalized = path.replace('\\', "/");
+        let path = normalized.trim_matches('/').trim_start_matches("./");
+        if path.is_empty() || path.split('/').any(|p| p == "..") {
             return;
         }
-        let pattern = format!("**/{}/**", path);
+
+        let pattern = if path.contains('*') {
+            path.to_string()
+        } else {
+            format!("**/{}/**", path)
+        };
+
         if !self.ignore.contains(&pattern) {
             self.ignore.push(pattern);
         }
