@@ -41,19 +41,11 @@ pub fn generate_smell_id(smell: &ArchSmell, project_root: &Path) -> String {
             format!("vendor:{}", package)
         }
 
-        SmellType::SideEffectImport => {
+        SmellType::SideEffectImport => with_line_hash_fallback(smell, |line| {
             let file = &smell.files[0];
-            let location = smell.locations.first();
-            let line = location.map(|l| l.line).unwrap_or(0);
             let relative = relative_path(file, project_root);
-            let mut id = format!("sideeffect:{}:{}", relative, line);
-            let hash_input = match location {
-                Some(l) => l.description.clone(),
-                None => format!("{:?}", smell),
-            };
-            id = format!("{}:{}", id, short_hash(&hash_input));
-            id
-        }
+            format!("sideeffect:{}:{}", relative, line)
+        }),
 
         SmellType::TestLeakage { test_file } => {
             let from = &smell.files[0];
@@ -362,5 +354,30 @@ mod tests {
         let id = generate_smell_id(&smell, root);
         assert!(id.starts_with("sideeffect:src/service.ts:0:"));
         assert!(id.contains(&short_hash("Side effect")));
+    }
+
+    #[test]
+    fn test_id_generation_side_effect_import_no_hash_when_line_positive() {
+        use crate::detectors::{LocationDetail, Severity};
+
+        let root = Path::new("/project");
+        let file = PathBuf::from("/project/src/service.ts");
+
+        let smell = ArchSmell {
+            smell_type: SmellType::SideEffectImport,
+            severity: Severity::Low,
+            files: vec![file.clone()],
+            metrics: vec![],
+            locations: vec![LocationDetail::new(
+                file.clone(),
+                10,
+                "Side effect".to_string(),
+            )],
+            cluster: None,
+        };
+
+        let id = generate_smell_id(&smell, root);
+        assert_eq!(id, "sideeffect:src/service.ts:10");
+        assert!(!id.contains(&short_hash("Side effect")));
     }
 }
