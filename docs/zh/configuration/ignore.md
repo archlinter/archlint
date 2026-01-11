@@ -50,6 +50,8 @@ overrides:
 
 ### 用法：
 
+所有模式均支持单行注释（`// archlint-...`）和块注释（`/* archlint-... */`）语法。
+
 1. **整个文件**：在文件顶部添加 `// archlint-disable`。
 2. **当前行**：在行尾或上一行添加 `// archlint-disable-line`。
 3. **下一行**：在有问题的行之前使用 `// archlint-disable-next-line`。
@@ -58,6 +60,9 @@ overrides:
 ### 示例：
 
 ```typescript
+// archlint-disable * - 整个文件使用遗留模式
+// 忽略整个文件的所有规则
+
 // prettier-ignore
 // archlint-disable-next-line long-params - 此遗留函数需要许多参数
 function processTransaction(id: string, amount: number, currency: string, date: Date, recipient: string, note: string) {
@@ -65,9 +70,6 @@ function processTransaction(id: string, amount: number, currency: string, date: 
 }
 
 import { internal } from './private'; // archlint-disable-line layer_violation - 迁移的临时排除
-
-// archlint-disable * - 整个文件使用遗留模式
-// 忽略整个文件的所有规则
 
 /* archlint-disable complexity */
 function legacyCode() {

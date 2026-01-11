@@ -50,6 +50,8 @@ overrides:
 
 ### 使用方法:
 
+すべてのパターンで、単一行コメント (`// archlint-...`) とブロックコメント (`/* archlint-... */`) の両方の構文がサポートされています。
+
 1. **ファイル全体**: ファイルの先頭に `// archlint-disable` を追加します。
 2. **現在の行**: 行の末尾、またはその上の行に `// archlint-disable-line` を追加します。
 3. **次の行**: 問題のある行の前に `// archlint-disable-next-line` を使用します。
@@ -58,6 +60,9 @@ overrides:
 ### 例:
 
 ```typescript
+// archlint-disable * - ファイル全体でレガシーなパターンを使用
+// ファイル全体ですべてのルールを無視する
+
 // prettier-ignore
 // archlint-disable-next-line long-params - このレガシー関数は多くの引数を必要とします
 function processTransaction(id: string, amount: number, currency: string, date: Date, recipient: string, note: string) {
@@ -65,9 +70,6 @@ function processTransaction(id: string, amount: number, currency: string, date: 
 }
 
 import { internal } from './private'; // archlint-disable-line layer_violation - 移行のための一時的な除外
-
-// archlint-disable * - ファイル全体でレガシーなパターンを使用
-// ファイル全体ですべてのルールを無視する
 
 /* archlint-disable complexity */
 function legacyCode() {

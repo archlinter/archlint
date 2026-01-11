@@ -110,7 +110,9 @@ impl ImportParser {
                         ignored.entry(comment_line).or_default().extend(rules);
                     }
                     "archlint-disable-next-line" => {
-                        ignored.entry(comment_line + 1).or_default().extend(rules);
+                        if let Some(next_line) = comment_line.checked_add(1) {
+                            ignored.entry(next_line).or_default().extend(rules);
+                        }
                     }
                     _ => {}
                 }

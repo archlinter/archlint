@@ -50,6 +50,8 @@ Puede ignorar problemas arquitectónicos específicos directamente en su código
 
 ### Uso:
 
+Se admiten tanto la sintaxis de comentario de una sola línea (`// archlint-...`) como la de comentario de bloque (`/* archlint-... */`) para todos los patrones.
+
 1. **Todo el archivo**: Agregue `// archlint-disable` al principio del archivo.
 2. **Línea actual**: Agregue `// archlint-disable-line` al final de la línea o en la línea de arriba.
 3. **Siguiente línea**: Utilice `// archlint-disable-next-line` antes de la línea problemática.
@@ -58,6 +60,9 @@ Puede ignorar problemas arquitectónicos específicos directamente en su código
 ### Ejemplos:
 
 ```typescript
+// archlint-disable * - Todo el archivo utiliza patrones heredados
+// Ignorar todas las reglas para todo el archivo
+
 // prettier-ignore
 // archlint-disable-next-line long-params - Esta función heredada requiere muchos parámetros
 function processTransaction(id: string, amount: number, currency: string, date: Date, recipient: string, note: string) {
@@ -65,9 +70,6 @@ function processTransaction(id: string, amount: number, currency: string, date: 
 }
 
 import { internal } from './private'; // archlint-disable-line layer_violation - Exclusión temporal para migración
-
-// archlint-disable * - Todo el archivo utiliza patrones heredados
-// Ignorar todas las reglas para todo el archivo
 
 /* archlint-disable complexity */
 function legacyCode() {
