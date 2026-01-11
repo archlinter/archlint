@@ -51,9 +51,22 @@ impl TsConfigResolver {
         let exports = pkg_json.get("exports")?.as_object()?;
         let sub_with_dot = format!("./{}", subpath);
 
-        exports
-            .get(&sub_with_dot)?
-            .as_str()
-            .map(|s| pkg_dir.join(s))
+        let target = exports.get(&sub_with_dot)?;
+
+        // Handle both string and conditional export objects
+        let target_str = if let Some(s) = target.as_str() {
+            Some(s)
+        } else if let Some(obj) = target.as_object() {
+            // Try common conditions: types, default, require, import
+            obj.get("types")
+                .or_else(|| obj.get("default"))
+                .or_else(|| obj.get("require"))
+                .or_else(|| obj.get("import"))
+                .and_then(|v| v.as_str())
+        } else {
+            None
+        }?;
+
+        Some(pkg_dir.join(target_str))
     }
 }

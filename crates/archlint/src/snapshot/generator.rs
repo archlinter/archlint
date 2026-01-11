@@ -140,7 +140,7 @@ impl SnapshotGenerator {
                     metrics.insert("avgCoChanges".into(), MetricValue::Float(*v));
                 }
                 SmellMetric::DependentCount(v) => {
-                    metrics.insert("dependantCount".into(), MetricValue::Int(*v as i64));
+                    metrics.insert("dependentCount".into(), MetricValue::Int(*v as i64));
                 }
                 SmellMetric::Components(v) => {
                     metrics.insert("components".into(), MetricValue::Int(*v as i64));

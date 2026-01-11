@@ -188,13 +188,13 @@ impl ArchSmell {
     }
 
     /// Get effective severity considering config overrides
-    pub fn effective_severity(&self, _config: &SeverityConfig) -> Severity {
+    pub fn effective_severity(&self) -> Severity {
         self.severity
     }
 
     /// Calculate weighted score
     pub fn score(&self, config: &SeverityConfig) -> u32 {
-        let severity = self.effective_severity(config);
+        let severity = self.effective_severity();
         config.weights.score(&severity)
     }
 

@@ -22,7 +22,7 @@ pub fn generate(large_files: &[&SmellWithExplanation], severity_config: &Severit
         if let Some(file_path) = smell.files.first() {
             let formatted_path = ExplainEngine::format_file_path(file_path);
             let lines = smell.lines().unwrap_or(0);
-            let effective_severity = smell.effective_severity(severity_config);
+            let effective_severity = smell.effective_severity();
             let score = smell.score(severity_config);
 
             let severity_str = match effective_severity {

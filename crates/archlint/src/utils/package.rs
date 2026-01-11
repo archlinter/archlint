@@ -35,6 +35,7 @@ impl PackageUtils {
 
         let builtins = [
             "assert",
+            "assert/strict",
             "async_hooks",
             "buffer",
             "child_process",
@@ -62,9 +63,12 @@ impl PackageUtils {
             "querystring",
             "readline",
             "repl",
+            "sqlite",
             "stream",
             "string_decoder",
+            "test",
             "timers",
+            "timers/promises",
             "tls",
             "trace_events",
             "tty",
