@@ -1,3 +1,4 @@
+use super::fuzzy::FuzzyMatcher;
 use super::metrics::MetricComparator;
 use super::types::{
     DiffResult, DiffSummary, Improvement, ImprovementType, Regression, RegressionType,
@@ -8,12 +9,14 @@ use std::collections::{HashMap, HashSet};
 
 pub struct DiffEngine {
     metric_threshold_percent: f64,
+    line_tolerance: usize,
 }
 
 impl Default for DiffEngine {
     fn default() -> Self {
         Self {
             metric_threshold_percent: 20.0, // 20% increase = regression
+            line_tolerance: 50,             // fuzzy match within 50 lines
         }
     }
 }
@@ -25,6 +28,11 @@ impl DiffEngine {
 
     pub fn with_threshold(mut self, percent: f64) -> Self {
         self.metric_threshold_percent = percent;
+        self
+    }
+
+    pub fn with_line_tolerance(mut self, lines: usize) -> Self {
+        self.line_tolerance = lines;
         self
     }
 
@@ -59,14 +67,52 @@ impl DiffEngine {
             current_ids.len()
         );
 
-        // 1. New smells = regressions
-        for id in current_ids.difference(&baseline_ids) {
-            let smell = current_map[id];
-            debug!("New smell detected: {} ({})", id, smell.smell_type);
+        // Collect orphaned smells (not matched by exact ID)
+        let orphaned_baseline: Vec<&SnapshotSmell> = baseline_ids
+            .difference(&current_ids)
+            .map(|id| baseline_map[id])
+            .collect();
+
+        let orphaned_current: Vec<&SnapshotSmell> = current_ids
+            .difference(&baseline_ids)
+            .map(|id| current_map[id])
+            .collect();
+
+        // Apply fuzzy matching to find shifted smells
+        let fuzzy = FuzzyMatcher::new(self.line_tolerance);
+        let matched_pairs = fuzzy.match_orphans(&orphaned_baseline, &orphaned_current);
+
+        // Build sets of matched IDs to exclude from new/fixed
+        let matched_baseline_ids: HashSet<&str> = matched_pairs
+            .iter()
+            .map(|p| p.baseline.id.as_str())
+            .collect();
+        let matched_current_ids: HashSet<&str> = matched_pairs
+            .iter()
+            .map(|p| p.current.id.as_str())
+            .collect();
+
+        debug!(
+            "Fuzzy matching: {} pairs matched out of {} orphaned baseline, {} orphaned current",
+            matched_pairs.len(),
+            orphaned_baseline.len(),
+            orphaned_current.len()
+        );
+
+        // 1. New smells = regressions (excluding fuzzy-matched)
+        for smell in &orphaned_current {
+            if matched_current_ids.contains(smell.id.as_str()) {
+                debug!(
+                    "Smell shifted (not new): {} ({})",
+                    smell.id, smell.smell_type
+                );
+                continue;
+            }
+            debug!("New smell detected: {} ({})", smell.id, smell.smell_type);
             regressions.push(Regression {
-                id: id.to_string(),
+                id: smell.id.clone(),
                 regression_type: RegressionType::NewSmell,
-                smell: smell.clone(),
+                smell: (*smell).clone(),
                 message: format!(
                     "New {}: {}",
                     smell.smell_type,
@@ -76,12 +122,18 @@ impl DiffEngine {
             });
         }
 
-        // 2. Fixed smells = improvements
-        for id in baseline_ids.difference(&current_ids) {
-            let smell = baseline_map[id];
-            debug!("Fixed smell: {} ({})", id, smell.smell_type);
+        // 2. Fixed smells = improvements (excluding fuzzy-matched)
+        for smell in &orphaned_baseline {
+            if matched_baseline_ids.contains(smell.id.as_str()) {
+                debug!(
+                    "Smell shifted (not fixed): {} ({})",
+                    smell.id, smell.smell_type
+                );
+                continue;
+            }
+            debug!("Fixed smell: {} ({})", smell.id, smell.smell_type);
             improvements.push(Improvement {
-                id: id.to_string(),
+                id: smell.id.clone(),
                 improvement_type: ImprovementType::Fixed,
                 message: format!(
                     "Fixed {}: {}",

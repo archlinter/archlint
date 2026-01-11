@@ -46,14 +46,21 @@ impl Detector for SideEffectImportDetector {
             };
 
             for import in &symbols.imports {
-                if import.name == "*" && import.alias.is_none() && !import.is_reexport {
+                if import.name == "*"
+                    && import.alias.is_none()
+                    && !import.is_reexport
+                    && !import.is_dynamic
+                {
                     // Check if it's a CSS file or similar (should be ignored)
                     if self.is_ignored_source(&import.source) {
                         continue;
                     }
 
-                    let mut smell =
-                        ArchSmell::new_side_effect_import(path.clone(), import.source.to_string());
+                    let mut smell = ArchSmell::new_side_effect_import(
+                        path.clone(),
+                        import.source.to_string(),
+                        import.line,
+                    );
                     smell.severity = rule.severity;
                     smells.push(smell);
                 }

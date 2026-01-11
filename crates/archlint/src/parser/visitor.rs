@@ -193,6 +193,7 @@ impl<'a> UnifiedVisitor {
                 range,
                 is_type_only: it.export_kind.is_type(),
                 is_reexport: true,
+                is_dynamic: false,
             });
         }
 
@@ -207,6 +208,7 @@ impl<'a> UnifiedVisitor {
                 range,
                 is_type_only: it.export_kind.is_type(),
                 is_reexport: true,
+                is_dynamic: false,
             });
         }
     }
@@ -497,6 +499,7 @@ impl<'a> Visit<'a> for UnifiedVisitor {
                     range,
                     is_type_only: is_type_only_decl,
                     is_reexport: false,
+                    is_dynamic: false,
                 });
             } else {
                 for specifier in specifiers {
@@ -512,6 +515,7 @@ impl<'a> Visit<'a> for UnifiedVisitor {
                                 range,
                                 is_type_only: is_type_only_decl || s.import_kind.is_type(),
                                 is_reexport: false,
+                                is_dynamic: false,
                             });
                         }
                         oxc_ast::ast::ImportDeclarationSpecifier::ImportDefaultSpecifier(s) => {
@@ -524,6 +528,7 @@ impl<'a> Visit<'a> for UnifiedVisitor {
                                 range,
                                 is_type_only: is_type_only_decl,
                                 is_reexport: false,
+                                is_dynamic: false,
                             });
                         }
                         oxc_ast::ast::ImportDeclarationSpecifier::ImportNamespaceSpecifier(s) => {
@@ -536,6 +541,7 @@ impl<'a> Visit<'a> for UnifiedVisitor {
                                 range,
                                 is_type_only: is_type_only_decl,
                                 is_reexport: false,
+                                is_dynamic: false,
                             });
                         }
                     }
@@ -552,6 +558,7 @@ impl<'a> Visit<'a> for UnifiedVisitor {
                 range,
                 is_type_only: is_type_only_decl,
                 is_reexport: false,
+                is_dynamic: false,
             });
         }
         oxc_ast::visit::walk::walk_import_declaration(self, it);
@@ -610,6 +617,7 @@ impl<'a> Visit<'a> for UnifiedVisitor {
             range,
             is_type_only: it.export_kind.is_type(),
             is_reexport: true,
+            is_dynamic: false,
         });
         oxc_ast::visit::walk::walk_export_all_declaration(self, it);
     }
@@ -713,6 +721,7 @@ impl<'a> Visit<'a> for UnifiedVisitor {
                         range,
                         is_type_only: false,
                         is_reexport: false,
+                        is_dynamic: true,
                     });
                 }
             }
@@ -731,6 +740,7 @@ impl<'a> Visit<'a> for UnifiedVisitor {
                                 range,
                                 is_type_only: false,
                                 is_reexport: false,
+                                is_dynamic: true,
                             });
                         }
                     }
@@ -935,6 +945,22 @@ mod tests {
         let mut visitor = UnifiedVisitor::new(code, ParserConfig::all());
         visitor.visit_program(&ret.program);
         visitor
+    }
+
+    #[test]
+    fn test_dynamic_import_is_marked() {
+        let visitor = parse_code("const lazy = () => import('./module');");
+        assert_eq!(visitor.imports.len(), 1);
+        assert!(visitor.imports[0].is_dynamic);
+        assert_eq!(visitor.imports[0].name, "*");
+    }
+
+    #[test]
+    fn test_require_is_marked_as_dynamic() {
+        let visitor = parse_code("const mod = require('./module');");
+        assert_eq!(visitor.imports.len(), 1);
+        assert!(visitor.imports[0].is_dynamic);
+        assert_eq!(visitor.imports[0].name, "*");
     }
 
     #[test]
