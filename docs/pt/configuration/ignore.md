@@ -50,6 +50,8 @@ Você pode ignorar problemas arquiteturais específicos diretamente no seu códi
 
 ### Uso:
 
+Tanto a sintaxe de comentário de linha única (`// archlint-...`) quanto a de comentário de bloco (`/* archlint-... */`) são suportadas para todos os padrões.
+
 1. **Todo o arquivo**: Adicione `// archlint-disable` no início do arquivo.
 2. **Linha atual**: Adicione `// archlint-disable-line` no final da linha ou na linha acima.
 3. **Próxima linha**: Use `// archlint-disable-next-line` antes da linha problemática.
