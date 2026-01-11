@@ -27,6 +27,18 @@ archlint doesn't just count issues. It performs a **semantic diff** of the archi
 | `--fail-on <severity>` | `medium` | Exit with code 1 if a regression of this severity or higher is found |
 | `--explain`            | `false`  | Provide a detailed explanation for each regression                   |
 
+## Configuration
+
+You can fine-tune the diff engine in your `.archlint.yaml` file:
+
+```yaml
+diff:
+  metric_threshold_percent: 20 # report as regression only if metric worsened by >20%
+  line_tolerance: 50 # ignore shifts within 50 lines during fuzzy matching
+```
+
+See [Configuration Guide](/configuration/index#diff-configuration) for details.
+
 ## Examples
 
 ### Check against main branch in CI

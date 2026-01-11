@@ -51,6 +51,7 @@ pub struct ImportedSymbol {
     pub range: CodeRange,
     pub is_type_only: bool,
     pub is_reexport: bool,
+    pub is_dynamic: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]

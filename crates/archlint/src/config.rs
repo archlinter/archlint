@@ -48,7 +48,39 @@ pub struct Config {
     pub max_file_size: u64,
 
     #[serde(default)]
+    pub diff: DiffConfig,
+
+    #[serde(default)]
     pub git: GitConfig,
+}
+
+/// Configuration for architectural diff analysis.
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct DiffConfig {
+    /// Percentage threshold for metric worsening to be considered a regression.
+    #[serde(default = "default_metric_threshold")]
+    pub metric_threshold_percent: f64,
+
+    /// Maximum line shift to consider smells as the same during fuzzy matching.
+    #[serde(default = "default_line_tolerance")]
+    pub line_tolerance: usize,
+}
+
+impl Default for DiffConfig {
+    fn default() -> Self {
+        Self {
+            metric_threshold_percent: default_metric_threshold(),
+            line_tolerance: default_line_tolerance(),
+        }
+    }
+}
+
+fn default_metric_threshold() -> f64 {
+    20.0
+}
+
+fn default_line_tolerance() -> usize {
+    50
 }
 
 /// Configuration options for TypeScript integration.
@@ -354,6 +386,7 @@ impl Default for Config {
             auto_detect_framework: true,
             tsconfig: Some(TsConfigConfig::default()),
             max_file_size: default_max_file_size(),
+            diff: DiffConfig::default(),
             git: GitConfig::default(),
         }
     }

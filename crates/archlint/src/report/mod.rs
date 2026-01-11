@@ -579,8 +579,12 @@ impl AnalysisReport {
             SmellType::SharedMutableState { symbol } => {
                 format!("Shared Mutable State\n({})", symbol)
             }
-            SmellType::DeepNesting { depth } => {
-                format!("Deep Nesting\n(depth: {})", depth)
+            SmellType::DeepNesting {
+                function,
+                depth,
+                line: _,
+            } => {
+                format!("Deep Nesting\n({}: depth {})", function, depth)
             }
             SmellType::LongParameterList { count, function } => {
                 format!("Long Parameter List\n({}: {} params)", function, count)

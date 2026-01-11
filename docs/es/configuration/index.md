@@ -81,6 +81,13 @@ scoring:
 # Autodetección de framework (por defecto true)
 auto_detect_framework: true
 
+# Configuración de diff arquitectónico
+diff:
+  # Umbral de porcentaje para que el empeoramiento de una métrica se considere regresión
+  metric_threshold_percent: 20
+  # Desplazamiento máximo de línea para considerar smells como iguales durante el diff difuso
+  line_tolerance: 50
+
 # Configuración de Git
 git:
   enabled: true # habilitar análisis (por defecto true)
@@ -128,3 +135,10 @@ Cuando está habilitado, la herramienta:
 1. **Carga Alias**: Extrae `compilerOptions.paths` y `compilerOptions.baseUrl` para configurar automáticamente `aliases`.
 2. **Auto-ignorar**: Agrega `compilerOptions.outDir` a la lista global de `ignore`.
 3. **Exclusiones**: Incorpora patrones del campo `exclude` en la lista de `ignore`.
+
+## Configuración de Diff
+
+La sección `diff` controla cómo se detectan las regresiones arquitectónicas al comparar dos instantáneas:
+
+- **`metric_threshold_percent`** (por defecto: `20`): Define cuánto debe aumentar una métrica (como la complejidad ciclomática o el acoplamiento) antes de que se informe como un smell "empeorado". Por ejemplo, con un umbral del 20%, la complejidad de una función debe aumentar de 10 a al menos 12 para ser señalada.
+- **`line_tolerance`** (por defecto: `50`): Define el número máximo de líneas que un símbolo de código puede desplazarse (debido a adiciones o eliminaciones en otras partes del archivo) antes de que archlint deje de reconocerlo como el mismo smell. Este "emparejamiento difuso" evita que el código desplazado se informe como una nueva regresión.

@@ -232,6 +232,11 @@ impl SnapshotGenerator {
                 symbol: symbol.clone(),
             }),
 
+            SmellType::DeepNesting { function, line, .. } => Some(SmellDetails::Complexity {
+                function_name: function.clone(),
+                line: *line,
+            }),
+
             SmellType::LongParameterList { function, .. } => {
                 Some(SmellDetails::LongParameterList {
                     function: function.clone(),

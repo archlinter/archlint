@@ -150,7 +150,9 @@ pub enum SmellType {
     },
 
     DeepNesting {
+        function: String,
         depth: usize,
+        line: usize,
     },
     LongParameterList {
         count: usize,
@@ -1039,7 +1041,7 @@ impl ArchSmell {
         }
     }
 
-    pub fn new_side_effect_import(path: PathBuf, source: String) -> Self {
+    pub fn new_side_effect_import(path: PathBuf, source: String, line: usize) -> Self {
         Self {
             smell_type: SmellType::SideEffectImport,
             severity: Severity::Low,
@@ -1047,7 +1049,7 @@ impl ArchSmell {
             metrics: Vec::new(),
             locations: vec![LocationDetail::new(
                 path,
-                0,
+                line,
                 format!("Side-effect import of '{}'", source),
             )],
             cluster: None,
@@ -1146,7 +1148,11 @@ impl ArchSmell {
         range: CodeRange,
     ) -> Self {
         Self {
-            smell_type: SmellType::DeepNesting { depth },
+            smell_type: SmellType::DeepNesting {
+                function: function.clone(),
+                depth,
+                line,
+            },
             severity: Severity::Low,
             files: vec![path.clone()],
             metrics: vec![SmellMetric::Depth(depth)],

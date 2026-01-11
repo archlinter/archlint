@@ -27,6 +27,18 @@ archlint 不仅仅是计算问题数量。它对架构问题（smells）进行**
 | `--fail-on <severity>` | `medium` | 如果发现此严重程度或更高的退化，则以退出码 1 退出 |
 | `--explain`            | `false`  | 为每个退化提供详细解释                            |
 
+## 配置
+
+您可以在 `.archlint.yaml` 文件中微调 diff 引擎：
+
+```yaml
+diff:
+  metric_threshold_percent: 20 # 仅当指标恶化 >20% 时报告为退化
+  line_tolerance: 50 # 模糊匹配期间忽略 50 行以内的偏移
+```
+
+有关详细信息，请参阅[配置指南](/zh/configuration/index#diff-配置)。
+
 ## 示例
 
 ### 在 CI 中对照 main 分支进行检查

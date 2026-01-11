@@ -12,7 +12,7 @@ fn test_deep_nesting_detected() {
 
     assert!(!smells.is_empty(), "Expected to detect deep nesting");
     assert!(smells.iter().any(|s| {
-        if let archlint::detectors::SmellType::DeepNesting { depth } = &s.smell_type {
+        if let archlint::detectors::SmellType::DeepNesting { depth, .. } = &s.smell_type {
             *depth >= 4
         } else {
             false

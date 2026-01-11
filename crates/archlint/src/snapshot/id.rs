@@ -21,13 +21,13 @@ pub fn generate_smell_id(smell: &ArchSmell, project_root: &Path) -> String {
             id_for_layer_violation(&smell.files[0], to_layer, project_root)
         }
 
-        SmellType::DeadSymbol { name, .. } => {
-            id_for_dead_symbol(&smell.files[0], name, project_root)
-        }
+        SmellType::DeadSymbol { name, .. } => with_line_hash_fallback(smell, |line| {
+            id_for_symbol_smell("dead", &smell.files[0], name, line, project_root)
+        }),
 
-        SmellType::HighComplexity { name, .. } => {
-            id_for_complexity(&smell.files[0], name, project_root)
-        }
+        SmellType::HighComplexity { name, .. } => with_line_hash_fallback(smell, |line| {
+            id_for_symbol_smell("cmplx", &smell.files[0], name, line, project_root)
+        }),
 
         SmellType::HubModule => id_for_file_smell(&smell.files[0], "hub", project_root),
 
@@ -40,6 +40,12 @@ pub fn generate_smell_id(smell: &ArchSmell, project_root: &Path) -> String {
         SmellType::VendorCoupling { package } => {
             format!("vendor:{}", package)
         }
+
+        SmellType::SideEffectImport => with_line_hash_fallback(smell, |line| {
+            let file = &smell.files[0];
+            let relative = relative_path(file, project_root);
+            format!("sideeffect:{}:{}", relative, line)
+        }),
 
         SmellType::TestLeakage { test_file } => {
             let from = &smell.files[0];
@@ -55,33 +61,25 @@ pub fn generate_smell_id(smell: &ArchSmell, project_root: &Path) -> String {
             format!("envy:{}:{}", from_rel, to_rel)
         }
 
-        SmellType::SharedMutableState { symbol } => {
-            id_for_dead_symbol(&smell.files[0], symbol, project_root).replace("dead:", "shared:")
-        }
+        SmellType::SharedMutableState { symbol } => with_line_hash_fallback(smell, |line| {
+            id_for_symbol_smell("shared", &smell.files[0], symbol, line, project_root)
+        }),
 
-        SmellType::DeepNesting { .. } => {
-            // Need function name if possible, but it's not in the enum variant.
-            // Let's use the first location's description if it contains function name.
-            let function_name = smell
-                .locations
-                .first()
-                .map(|l| l.description.clone())
-                .unwrap_or_default();
-            id_for_complexity(&smell.files[0], &function_name, project_root)
-                .replace("cmplx:", "nest:")
-        }
+        SmellType::DeepNesting { function, .. } => with_line_hash_fallback(smell, |line| {
+            id_for_symbol_smell("nest", &smell.files[0], function, line, project_root)
+        }),
 
-        SmellType::LongParameterList { function, .. } => {
-            id_for_complexity(&smell.files[0], function, project_root).replace("cmplx:", "params:")
-        }
+        SmellType::LongParameterList { function, .. } => with_line_hash_fallback(smell, |line| {
+            id_for_symbol_smell("params", &smell.files[0], function, line, project_root)
+        }),
 
-        SmellType::PrimitiveObsession { function, .. } => {
-            id_for_complexity(&smell.files[0], function, project_root).replace("cmplx:", "prim:")
-        }
+        SmellType::PrimitiveObsession { function, .. } => with_line_hash_fallback(smell, |line| {
+            id_for_symbol_smell("prim", &smell.files[0], function, line, project_root)
+        }),
 
-        SmellType::OrphanType { name } => {
-            id_for_dead_symbol(&smell.files[0], name, project_root).replace("dead:", "orphan:")
-        }
+        SmellType::OrphanType { name } => with_line_hash_fallback(smell, |line| {
+            id_for_symbol_smell("orphan", &smell.files[0], name, line, project_root)
+        }),
 
         SmellType::ScatteredConfiguration { env_var, .. } => {
             format!("config:{}", env_var)
@@ -100,11 +98,32 @@ pub fn generate_smell_id(smell: &ArchSmell, project_root: &Path) -> String {
     }
 }
 
+/// Helper to generate ID with line number and hash fallback when line is 0.
+fn with_line_hash_fallback<F>(smell: &ArchSmell, f: F) -> String
+where
+    F: FnOnce(usize) -> String,
+{
+    let location = smell.locations.first();
+    let line = location.map(|l| l.line).unwrap_or(0);
+    let mut id = f(line);
+    if line == 0 {
+        // Fallback: add hash of description (or full smell if no location) to avoid collisions
+        let hash_input = match location {
+            Some(l) => l.description.clone(),
+            None => format!("{:?}", smell),
+        };
+        id = format!("{}:{}", id, short_hash(&hash_input));
+    }
+    id
+}
+
 fn relative_path(path: &Path, project_root: &Path) -> String {
     let rel = path.strip_prefix(project_root).unwrap_or_else(|_| {
         debug!("Failed to strip prefix {:?} from {:?}", project_root, path);
         path
     });
+    // Normalise path separators and handle potential colons in paths (Windows)
+    // Note: Fuzzy matching in fuzzy.rs uses right-splitting to remain resilient to colons in paths.
     rel.to_string_lossy().replace('\\', "/")
 }
 
@@ -133,14 +152,15 @@ fn id_for_layer_violation(from_file: &Path, to_layer: &str, project_root: &Path)
     format!("layer:{}:{}", relative, to_layer)
 }
 
-fn id_for_dead_symbol(file: &Path, symbol_name: &str, project_root: &Path) -> String {
+fn id_for_symbol_smell(
+    prefix: &str,
+    file: &Path,
+    symbol_name: &str,
+    line: usize,
+    project_root: &Path,
+) -> String {
     let relative = relative_path(file, project_root);
-    format!("dead:{}:{}", relative, symbol_name)
-}
-
-fn id_for_complexity(file: &Path, function_name: &str, project_root: &Path) -> String {
-    let relative = relative_path(file, project_root);
-    format!("cmplx:{}:{}", relative, function_name)
+    format!("{}:{}:{}:{}", prefix, relative, symbol_name, line)
 }
 
 fn id_generic(smell_type: &str, files: &[PathBuf], extra: &str, project_root: &Path) -> String {
@@ -214,5 +234,150 @@ mod tests {
         assert_ne!(h1, h3);
         // It might be shorter than 6 if hash is small, but unlikely for random strings.
         // We added a check for length in the implementation.
+    }
+
+    #[test]
+    fn test_id_collision_fallback_when_line_is_zero() {
+        use crate::detectors::{LocationDetail, Severity};
+
+        let root = Path::new("/project");
+        let file = PathBuf::from("/project/src/service.ts");
+
+        let smell1 = ArchSmell {
+            smell_type: SmellType::DeadSymbol {
+                name: "unused".to_string(),
+                kind: "function".to_string(),
+            },
+            severity: Severity::Low,
+            files: vec![file.clone()],
+            metrics: vec![],
+            locations: vec![LocationDetail::new(file.clone(), 0, "Desc 1".to_string())],
+            cluster: None,
+        };
+
+        let smell2 = ArchSmell {
+            smell_type: SmellType::DeadSymbol {
+                name: "unused".to_string(),
+                kind: "function".to_string(),
+            },
+            severity: Severity::Low,
+            files: vec![file.clone()],
+            metrics: vec![],
+            locations: vec![LocationDetail::new(file.clone(), 0, "Desc 2".to_string())],
+            cluster: None,
+        };
+
+        let id1 = generate_smell_id(&smell1, root);
+        let id2 = generate_smell_id(&smell2, root);
+
+        assert_ne!(
+            id1, id2,
+            "IDs should differ when descriptions differ even if line is 0"
+        );
+        assert!(id1.contains(&short_hash("Desc 1")));
+        assert!(id2.contains(&short_hash("Desc 2")));
+    }
+
+    #[test]
+    fn test_id_generation_no_hash_when_line_positive() {
+        use crate::detectors::{LocationDetail, Severity};
+
+        let root = Path::new("/project");
+        let file = PathBuf::from("/project/src/service.ts");
+
+        let smell = ArchSmell {
+            smell_type: SmellType::DeadSymbol {
+                name: "unused".to_string(),
+                kind: "function".to_string(),
+            },
+            severity: Severity::Low,
+            files: vec![file.clone()],
+            metrics: vec![],
+            locations: vec![LocationDetail::new(
+                file.clone(),
+                10,
+                "Some desc".to_string(),
+            )],
+            cluster: None,
+        };
+
+        let id = generate_smell_id(&smell, root);
+        // ID format: dead:src/service.ts:unused:10
+        assert_eq!(id, "dead:src/service.ts:unused:10");
+        assert!(!id.contains(&short_hash("Some desc")));
+    }
+
+    #[test]
+    fn test_id_generation_empty_locations_uses_debug_hash() {
+        use crate::detectors::Severity;
+
+        let root = Path::new("/project");
+        let file = PathBuf::from("/project/src/service.ts");
+
+        let smell = ArchSmell {
+            smell_type: SmellType::DeadSymbol {
+                name: "unused".to_string(),
+                kind: "function".to_string(),
+            },
+            severity: Severity::Low,
+            files: vec![file.clone()],
+            metrics: vec![],
+            locations: vec![], // Empty locations
+            cluster: None,
+        };
+
+        let id = generate_smell_id(&smell, root);
+        let expected_hash = short_hash(&format!("{:?}", smell));
+        assert!(id.contains(&expected_hash));
+    }
+
+    #[test]
+    fn test_id_generation_side_effect_import_hash() {
+        use crate::detectors::{LocationDetail, Severity};
+
+        let root = Path::new("/project");
+        let file = PathBuf::from("/project/src/service.ts");
+
+        let smell = ArchSmell {
+            smell_type: SmellType::SideEffectImport,
+            severity: Severity::Low,
+            files: vec![file.clone()],
+            metrics: vec![],
+            locations: vec![LocationDetail::new(
+                file.clone(),
+                0,
+                "Side effect".to_string(),
+            )],
+            cluster: None,
+        };
+
+        let id = generate_smell_id(&smell, root);
+        assert!(id.starts_with("sideeffect:src/service.ts:0:"));
+        assert!(id.contains(&short_hash("Side effect")));
+    }
+
+    #[test]
+    fn test_id_generation_side_effect_import_no_hash_when_line_positive() {
+        use crate::detectors::{LocationDetail, Severity};
+
+        let root = Path::new("/project");
+        let file = PathBuf::from("/project/src/service.ts");
+
+        let smell = ArchSmell {
+            smell_type: SmellType::SideEffectImport,
+            severity: Severity::Low,
+            files: vec![file.clone()],
+            metrics: vec![],
+            locations: vec![LocationDetail::new(
+                file.clone(),
+                10,
+                "Side effect".to_string(),
+            )],
+            cluster: None,
+        };
+
+        let id = generate_smell_id(&smell, root);
+        assert_eq!(id, "sideeffect:src/service.ts:10");
+        assert!(!id.contains(&short_hash("Side effect")));
     }
 }

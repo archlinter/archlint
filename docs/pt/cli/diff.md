@@ -27,6 +27,18 @@ O archlint não apenas conta problemas. Ele realiza um **diff semântico** dos d
 | `--fail-on <severity>` | `medium` | Sai com código 1 se uma regressão desta severidade ou superior for encontrada |
 | `--explain`            | `false`  | Fornece uma explicação detalhada para cada regressão                          |
 
+## Configuração
+
+Você pode ajustar o mecanismo de diff em seu arquivo `.archlint.yaml`:
+
+```yaml
+diff:
+  metric_threshold_percent: 20 # relatar como regressão apenas se a métrica piorar >20%
+  line_tolerance: 50 # ignorar deslocamentos de até 50 linhas na correspondência difusa
+```
+
+Consulte o [Guia de Configuração](/pt/configuration/index#configuração-de-diff) para mais detalhes.
+
 ## Exemplos
 
 ### Verificar contra o branch main no CI/CD
