@@ -58,15 +58,9 @@ overrides:
 ### Примеры:
 
 ```typescript
+// prettier-ignore
 // archlint-disable-next-line long-params
-function processTransaction(
-  id: string,
-  amount: number,
-  currency: string,
-  date: Date,
-  recipient: string,
-  note: string
-) {
+function processTransaction(id: string, amount: number, currency: string, date: Date, recipient: string, note: string) {
   // Детектор длинных параметров будет проигнорирован только для этой строки
 }
 

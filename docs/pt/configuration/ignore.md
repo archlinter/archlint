@@ -58,15 +58,9 @@ Você pode ignorar problemas arquiteturais específicos diretamente no seu códi
 ### Exemplos:
 
 ```typescript
+// prettier-ignore
 // archlint-disable-next-line long-params
-function processTransaction(
-  id: string,
-  amount: number,
-  currency: string,
-  date: Date,
-  recipient: string,
-  note: string
-) {
+function processTransaction(id: string, amount: number, currency: string, date: Date, recipient: string, note: string) {
   // O detector de parâmetros longos será ignorado apenas para esta linha
 }
 
