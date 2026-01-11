@@ -43,20 +43,16 @@ pub fn generate_smell_id(smell: &ArchSmell, project_root: &Path) -> String {
 
         SmellType::SideEffectImport => {
             let file = &smell.files[0];
-            let line = smell.locations.first().map(|l| l.line).unwrap_or(0);
+            let location = smell.locations.first();
+            let line = location.map(|l| l.line).unwrap_or(0);
             let relative = relative_path(file, project_root);
-            format!(
-                "sideeffect:{}:{}:{}",
-                relative,
-                line,
-                short_hash(
-                    smell
-                        .locations
-                        .first()
-                        .map(|l| l.description.as_str())
-                        .unwrap_or("")
-                )
-            )
+            let mut id = format!("sideeffect:{}:{}", relative, line);
+            let hash_input = match location {
+                Some(l) => l.description.clone(),
+                None => format!("{:?}", smell),
+            };
+            id = format!("{}:{}", id, short_hash(&hash_input));
+            id
         }
 
         SmellType::TestLeakage { test_file } => {
@@ -77,13 +73,9 @@ pub fn generate_smell_id(smell: &ArchSmell, project_root: &Path) -> String {
             id_for_symbol_smell("shared", &smell.files[0], symbol, line, project_root)
         }),
 
-        SmellType::DeepNesting { .. } => {
-            let location = smell.locations.first();
-            let function_name = location.map(|l| l.description.clone()).unwrap_or_default();
-            with_line_hash_fallback(smell, |line| {
-                id_for_symbol_smell("nest", &smell.files[0], &function_name, line, project_root)
-            })
-        }
+        SmellType::DeepNesting { function, .. } => with_line_hash_fallback(smell, |line| {
+            id_for_symbol_smell("nest", &smell.files[0], function, line, project_root)
+        }),
 
         SmellType::LongParameterList { function, .. } => with_line_hash_fallback(smell, |line| {
             id_for_symbol_smell("params", &smell.files[0], function, line, project_root)
@@ -123,9 +115,12 @@ where
     let line = location.map(|l| l.line).unwrap_or(0);
     let mut id = f(line);
     if line == 0 {
-        // Fallback: add hash of description to avoid collisions for same-named symbols without location
-        let desc = location.map(|l| l.description.as_str()).unwrap_or("");
-        id = format!("{}:{}", id, short_hash(desc));
+        // Fallback: add hash of description (or full smell if no location) to avoid collisions
+        let hash_input = match location {
+            Some(l) => l.description.clone(),
+            None => format!("{:?}", smell),
+        };
+        id = format!("{}:{}", id, short_hash(&hash_input));
     }
     id
 }

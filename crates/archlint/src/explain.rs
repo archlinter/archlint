@@ -197,7 +197,29 @@ impl ExplainEngine {
                     .and_then(|v| v.as_i64())
                     .map(|v| v as usize)
                     .unwrap_or(0);
-                SmellType::DeepNesting { depth }
+                let function = smell
+                    .details
+                    .as_ref()
+                    .and_then(|d| match d {
+                        crate::snapshot::SmellDetails::Complexity { function_name, .. } => {
+                            Some(function_name.clone())
+                        }
+                        _ => None,
+                    })
+                    .unwrap_or_default();
+                let line = smell
+                    .details
+                    .as_ref()
+                    .and_then(|d| match d {
+                        crate::snapshot::SmellDetails::Complexity { line, .. } => Some(*line),
+                        _ => None,
+                    })
+                    .unwrap_or_default();
+                SmellType::DeepNesting {
+                    function,
+                    depth,
+                    line,
+                }
             }
             "LongParameterList" => {
                 let count = smell

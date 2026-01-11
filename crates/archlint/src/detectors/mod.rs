@@ -150,7 +150,9 @@ pub enum SmellType {
     },
 
     DeepNesting {
+        function: String,
         depth: usize,
+        line: usize,
     },
     LongParameterList {
         count: usize,
@@ -1146,7 +1148,11 @@ impl ArchSmell {
         range: CodeRange,
     ) -> Self {
         Self {
-            smell_type: SmellType::DeepNesting { depth },
+            smell_type: SmellType::DeepNesting {
+                function: function.clone(),
+                depth,
+                line,
+            },
             severity: Severity::Low,
             files: vec![path.clone()],
             metrics: vec![SmellMetric::Depth(depth)],
