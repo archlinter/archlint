@@ -553,37 +553,41 @@ impl AnalysisEngine {
 
         // Check if any location of the smell is ignored
         for loc in &smell.locations {
-            if let Some(file_ignores) = ignored_lines.get(&loc.file) {
-                // File-wide ignore (line 0)
-                if let Some(rules) = file_ignores.get(&0) {
-                    if rules.contains("*") || rules.contains(rule_id) {
-                        return true;
-                    }
-                }
-
-                // Line-specific ignore
-                if let Some(rules) = file_ignores.get(&loc.line) {
-                    if rules.contains("*") || rules.contains(rule_id) {
-                        return true;
-                    }
-                }
+            if self.is_ignored(&loc.file, loc.line, rule_id, ignored_lines) {
+                return true;
             }
         }
 
         // If no locations, but has files, check file-wide ignores for those files
         if smell.locations.is_empty() {
             for file in &smell.files {
-                if let Some(file_ignores) = ignored_lines.get(file) {
-                    if let Some(rules) = file_ignores.get(&0) {
-                        if rules.contains("*") || rules.contains(rule_id) {
-                            return true;
-                        }
-                    }
+                if self.is_ignored(file, 0, rule_id, ignored_lines) {
+                    return true;
                 }
             }
         }
 
         false
+    }
+
+    fn is_ignored(
+        &self,
+        file: &PathBuf,
+        line: usize,
+        rule_id: &str,
+        ignored_lines: &HashMap<PathBuf, HashMap<usize, HashSet<String>>>,
+    ) -> bool {
+        let file_ignores = match ignored_lines.get(file) {
+            Some(ignores) => ignores,
+            None => return false,
+        };
+
+        // Check specific line and file-wide (line 0)
+        [0, line].iter().any(|&l| {
+            file_ignores
+                .get(&l)
+                .is_some_and(|rules| rules.contains("*") || rules.contains(rule_id))
+        })
     }
 
     fn get_runtime_files(
