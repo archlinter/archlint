@@ -84,3 +84,10 @@ auto_detect_framework: true
 git:
   enabled: true
   history_period: "1y"
+
+# Architectural diff configuration
+diff:
+  # Percentage threshold for metric worsening to be considered a regression (default: 20)
+  metric_threshold_percent: 20
+  # Maximum line shift to consider smells as the same during fuzzy matching (default: 50)
+  line_tolerance: 50

@@ -81,6 +81,13 @@ scoring:
 # Auto-detect framework (defaults to true)
 auto_detect_framework: true
 
+# Architectural diff settings
+diff:
+  # Threshold for metric worsening (e.g., complexity growth) to be reported
+  metric_threshold_percent: 20
+  # Maximum line shift for matching smells between versions during fuzzy diff
+  line_tolerance: 50
+
 # Git settings
 git:
   enabled: true # default: true
@@ -134,3 +141,10 @@ When enabled, the tool:
 1. **Loads Aliases**: Extracts `compilerOptions.paths` and `compilerOptions.baseUrl` to automatically configure `aliases`.
 2. **Auto-ignore**: Adds `compilerOptions.outDir` to the global `ignore` list.
 3. **Excludes**: Incorporates patterns from the `exclude` field into the `ignore` list.
+
+## Diff Configuration
+
+The `diff` section controls how architectural regressions are detected when comparing two snapshots:
+
+- **`metric_threshold_percent`** (default: `20`): Defines how much a metric (like cyclomatic complexity or coupling) must increase before it is reported as a "worsened" smell. For example, with a threshold of 20%, a function's complexity must increase from 10 to at least 12 to be flagged.
+- **`line_tolerance`** (default: `50`): Defines the maximum number of lines a code symbol can shift (due to additions or deletions elsewhere in the file) before archlint stops recognizing it as the same smell. This "fuzzy matching" prevents shifted code from being reported as a new regression.
