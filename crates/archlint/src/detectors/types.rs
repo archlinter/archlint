@@ -318,7 +318,7 @@ pub enum SmellMetric {
     InstabilityScore(usize),
     EnvyRatio(f64),
     AvgCoChanges(f64),
-    DependantCount(usize),
+    DependentCount(usize),
 
     Instability(f64),
     InstabilityDiff(f64),

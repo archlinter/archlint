@@ -98,7 +98,9 @@ impl<'a> EngineBuilder<'a> {
         file_symbols: &HashMap<PathBuf, FileSymbols>,
     ) -> Result<usize> {
         let from_node = graph.get_node(file).unwrap();
-        let symbols = file_symbols.get(file).unwrap();
+        let Some(symbols) = file_symbols.get(file) else {
+            return Ok(0);
+        };
         let mut count = 0;
 
         for import in &symbols.imports {

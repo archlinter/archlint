@@ -18,7 +18,7 @@ fn test_barrel_too_many_exports() {
     assert!(smell
         .metrics
         .iter()
-        .any(|m| matches!(m, archlint::detectors::SmellMetric::DependantCount(15))));
+        .any(|m| matches!(m, archlint::detectors::SmellMetric::DependentCount(15))));
 }
 
 #[test]

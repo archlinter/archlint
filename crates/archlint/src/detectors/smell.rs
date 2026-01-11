@@ -140,7 +140,7 @@ impl ArchSmell {
 
     pub fn dependant_count(&self) -> Option<usize> {
         self.metrics.iter().find_map(|m| match m {
-            SmellMetric::DependantCount(v) => Some(*v),
+            SmellMetric::DependentCount(v) => Some(*v),
             _ => None,
         })
     }
@@ -222,7 +222,8 @@ impl ArchSmell {
         let severity = match cycle_length {
             0..=2 => Severity::Low,
             3..=5 => Severity::Medium,
-            _ => Severity::High,
+            6..=10 => Severity::High,
+            _ => Severity::Critical,
         };
 
         Self {
@@ -469,7 +470,7 @@ impl ArchSmell {
             files: vec![file],
             metrics: vec![
                 SmellMetric::AvgCoChanges(avg_co_changes),
-                SmellMetric::DependantCount(co_changed_files.len()),
+                SmellMetric::DependentCount(co_changed_files.len()),
             ],
             locations,
             cluster: None,
@@ -499,7 +500,7 @@ impl ArchSmell {
             files: vec![], // Package is external, not a project file
             metrics: vec![
                 SmellMetric::FanIn(count),
-                SmellMetric::DependantCount(count),
+                SmellMetric::DependentCount(count),
             ],
             locations,
             cluster: None,
@@ -614,7 +615,7 @@ impl ArchSmell {
                 Severity::Medium
             },
             files: vec![path],
-            metrics: vec![SmellMetric::DependantCount(reexport_count)],
+            metrics: vec![SmellMetric::DependentCount(reexport_count)],
             locations: Vec::new(),
             cluster: None,
         }
@@ -626,7 +627,7 @@ impl ArchSmell {
             smell_type: SmellType::VendorCoupling { package },
             severity: Severity::Medium,
             files: files.clone(),
-            metrics: vec![SmellMetric::DependantCount(count)],
+            metrics: vec![SmellMetric::DependentCount(count)],
             locations: files
                 .into_iter()
                 .map(|f| LocationDetail::new(f, 0, String::new()))
@@ -774,7 +775,7 @@ impl ArchSmell {
             },
             severity: Severity::Low,
             files: vec![path.clone()],
-            metrics: vec![SmellMetric::DependantCount(count)],
+            metrics: vec![SmellMetric::DependentCount(count)],
             locations: vec![LocationDetail::new(
                 path,
                 line,
@@ -793,7 +794,7 @@ impl ArchSmell {
             },
             severity: Severity::Low,
             files: vec![path.clone()],
-            metrics: vec![SmellMetric::DependantCount(primitives)],
+            metrics: vec![SmellMetric::DependentCount(primitives)],
             locations: vec![LocationDetail::new(
                 path,
                 0,
@@ -845,7 +846,7 @@ impl ArchSmell {
             },
             severity: Severity::Low,
             files: files.clone(),
-            metrics: vec![SmellMetric::DependantCount(count)],
+            metrics: vec![SmellMetric::DependentCount(count)],
             locations: files
                 .into_iter()
                 .map(|f| LocationDetail::new(f, 0, format!("Accesses '{}'", env_var)))
