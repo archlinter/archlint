@@ -97,6 +97,11 @@ impl<'a> UnifiedVisitor {
     }
 
     #[inline]
+    pub fn get_line_number_from_offset(&self, offset: usize) -> usize {
+        self.line_index.line(offset)
+    }
+
+    #[inline]
     pub fn line_count(&self) -> usize {
         self.line_index.line_count()
     }

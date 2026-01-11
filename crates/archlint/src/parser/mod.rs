@@ -10,7 +10,8 @@ pub use import_parser::ImportParser;
 pub use line_index::LineIndex;
 pub use tokenizer::{tokenize_and_normalize, NormalizedToken};
 pub use types::{
-    ClassSymbol, ExportedSymbol, FileSymbols, FunctionComplexity, ImportedSymbol,
-    MethodAccessibility, MethodSymbol, ParsedFile, ParserConfig, SymbolKind, SymbolName, SymbolSet,
+    ClassSymbol, ExportedSymbol, FileIgnoredLines, FileSymbols, FunctionComplexity,
+    IgnoredRulesMap, ImportedSymbol, MethodAccessibility, MethodSymbol, ParsedFile, ParserConfig,
+    SymbolKind, SymbolName, SymbolSet,
 };
 pub use visitor::UnifiedVisitor;

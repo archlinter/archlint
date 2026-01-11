@@ -33,7 +33,7 @@ rules:
 
 ## Sobrescrituras de Rutas (Overrides)
 
-Para una lógica más compleja (por ejemplo, cambiar configuraciones o desactivar varias reglas para un directorio específico), use la sección `overrides`:
+Para una lógica más compleja (por ejemplo, cambiar configuraciones o desactivar varias reglas para un directorio específico), utilice la sección `overrides`:
 
 ```yaml
 overrides:
@@ -46,4 +46,36 @@ overrides:
 
 ## Ignorar en Línea
 
-(En desarrollo) Estamos trabajando en el soporte de comentarios como `// archlint-disable` para ignorar líneas o archivos específicos directamente en el código.
+Puede ignorar problemas arquitectónicos específicos directamente en su código fuente utilizando comentarios especiales. Esto es útil para suprimir advertencias en casos excepcionales.
+
+### Uso:
+
+Se admiten tanto la sintaxis de comentario de una sola línea (`// archlint-...`) como la de comentario de bloque (`/* archlint-... */`) para todos los patrones.
+
+1. **Todo el archivo**: Agregue `// archlint-disable` al principio del archivo.
+2. **Línea actual**: Agregue `// archlint-disable-line` al final de la línea o en la línea de arriba.
+3. **Siguiente línea**: Utilice `// archlint-disable-next-line` antes de la línea problemática.
+4. **Bloques**: Utilice `// archlint-disable` y `// archlint-enable` para envolver una sección de código.
+
+### Ejemplos:
+
+```typescript
+// archlint-disable * - Todo el archivo utiliza patrones heredados
+// Ignorar todas las reglas para todo el archivo
+
+// prettier-ignore
+// archlint-disable-next-line long-params - Esta función heredada requiere muchos parámetros
+function processTransaction(id: string, amount: number, currency: string, date: Date, recipient: string, note: string) {
+  // El detector de parámetros largos será ignorado solo para esta línea
+}
+
+import { internal } from './private'; // archlint-disable-line layer_violation - Exclusión temporal para migración
+
+/* archlint-disable complexity */
+function legacyCode() {
+  // Este bloque será ignorado
+}
+/* archlint-enable complexity */
+```
+
+Puede especificar múltiples reglas separadas por comas o usar `*` para ignorar todas las reglas.

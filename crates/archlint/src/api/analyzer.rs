@@ -7,7 +7,7 @@ use crate::engine::context::AnalysisContext;
 use crate::engine::AnalysisEngine;
 use crate::error::Result;
 use crate::incremental::IncrementalState;
-use crate::parser::{ImportParser, ParserConfig};
+use crate::parser::{FileIgnoredLines, ImportParser, ParserConfig};
 use crate::resolver::PathResolver;
 use sha2::{Digest, Sha256};
 use std::collections::{HashMap, HashSet};
@@ -59,6 +59,7 @@ impl Analyzer {
         self.state.file_symbols = Arc::new(report.file_symbols.clone());
         self.state.file_metrics = Arc::new(report.file_metrics.clone());
         self.state.function_complexity = Arc::new(report.function_complexity.clone());
+        self.state.ignored_lines = Arc::new(report.ignored_lines.clone());
         self.state.churn_map = report.churn_map.clone();
         self.state.presets = report.presets.clone();
         self.state.last_full_scan = Some(Instant::now());
@@ -125,6 +126,7 @@ impl Analyzer {
             file_symbols: Arc::clone(&self.state.file_symbols),
             function_complexity: Arc::clone(&self.state.function_complexity),
             file_metrics: Arc::clone(&self.state.file_metrics),
+            ignored_lines: Arc::clone(&self.state.ignored_lines),
             churn_map: self.state.churn_map.clone(),
             config: self.config.clone(),
             script_entry_points: self.state.script_entry_points.clone(),
@@ -275,6 +277,7 @@ impl Analyzer {
             self.state.file_symbols_mut().remove(file);
             self.state.file_metrics_mut().remove(file);
             self.state.function_complexity_mut().remove(file);
+            Arc::<FileIgnoredLines>::make_mut(&mut self.state.ignored_lines).remove(file);
             self.state.file_hashes.remove(file);
             self.state.reverse_deps.remove(file);
 

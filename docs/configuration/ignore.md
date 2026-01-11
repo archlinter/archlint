@@ -46,4 +46,36 @@ overrides:
 
 ## Inline Ignore
 
-(In Development) We are working on supporting comments like `// archlint-disable` to ignore specific lines or files directly in the code.
+You can ignore specific architectural smells directly in your source code using special comments. This is useful for suppressing warnings in exceptional cases.
+
+### Usage:
+
+Both single-line (`// archlint-...`) and block comment (`/* archlint-... */`) syntaxes are supported for all patterns.
+
+1. **Whole File**: Add `// archlint-disable` at the top of the file.
+2. **Current Line**: Add `// archlint-disable-line` at the end of the line or on the line above.
+3. **Next Line**: Use `// archlint-disable-next-line` before the problematic line.
+4. **Blocks**: Use `// archlint-disable` and `// archlint-enable` to wrap a section of code.
+
+### Examples:
+
+```typescript
+// archlint-disable * - Entire file uses legacy patterns
+// Ignore all rules for the entire file
+
+// prettier-ignore
+// archlint-disable-next-line long-params - This legacy function requires many parameters
+function processTransaction(id: string, amount: number, currency: string, date: Date, recipient: string, note: string) {
+  // Long params detector will be ignored only for this line
+}
+
+import { internal } from './private'; // archlint-disable-line layer_violation - Temporary exclusion for migration
+
+/* archlint-disable complexity */
+function legacyCode() {
+  // This block is ignored
+}
+/* archlint-enable complexity */
+```
+
+You can specify multiple rules separated by commas or use `*` to ignore all rules.

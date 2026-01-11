@@ -46,4 +46,36 @@ overrides:
 
 ## インラインでの無視
 
-(開発中) コード内で直接特定の行やファイルを無視するための `// archlint-disable` のようなコメントのサポートに取り組んでいます。
+特別なコメントを使用して、ソースコード内で直接特定のアーキテクチャ上の問題を無視できます。これは、例外的なケースで警告を抑制するのに役立ちます。
+
+### 使用方法:
+
+すべてのパターンで、単一行コメント (`// archlint-...`) とブロックコメント (`/* archlint-... */`) の両方の構文がサポートされています。
+
+1. **ファイル全体**: ファイルの先頭に `// archlint-disable` を追加します。
+2. **現在の行**: 行の末尾、またはその上の行に `// archlint-disable-line` を追加します。
+3. **次の行**: 問題のある行の前に `// archlint-disable-next-line` を使用します。
+4. **ブロック**: `// archlint-disable` と `// archlint-enable` を使用してコードのセクションを囲みます。
+
+### 例:
+
+```typescript
+// archlint-disable * - ファイル全体でレガシーなパターンを使用
+// ファイル全体ですべてのルールを無視する
+
+// prettier-ignore
+// archlint-disable-next-line long-params - このレガシー関数は多くの引数を必要とします
+function processTransaction(id: string, amount: number, currency: string, date: Date, recipient: string, note: string) {
+  // 長すぎる引数の検出はこの行に対してのみ無視されます
+}
+
+import { internal } from './private'; // archlint-disable-line layer_violation - 移行のための一時的な除外
+
+/* archlint-disable complexity */
+function legacyCode() {
+  // このブロックは無視されます
+}
+/* archlint-enable complexity */
+```
+
+カンマで区切って複数のルールを指定したり、`*` を使用してすべてのルールを無視したりできます。

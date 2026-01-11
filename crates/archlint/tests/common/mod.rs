@@ -2,7 +2,7 @@ use archlint::config::{Config, RuleConfig, RuleFullConfig};
 use archlint::engine::{context::FileMetrics, AnalysisContext};
 use archlint::graph::DependencyGraph;
 use archlint::package_json::PackageJsonParser;
-use archlint::parser::ImportParser;
+use archlint::parser::{FileIgnoredLines, ImportParser};
 use archlint::resolver::PathResolver;
 use archlint::scanner::FileScanner;
 use std::collections::{HashMap, HashSet};
@@ -41,6 +41,7 @@ pub fn analyze_fixture_with_config(name: &str, config: Config) -> AnalysisContex
     let mut file_symbols = HashMap::new();
     let mut function_complexity = HashMap::new();
     let mut file_metrics = HashMap::new();
+    let mut ignored_lines = FileIgnoredLines::default();
 
     for file in &files {
         graph.add_file(file);
@@ -58,6 +59,9 @@ pub fn analyze_fixture_with_config(name: &str, config: Config) -> AnalysisContex
                     lines: parsed.lines,
                 },
             );
+            if !parsed.ignored_lines.is_empty() {
+                ignored_lines.insert(file.clone(), parsed.ignored_lines.clone());
+            }
 
             for import in parsed.symbols.imports {
                 if let Ok(Some(resolved)) = resolver.resolve(&import.source, file) {
@@ -86,6 +90,7 @@ pub fn analyze_fixture_with_config(name: &str, config: Config) -> AnalysisContex
         file_symbols: Arc::new(file_symbols),
         function_complexity: Arc::new(function_complexity),
         file_metrics: Arc::new(file_metrics),
+        ignored_lines: Arc::new(ignored_lines),
         churn_map: HashMap::new(),
         config,
         script_entry_points,
