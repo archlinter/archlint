@@ -1,3 +1,13 @@
+## [0.12.0](https://github.com/archlinter/archlint/compare/v0.11.0...v0.12.0) (2026-01-11)
+
+### Features
+
+- implement inline ignoring via archlint-disable comments ([#21](https://github.com/archlinter/archlint/issues/21)) ([97b50bb](https://github.com/archlinter/archlint/commit/97b50bbdb0b7454c1afc52ae9f9dac4e22b1b86f))
+
+### Bug Fixes
+
+- **archlint:** resolve duplicate smell ids and side-effect false positives (fixes [#23](https://github.com/archlinter/archlint/issues/23)) ([#24](https://github.com/archlinter/archlint/issues/24)) ([1ed2c5a](https://github.com/archlinter/archlint/commit/1ed2c5ae7b26b01818b2ac06e8812a4c371ab0dd))
+
 ## [0.11.0](https://github.com/archlinter/archlint/compare/v0.10.0...v0.11.0) (2026-01-11)
 
 ### Features
