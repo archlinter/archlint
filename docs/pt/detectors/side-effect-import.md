@@ -15,6 +15,6 @@ O archlint ignora automaticamente as seguintes importações com efeito colatera
 - **CSS/Assets**: `import './styles.css'`, `import './image.png'`, etc.
 - **Importações Dinâmicas**: `import('./module')` ou `require('./module')` dentro de funções (geralmente usadas para lazy loading ou importações condicionais).
 
-## Как исправить
+## Como corrigir
 
 Tente tornar a inicialização explícita. Em vez de depender de uma importação com efeito colateral, exporte uma função `init()` e chame-a explicitamente.

@@ -7,12 +7,16 @@ use crate::snapshot::{SmellDetails, SnapshotSmell};
 use std::collections::{BTreeMap, HashSet};
 
 /// Matcher for finding corresponding smells when exact ID matching fails.
+///
+/// It uses a "fuzzy" approach by grouping smells by their type and symbol name,
+/// then matching them based on line proximity within a given tolerance.
 pub struct FuzzyMatcher {
     /// Maximum line difference to consider smells as the same (default: 50)
     line_tolerance: usize,
 }
 
 impl Default for FuzzyMatcher {
+    /// Creates a FuzzyMatcher with default tolerance (50 lines).
     fn default() -> Self {
         Self { line_tolerance: 50 }
     }
@@ -21,7 +25,9 @@ impl Default for FuzzyMatcher {
 /// A matched pair of baseline and current smells that represent the same issue.
 #[derive(Debug)]
 pub struct MatchedPair<'a> {
+    /// The smell from the baseline snapshot.
     pub baseline: &'a SnapshotSmell,
+    /// The corresponding smell from the current snapshot.
     pub current: &'a SnapshotSmell,
 }
 
@@ -37,6 +43,7 @@ impl FuzzyMatcher {
     /// Find matching pairs between orphaned baseline and current smells.
     ///
     /// Returns pairs of smells that are likely the same issue but with shifted line numbers.
+    /// Orphaned smells are those that didn't have an exact ID match.
     pub fn match_orphans<'a>(
         &self,
         orphaned_baseline: &[&'a SnapshotSmell],
@@ -67,6 +74,9 @@ impl FuzzyMatcher {
     }
 
     /// Find the best matching current smell for a given baseline smell from a list of candidates.
+    ///
+    /// Best match is defined as the one with the smallest line number difference
+    /// within the configured tolerance.
     fn find_best_match<'a>(
         &self,
         baseline: &SnapshotSmell,
@@ -87,7 +97,7 @@ impl FuzzyMatcher {
             .map(|(current, _)| *current)
     }
 
-    /// Group smells by their matching key.
+    /// Group smells by their matching key for efficient lookup.
     ///
     /// Key format: (smell_type, first_file, symbol_name).
     fn group_by_key<'a>(

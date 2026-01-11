@@ -140,5 +140,5 @@ Cuando está habilitado, la herramienta:
 
 La sección `diff` controla cómo se detectan las regresiones arquitectónicas al comparar dos instantáneas:
 
-- **`metric_threshold_percent`** (por defecto: `20`): Define cuánto debe aumentar una métrica (como la complejidad ciclomática или el acoplamiento) antes de que se informe como un smell "empeorado". Por ejemplo, con un umbral del 20%, la complejidad de una función debe aumentar de 10 a al menos 12 para ser señalada.
+- **`metric_threshold_percent`** (por defecto: `20`): Define cuánto debe aumentar una métrica (como la complejidad ciclomática o el acoplamiento) antes de que se informe como un smell "empeorado". Por ejemplo, con un umbral del 20%, la complejidad de una función debe aumentar de 10 a al menos 12 para ser señalada.
 - **`line_tolerance`** (por defecto: `50`): Define el número máximo de líneas que un símbolo de código puede desplazarse (debido a adiciones o eliminaciones en otras partes del archivo) antes de que archlint deje de reconocerlo como el mismo smell. Este "emparejamiento difuso" evita que el código desplazado se informe como una nueva regresión.
