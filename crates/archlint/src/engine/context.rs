@@ -20,6 +20,7 @@ pub struct AnalysisContext {
     pub file_symbols: Arc<HashMap<PathBuf, FileSymbols>>,
     pub function_complexity: Arc<HashMap<PathBuf, Vec<FunctionComplexity>>>,
     pub file_metrics: Arc<HashMap<PathBuf, FileMetrics>>,
+    pub ignored_lines: Arc<HashMap<PathBuf, HashMap<usize, HashSet<String>>>>,
     // Small, keep owned
     pub churn_map: HashMap<PathBuf, usize>,
     pub config: Config,
@@ -80,6 +81,7 @@ impl AnalysisContext {
             file_symbols: Arc::new(HashMap::new()),
             function_complexity: Arc::new(HashMap::new()),
             file_metrics: Arc::new(HashMap::new()),
+            ignored_lines: Arc::new(HashMap::new()),
             churn_map: HashMap::new(),
             config: Config::default(),
             script_entry_points: HashSet::new(),

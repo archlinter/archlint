@@ -139,6 +139,10 @@ pub struct AnalysisReport {
     pub file_symbols: std::collections::HashMap<PathBuf, FileSymbols>,
     pub file_metrics: std::collections::HashMap<PathBuf, FileMetrics>,
     pub function_complexity: std::collections::HashMap<PathBuf, Vec<FunctionComplexity>>,
+    pub ignored_lines: std::collections::HashMap<
+        PathBuf,
+        std::collections::HashMap<usize, std::collections::HashSet<String>>,
+    >,
     pub churn_map: std::collections::HashMap<PathBuf, usize>,
     pub presets: Vec<FrameworkPreset>,
     pub min_severity: Option<Severity>,
@@ -146,12 +150,17 @@ pub struct AnalysisReport {
 }
 
 impl AnalysisReport {
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         smells: Vec<ArchSmell>,
         graph: Option<DependencyGraph>,
         file_symbols: std::collections::HashMap<PathBuf, FileSymbols>,
         file_metrics: std::collections::HashMap<PathBuf, FileMetrics>,
         function_complexity: std::collections::HashMap<PathBuf, Vec<FunctionComplexity>>,
+        ignored_lines: std::collections::HashMap<
+            PathBuf,
+            std::collections::HashMap<usize, std::collections::HashSet<String>>,
+        >,
         churn_map: std::collections::HashMap<PathBuf, usize>,
         presets: Vec<FrameworkPreset>,
     ) -> Self {
@@ -242,6 +251,7 @@ impl AnalysisReport {
             file_symbols,
             file_metrics,
             function_complexity,
+            ignored_lines,
             churn_map,
             presets,
             min_severity: None,

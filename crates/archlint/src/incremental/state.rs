@@ -15,6 +15,7 @@ pub struct IncrementalState {
     pub file_symbols: Arc<HashMap<PathBuf, FileSymbols>>,
     pub file_metrics: Arc<HashMap<PathBuf, FileMetrics>>,
     pub function_complexity: Arc<HashMap<PathBuf, Vec<FunctionComplexity>>>,
+    pub ignored_lines: Arc<HashMap<PathBuf, HashMap<usize, HashSet<String>>>>,
 
     // Light structures remain owned
     pub file_hashes: HashMap<PathBuf, String>,
@@ -46,6 +47,7 @@ impl IncrementalState {
             file_symbols: Arc::new(HashMap::new()),
             file_metrics: Arc::new(HashMap::new()),
             function_complexity: Arc::new(HashMap::new()),
+            ignored_lines: Arc::new(HashMap::new()),
             file_hashes: HashMap::new(),
             churn_map: HashMap::new(),
             reverse_deps: HashMap::new(),
@@ -66,6 +68,7 @@ impl IncrementalState {
         self.file_symbols = Arc::new(HashMap::new());
         self.file_metrics = Arc::new(HashMap::new());
         self.function_complexity = Arc::new(HashMap::new());
+        self.ignored_lines = Arc::new(HashMap::new());
         self.file_hashes.clear();
         self.churn_map.clear();
         self.reverse_deps.clear();

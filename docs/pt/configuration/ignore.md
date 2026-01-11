@@ -46,4 +46,26 @@ overrides:
 
 ## Ignorar Inline
 
-(Em Desenvolvimento) Estamos trabalhando no suporte a comentários como `// archlint-disable` para ignorar linhas ou arquivos específicos diretamente no código.
+Você pode ignorar problemas arquiteturais específicos diretamente no seu código-fonte usando comentários especiais. Isso é útil para suprimir avisos em casos excepcionais.
+
+### Uso:
+
+1. **Todo o arquivo**: Adicione `// archlint-disable` no início do arquivo.
+2. **Linha atual**: Adicione `// archlint-disable-line` no final da linha ou na linha acima.
+3. **Próxima linha**: Use `// archlint-disable-next-line` antes da linha problemática.
+
+### Exemplos:
+
+```typescript
+// archlint-disable-next-line complexity
+function veryComplexFunction() {
+  // O detector de complexidade será ignorado para esta função
+}
+
+import { internal } from './private'; // archlint-disable-line layer_violation
+
+// archlint-disable cycles, god_module
+// Ignorar regras específicas para todo o arquivo
+```
+
+Você pode especificar várias regras separadas por vírgulas ou usar `*` para ignorar todas as regras.

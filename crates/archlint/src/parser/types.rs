@@ -3,7 +3,7 @@ use compact_str::CompactString;
 use rustc_hash::FxHashSet;
 use serde::{Deserialize, Serialize};
 use smallvec::SmallVec;
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 
 /// Compact string type for symbol names (inline up to 24 bytes, no heap allocation for short strings)
 pub type SymbolName = CompactString;
@@ -148,6 +148,7 @@ pub struct ParsedFile {
     pub symbols: FileSymbols,
     pub functions: Vec<FunctionComplexity>,
     pub lines: usize,
+    pub ignored_lines: HashMap<usize, HashSet<String>>,
 }
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]

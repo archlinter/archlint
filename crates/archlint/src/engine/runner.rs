@@ -112,7 +112,7 @@ impl AnalysisEngine {
         let parsed_files = self.parse_files(&files, &parser_config, use_progress, &cache)?;
         self.update_cache(&mut cache, &parsed_files)?;
 
-        let (file_symbols, function_complexity, file_metrics) =
+        let (file_symbols, function_complexity, file_metrics, ignored_lines) =
             self.extract_parsed_data(parsed_files);
         let runtime_files = self.get_runtime_files(&file_symbols);
 
@@ -130,6 +130,7 @@ impl AnalysisEngine {
             file_symbols: Arc::new(resolved_file_symbols),
             function_complexity: Arc::new(function_complexity),
             file_metrics: Arc::new(file_metrics),
+            ignored_lines: Arc::new(ignored_lines),
             churn_map,
             config: final_config.clone(),
             script_entry_points: pkg_config.entry_points,
@@ -157,7 +158,7 @@ impl AnalysisEngine {
         files_len: usize,
         presets: Vec<FrameworkPreset>,
     ) -> Result<AnalysisReport> {
-        // Filter smells: only keep smells that are NOT in ignored files
+        // Filter smells: only keep smells that are NOT in ignored files AND not ignored via inline comments
         let filtered_smells: Vec<_> = all_smells
             .into_iter()
             .filter(|smell| {
@@ -165,7 +166,13 @@ impl AnalysisEngine {
                 if matches!(smell.smell_type, SmellType::CodeClone { .. }) {
                     return true;
                 }
-                // Keep the smell if at least one of the files it's associated with is NOT ignored
+
+                // Check if smell is ignored by inline comments
+                if self.is_smell_ignored_by_comments(smell, &ctx.ignored_lines) {
+                    return false;
+                }
+
+                // Keep the smell if at least one of the files it's associated with is NOT ignored via config
                 smell.files.is_empty() || smell.files.iter().any(|f| !self.is_file_ignored(f))
             })
             .collect();
@@ -176,6 +183,7 @@ impl AnalysisEngine {
             Arc::try_unwrap(ctx.file_symbols).unwrap_or_else(|arc| (*arc).clone()),
             Arc::try_unwrap(ctx.file_metrics).unwrap_or_else(|arc| (*arc).clone()),
             Arc::try_unwrap(ctx.function_complexity).unwrap_or_else(|arc| (*arc).clone()),
+            Arc::try_unwrap(ctx.ignored_lines).unwrap_or_else(|arc| (*arc).clone()),
             ctx.churn_map,
             presets,
         );
@@ -516,21 +524,66 @@ impl AnalysisEngine {
         HashMap<PathBuf, crate::parser::FileSymbols>,
         HashMap<PathBuf, Vec<crate::parser::FunctionComplexity>>,
         HashMap<PathBuf, crate::engine::context::FileMetrics>,
+        HashMap<PathBuf, HashMap<usize, HashSet<String>>>,
     ) {
         let mut symbols = HashMap::new();
         let mut complexity = HashMap::new();
         let mut metrics = HashMap::new();
+        let mut ignored = HashMap::new();
         for (file, parsed) in parsed_files {
             symbols.insert(file.clone(), parsed.symbols);
             complexity.insert(file.clone(), parsed.functions);
             metrics.insert(
-                file,
+                file.clone(),
                 crate::engine::context::FileMetrics {
                     lines: parsed.lines,
                 },
             );
+            ignored.insert(file, parsed.ignored_lines);
         }
-        (symbols, complexity, metrics)
+        (symbols, complexity, metrics, ignored)
+    }
+
+    fn is_smell_ignored_by_comments(
+        &self,
+        smell: &detectors::ArchSmell,
+        ignored_lines: &HashMap<PathBuf, HashMap<usize, HashSet<String>>>,
+    ) -> bool {
+        let rule_id = smell.smell_type.category().to_id();
+
+        // Check if any location of the smell is ignored
+        for loc in &smell.locations {
+            if let Some(file_ignores) = ignored_lines.get(&loc.file) {
+                // File-wide ignore (line 0)
+                if let Some(rules) = file_ignores.get(&0) {
+                    if rules.contains("*") || rules.contains(rule_id) {
+                        return true;
+                    }
+                }
+
+                // Line-specific ignore
+                if let Some(rules) = file_ignores.get(&loc.line) {
+                    if rules.contains("*") || rules.contains(rule_id) {
+                        return true;
+                    }
+                }
+            }
+        }
+
+        // If no locations, but has files, check file-wide ignores for those files
+        if smell.locations.is_empty() {
+            for file in &smell.files {
+                if let Some(file_ignores) = ignored_lines.get(file) {
+                    if let Some(rules) = file_ignores.get(&0) {
+                        if rules.contains("*") || rules.contains(rule_id) {
+                            return true;
+                        }
+                    }
+                }
+            }
+        }
+
+        false
     }
 
     fn get_runtime_files(

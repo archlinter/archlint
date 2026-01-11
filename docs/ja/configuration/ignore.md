@@ -46,4 +46,26 @@ overrides:
 
 ## インラインでの無視
 
-(開発中) コード内で直接特定の行やファイルを無視するための `// archlint-disable` のようなコメントのサポートに取り組んでいます。
+特別なコメントを使用して、ソースコード内で直接特定のアーキテクチャ上の問題を無視できます。これは、例外的なケースで警告を抑制するのに役立ちます。
+
+### 使用方法:
+
+1. **ファイル全体**: ファイルの先頭に `// archlint-disable` を追加します。
+2. **現在の行**: 行の末尾、またはその上の行に `// archlint-disable-line` を追加します。
+3. **次の行**: 問題のある行の前に `// archlint-disable-next-line` を使用します。
+
+### 例:
+
+```typescript
+// archlint-disable-next-line complexity
+function veryComplexFunction() {
+  // この関数に対して複雑度検出は無視されます
+}
+
+import { internal } from './private'; // archlint-disable-line layer_violation
+
+// archlint-disable cycles, god_module
+// ファイル全体で特定のルールを無視する
+```
+
+カンマで区切って複数のルールを指定したり、`*` を使用してすべてのルールを無視したりできます。

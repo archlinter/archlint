@@ -5,6 +5,7 @@ use oxc_allocator::Allocator;
 use oxc_ast::visit::Visit;
 use oxc_parser::Parser;
 use oxc_span::SourceType;
+use std::collections::{HashMap, HashSet};
 use std::fs;
 use std::path::Path;
 
@@ -64,6 +65,7 @@ impl ImportParser {
             .retain(|d| !export_names.contains(d));
 
         let lines = visitor.line_count();
+        let ignored_lines = self.parse_ignore_comments(content, &ret.program.comments, &visitor);
 
         Ok(ParsedFile {
             symbols: FileSymbols {
@@ -77,7 +79,94 @@ impl ImportParser {
             },
             functions: visitor.functions,
             lines,
+            ignored_lines,
         })
+    }
+
+    fn parse_ignore_comments(
+        &self,
+        content: &str,
+        comments: &oxc_allocator::Vec<'_, oxc_ast::ast::Comment>,
+        visitor: &UnifiedVisitor,
+    ) -> HashMap<usize, HashSet<String>> {
+        let mut ignored = HashMap::new();
+
+        for comment in comments {
+            let start = comment.span.start;
+            let comment_text = &content[start as usize..comment.span.end as usize];
+            let comment_line = visitor.get_line_number_from_offset(start as usize);
+
+            if let Some(caps) = self.parse_ignore_command(comment_text) {
+                let (command, rules) = caps;
+
+                match command.as_str() {
+                    "archlint-disable" => {
+                        // File-wide or until end of file. For now, let's treat it as file-wide if at the top,
+                        // or just mark line 0 as "ignore all" if it's a general disable.
+                        // Actually, let's use line 0 for file-wide ignore.
+                        ignored
+                            .entry(0)
+                            .or_insert_with(HashSet::new)
+                            .extend(rules.clone());
+                    }
+                    "archlint-disable-line" => {
+                        ignored
+                            .entry(comment_line)
+                            .or_insert_with(HashSet::new)
+                            .extend(rules);
+                    }
+                    "archlint-disable-next-line" => {
+                        ignored
+                            .entry(comment_line + 1)
+                            .or_insert_with(HashSet::new)
+                            .extend(rules);
+                    }
+                    _ => {}
+                }
+            }
+        }
+
+        ignored
+    }
+
+    fn parse_ignore_command(&self, text: &str) -> Option<(String, HashSet<String>)> {
+        let text = text.trim();
+        let text = if let Some(stripped) = text.strip_prefix("//") {
+            stripped
+        } else if let Some(stripped) = text.strip_prefix("/*") {
+            stripped.strip_suffix("*/").unwrap_or(stripped)
+        } else {
+            text
+        };
+
+        let text = text.trim();
+        if !text.starts_with("archlint-disable") {
+            return None;
+        }
+
+        let parts: Vec<&str> = text.split_whitespace().collect();
+        if parts.is_empty() {
+            return None;
+        }
+
+        let command = parts[0].to_string();
+        let mut rules = HashSet::new();
+
+        if parts.len() > 1 {
+            let rules_part = parts[1..].join("");
+            for rule in rules_part.split(',') {
+                let rule = rule.trim();
+                if !rule.is_empty() {
+                    rules.insert(rule.to_string());
+                }
+            }
+        }
+
+        if rules.is_empty() {
+            rules.insert("*".to_string());
+        }
+
+        Some((command, rules))
     }
 
     #[inline]

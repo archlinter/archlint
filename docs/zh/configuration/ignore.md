@@ -44,6 +44,28 @@ overrides:
       large_file: medium
 ```
 
-## 内联忽略
+## 内联忽略 (Inline Ignore)
 
-（开发中）我们正在支持类似于 `// archlint-disable` 的注释，以便直接在代码中忽略特定的行或文件。
+您可以使用特殊的注释直接在源代码中忽略特定的架构问题。这对于在例外情况下抑制警告非常有用。
+
+### 用法：
+
+1. **整个文件**：在文件顶部添加 `// archlint-disable`。
+2. **当前行**：在行尾或上一行添加 `// archlint-disable-line`。
+3. **下一行**：在有问题的行之前使用 `// archlint-disable-next-line`。
+
+### 示例：
+
+```typescript
+// archlint-disable-next-line complexity
+function veryComplexFunction() {
+  // 此函数的复杂度检测将被忽略
+}
+
+import { internal } from './private'; // archlint-disable-line layer_violation
+
+// archlint-disable cycles, god_module
+// 忽略整个文件的特定规则
+```
+
+您可以指定多个以逗号分隔的规则，或使用 `*` 忽略所有规则。

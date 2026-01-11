@@ -86,6 +86,7 @@ pub fn analyze_fixture_with_config(name: &str, config: Config) -> AnalysisContex
         file_symbols: Arc::new(file_symbols),
         function_complexity: Arc::new(function_complexity),
         file_metrics: Arc::new(file_metrics),
+        ignored_lines: Arc::new(HashMap::new()),
         churn_map: HashMap::new(),
         config,
         script_entry_points,
