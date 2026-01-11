@@ -4,7 +4,7 @@
 //! Fuzzy matching identifies these "shifted" smells to avoid false positives in diff.
 
 use crate::snapshot::{SmellDetails, SnapshotSmell};
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 /// Matcher for finding corresponding smells when exact ID matching fails.
 pub struct FuzzyMatcher {
@@ -45,7 +45,7 @@ impl FuzzyMatcher {
         let current_by_key = Self::group_by_key(orphaned_current);
 
         let mut matched = Vec::new();
-        let mut used_current_ids = std::collections::HashSet::new();
+        let mut used_current_ids = HashSet::new();
 
         for (key, baseline_smells) in &baseline_by_key {
             let Some(current_smells) = current_by_key.get(key) else {
@@ -70,7 +70,7 @@ impl FuzzyMatcher {
         &self,
         baseline: &SnapshotSmell,
         candidates: &[&'a SnapshotSmell],
-        used_ids: &std::collections::HashSet<&str>,
+        used_ids: &HashSet<&str>,
     ) -> Option<&'a SnapshotSmell> {
         let baseline_line = Self::extract_line(baseline)?;
 
@@ -197,7 +197,6 @@ impl FuzzyMatcher {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::collections::HashMap;
 
     fn make_smell(id: &str, smell_type: &str, file: &str, line: usize) -> SnapshotSmell {
         SnapshotSmell {
