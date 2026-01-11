@@ -1,6 +1,4 @@
-use crate::detectors::{
-    detector, ArchSmell, Detector, DetectorCategory, Explanation, SmellType, SmellWithExplanation,
-};
+use crate::detectors::{detector, ArchSmell, Detector, DetectorCategory};
 use crate::engine::AnalysisContext;
 use petgraph::graph::UnGraph;
 use std::collections::HashSet;
@@ -65,47 +63,25 @@ impl ScatteredModuleDetector {
 }
 
 impl Detector for ScatteredModuleDetector {
-    fn name(&self) -> &'static str {
-        "ScatteredModule"
-    }
-
-    fn explain(&self, _smell: &ArchSmell) -> Explanation {
-        Explanation {
-            problem: "Scattered Module (Low Cohesion)".to_string(),
-            reason: "Module exports are not related to each other, which means the module might be a 'catch-all' bucket for unrelated code.".to_string(),
-            risks: vec!["Difficult to understand and reuse".to_string(), "Unrelated changes cascade through this module".to_string()],
-            recommendations: vec!["Split the module into several smaller, cohesive modules".to_string()],
+    crate::impl_detector_report!(
+        name: "ScatteredModule",
+        explain: _smell => (
+            problem: "Scattered Module (Low Cohesion)",
+            reason: "Module exports are not related to each other, which means the module might be a 'catch-all' bucket for unrelated code.",
+            risks: [
+                "Difficult to understand and reuse",
+                "Unrelated changes cascade through this module"
+            ],
+            recommendations: [
+                "Split the module into several smaller, cohesive modules"
+            ]
+        ),
+        table: {
+            title: "Scattered Modules",
+            columns: ["File", "Components", "pts"],
+            row: ScatteredModule { components } (smell, location, pts) => [location, components, pts]
         }
-    }
-
-    fn render_markdown(
-        &self,
-        smells: &[&SmellWithExplanation],
-        severity_config: &crate::config::SeverityConfig,
-        _graph: Option<&crate::graph::DependencyGraph>,
-    ) -> String {
-        use crate::explain::ExplainEngine;
-        crate::define_report_section!("Scattered Modules", smells, {
-            crate::render_table!(
-                vec!["File", "Components", "pts"],
-                smells,
-                |&(smell, _): &&SmellWithExplanation| {
-                    let file_path = smell.files.first().unwrap();
-                    let formatted_path = ExplainEngine::format_file_path(file_path);
-                    let components = match &smell.smell_type {
-                        SmellType::ScatteredModule { components } => components.to_string(),
-                        _ => "unknown".to_string(),
-                    };
-                    let pts = smell.score(severity_config);
-                    vec![
-                        format!("`{}`", formatted_path),
-                        components,
-                        format!("{} pts", pts),
-                    ]
-                }
-            )
-        })
-    }
+    );
 
     fn detect(&self, ctx: &AnalysisContext) -> Vec<ArchSmell> {
         let mut smells = Vec::new();
@@ -119,7 +95,7 @@ impl Detector for ScatteredModuleDetector {
             let min_exports: usize = rule.get_option("min_exports").unwrap_or(5);
             let max_components: usize = rule.get_option("max_components").unwrap_or(2);
 
-            // Ignore small files and barrels (barrels are handled by BarrelFileAbuseDetector)
+            // Ignore small files and barrels
             if symbols.exports.len() < min_exports || self.is_barrel_file(path, symbols) {
                 continue;
             }

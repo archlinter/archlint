@@ -1,6 +1,4 @@
-use crate::detectors::{
-    detector, ArchSmell, Detector, DetectorCategory, Explanation, SmellWithExplanation,
-};
+use crate::detectors::{detector, ArchSmell, Detector, DetectorCategory};
 use crate::engine::AnalysisContext;
 use crate::parser::SymbolKind;
 use petgraph::graph::NodeIndex;
@@ -47,51 +45,31 @@ impl AbstractnessViolationDetector {
 }
 
 impl Detector for AbstractnessViolationDetector {
-    fn name(&self) -> &'static str {
-        "AbstractnessViolation"
-    }
-
-    fn explain(&self, _smell: &ArchSmell) -> Explanation {
-        Explanation {
-            problem: "Abstractness Violation".to_string(),
-            reason: "Module distance from the 'Main Sequence' is too high. This means it's either too stable and concrete (Zone of Pain) or too unstable and abstract (Zone of Uselessness).".to_string(),
-            risks: vec!["Rigid code that is hard to change".to_string(), "Unused abstractions that add complexity".to_string()],
-            recommendations: vec!["Balance stability with abstractness by introducing interfaces or refactoring implementation details".to_string()],
+    crate::impl_detector_report!(
+        name: "AbstractnessViolation",
+        explain: _smell => {
+            crate::detectors::Explanation {
+                problem: "Abstractness Violation".into(),
+                reason: "Module distance from the 'Main Sequence' is too high. This means it's either too stable and concrete (Zone of Pain) or too unstable and abstract (Zone of Uselessness).".into(),
+                risks: crate::strings![
+                    "Rigid code that is hard to change",
+                    "Unused abstractions that add complexity"
+                ],
+                recommendations: crate::strings![
+                    "Balance stability with abstractness by introducing interfaces or refactoring implementation details"
+                ]
+            }
+        },
+        table: {
+            title: "Abstractness Violations",
+            columns: ["File", "Distance", "pts"],
+            row: AbstractnessViolation { } (smell, location, pts) => [
+                location,
+                format!("{:.2}", smell.metrics.iter().find_map(|m| if let crate::detectors::SmellMetric::Distance(d) = m { Some(*d) } else { None }).unwrap_or(0.0)),
+                pts
+            ]
         }
-    }
-
-    fn render_markdown(
-        &self,
-        smells: &[&SmellWithExplanation],
-        severity_config: &crate::config::SeverityConfig,
-        _graph: Option<&crate::graph::DependencyGraph>,
-    ) -> String {
-        use crate::explain::ExplainEngine;
-        crate::define_report_section!("Abstractness Violations", smells, {
-            crate::render_table!(
-                vec!["File", "Distance", "pts"],
-                smells,
-                |&(smell, _): &&SmellWithExplanation| {
-                    let file_path = smell.files.first().unwrap();
-                    let formatted_path = ExplainEngine::format_file_path(file_path);
-                    let distance = match &smell
-                        .metrics
-                        .iter()
-                        .find(|m| matches!(m, crate::detectors::SmellMetric::Distance(_)))
-                    {
-                        Some(crate::detectors::SmellMetric::Distance(d)) => format!("{:.2}", d),
-                        _ => "unknown".to_string(),
-                    };
-                    let pts = smell.score(severity_config);
-                    vec![
-                        format!("`{}`", formatted_path),
-                        distance,
-                        format!("{} pts", pts),
-                    ]
-                }
-            )
-        })
-    }
+    );
 
     fn detect(&self, ctx: &AnalysisContext) -> Vec<ArchSmell> {
         let mut smells = Vec::new();

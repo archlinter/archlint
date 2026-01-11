@@ -1,6 +1,4 @@
-use crate::detectors::{
-    detector, ArchSmell, Detector, DetectorCategory, Explanation, SmellType, SmellWithExplanation,
-};
+use crate::detectors::{detector, ArchSmell, Detector, DetectorCategory};
 use crate::engine::AnalysisContext;
 use petgraph::graph::DiGraph;
 use std::collections::{HashMap, HashSet};
@@ -98,7 +96,6 @@ impl PackageCycleDetector {
     }
 
     fn get_package_name_static(path: &Path, project_root: &Path, depth: usize) -> String {
-        // Use parent directory if path is a file
         let dir = if path.is_file() {
             path.parent().unwrap_or(path)
         } else {
@@ -121,40 +118,30 @@ impl PackageCycleDetector {
 }
 
 impl Detector for PackageCycleDetector {
-    fn name(&self) -> &'static str {
-        "PackageCycle"
-    }
-
-    fn explain(&self, _smell: &ArchSmell) -> Explanation {
-        Explanation {
-            problem: "Package-level Cycle".to_string(),
-            reason: "Circular dependency detected between different packages/folders. This violates the goal of creating a hierarchical, directed dependency graph between logical components.".to_string(),
-            risks: vec!["Packages cannot be developed or deployed in isolation".to_string(), "Modular structure becomes a big ball of mud".to_string()],
-            recommendations: vec!["Move shared code to a lower-level package or use abstractions to break the cycle".to_string()],
+    crate::impl_detector_report!(
+        name: "PackageCycle",
+        explain: _smell => {
+            crate::detectors::Explanation {
+                problem: "Package-level Cycle".into(),
+                reason: "Circular dependency detected between different packages/folders. This violates the goal of creating a hierarchical, directed dependency graph between logical components.".into(),
+                risks: crate::strings![
+                    "Packages cannot be developed or deployed in isolation",
+                    "Modular structure becomes a big ball of mud"
+                ],
+                recommendations: crate::strings![
+                    "Move shared code to a lower-level package or use abstractions to break the cycle"
+                ]
+            }
+        },
+        table: {
+            title: "Package Cycles",
+            columns: ["Cycle Path", "pts"],
+            row: PackageCycle { packages } (smell, location, pts) => [
+                packages.join(" → "),
+                pts
+            ]
         }
-    }
-
-    fn render_markdown(
-        &self,
-        smells: &[&SmellWithExplanation],
-        severity_config: &crate::config::SeverityConfig,
-        _graph: Option<&crate::graph::DependencyGraph>,
-    ) -> String {
-        crate::define_report_section!("Package Cycles", smells, {
-            crate::render_table!(
-                vec!["Cycle Path", "pts"],
-                smells,
-                |&(smell, _): &&SmellWithExplanation| {
-                    let path = match &smell.smell_type {
-                        SmellType::PackageCycle { packages } => packages.join(" → "),
-                        _ => "unknown".to_string(),
-                    };
-                    let pts = smell.score(severity_config);
-                    vec![format!("`{}`", path), format!("{} pts", pts)]
-                }
-            )
-        })
-    }
+    );
 
     fn detect(&self, ctx: &AnalysisContext) -> Vec<ArchSmell> {
         let rule = match ctx.get_rule("package_cycles") {

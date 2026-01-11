@@ -1,8 +1,5 @@
-use crate::detectors::{
-    detector, ArchSmell, Detector, DetectorCategory, Explanation, SmellType, SmellWithExplanation,
-};
+use crate::detectors::{detector, ArchSmell, Detector, DetectorCategory};
 use crate::engine::AnalysisContext;
-use std::path::Path;
 
 pub fn init() {}
 
@@ -20,7 +17,7 @@ impl ComplexityDetector {
     }
 
     pub fn detect_file(
-        file_path: &Path,
+        file_path: &std::path::Path,
         functions: &[crate::parser::FunctionComplexity],
         threshold: usize,
     ) -> Vec<ArchSmell> {
@@ -44,78 +41,37 @@ impl ComplexityDetector {
 }
 
 impl Detector for ComplexityDetector {
-    fn name(&self) -> &'static str {
-        "Complexity"
-    }
-
-    fn explain(&self, smell: &ArchSmell) -> Explanation {
-        let name = match &smell.smell_type {
-            SmellType::HighComplexity { name, .. } => name.clone(),
-            _ => "unknown".to_string(),
-        };
-
-        let complexity = smell.complexity().unwrap_or(0);
-
-        Explanation {
-            problem: format!(
-                "Function `{}` has high cyclomatic complexity ({})",
-                name, complexity
-            ),
-            reason: "High cyclomatic complexity indicates that the function has too many decision points (if, for, while, etc.), making it difficult to understand, test, and maintain.".to_string(),
-            risks: vec![
-                "Higher probability of bugs due to complex logic".to_string(),
-                "Difficult to achieve high test coverage".to_string(),
-                "Hard for other developers to read and understand".to_string(),
-                "Refactoring becomes dangerous and difficult".to_string(),
-            ],
-            recommendations: vec![
-                "Extract complex nested logic into smaller, focused helper functions".to_string(),
-                "Use early returns to reduce nesting depth".to_string(),
-                "Simplify logical expressions".to_string(),
-                "Consider using design patterns like Strategy or Command for complex branching".to_string(),
-                "Break down large switch statements".to_string(),
-            ],
-        }
-    }
-
-    fn render_markdown(
-        &self,
-        high_complexity: &[&SmellWithExplanation],
-        severity_config: &crate::config::SeverityConfig,
-        _graph: Option<&crate::graph::DependencyGraph>,
-    ) -> String {
-        use crate::report::format_location_detail;
-
-        crate::define_report_section!("High Complexity Functions", high_complexity, {
-            crate::render_table!(
-                vec!["Location", "Function", "Complexity", "Score"],
-                high_complexity,
-                |&(smell, _): &&SmellWithExplanation| {
-                    if let SmellType::HighComplexity { name, line, .. } = &smell.smell_type {
-                        let file_path = smell.files.first().unwrap();
-                        let location = smell
-                            .locations
-                            .first()
-                            .map(format_location_detail)
-                            .unwrap_or_else(|| {
-                                crate::report::format_location(file_path, *line, None)
-                            });
-                        let complexity = smell.complexity().unwrap_or(0);
-                        let score = smell.score(severity_config);
-
-                        vec![
-                            format!("`{}`", location),
-                            format!("`{}`", name),
-                            complexity.to_string(),
-                            format!("{} pts", score),
-                        ]
-                    } else {
-                        vec!["-".into(); 4]
-                    }
+    crate::impl_detector_report!(
+        name: "Complexity",
+        explain: smell => (
+            problem: {
+                if let crate::detectors::SmellType::HighComplexity { name, complexity, .. } = &smell.smell_type {
+                    format!("Function `{}` has high cyclomatic complexity ({})", name, complexity)
+                } else {
+                    "High cyclomatic complexity".into()
                 }
-            )
-        })
-    }
+            },
+            reason: "High cyclomatic complexity indicates that the function has too many decision points (if, for, while, etc.), making it difficult to understand, test, and maintain.",
+            risks: [
+                "Higher probability of bugs due to complex logic",
+                "Difficult to achieve high test coverage",
+                "Hard for other developers to read and understand",
+                "Refactoring becomes dangerous and difficult"
+            ],
+            recommendations: [
+                "Extract complex nested logic into smaller, focused helper functions",
+                "Use early returns to reduce nesting depth",
+                "Simplify logical expressions",
+                "Consider using design patterns like Strategy or Command for complex branching",
+                "Break down large switch statements"
+            ]
+        ),
+        table: {
+            title: "High Complexity Functions",
+            columns: ["Location", "Function", "Complexity", "Score"],
+            row: HighComplexity { name, complexity } (smell, location, pts) => [location, name, complexity, pts]
+        }
+    );
 
     fn detect(&self, ctx: &AnalysisContext) -> Vec<ArchSmell> {
         let mut smells = Vec::new();

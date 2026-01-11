@@ -1,6 +1,4 @@
-use crate::detectors::{
-    detector, ArchSmell, Detector, DetectorCategory, Explanation, SmellWithExplanation,
-};
+use crate::detectors::{detector, ArchSmell, Detector, DetectorCategory};
 use crate::engine::AnalysisContext;
 
 pub fn init() {}
@@ -21,65 +19,43 @@ impl UnstableInterfaceDetector {
 }
 
 impl Detector for UnstableInterfaceDetector {
-    fn name(&self) -> &'static str {
-        "UnstableInterface"
-    }
+    crate::impl_detector_report!(
+        name: "UnstableInterface",
+        explain: smell => {
+            let churn = smell.churn().unwrap_or(0);
+            let dependants = smell.fan_in().unwrap_or(0);
+            let score = smell.instability_score().unwrap_or(0);
 
-    fn explain(&self, smell: &ArchSmell) -> Explanation {
-        let churn = smell.churn().unwrap_or(0);
-        let dependants = smell.fan_in().unwrap_or(0);
-        let score = smell.instability_score().unwrap_or(0);
-
-        Explanation {
-            problem: format!(
-                "Unstable interface detected (churn: {}, dependants: {}, score: {})",
-                churn, dependants, score
-            ),
-            reason: "This module changes frequently and is used by many other modules. This means changes here have a high probability of breaking other parts of the system.".to_string(),
-            risks: vec![
-                "Frequent regressions in dependant modules".to_string(),
-                "High cost of maintenance due to cascading changes".to_string(),
-                "Difficult to stabilize the overall architecture".to_string(),
-            ],
-            recommendations: vec![
-                "Identify why the module changes so frequently and extract stable parts".to_string(),
-                "Introduce a stable interface (API) and keep implementation details hidden".to_string(),
-                "Reduce the number of dependants by using events or a message bus".to_string(),
-            ],
+            crate::detectors::Explanation {
+                problem: format!(
+                    "Unstable interface detected (churn: {}, dependants: {}, score: {})",
+                    churn, dependants, score
+                ),
+                reason: "This module changes frequently and is used by many other modules. This means changes here have a high probability of breaking other parts of the system.".into(),
+                risks: crate::strings![
+                    "Frequent regressions in dependant modules",
+                    "High cost of maintenance due to cascading changes",
+                    "Difficult to stabilize the overall architecture"
+                ],
+                recommendations: crate::strings![
+                    "Identify why the module changes so frequently and extract stable parts",
+                    "Introduce a stable interface (API) and keep implementation details hidden",
+                    "Reduce the number of dependants by using events or a message bus"
+                ]
+            }
+        },
+        table: {
+            title: "Unstable Interfaces",
+            columns: ["File", "Churn", "Dependants", "Score", "pts"],
+            row: UnstableInterface { } (smell, location, pts) => [
+                location,
+                smell.churn().unwrap_or(0),
+                smell.fan_in().unwrap_or(0),
+                smell.instability_score().unwrap_or(0),
+                pts
+            ]
         }
-    }
-
-    fn render_markdown(
-        &self,
-        unstable_interfaces: &[&SmellWithExplanation],
-        severity_config: &crate::config::SeverityConfig,
-        _graph: Option<&crate::graph::DependencyGraph>,
-    ) -> String {
-        use crate::explain::ExplainEngine;
-
-        crate::define_report_section!("Unstable Interfaces", unstable_interfaces, {
-            crate::render_table!(
-                vec!["File", "Churn", "Dependants", "Score", "pts"],
-                unstable_interfaces,
-                |&(smell, _): &&SmellWithExplanation| {
-                    let file_path = smell.files.first().unwrap();
-                    let formatted_path = ExplainEngine::format_file_path(file_path);
-                    let churn = smell.churn().unwrap_or(0);
-                    let dependants = smell.fan_in().unwrap_or(0);
-                    let score = smell.instability_score().unwrap_or(0);
-                    let pts = smell.score(severity_config);
-
-                    vec![
-                        format!("`{}`", formatted_path),
-                        churn.to_string(),
-                        dependants.to_string(),
-                        score.to_string(),
-                        format!("{} pts", pts),
-                    ]
-                }
-            )
-        })
-    }
+    );
 
     fn detect(&self, ctx: &AnalysisContext) -> Vec<ArchSmell> {
         // Check if git churn information is available

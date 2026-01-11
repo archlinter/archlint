@@ -17,7 +17,6 @@ struct DetectorArgs {
 
 #[proc_macro_attribute]
 pub fn detector(args: TokenStream, input: TokenStream) -> TokenStream {
-    // In syn 2.0, we can use NestedMeta to parse arguments
     let attr_args = match syn::parse::Parser::parse2(
         syn::punctuated::Punctuated::<syn::Meta, syn::Token![,]>::parse_terminated,
         proc_macro2::TokenStream::from(args),

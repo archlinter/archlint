@@ -1,6 +1,4 @@
-use crate::detectors::{
-    detector, ArchSmell, Detector, DetectorCategory, Explanation, SmellType, SmellWithExplanation,
-};
+use crate::detectors::{detector, ArchSmell, Detector, DetectorCategory};
 use crate::engine::AnalysisContext;
 use petgraph::graph::UnGraph;
 
@@ -36,8 +34,7 @@ impl LcomDetector {
                 // methods are connected if they share a field
                 let shares_field = m1.used_fields.iter().any(|f| m2.used_fields.contains(f));
 
-                // or if one calls the other (simplified: if m1 uses m2's name)
-                // we don't have perfect call graph yet, but we can check used_methods
+                // or if one calls the other
                 let calls_each_other =
                     m1.used_methods.contains(&m2.name) || m2.used_methods.contains(&m1.name);
 
@@ -52,52 +49,29 @@ impl LcomDetector {
 }
 
 impl Detector for LcomDetector {
-    fn name(&self) -> &'static str {
-        "Lcom"
-    }
-
-    fn explain(&self, _smell: &ArchSmell) -> Explanation {
-        Explanation {
-            problem: "Low Cohesion of Methods (LCOM)".to_string(),
-            reason: "The methods in this class don't share common fields, suggesting the class might be doing too many unrelated things.".to_string(),
-            risks: vec!["Violation of SRP".to_string(), "Difficult to maintain and test".to_string()],
-            recommendations: vec!["Split the class into smaller, more focused classes".to_string()],
+    crate::impl_detector_report!(
+        name: "Lcom",
+        explain: _smell => (
+            problem: "Low Cohesion of Methods (LCOM)",
+            reason: "The methods in this class don't share common fields, suggesting the class might be doing too many unrelated things.",
+            risks: [
+                "Violation of SRP",
+                "Difficult to maintain and test"
+            ],
+            recommendations: [
+                "Split the class into smaller, more focused classes"
+            ]
+        ),
+        table: {
+            title: "Low Cohesion (LCOM)",
+            columns: ["Class", "LCOM4 Score", "pts"],
+            row: LowCohesion { lcom } (smell, location, pts) => [
+                smell.files.first().map(|f| crate::explain::ExplainEngine::format_file_path(f)).unwrap_or_default(),
+                lcom,
+                pts
+            ]
         }
-    }
-
-    fn render_markdown(
-        &self,
-        smells: &[&SmellWithExplanation],
-        severity_config: &crate::config::SeverityConfig,
-        _graph: Option<&crate::graph::DependencyGraph>,
-    ) -> String {
-        use crate::explain::ExplainEngine;
-        crate::define_report_section!("Low Cohesion (LCOM)", smells, {
-            crate::render_table!(
-                vec!["Class", "LCOM4 Score", "pts"],
-                smells,
-                |&(smell, _): &&SmellWithExplanation| {
-                    let (name, lcom): (String, usize) = match &smell.smell_type {
-                        SmellType::LowCohesion { lcom } => (
-                            smell
-                                .files
-                                .first()
-                                .map(|f| ExplainEngine::format_file_path(f))
-                                .unwrap_or_default(),
-                            *lcom,
-                        ),
-                        _ => ("unknown".to_string(), 0),
-                    };
-                    let pts = smell.score(severity_config);
-                    vec![
-                        format!("`{}`", name),
-                        lcom.to_string(),
-                        format!("{} pts", pts),
-                    ]
-                }
-            )
-        })
-    }
+    );
 
     fn detect(&self, ctx: &AnalysisContext) -> Vec<ArchSmell> {
         let mut smells = Vec::new();

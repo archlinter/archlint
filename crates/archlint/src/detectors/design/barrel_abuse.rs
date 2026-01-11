@@ -1,6 +1,4 @@
-use crate::detectors::{
-    detector, ArchSmell, Detector, DetectorCategory, Explanation, SmellWithExplanation,
-};
+use crate::detectors::{detector, ArchSmell, Detector, DetectorCategory};
 use crate::engine::AnalysisContext;
 use std::path::Path;
 
@@ -28,44 +26,31 @@ impl BarrelFileAbuseDetector {
 }
 
 impl Detector for BarrelFileAbuseDetector {
-    fn name(&self) -> &'static str {
-        "BarrelFileAbuse"
-    }
-
-    fn explain(&self, _smell: &ArchSmell) -> Explanation {
-        Explanation {
-            problem: "Barrel File Abuse".to_string(),
-            reason: "Excessive re-exports in index file. Large barrel files can lead to unnecessary coupling and slower build times.".to_string(),
-            risks: vec!["Increased build times".to_string(), "Circular dependencies risk".to_string()],
-            recommendations: vec!["Split the barrel file or import directly from sub-modules".to_string()],
+    crate::impl_detector_report!(
+        name: "BarrelFileAbuse",
+        explain: _smell => {
+            crate::detectors::Explanation {
+                problem: "Barrel File Abuse".into(),
+                reason: "Excessive re-exports in index file. Large barrel files can lead to unnecessary coupling and slower build times.".into(),
+                risks: crate::strings![
+                    "Increased build times",
+                    "Circular dependencies risk"
+                ],
+                recommendations: crate::strings![
+                    "Split the barrel file or import directly from sub-modules"
+                ]
+            }
+        },
+        table: {
+            title: "Barrel Files",
+            columns: ["File", "Re-exports", "pts"],
+            row: BarrelFileAbuse { } (smell, location, pts) => [
+                location,
+                smell.dependent_count().unwrap_or(0),
+                pts
+            ]
         }
-    }
-
-    fn render_markdown(
-        &self,
-        smells: &[&SmellWithExplanation],
-        severity_config: &crate::config::SeverityConfig,
-        _graph: Option<&crate::graph::DependencyGraph>,
-    ) -> String {
-        use crate::explain::ExplainEngine;
-        crate::define_report_section!("Barrel Files", smells, {
-            crate::render_table!(
-                vec!["File", "Re-exports", "pts"],
-                smells,
-                |&(smell, _): &&SmellWithExplanation| {
-                    let file_path = smell.files.first().unwrap();
-                    let formatted_path = ExplainEngine::format_file_path(file_path);
-                    let count = smell.dependent_count().unwrap_or(0);
-                    let pts = smell.score(severity_config);
-                    vec![
-                        format!("`{}`", formatted_path),
-                        count.to_string(),
-                        format!("{} pts", pts),
-                    ]
-                }
-            )
-        })
-    }
+    );
 
     fn detect(&self, ctx: &AnalysisContext) -> Vec<ArchSmell> {
         let mut smells = Vec::new();

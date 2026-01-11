@@ -1,6 +1,4 @@
-use crate::detectors::{
-    detector, ArchSmell, Detector, DetectorCategory, Explanation, SmellType, SmellWithExplanation,
-};
+use crate::detectors::{detector, ArchSmell, Detector, DetectorCategory};
 use crate::engine::AnalysisContext;
 use crate::parser::{SymbolKind, SymbolName};
 use std::collections::HashSet;
@@ -55,51 +53,31 @@ impl OrphanTypesDetector {
 }
 
 impl Detector for OrphanTypesDetector {
-    fn name(&self) -> &'static str {
-        "OrphanTypes"
-    }
-
-    fn explain(&self, smell: &ArchSmell) -> Explanation {
-        let name = match &smell.smell_type {
-            SmellType::OrphanType { name } => name.clone(),
-            _ => "unknown".to_string(),
-        };
-        Explanation {
-            problem: format!("Orphan Type `{}` detected", name),
-            reason: format!("The type or interface `{}` is exported but never used by any other module in the codebase.", name),
-            risks: vec!["Increased maintenance cost".to_string(), "Confusion about the public API".to_string()],
-            recommendations: vec!["Remove the unused type or interface".to_string()],
+    crate::impl_detector_report!(
+        name: "OrphanTypes",
+        explain: smell => {
+            let name = match &smell.smell_type {
+                crate::detectors::SmellType::OrphanType { name } => name.clone(),
+                _ => "unknown".to_string(),
+            };
+            crate::detectors::Explanation {
+                problem: format!("Orphan Type `{}` detected", name),
+                reason: "The type or interface is exported but never used by any other module in the codebase.".into(),
+                risks: crate::strings![
+                    "Increased maintenance cost",
+                    "Confusion about the public API"
+                ],
+                recommendations: crate::strings![
+                    "Remove the unused type or interface"
+                ]
+            }
+        },
+        table: {
+            title: "Orphan Types",
+            columns: ["File", "Type Name", "pts"],
+            row: OrphanType { name } (smell, location, pts) => [location, name, pts]
         }
-    }
-
-    fn render_markdown(
-        &self,
-        smells: &[&SmellWithExplanation],
-        severity_config: &crate::config::SeverityConfig,
-        _graph: Option<&crate::graph::DependencyGraph>,
-    ) -> String {
-        use crate::explain::ExplainEngine;
-        crate::define_report_section!("Orphan Types", smells, {
-            crate::render_table!(
-                vec!["File", "Type Name", "pts"],
-                smells,
-                |&(smell, _): &&SmellWithExplanation| {
-                    let file_path = smell.files.first().unwrap();
-                    let formatted_path = ExplainEngine::format_file_path(file_path);
-                    let name = match &smell.smell_type {
-                        SmellType::OrphanType { name } => name.clone(),
-                        _ => "unknown".to_string(),
-                    };
-                    let pts = smell.score(severity_config);
-                    vec![
-                        format!("`{}`", formatted_path),
-                        format!("`{}`", name),
-                        format!("{} pts", pts),
-                    ]
-                }
-            )
-        })
-    }
+    );
 
     fn detect(&self, ctx: &AnalysisContext) -> Vec<ArchSmell> {
         let _rule = match ctx.get_rule("orphan_types") {

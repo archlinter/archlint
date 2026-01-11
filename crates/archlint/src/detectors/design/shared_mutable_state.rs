@@ -1,6 +1,4 @@
-use crate::detectors::{
-    detector, ArchSmell, Detector, DetectorCategory, Explanation, SmellType, SmellWithExplanation,
-};
+use crate::detectors::{detector, ArchSmell, Detector, DetectorCategory};
 use crate::engine::AnalysisContext;
 use crate::parser::SymbolKind;
 
@@ -22,51 +20,31 @@ impl SharedMutableStateDetector {
 }
 
 impl Detector for SharedMutableStateDetector {
-    fn name(&self) -> &'static str {
-        "SharedMutableState"
-    }
-
-    fn explain(&self, smell: &ArchSmell) -> Explanation {
-        let symbol = match &smell.smell_type {
-            SmellType::SharedMutableState { symbol } => symbol.clone(),
-            _ => "unknown".to_string(),
-        };
-        Explanation {
-            problem: "Shared Mutable State".to_string(),
-            reason: format!("Exported mutable state (let/var) `{}` can be modified from multiple modules, which often leads to bugs that are hard to trace and race conditions.", symbol),
-            risks: vec!["Unpredictable side effects".to_string(), "Difficult to debug state changes".to_string()],
-            recommendations: vec!["Encapsulate state within a class or use a state management pattern with immutable data".to_string()],
-        }
-    }
-
-    fn render_markdown(
-        &self,
-        smells: &[&SmellWithExplanation],
-        severity_config: &crate::config::SeverityConfig,
-        _graph: Option<&crate::graph::DependencyGraph>,
-    ) -> String {
-        use crate::explain::ExplainEngine;
-        crate::define_report_section!("Shared Mutable State", smells, {
-            crate::render_table!(
-                vec!["File", "Symbol", "pts"],
-                smells,
-                |&(smell, _): &&SmellWithExplanation| {
-                    let file_path = smell.files.first().unwrap();
-                    let formatted_path = ExplainEngine::format_file_path(file_path);
-                    let symbol = match &smell.smell_type {
-                        SmellType::SharedMutableState { symbol } => symbol.clone(),
-                        _ => "unknown".to_string(),
-                    };
-                    let pts = smell.score(severity_config);
-                    vec![
-                        format!("`{}`", formatted_path),
-                        format!("`{}`", symbol),
-                        format!("{} pts", pts),
-                    ]
+    crate::impl_detector_report!(
+        name: "SharedMutableState",
+        explain: smell => (
+            problem: {
+                if let crate::detectors::SmellType::SharedMutableState { symbol } = &smell.smell_type {
+                    format!("Shared Mutable State: `{}`", symbol)
+                } else {
+                    "Shared Mutable State".into()
                 }
-            )
-        })
-    }
+            },
+            reason: "Exported mutable state (let/var) can be modified from multiple modules, which often leads to bugs that are hard to trace and race conditions.",
+            risks: [
+                "Unpredictable side effects",
+                "Difficult to debug state changes"
+            ],
+            recommendations: [
+                "Encapsulate state within a class or use a state management pattern with immutable data"
+            ]
+        ),
+        table: {
+            title: "Shared Mutable State",
+            columns: ["File", "Symbol", "pts"],
+            row: SharedMutableState { symbol } (smell, location, pts) => [location, symbol, pts]
+        }
+    );
 
     fn detect(&self, ctx: &AnalysisContext) -> Vec<ArchSmell> {
         let mut smells = Vec::new();

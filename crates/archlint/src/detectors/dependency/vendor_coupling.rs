@@ -1,9 +1,7 @@
 use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
 
-use crate::detectors::{
-    detector, ArchSmell, Detector, DetectorCategory, Explanation, SmellType, SmellWithExplanation,
-};
+use crate::detectors::{detector, ArchSmell, Detector, DetectorCategory};
 use crate::engine::AnalysisContext;
 use crate::parser::FileSymbols;
 use crate::utils::package::PackageUtils;
@@ -63,50 +61,36 @@ impl VendorCouplingDetector {
 }
 
 impl Detector for VendorCouplingDetector {
-    fn name(&self) -> &'static str {
-        "VendorCoupling"
-    }
-
-    fn explain(&self, smell: &ArchSmell) -> Explanation {
-        let package = match &smell.smell_type {
-            SmellType::VendorCoupling { package } => package.clone(),
-            _ => "unknown".to_string(),
-        };
-        Explanation {
-            problem: "Vendor Coupling".to_string(),
-            reason: format!("Direct usage of third-party package `{}` in many files. This makes it difficult to replace the vendor library in the future.", package),
-            risks: vec!["Vendor lock-in".to_string(), "Difficulty in upgrading or replacing the library".to_string()],
-            recommendations: vec!["Create a wrapper or abstraction layer around the library".to_string()],
+    crate::impl_detector_report!(
+        name: "VendorCoupling",
+        explain: smell => {
+            let package = if let crate::detectors::SmellType::VendorCoupling { package } = &smell.smell_type {
+                package.as_str()
+            } else {
+                "unknown"
+            };
+            crate::detectors::Explanation {
+                problem: format!("Vendor Coupling: `{}`", package),
+                reason: "Direct usage of a third-party package in many files. This makes it difficult to replace the vendor library in the future.".into(),
+                risks: crate::strings![
+                    "Vendor lock-in",
+                    "Difficulty in upgrading or replacing the library"
+                ],
+                recommendations: crate::strings![
+                    "Create a wrapper or abstraction layer around the library"
+                ]
+            }
+        },
+        table: {
+            title: "Vendor Coupling",
+            columns: ["Package", "Files", "pts"],
+            row: VendorCoupling { package } (smell, location, pts) => [
+                package,
+                smell.files.len(),
+                pts
+            ]
         }
-    }
-
-    fn render_markdown(
-        &self,
-        smells: &[&SmellWithExplanation],
-        severity_config: &crate::config::SeverityConfig,
-        _graph: Option<&crate::graph::DependencyGraph>,
-    ) -> String {
-        crate::define_report_section!("Vendor Coupling", smells, {
-            crate::render_table!(
-                vec!["Package", "Files", "pts"],
-                smells,
-                |&(smell, _): &&SmellWithExplanation| {
-                    let (package, count): (String, usize) = match &smell.smell_type {
-                        SmellType::VendorCoupling { package } => {
-                            (package.clone(), smell.files.len())
-                        }
-                        _ => ("unknown".to_string(), 0),
-                    };
-                    let pts = smell.score(severity_config);
-                    vec![
-                        format!("`{}`", package),
-                        count.to_string(),
-                        format!("{} pts", pts),
-                    ]
-                }
-            )
-        })
-    }
+    );
 
     fn detect(&self, ctx: &AnalysisContext) -> Vec<ArchSmell> {
         let package_usage = self.collect_package_usage(ctx);

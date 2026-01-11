@@ -1,7 +1,4 @@
-use crate::detectors::{
-    detector, ArchSmell, Detector, DetectorCategory, Explanation, Severity, SmellType,
-    SmellWithExplanation,
-};
+use crate::detectors::{detector, ArchSmell, Detector, DetectorCategory, Severity, SmellType};
 use crate::engine::AnalysisContext;
 use crate::parser::ImportedSymbol;
 use petgraph::graph::DiGraph;
@@ -131,7 +128,6 @@ impl CircularTypeDepsDetector {
             if let Some(parent) = current_target.parent() {
                 current_target = parent;
             } else {
-                // No more parents, check if this was the last part
                 return source_parts.len() == 1 || *part == source_parts[0];
             }
         }
@@ -140,43 +136,30 @@ impl CircularTypeDepsDetector {
 }
 
 impl Detector for CircularTypeDepsDetector {
-    fn name(&self) -> &'static str {
-        "CircularTypeDependencies"
-    }
-
-    fn explain(&self, _smell: &ArchSmell) -> Explanation {
-        Explanation {
-            problem: "Circular Type Dependency".to_string(),
-            reason: "Two or more modules have a circular dependency that only involves types (type-only imports). While allowed by some compilers, it often indicates a flaw in module design.".to_string(),
-            risks: vec!["Difficult to reason about data structures".to_string(), "Tight coupling between types".to_string()],
-            recommendations: vec!["Refactor shared types into a dedicated common module".to_string()],
+    crate::impl_detector_report!(
+        name: "CircularTypeDependencies",
+        explain: smell => {
+            crate::detectors::Explanation {
+                problem: "Circular Type Dependency".into(),
+                reason: "Two or more modules have a circular dependency that only involves types (type-only imports). While allowed by some compilers, it often indicates a flaw in module design.".into(),
+                risks: crate::strings![
+                    "Difficult to reason about data structures",
+                    "Tight coupling between types"
+                ],
+                recommendations: crate::strings![
+                    "Refactor shared types into a dedicated common module"
+                ]
+            }
+        },
+        table: {
+            title: "Circular Type Dependencies",
+            columns: ["Cycle Path", "pts"],
+            row: CircularTypeDependency { } (smell, location, pts) => [
+                smell.files.iter().map(|p| crate::explain::ExplainEngine::format_file_path(p)).collect::<Vec<_>>().join(" → "),
+                pts
+            ]
         }
-    }
-
-    fn render_markdown(
-        &self,
-        smells: &[&SmellWithExplanation],
-        severity_config: &crate::config::SeverityConfig,
-        _graph: Option<&crate::graph::DependencyGraph>,
-    ) -> String {
-        use crate::explain::ExplainEngine;
-        crate::define_report_section!("Circular Type Dependencies", smells, {
-            crate::render_table!(
-                vec!["Cycle Path", "pts"],
-                smells,
-                |&(smell, _): &&SmellWithExplanation| {
-                    let path = smell
-                        .files
-                        .iter()
-                        .map(|p| format!("`{}`", ExplainEngine::format_file_path(p)))
-                        .collect::<Vec<_>>()
-                        .join(" → ");
-                    let pts = smell.score(severity_config);
-                    vec![path, format!("{} pts", pts)]
-                }
-            )
-        })
-    }
+    );
 
     fn detect(&self, ctx: &AnalysisContext) -> Vec<ArchSmell> {
         let type_graph = self.build_type_graph(ctx);

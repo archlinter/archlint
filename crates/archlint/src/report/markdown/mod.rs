@@ -1,6 +1,4 @@
 pub mod common;
-#[macro_use]
-pub mod macros;
 mod summary;
 
 use crate::config::SeverityConfig;

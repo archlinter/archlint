@@ -1,10 +1,10 @@
-use crate::detectors::{
-    detector, ArchSmell, Detector, DetectorCategory, Explanation, SmellWithExplanation,
-};
+use crate::detectors::{detector, ArchSmell, Detector, DetectorCategory};
 use crate::engine::AnalysisContext;
 use git2::{Commit, Repository};
 use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
+
+pub fn init() {}
 
 #[detector(
     id = "shotgun_surgery",
@@ -139,85 +139,56 @@ impl ShotgunSurgeryDetector {
 }
 
 impl Detector for ShotgunSurgeryDetector {
-    fn name(&self) -> &'static str {
-        "ShotgunSurgery"
-    }
+    crate::impl_detector_report!(
+        name: "ShotgunSurgery",
+        explain: smell => {
+            let avg_co_changes = smell.avg_co_changes().unwrap_or(0.0);
+            let dependent_count = smell.dependent_count().unwrap_or(0);
+            let primary_file = smell
+                .files
+                .first()
+                .and_then(|f| f.file_name())
+                .and_then(|n| n.to_str())
+                .unwrap_or("this file");
 
-    fn explain(&self, smell: &ArchSmell) -> Explanation {
-        let avg_co_changes = smell.avg_co_changes().unwrap_or(0.0);
-        let dependent_count = smell.dependent_count().unwrap_or(0);
-        let primary_file = smell
-            .files
-            .first()
-            .and_then(|f| f.file_name())
-            .and_then(|n| n.to_str())
-            .unwrap_or("this file");
-
-        Explanation {
-            problem: format!(
-                "Shotgun Surgery: {} is highly coupled with {} other files (avg: {:.1} files per change)",
-                primary_file, dependent_count, avg_co_changes
-            ),
-            reason: format!(
-                "When {} is modified, it usually requires simultaneous changes in many other files. This 'shotgun' effect suggests that a single logical responsibility is fragmented across the codebase.",
-                primary_file
-            ),
-            risks: vec![
-                "High maintenance effort: one logical change requires many physical edits".to_string(),
-                "Partial updates: forgetting to update one of the related files leads to inconsistent state".to_string(),
-                "Knowledge fragmentation: the full logic is not visible in a single place".to_string(),
-            ],
-            recommendations: vec![
-                format!("Consolidate the related logic from coupled files into {} or a new shared module", primary_file),
-                "Apply the 'Move Method' or 'Move Field' refactoring to bring related parts together".to_string(),
-                "Consider if the coupling is due to shared data structures that could be abstracted".to_string(),
-            ],
-        }
-    }
-
-    fn render_markdown(
-        &self,
-        shotgun_surgery: &[&SmellWithExplanation],
-        severity_config: &crate::config::SeverityConfig,
-        _graph: Option<&crate::graph::DependencyGraph>,
-    ) -> String {
-        use crate::explain::ExplainEngine;
-
-        crate::define_report_section!("Shotgun Surgery", shotgun_surgery, {
-            crate::render_table!(
-                vec!["File", "Avg Co-changes", "Related Files (Top 5)", "pts"],
-                shotgun_surgery,
-                |&(smell, _): &&SmellWithExplanation| {
+            crate::detectors::Explanation {
+                problem: format!(
+                    "Shotgun Surgery: {} is highly coupled with {} other files (avg: {:.1} files per change)",
+                    primary_file, dependent_count, avg_co_changes
+                ),
+                reason: format!(
+                    "When {} is modified, it usually requires simultaneous changes in many other files. This 'shotgun' effect suggests that a single logical responsibility is fragmented across the codebase.",
+                    primary_file
+                ),
+                risks: crate::strings![
+                    "High maintenance effort: one logical change requires many physical edits",
+                    "Partial updates: forgetting to update one of the related files leads to inconsistent state",
+                    "Knowledge fragmentation: the full logic is not visible in a single place"
+                ],
+                recommendations: crate::strings![
+                    format!("Consolidate the related logic from coupled files into {} or a new shared module", primary_file),
+                    "Apply the 'Move Method' or 'Move Field' refactoring to bring related parts together",
+                    "Consider if the coupling is due to shared data structures that could be abstracted"
+                ]
+            }
+        },
+        table: {
+            title: "Shotgun Surgery",
+            columns: ["File", "Avg Co-changes", "Related Files (Top 5)", "pts"],
+            row: ShotgunSurgery { } (smell, location, pts) => [
+                location,
+                format!("{:.1}", smell.avg_co_changes().unwrap_or(0.0)),
+                {
                     let file_path = smell.files.first().unwrap();
-                    let formatted_path = ExplainEngine::format_file_path(file_path);
-                    let avg = smell.avg_co_changes().unwrap_or(0.0);
-                    let pts = smell.score(severity_config);
-
-                    let related = smell
-                        .locations
-                        .iter()
-                        .filter(|l| l.file != *file_path)
-                        .map(|l| {
-                            let path = ExplainEngine::format_file_path(&l.file);
-                            if l.description.is_empty() {
-                                format!("`{}`", path)
-                            } else {
-                                format!("`{}` ({})", path, l.description)
-                            }
-                        })
-                        .collect::<Vec<_>>()
-                        .join(", ");
-
-                    vec![
-                        format!("`{}`", formatted_path),
-                        format!("{:.1}", avg),
-                        related,
-                        format!("{} pts", pts),
-                    ]
-                }
-            )
-        })
-    }
+                    smell.locations.iter().filter(|l| &l.file != file_path).map(|l| {
+                        let path = crate::explain::ExplainEngine::format_file_path(&l.file);
+                        if l.description.is_empty() { format!("`{}`", path) } else { format!("`{}` ({})", path, l.description) }
+                    }).collect::<Vec<_>>().join(", ")
+                },
+                pts
+            ]
+        }
+    );
 
     fn detect(&self, ctx: &AnalysisContext) -> Vec<ArchSmell> {
         let rule = match ctx.get_rule("shotgun_surgery") {
@@ -275,5 +246,3 @@ impl Detector for ShotgunSurgeryDetector {
             .collect()
     }
 }
-
-pub fn init() {}

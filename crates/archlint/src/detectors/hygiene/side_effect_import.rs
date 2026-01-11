@@ -1,6 +1,4 @@
-use crate::detectors::{
-    detector, ArchSmell, Detector, DetectorCategory, Explanation, SmellWithExplanation,
-};
+use crate::detectors::{detector, ArchSmell, Detector, DetectorCategory};
 use crate::engine::AnalysisContext;
 
 pub fn init() {}
@@ -27,51 +25,36 @@ impl SideEffectImportDetector {
             || source.contains("polyfill")
             || source.contains("setup")
             || source.contains("instrument")
-            || source.contains("register") // common pattern for side-effects that are sometimes intentional
+            || source.contains("register")
     }
 }
 
 impl Detector for SideEffectImportDetector {
-    fn name(&self) -> &'static str {
-        "SideEffectImport"
-    }
-
-    fn explain(&self, _smell: &ArchSmell) -> Explanation {
-        Explanation {
-            problem: "Side-Effect Import".to_string(),
-            reason: "Import that executes code on load without binding any symbols. This can make the code's behavior unpredictable and difficult to test.".to_string(),
-            risks: vec!["Global state pollution".to_string(), "Unpredictable execution order".to_string()],
-            recommendations: vec!["Explicitly initialize the module or use named imports if possible".to_string()],
+    crate::impl_detector_report!(
+        name: "SideEffectImport",
+        explain: _smell => {
+            crate::detectors::Explanation {
+                problem: "Side-Effect Import".into(),
+                reason: "Import that executes code on load without binding any symbols. This can make the code's behavior unpredictable and difficult to test.".into(),
+                risks: crate::strings![
+                    "Global state pollution",
+                    "Unpredictable execution order"
+                ],
+                recommendations: crate::strings![
+                    "Explicitly initialize the module or use named imports if possible"
+                ]
+            }
+        },
+        table: {
+            title: "Side-Effect Imports",
+            columns: ["Location", "Source", "pts"],
+            row: SideEffectImport { } (smell, location, pts) => [
+                location,
+                smell.locations.first().map(|l| l.description.replace("Side-effect import of ", "").replace("'", "")).unwrap_or_else(|| "unknown".into()),
+                pts
+            ]
         }
-    }
-
-    fn render_markdown(
-        &self,
-        smells: &[&SmellWithExplanation],
-        severity_config: &crate::config::SeverityConfig,
-        _graph: Option<&crate::graph::DependencyGraph>,
-    ) -> String {
-        use crate::report::format_location;
-        crate::define_report_section!("Side-Effect Imports", smells, {
-            crate::render_table!(
-                vec!["Location", "Source", "pts"],
-                smells,
-                |&(smell, _): &&SmellWithExplanation| {
-                    // Side-effect import info is in locations
-                    let loc = smell.locations.first().unwrap();
-                    let pts = smell.score(severity_config);
-                    vec![
-                        format!("`{}`", format_location(&loc.file, loc.line, None)),
-                        format!(
-                            "`{}`",
-                            loc.description.replace("Side-effect import of ", "")
-                        ),
-                        format!("{} pts", pts),
-                    ]
-                }
-            )
-        })
-    }
+    );
 
     fn detect(&self, ctx: &AnalysisContext) -> Vec<ArchSmell> {
         let mut smells = Vec::new();
@@ -88,7 +71,6 @@ impl Detector for SideEffectImportDetector {
                     && !import.is_reexport
                     && !import.is_dynamic
                 {
-                    // Check if it's a CSS file or similar (should be ignored)
                     if self.is_ignored_source(&import.source) {
                         continue;
                     }

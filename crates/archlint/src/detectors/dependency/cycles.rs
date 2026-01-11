@@ -1,6 +1,6 @@
 use crate::detectors::{
-    detector, ArchSmell, CriticalEdge, CycleCluster, Detector, DetectorCategory, Explanation,
-    HotspotInfo, LocationDetail, SmellWithExplanation,
+    detector, ArchSmell, CriticalEdge, CycleCluster, Detector, DetectorCategory, HotspotInfo,
+    LocationDetail, SmellWithExplanation,
 };
 use crate::engine::AnalysisContext;
 use crate::explain::ExplainEngine;
@@ -55,7 +55,6 @@ impl CycleDetector {
         output.push_str("| File | Imports | Imported by |\n");
         output.push_str("|------|---------|-------------|\n");
 
-        use crate::explain::ExplainEngine;
         for hotspot in hotspots.iter().take(10) {
             let formatted_path = ExplainEngine::format_file_path(&hotspot.file);
             output.push_str(&format!(
@@ -75,11 +74,9 @@ impl CycleDetector {
         output.push_str("| From (location) | To | Impact |\n");
         output.push_str("|-----------------|-----|--------|\n");
 
-        use crate::explain::ExplainEngine;
-        use crate::report::format_location;
         for edge in critical_edges {
             let col = edge.range.map(|r| r.start_column);
-            let from_loc = format_location(&edge.from, edge.line, col);
+            let from_loc = crate::report::format_location(&edge.from, edge.line, col);
             let to_formatted = ExplainEngine::format_file_path(&edge.to);
             output.push_str(&format!(
                 "| `{}` | `{}` | {} |\n",
@@ -95,7 +92,6 @@ impl CycleDetector {
             "<summary>All {} files in cluster</summary>\n\n",
             files.len()
         ));
-        use crate::explain::ExplainEngine;
         for file in files {
             let formatted_path = ExplainEngine::format_file_path(file);
             output.push_str(&format!("- `{}`\n", formatted_path));
@@ -115,9 +111,8 @@ impl CycleDetector {
         ));
         output.push_str("| Location | Import |\n");
         output.push_str("|----------|--------|\n");
-        use crate::report::format_location_detail;
         for loc in internal_edges {
-            let location = format_location_detail(loc);
+            let location = crate::report::format_location_detail(loc);
             output.push_str(&format!("| `{}` | {} |\n", location, loc.description));
         }
         output.push_str("\n</details>\n\n");
@@ -126,8 +121,6 @@ impl CycleDetector {
     fn generate_legacy_cycles_report(output: &mut String, cycles: &[&&SmellWithExplanation]) {
         output.push_str("## Cyclic Dependencies\n\n");
 
-        use crate::explain::ExplainEngine;
-        use crate::report::format_location_detail;
         for (i, (smell, explanation)) in cycles.iter().enumerate() {
             output.push_str(&format!("### Cycle {}\n\n", i + 1));
 
@@ -136,7 +129,7 @@ impl CycleDetector {
                 output.push_str("| Location | Import |\n");
                 output.push_str("|----------|--------|\n");
                 for loc in &smell.locations {
-                    let location = format_location_detail(loc);
+                    let location = crate::report::format_location_detail(loc);
                     output.push_str(&format!("| `{}` | {} |\n", location, loc.description));
                 }
                 output.push('\n');
@@ -155,10 +148,8 @@ impl CycleDetector {
     }
 
     pub fn detect_graph(graph: &DependencyGraph) -> Vec<ArchSmell> {
-        // Use Tarjan's SCC algorithm to find strongly connected components
         let sccs = tarjan_scc(graph.graph());
 
-        // Filter SCCs with size > 1 (these are cycles)
         let cycle_sccs: Vec<_> = sccs
             .into_iter()
             .filter(|scc| scc.len() > 1)
@@ -166,9 +157,9 @@ impl CycleDetector {
             .collect();
 
         cycle_sccs
-            .iter()
+            .into_iter()
             .map(|scc| {
-                let cluster = Self::build_cluster(graph, scc);
+                let cluster = Self::build_cluster(graph, &scc);
                 ArchSmell::new_cycle_cluster(cluster)
             })
             .collect()
@@ -286,13 +277,11 @@ impl CycleDetector {
         scc: &[NodeIndex],
         scc_set: &HashSet<NodeIndex>,
     ) -> Vec<CriticalEdge> {
-        // Calculate edge importance based on node degrees
         let mut edge_scores: HashMap<(NodeIndex, NodeIndex), usize> = HashMap::new();
 
         for &from_node in scc {
             for to_node in graph.dependencies(from_node) {
                 if scc_set.contains(&to_node) {
-                    // Score is sum of degrees (higher degree nodes = more critical)
                     let from_degree = graph.fan_in(from_node) + graph.fan_out(from_node);
                     let to_degree = graph.fan_in(to_node) + graph.fan_out(to_node);
                     let score = from_degree + to_degree;
@@ -301,13 +290,12 @@ impl CycleDetector {
             }
         }
 
-        // Sort edges by score and take top ones
         let mut scored_edges: Vec<_> = edge_scores.iter().collect();
         scored_edges.sort_by(|a, b| b.1.cmp(a.1));
 
         scored_edges
-            .iter()
-            .take(5) // Top 5 critical edges
+            .into_iter()
+            .take(5)
             .filter_map(|((from_node, to_node), &score)| {
                 let from_path = graph.get_file_path(*from_node)?;
                 let to_path = graph.get_file_path(*to_node)?;
@@ -333,7 +321,6 @@ impl CycleDetector {
     }
 
     fn is_false_positive_scc(graph: &DependencyGraph, scc: &[NodeIndex]) -> bool {
-        // Check if any file in the SCC is a test file
         scc.iter().any(|&node| {
             if let Some(path) = graph.get_file_path(node) {
                 Self::is_test_file(path)
@@ -358,35 +345,31 @@ impl CycleDetector {
 }
 
 impl Detector for CycleDetector {
-    fn name(&self) -> &'static str {
-        "Cycles"
-    }
+    crate::impl_detector_report!(
+        name: "Cycles",
+        explain: smell => {
+            let cycle_length = smell.cycle_length().unwrap_or(0);
 
-    fn explain(&self, smell: &ArchSmell) -> Explanation {
-        let cycle_length = smell.cycle_length().unwrap_or(0);
-
-        Explanation {
-            problem: format!(
-                "Circular dependency detected between {} files",
-                cycle_length
-            ),
-            reason: "Files form a dependency cycle where A depends on B, B depends on C, and C depends back on A (or similar pattern). This creates tight coupling between modules.".to_string(),
-            risks: vec![
-                "Difficult to reason about initialization order".to_string(),
-                "Changes in one module can cascade unpredictably to others".to_string(),
-                "Testing becomes difficult due to interdependencies".to_string(),
-                "Refactoring is risky and error-prone".to_string(),
-                "May cause compilation or runtime initialization issues".to_string(),
-            ],
-            recommendations: vec![
-                "Extract shared logic into a separate, independent module".to_string(),
-                "Use dependency injection to break direct dependencies".to_string(),
-                "Introduce interfaces/abstractions to invert dependencies".to_string(),
-                "Apply the Dependency Inversion Principle (DIP)".to_string(),
-                "Consider using event-driven architecture for loose coupling".to_string(),
-            ],
+            crate::detectors::Explanation {
+                problem: format!("Circular dependency detected between {} files", cycle_length),
+                reason: "Files form a dependency cycle where A depends on B, B depends on C, and C depends back on A (or similar pattern). This creates tight coupling between modules.".into(),
+                risks: crate::strings![
+                    "Difficult to reason about initialization order",
+                    "Changes in one module can cascade unpredictably to others",
+                    "Testing becomes difficult due to interdependencies",
+                    "Refactoring is risky and error-prone",
+                    "May cause compilation or runtime initialization issues"
+                ],
+                recommendations: crate::strings![
+                    "Extract shared logic into a separate, independent module",
+                    "Use dependency injection to break direct dependencies",
+                    "Introduce interfaces/abstractions to invert dependencies",
+                    "Apply the Dependency Inversion Principle (DIP)",
+                    "Consider using event-driven architecture for loose coupling"
+                ]
+            }
         }
-    }
+    );
 
     fn render_markdown(
         &self,
@@ -438,17 +421,13 @@ impl Detector for CycleDetector {
     }
 
     fn detect(&self, ctx: &AnalysisContext) -> Vec<ArchSmell> {
-        // Use Tarjan's SCC algorithm to find strongly connected components
         let sccs = tarjan_scc(ctx.graph.graph());
 
-        // Filter SCCs with size > 1 (these are cycles)
         let cycle_sccs: Vec<_> = sccs
             .into_iter()
             .filter(|scc| scc.len() > 1)
             .filter(|scc| !Self::is_false_positive_scc(ctx.graph.as_ref(), scc))
             .filter(|scc| {
-                // Check if any file in SCC is excluded by cycles.exclude_patterns
-                // or if it should be skipped due to framework context
                 !scc.iter().any(|&node| {
                     if let Some(path) = ctx.graph.get_file_path(node) {
                         ctx.get_rule_for_file("cycles", path).is_none()
@@ -465,7 +444,6 @@ impl Detector for CycleDetector {
                 let cluster = Self::build_cluster(ctx.graph.as_ref(), scc);
                 let mut smell = ArchSmell::new_cycle_cluster(cluster);
 
-                // Set severity based on the first node in the cycle (approximate)
                 if let Some(node) = scc.first() {
                     if let Some(path) = ctx.graph.get_file_path(*node) {
                         if let Some(rule) = ctx.get_rule_for_file("cycles", path) {

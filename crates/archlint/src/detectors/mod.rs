@@ -1,4 +1,6 @@
 pub mod code_clone;
+#[macro_use]
+pub mod macros;
 pub use archlint_macros::detector;
 pub mod registry;
 pub mod smell;

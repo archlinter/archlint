@@ -1,6 +1,4 @@
-use crate::detectors::{
-    detector, ArchSmell, Detector, DetectorCategory, Explanation, SmellType, SmellWithExplanation,
-};
+use crate::detectors::{detector, ArchSmell, Detector, DetectorCategory};
 use crate::engine::AnalysisContext;
 use crate::utils::package::PackageUtils;
 use std::collections::{HashMap, HashSet};
@@ -48,67 +46,40 @@ impl HubDependencyDetector {
 }
 
 impl Detector for HubDependencyDetector {
-    fn name(&self) -> &'static str {
-        "HubDependency"
-    }
-
-    fn explain(&self, smell: &ArchSmell) -> Explanation {
-        let count = smell.dependent_count().unwrap_or(0);
-
-        let package = match &smell.smell_type {
-            SmellType::HubDependency { package } => package.clone(),
-            _ => "unknown".to_string(),
-        };
-
-        Explanation {
-            problem: format!(
-                "Hub Dependency: Too many files ({}) depend on package `{}`",
-                count, package
-            ),
-            reason: format!(
-                "The package `{}` is used by {} different files in the project. This makes it a critical dependency that is hard to replace or update.",
-                package, count
-            ),
-            risks: vec![
-                "Difficulty in upgrading the package due to widespread usage".to_string(),
-                "High impact if the package becomes deprecated or has security issues".to_string(),
-                "Tightly coupled to a specific external library's API".to_string(),
-            ],
-            recommendations: vec![
-                "Create a wrapper/abstraction around the package to isolate its usage".to_string(),
-                "Evaluate if the dependency is truly necessary in all those files".to_string(),
-                "Use dependency injection to provide the functionality if possible".to_string(),
-            ],
+    crate::impl_detector_report!(
+        name: "HubDependency",
+        explain: smell => {
+            let count = smell.files.len();
+            let package = if let crate::detectors::SmellType::HubDependency { package } = &smell.smell_type {
+                package.as_str()
+            } else {
+                "unknown"
+            };
+            crate::detectors::Explanation {
+                problem: format!("Hub Dependency: Too many files ({}) depend on package `{}`", count, package),
+                reason: "The package is used by many different files in the project. This makes it a critical dependency that is hard to replace or update.".into(),
+                risks: crate::strings![
+                    "Difficulty in upgrading the package due to widespread usage",
+                    "High impact if the package becomes deprecated or has security issues",
+                    "Tightly coupled to a specific external library's API"
+                ],
+                recommendations: crate::strings![
+                    "Create a wrapper/abstraction around the package to isolate its usage",
+                    "Evaluate if the dependency is truly necessary in all those files",
+                    "Use dependency injection to provide the functionality if possible"
+                ]
+            }
+        },
+        table: {
+            title: "Hub Dependencies",
+            columns: ["Package", "Dependants", "pts"],
+            row: HubDependency { package } (smell, location, pts) => [
+                package,
+                format!("{} files", smell.files.len()),
+                pts
+            ]
         }
-    }
-
-    fn render_markdown(
-        &self,
-        hub_dependencies: &[&SmellWithExplanation],
-        severity_config: &crate::config::SeverityConfig,
-        _graph: Option<&crate::graph::DependencyGraph>,
-    ) -> String {
-        crate::define_report_section!("Hub Dependencies", hub_dependencies, {
-            crate::render_table!(
-                vec!["Package", "Dependants", "pts"],
-                hub_dependencies,
-                |&(smell, _): &&SmellWithExplanation| {
-                    if let SmellType::HubDependency { package } = &smell.smell_type {
-                        let count = smell.dependent_count().unwrap_or(0);
-                        let pts = smell.score(severity_config);
-
-                        vec![
-                            format!("`{}`", package),
-                            format!("{} files", count),
-                            format!("{} pts", pts),
-                        ]
-                    } else {
-                        vec!["-".into(); 3]
-                    }
-                }
-            )
-        })
-    }
+    );
 
     fn detect(&self, ctx: &AnalysisContext) -> Vec<ArchSmell> {
         let rule = match ctx.get_rule("hub_dependency") {
@@ -116,9 +87,7 @@ impl Detector for HubDependencyDetector {
             None => return Vec::new(),
         };
 
-        // Default threshold of 20 dependants is a heuristic for "hub" status in medium-sized projects.
         let min_dependants: usize = rule.get_option("min_dependants").unwrap_or(20);
-        // Standard libraries and frameworks are ignored by default as they are expected hubs.
         let ignore_packages: Vec<String> =
             rule.get_option("ignore_packages").unwrap_or_else(|| {
                 vec![

@@ -1,6 +1,4 @@
-use crate::detectors::{
-    detector, ArchSmell, Detector, DetectorCategory, Explanation, SmellWithExplanation,
-};
+use crate::detectors::{detector, ArchSmell, Detector, DetectorCategory};
 use crate::engine::AnalysisContext;
 use std::path::PathBuf;
 
@@ -66,46 +64,32 @@ impl HubModuleDetector {
 }
 
 impl Detector for HubModuleDetector {
-    fn name(&self) -> &'static str {
-        "HubModule"
-    }
-
-    fn explain(&self, _smell: &ArchSmell) -> Explanation {
-        Explanation {
-            problem: "Hub Module".to_string(),
-            reason: "Module acting as a pass-through hub with many incoming and outgoing connections but little internal logic.".to_string(),
-            risks: vec!["Fragile bridge".to_string(), "Unnecessary abstraction layer".to_string()],
-            recommendations: vec!["Consolidate the hub or direct dependants to the target modules".to_string()],
+    crate::impl_detector_report!(
+        name: "HubModule",
+        explain: _smell => {
+            crate::detectors::Explanation {
+                problem: "Hub Module".into(),
+                reason: "Module acting as a pass-through hub with many incoming and outgoing connections but little internal logic.".into(),
+                risks: crate::strings![
+                    "Fragile bridge",
+                    "Unnecessary abstraction layer"
+                ],
+                recommendations: crate::strings![
+                    "Consolidate the hub or direct dependants to the target modules"
+                ]
+            }
+        },
+        table: {
+            title: "Hub Modules",
+            columns: ["File", "Fan-In", "Fan-Out", "pts"],
+            row: HubModule { } (smell, location, pts) => [
+                location,
+                smell.fan_in().unwrap_or(0),
+                smell.fan_out().unwrap_or(0),
+                pts
+            ]
         }
-    }
-
-    fn render_markdown(
-        &self,
-        smells: &[&SmellWithExplanation],
-        severity_config: &crate::config::SeverityConfig,
-        _graph: Option<&crate::graph::DependencyGraph>,
-    ) -> String {
-        use crate::explain::ExplainEngine;
-        crate::define_report_section!("Hub Modules", smells, {
-            crate::render_table!(
-                vec!["File", "Fan-In", "Fan-Out", "pts"],
-                smells,
-                |&(smell, _): &&SmellWithExplanation| {
-                    let file_path = smell.files.first().unwrap();
-                    let formatted_path = ExplainEngine::format_file_path(file_path);
-                    let fan_in = smell.fan_in().unwrap_or(0);
-                    let fan_out = smell.fan_out().unwrap_or(0);
-                    let pts = smell.score(severity_config);
-                    vec![
-                        format!("`{}`", formatted_path),
-                        fan_in.to_string(),
-                        fan_out.to_string(),
-                        format!("{} pts", pts),
-                    ]
-                }
-            )
-        })
-    }
+    );
 
     fn detect(&self, ctx: &AnalysisContext) -> Vec<ArchSmell> {
         ctx.graph

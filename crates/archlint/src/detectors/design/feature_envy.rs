@@ -1,6 +1,4 @@
-use crate::detectors::{
-    detector, ArchSmell, Detector, DetectorCategory, Explanation, SmellType, SmellWithExplanation,
-};
+use crate::detectors::{detector, ArchSmell, Detector, DetectorCategory};
 use crate::engine::AnalysisContext;
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
@@ -92,79 +90,36 @@ impl FeatureEnvyDetector {
 }
 
 impl Detector for FeatureEnvyDetector {
-    fn name(&self) -> &'static str {
-        "FeatureEnvy"
-    }
-
-    fn explain(&self, smell: &ArchSmell) -> Explanation {
-        let ratio = smell.envy_ratio().unwrap_or(0.0);
-        let external_refs = smell.fan_in().unwrap_or(0);
-        let internal_refs = smell.fan_out().unwrap_or(0);
-
-        let envied_module = match &smell.smell_type {
-            SmellType::FeatureEnvy { most_envied_module } => {
-                most_envied_module.to_string_lossy().to_string()
+    crate::impl_detector_report!(
+        name: "FeatureEnvy",
+        explain: smell => {
+            let ratio = smell.envy_ratio().unwrap_or(0.0);
+            crate::detectors::Explanation {
+                problem: format!("Feature Envy (ratio: {:.1}x)", ratio),
+                reason: "This module uses more symbols from another module than its own. It seems more interested in the details of another module than its own functionality.".into(),
+                risks: crate::strings![
+                    "Violation of encapsulation and data hiding",
+                    "Tight coupling between the two modules",
+                    "Increased difficulty in testing and refactoring"
+                ],
+                recommendations: crate::strings![
+                    "Move the code that uses the external symbols into the envied module",
+                    "Extract a new module that contains the logic and data together",
+                    "Pass only necessary data as arguments instead of accessing many properties"
+                ]
             }
-            _ => "unknown".to_string(),
-        };
-
-        Explanation {
-            problem: format!(
-                "Feature Envy: Module uses external symbols (ratio: {:.1}x)",
-                ratio
-            ),
-            reason: format!(
-                "This module uses {} symbols from `{}` but only {} internal symbols. It seems more interested in the details of another module than its own functionality.",
-                external_refs, envied_module, internal_refs
-            ),
-            risks: vec![
-                "Violation of encapsulation and data hiding".to_string(),
-                "Tight coupling between the two modules".to_string(),
-                "Increased difficulty in testing and refactoring".to_string(),
-            ],
-            recommendations: vec![
-                "Move the code that uses the external symbols into the envied module".to_string(),
-                "Extract a new module that contains the logic and data together".to_string(),
-                "Pass only necessary data as arguments instead of accessing many properties".to_string(),
-            ],
+        },
+        table: {
+            title: "Feature Envy",
+            columns: ["File", "Envied Module", "Ratio", "pts"],
+            row: FeatureEnvy { most_envied_module } (smell, location, pts) => [
+                location,
+                crate::explain::ExplainEngine::format_file_path(most_envied_module),
+                format!("{:.1}x", smell.envy_ratio().unwrap_or(0.0)),
+                pts
+            ]
         }
-    }
-
-    fn render_markdown(
-        &self,
-        feature_envy: &[&SmellWithExplanation],
-        severity_config: &crate::config::SeverityConfig,
-        _graph: Option<&crate::graph::DependencyGraph>,
-    ) -> String {
-        use crate::explain::ExplainEngine;
-
-        crate::define_report_section!("Feature Envy", feature_envy, {
-            crate::render_table!(
-                vec!["File", "Envied Module", "Ratio", "pts"],
-                feature_envy,
-                |&(smell, _): &&SmellWithExplanation| {
-                    let file_path = smell.files.first().unwrap();
-                    let formatted_path = ExplainEngine::format_file_path(file_path);
-                    let ratio = smell.envy_ratio().unwrap_or(0.0);
-                    let pts = smell.score(severity_config);
-
-                    let envied_module = match &smell.smell_type {
-                        SmellType::FeatureEnvy { most_envied_module } => {
-                            ExplainEngine::format_file_path(most_envied_module)
-                        }
-                        _ => "unknown".to_string(),
-                    };
-
-                    vec![
-                        format!("`{}`", formatted_path),
-                        format!("`{}`", envied_module),
-                        format!("{:.1}x", ratio),
-                        format!("{} pts", pts),
-                    ]
-                }
-            )
-        })
-    }
+    );
 
     fn detect(&self, ctx: &AnalysisContext) -> Vec<ArchSmell> {
         ctx.file_symbols

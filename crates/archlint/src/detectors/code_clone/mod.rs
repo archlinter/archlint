@@ -3,8 +3,7 @@ pub mod tokenizer;
 pub mod types;
 
 use crate::detectors::{
-    detector, ArchSmell, CodeRange, Detector, DetectorCategory, Explanation, LocationDetail,
-    SmellType, SmellWithExplanation,
+    detector, ArchSmell, CodeRange, Detector, DetectorCategory, LocationDetail,
 };
 use crate::engine::AnalysisContext;
 use rustc_hash::FxHashSet;
@@ -124,54 +123,30 @@ impl CodeCloneDetector {
 }
 
 impl Detector for CodeCloneDetector {
-    fn name(&self) -> &'static str {
-        "Code Clone"
-    }
-
-    fn explain(&self, _smell: &ArchSmell) -> Explanation {
-        Explanation {
-            problem: "Code Clone".to_string(),
-            reason: "Identical or near-identical code blocks found in multiple locations. This violates the DRY (Don't Repeat Yourself) principle.".to_string(),
-            risks: vec!["Increased maintenance effort".to_string(), "Bugs must be fixed in multiple places".to_string()],
-            recommendations: vec!["Extract the duplicated code into a shared function, class, or module".to_string()],
-        }
-    }
-
-    fn render_markdown(
-        &self,
-        smells: &[&SmellWithExplanation],
-        _severity_config: &crate::config::SeverityConfig,
-        _graph: Option<&crate::graph::DependencyGraph>,
-    ) -> String {
-        use crate::report::format_location_detail;
-        crate::define_report_section!("Code Clones", smells, {
-            let mut body = String::new();
-            for (smell, _) in smells {
-                if let SmellType::CodeClone {
-                    clone_hash,
-                    token_count,
-                } = &smell.smell_type
-                {
-                    body.push_str(&format!(
-                        "### Clone `{}` ({} tokens)\n\n",
-                        &clone_hash[..8],
-                        token_count
-                    ));
-                    body.push_str("| Location | Description |\n");
-                    body.push_str("|----------|-------------|\n");
-                    for loc in &smell.locations {
-                        body.push_str(&format!(
-                            "| `{}` | {} |\n",
-                            format_location_detail(loc),
-                            loc.description
-                        ));
-                    }
-                    body.push('\n');
-                }
+    crate::impl_detector_report!(
+        name: "Code Clone",
+        explain: _smell => {
+            crate::detectors::Explanation {
+                problem: "Code Clone".into(),
+                reason: "Identical or near-identical code blocks found in multiple locations. This violates the DRY (Don't Repeat Yourself) principle.".into(),
+                risks: crate::strings![
+                    "Increased maintenance effort",
+                    "Bugs must be fixed in multiple places"
+                ],
+                recommendations: crate::strings![
+                    "Extract the duplicated code into a shared function, class, or module"
+                ]
             }
-            body
-        })
-    }
+        },
+        table: {
+            title: "Code Clones",
+            columns: ["Clone Info", "pts"],
+            row: CodeClone { clone_hash, token_count } (smell, location, pts) => [
+                format!("Clone `{}` ({} tokens)", &clone_hash[..8], token_count),
+                pts
+            ]
+        }
+    );
 
     fn detect(&self, ctx: &AnalysisContext) -> Vec<ArchSmell> {
         let (min_tokens, min_lines, max_bucket_size) = self.resolve_config(ctx);

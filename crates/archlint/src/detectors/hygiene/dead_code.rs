@@ -1,7 +1,5 @@
 use crate::config::Config;
-use crate::detectors::{
-    detector, ArchSmell, Detector, DetectorCategory, Explanation, SmellWithExplanation,
-};
+use crate::detectors::{detector, ArchSmell, Detector, DetectorCategory};
 use crate::engine::AnalysisContext;
 use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
@@ -21,52 +19,41 @@ pub struct DeadCodeDetector {
 }
 
 impl Detector for DeadCodeDetector {
-    fn name(&self) -> &'static str {
-        "DeadCode"
-    }
-
-    fn explain(&self, _smell: &ArchSmell) -> Explanation {
-        Explanation {
-            problem: "Unused file detected (no incoming dependencies)".to_string(),
-            reason: "This file is not imported by any other module in the codebase. It may be leftover code from refactoring, experimental code that was never integrated, or a genuinely unused module.".to_string(),
-            risks: vec![
-                "Increases codebase size and maintenance burden".to_string(),
-                "Causes confusion about what code is actually in use".to_string(),
-                "May contain outdated patterns or security vulnerabilities".to_string(),
-                "Wastes developer time when searching or refactoring".to_string(),
-                "Can lead to accidental usage of outdated code".to_string(),
-            ],
-            recommendations: vec![
-                "Verify the file is truly unused (check dynamic imports, tests, configs)".to_string(),
-                "Remove the file if confirmed as dead code".to_string(),
-                "If keeping for reference, move to an archive or documentation".to_string(),
-                "Add the file to entry_points config if it's an intentional entry point".to_string(),
-                "Review recent refactorings to understand why it became unused".to_string(),
-            ],
-        }
-    }
-
-    fn render_markdown(
-        &self,
-        dead: &[&SmellWithExplanation],
-        _severity_config: &crate::config::SeverityConfig,
-        _graph: Option<&crate::graph::DependencyGraph>,
-    ) -> String {
-        use crate::report::markdown::common::group_files_by_directory;
-        crate::define_report_section!("Dead Code", dead, {
-            let mut body = String::from("### Files by Directory\n\n");
-            let grouped = group_files_by_directory(dead);
-
-            for (dir, files) in grouped {
-                body.push_str(&format!("**{}** ({} files):\n", dir, files.len()));
-                for file in files {
-                    body.push_str(&format!("- `{}`\n", file));
-                }
-                body.push('\n');
+    crate::impl_detector_report!(
+        name: "DeadCode",
+        explain: _smell => {
+            crate::detectors::Explanation {
+                problem: "Unused file detected".into(),
+                reason: "This file is not imported by any other module in the codebase. It may be leftover code from refactoring, experimental code that was never integrated, or a genuinely unused module.".into(),
+                risks: crate::strings![
+                    "Increases codebase size and maintenance burden",
+                    "Causes confusion about what code is actually in use",
+                    "May contain outdated patterns or security vulnerabilities",
+                    "Wastes developer time when searching or refactoring",
+                    "Can lead to accidental usage of outdated code"
+                ],
+                recommendations: crate::strings![
+                    "Verify the file is truly unused (check dynamic imports, tests, configs)",
+                    "Remove the file if confirmed as dead code",
+                    "If keeping for reference, move to an archive or documentation",
+                    "Add the file to entry_points config if it's an intentional entry point",
+                    "Review recent refactorings to understand why it became unused"
+                ]
             }
-            body
-        })
-    }
+        },
+        table: {
+            title: "Dead Code",
+            columns: ["File", "Directory", "pts"],
+            row: DeadCode { } (smell, location, pts) => [
+                location,
+                {
+                    let file_path = smell.files.first().unwrap();
+                    file_path.parent().map(|p| p.to_string_lossy().to_string()).unwrap_or_else(|| ".".into())
+                },
+                pts
+            ]
+        }
+    );
 
     fn detect(&self, ctx: &AnalysisContext) -> Vec<ArchSmell> {
         let _rule = match ctx.get_rule("dead_code") {

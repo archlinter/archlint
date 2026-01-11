@@ -1,6 +1,4 @@
-use crate::detectors::{
-    detector, ArchSmell, Detector, DetectorCategory, Explanation, SmellType, SmellWithExplanation,
-};
+use crate::detectors::{detector, ArchSmell, Detector, DetectorCategory};
 use crate::engine::AnalysisContext;
 use crate::parser::{FileSymbols, MethodAccessibility, SymbolKind};
 use std::collections::{HashMap, HashSet};
@@ -19,20 +17,13 @@ pub struct DeadSymbolsDetector;
 
 #[derive(Default)]
 struct InheritanceContext {
-    // child (path, name) -> parent (path, name)
     parents: HashMap<(PathBuf, String), (PathBuf, String)>,
-    // parent (path, name) -> children [(path, name)]
     children: HashMap<(PathBuf, String), Vec<(PathBuf, String)>>,
-    // file -> files that re-export it (export * from 'file')
     reexports: HashMap<PathBuf, HashSet<PathBuf>>,
 }
 
 impl DeadSymbolsDetector {
     pub fn new_default(_config: &crate::config::Config) -> Self {
-        Self
-    }
-
-    pub fn new(_entry_points: HashSet<PathBuf>) -> Self {
         Self
     }
 
@@ -117,7 +108,6 @@ impl DeadSymbolsDetector {
     }
 
     fn resolve_parent_class(symbols: &FileSymbols, super_name: &str) -> Option<(PathBuf, String)> {
-        // Try direct match (e.g., Base)
         if let Some(import) = symbols
             .imports
             .iter()
@@ -129,7 +119,6 @@ impl DeadSymbolsDetector {
             ));
         }
 
-        // Try namespace match (e.g., NS.Base)
         if let Some(dot_pos) = super_name.find('.') {
             let ns = &super_name[..dot_pos];
             let name = &super_name[dot_pos + 1..];
@@ -179,7 +168,6 @@ impl DeadSymbolsDetector {
         file_path: &Path,
         symbol_name: &str,
     ) -> bool {
-        // Check for named import
         if let Some(importers) =
             symbol_usages.get(&(file_path.to_path_buf(), symbol_name.to_string()))
         {
@@ -188,7 +176,6 @@ impl DeadSymbolsDetector {
             }
         }
 
-        // Check for namespace import (*)
         if let Some(importers) = symbol_usages.get(&(file_path.to_path_buf(), "*".to_string())) {
             if !importers.is_empty() {
                 return true;
@@ -316,19 +303,17 @@ impl DeadSymbolsDetector {
         symbol_usages: &HashMap<(PathBuf, String), HashSet<PathBuf>>,
         inheritance_ctx: &InheritanceContext,
     ) -> bool {
-        // 1. Direct usage in the same file
         if symbols.local_usages.contains(method.name.as_str()) {
             return true;
         }
 
-        // 2. If it overrides a method in base class, and that base method name is used in base class
         let mut current_class_id = (file_path.to_path_buf(), class.name.to_string());
         let mut visited_parents = HashSet::new();
         visited_parents.insert(current_class_id.clone());
 
         while let Some(parent_id) = inheritance_ctx.parents.get(&current_class_id) {
             if !visited_parents.insert(parent_id.clone()) {
-                break; // Cycle detected
+                break;
             }
             if let Some(parent_symbols) = file_symbols.get(&parent_id.0) {
                 if parent_symbols.local_usages.contains(method.name.as_str()) {
@@ -338,7 +323,6 @@ impl DeadSymbolsDetector {
             current_class_id = parent_id.clone();
         }
 
-        // 3. Usage in importers (including importers of descendants and through re-exports)
         if method.accessibility != Some(MethodAccessibility::Private)
             && Self::is_method_used_in_importers(
                 method,
@@ -415,7 +399,6 @@ impl DeadSymbolsDetector {
     ) -> HashSet<PathBuf> {
         let mut all_importers = HashSet::new();
 
-        // Find all descendants of the class (including itself)
         let mut all_classes = HashSet::new();
         let class_id = (file_path.to_path_buf(), class.name.to_string());
         Self::collect_all_descendants_static(
@@ -425,7 +408,6 @@ impl DeadSymbolsDetector {
         );
 
         for (c_path, c_name) in all_classes {
-            // For each class (itself or descendant), find all files that re-export its file
             let mut all_source_files = HashSet::new();
             Self::collect_all_reexporters_static(
                 &c_path,
@@ -434,11 +416,9 @@ impl DeadSymbolsDetector {
             );
 
             for source_path in all_source_files {
-                // Named import
                 if let Some(importers) = symbol_usages.get(&(source_path.clone(), c_name.clone())) {
                     all_importers.extend(importers.iter().cloned());
                 }
-                // Star import
                 if let Some(importers) = symbol_usages.get(&(source_path, "*".to_string())) {
                     all_importers.extend(importers.iter().cloned());
                 }
@@ -542,73 +522,34 @@ impl DeadSymbolsDetector {
 }
 
 impl Detector for DeadSymbolsDetector {
-    fn name(&self) -> &'static str {
-        "DeadSymbols"
-    }
-
-    fn explain(&self, smell: &ArchSmell) -> Explanation {
-        let (name, kind) = match &smell.smell_type {
-            SmellType::DeadSymbol { name, kind } => (name.as_str(), kind.as_str()),
-            _ => ("unknown", "Symbol"),
-        };
-
-        Explanation {
-            problem: format!("Unused {} detected", kind),
-            reason: format!(
-                "The {} '{}' is defined but not imported by any other file or used locally.",
-                kind, name
-            ),
-            risks: vec![
-                "Increases cognitive load when reading the file".to_string(),
-                "Dead code can hide bugs and complicate refactoring".to_string(),
-                "May lead to confusion about the intended API of the module".to_string(),
-            ],
-            recommendations: vec![
-                format!("Remove the unused {} if it is truly no longer needed", kind),
-                "Check if it should be an internal helper or if it was meant to be exported and used".to_string(),
-                "Use a tool like 'ts-unused-exports' or similar for detailed symbol tracking if this is common".to_string(),
-            ],
+    crate::impl_detector_report!(
+        name: "DeadSymbols",
+        explain: smell => {
+            let kind = if let crate::detectors::SmellType::DeadSymbol { kind, .. } = &smell.smell_type {
+                kind.as_str()
+            } else {
+                "symbol"
+            };
+            crate::detectors::Explanation {
+                problem: format!("Unused {} detected", kind),
+                reason: "The symbol is defined but not imported by any other file or used locally.".into(),
+                risks: crate::strings![
+                    "Increases cognitive load when reading the file",
+                    "Dead code can hide bugs and complicate refactoring",
+                    "May lead to confusion about the intended API of the module"
+                ],
+                recommendations: crate::strings![
+                    "Remove the unused symbol if it is truly no longer needed",
+                    "Check if it should be an internal helper or if it was meant to be exported and used"
+                ]
+            }
+        },
+        table: {
+            title: "Dead Symbols",
+            columns: ["Location", "Symbol", "Kind"],
+            row: DeadSymbol { name, kind } (smell, location, pts) => [location, name, kind]
         }
-    }
-
-    fn render_markdown(
-        &self,
-        dead_symbols: &[&SmellWithExplanation],
-        _severity_config: &crate::config::SeverityConfig,
-        _graph: Option<&crate::graph::DependencyGraph>,
-    ) -> String {
-        use crate::explain::ExplainEngine;
-        use crate::report::format_location_detail;
-
-        crate::define_report_section!("Dead Symbols", dead_symbols, {
-            crate::render_table!(
-                vec!["Location", "Symbol", "Kind"],
-                dead_symbols,
-                |&(smell, _): &&SmellWithExplanation| {
-                    if let SmellType::DeadSymbol { name, kind } = &smell.smell_type {
-                        let location = smell
-                            .locations
-                            .first()
-                            .map(format_location_detail)
-                            .unwrap_or_else(|| {
-                                smell
-                                    .files
-                                    .first()
-                                    .map(|f| ExplainEngine::format_file_path(f))
-                                    .unwrap_or_else(|| "unknown".to_string())
-                            });
-                        vec![
-                            format!("`{}`", location),
-                            format!("`{}`", name),
-                            kind.clone(),
-                        ]
-                    } else {
-                        vec!["-".into(); 3]
-                    }
-                }
-            )
-        })
-    }
+    );
 
     fn detect(&self, ctx: &AnalysisContext) -> Vec<ArchSmell> {
         let _rule = match ctx.get_rule("dead_symbols") {
@@ -739,7 +680,6 @@ mod tests {
         let detector = DeadSymbolsDetector;
         let smells = detector.detect(&ctx);
 
-        // MetricsService.unusedMethod should be dead, even though other.service.ts uses "unusedMethod"
         let metrics_unused = smells.iter().find(|s| {
             if let crate::detectors::SmellType::DeadSymbol { name, .. } = &s.smell_type {
                 name == "MetricsService.unusedMethod"
@@ -752,7 +692,6 @@ mod tests {
             "MetricsService.unusedMethod should be reported as dead"
         );
 
-        // OtherService.unusedMethod should NOT be dead because it's used locally
         let other_unused = smells.iter().find(|s| {
             if let crate::detectors::SmellType::DeadSymbol { name, .. } = &s.smell_type {
                 name == "OtherService.unusedMethod"
@@ -770,7 +709,6 @@ mod tests {
     fn test_namespace_inheritance() {
         let mut file_symbols = HashMap::new();
 
-        // base.ts: class Base { method() {} }
         let base_path = PathBuf::from("base.ts");
         let base_symbols = FileSymbols {
             exports: vec![ExportedSymbol {
@@ -809,7 +747,6 @@ mod tests {
         };
         file_symbols.insert(base_path.clone(), base_symbols);
 
-        // child.ts: import * as NS from './base'; class Child extends NS.Base {}
         let child_path = PathBuf::from("child.ts");
         let child_symbols = FileSymbols {
             exports: vec![ExportedSymbol {
@@ -849,7 +786,6 @@ mod tests {
         };
         file_symbols.insert(child_path.clone(), child_symbols);
 
-        // main.ts: import { Child } from './child'; const c = new Child(); c.method();
         let main_path = PathBuf::from("main.ts");
         let mut local_usages = FxHashSet::default();
         local_usages.insert(CompactString::new("Child"));
@@ -883,7 +819,6 @@ mod tests {
         let smells =
             DeadSymbolsDetector::detect_symbols(&file_symbols, &ctx.script_entry_points, &ctx);
 
-        // method should NOT be dead because it's called on Child which inherits from Base via NS.Base
         let dead_method = smells.iter().find(|s| {
             if let crate::detectors::SmellType::DeadSymbol { name, .. } = &s.smell_type {
                 name.contains("method")
@@ -936,7 +871,6 @@ mod tests {
         file_symbols.insert(path_consumer.clone(), parsed_consumer.symbols);
 
         let mut ctx = AnalysisContext::default_for_test();
-        // Simulate symbol resolution that happens in engine
         let mut resolved_symbols = file_symbols.clone();
         resolved_symbols.get_mut(&path_child).unwrap().imports[0].source = "base.ts".into();
         resolved_symbols.get_mut(&path_index).unwrap().exports[0].source = Some("child.ts".into());
@@ -947,7 +881,6 @@ mod tests {
         let detector = DeadSymbolsDetector;
         let smells = detector.detect(&ctx);
 
-        // 1. Base.run should be ALIVE (called in consumer.ts through Child)
         let base_run_dead = smells.iter().any(|s| {
             if let crate::detectors::SmellType::DeadSymbol { name, .. } = &s.smell_type {
                 name == "Base.run"
@@ -957,7 +890,6 @@ mod tests {
         });
         assert!(!base_run_dead, "Base.run should be alive");
 
-        // 2. Child.usedInBase should be ALIVE (called in Base.run via polymorphism)
         let child_used_dead = smells.iter().any(|s| {
             if let crate::detectors::SmellType::DeadSymbol { name, .. } = &s.smell_type {
                 name == "Child.usedInBase"
@@ -967,7 +899,6 @@ mod tests {
         });
         assert!(!child_used_dead, "Child.usedInBase should be alive");
 
-        // 3. Child.unusedMethod should be DEAD
         let child_unused_dead = smells.iter().any(|s| {
             if let crate::detectors::SmellType::DeadSymbol { name, .. } = &s.smell_type {
                 name == "Child.unusedMethod"

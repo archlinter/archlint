@@ -1,6 +1,4 @@
-use crate::detectors::{
-    detector, ArchSmell, Detector, DetectorCategory, Explanation, SmellWithExplanation,
-};
+use crate::detectors::{detector, ArchSmell, Detector, DetectorCategory};
 use crate::engine::AnalysisContext;
 use petgraph::graph::NodeIndex;
 
@@ -77,50 +75,29 @@ impl SdpViolationDetector {
 }
 
 impl Detector for SdpViolationDetector {
-    fn name(&self) -> &'static str {
-        "SdpViolation"
-    }
-
-    fn explain(&self, _smell: &ArchSmell) -> Explanation {
-        Explanation {
-            problem: "Stable Dependency Principle (SDP) Violation".to_string(),
-            reason: "A stable module (rarely changing, many dependants) depends on an unstable module (frequently changing).".to_string(),
-            risks: vec![
-                "Stable modules become unstable due to their dependencies".to_string(),
-                "Fragile architecture: changes in unstable parts break the core".to_string(),
-            ],
-            recommendations: vec![
-                "Identify stable interfaces and depend on them".to_string(),
-                "Refactor the unstable dependency to be more stable".to_string(),
-                "Invert the dependency using abstractions".to_string(),
-            ],
+    crate::impl_detector_report!(
+        name: "SdpViolation",
+        explain: _smell => {
+            crate::detectors::Explanation {
+                problem: "Stable Dependency Principle (SDP) Violation".into(),
+                reason: "A stable module (rarely changing, many dependants) depends on an unstable module (frequently changing).".into(),
+                risks: crate::strings![
+                    "Stable modules become unstable due to their dependencies",
+                    "Fragile architecture: changes in unstable parts break the core"
+                ],
+                recommendations: crate::strings![
+                    "Identify stable interfaces and depend on them",
+                    "Refactor the unstable dependency to be more stable",
+                    "Invert the dependency using abstractions"
+                ]
+            }
+        },
+        table: {
+            title: "SDP Violations",
+            columns: ["Location", "Stability Gap", "pts"],
+            row: SdpViolation { } (smell, location, pts) => [location, "High instability diff", pts]
         }
-    }
-
-    fn render_markdown(
-        &self,
-        smells: &[&SmellWithExplanation],
-        severity_config: &crate::config::SeverityConfig,
-        _graph: Option<&crate::graph::DependencyGraph>,
-    ) -> String {
-        use crate::report::format_location;
-        crate::define_report_section!("SDP Violations", smells, {
-            crate::render_table!(
-                vec!["Location", "Stability Gap", "pts"],
-                smells,
-                |&(smell, _): &&SmellWithExplanation| {
-                    let file_path = smell.files.first().unwrap();
-                    let location = format_location(file_path, 0, None); // Should have line info
-                    let pts = smell.score(severity_config);
-                    vec![
-                        format!("`{}`", location),
-                        "High instability diff".to_string(),
-                        format!("{} pts", pts),
-                    ]
-                }
-            )
-        })
-    }
+    );
 
     fn detect(&self, ctx: &AnalysisContext) -> Vec<ArchSmell> {
         ctx.graph

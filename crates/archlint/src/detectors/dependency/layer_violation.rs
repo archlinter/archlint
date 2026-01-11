@@ -1,7 +1,5 @@
 use crate::config::LayerConfig;
-use crate::detectors::{
-    detector, ArchSmell, Detector, DetectorCategory, Explanation, SmellType, SmellWithExplanation,
-};
+use crate::detectors::{detector, ArchSmell, Detector, DetectorCategory};
 use crate::engine::AnalysisContext;
 use petgraph::graph::NodeIndex;
 use std::path::{Path, PathBuf};
@@ -32,7 +30,6 @@ impl LayerViolationDetector {
         let (from_path, _) = from_info;
         let mut smells = Vec::new();
 
-        // Find node index for from_path
         if let Some(node) = ctx.graph.get_node(from_path) {
             let rule = match ctx.get_rule_for_file("layer_violation", from_path) {
                 Some(r) => r,
@@ -55,7 +52,6 @@ impl LayerViolationDetector {
     }
 
     fn find_layer<'a>(&self, path: &Path, layers: &'a [LayerConfig]) -> Option<&'a LayerConfig> {
-        // Find the most specific layer (longest matching path)
         let mut matching_layers: Vec<&LayerConfig> = layers
             .iter()
             .filter(|l| self.matches_path(path, &l.path))
@@ -129,58 +125,39 @@ impl LayerViolationDetector {
 }
 
 impl Detector for LayerViolationDetector {
-    fn name(&self) -> &'static str {
-        "LayerViolation"
-    }
-
-    fn explain(&self, _smell: &ArchSmell) -> Explanation {
-        Explanation {
-            problem: "Layer Architecture Violation".to_string(),
-            reason: "A module in one layer imports a module from a layer it shouldn't know about (e.g., domain depending on infrastructure).".to_string(),
-            risks: vec![
-                "Circular dependencies between layers".to_string(),
-                "Difficult to test domain logic in isolation".to_string(),
-                "Leaking implementation details into business logic".to_string(),
-            ],
-            recommendations: vec![
-                "Use Dependency Inversion Principle (DIP)".to_string(),
-                "Introduce interfaces in the stable layer".to_string(),
-                "Move the code to the appropriate layer".to_string(),
-            ],
+    crate::impl_detector_report!(
+        name: "LayerViolation",
+        explain: smell => {
+            let (from, to) = if let crate::detectors::SmellType::LayerViolation { from_layer, to_layer } = &smell.smell_type {
+                (from_layer.as_str(), to_layer.as_str())
+            } else {
+                ("unknown", "unknown")
+            };
+            crate::detectors::Explanation {
+                problem: format!("Layer Architecture Violation: {} → {}", from, to),
+                reason: "A module in one layer imports a module from a layer it shouldn't know about (e.g., domain depending on infrastructure).".into(),
+                risks: crate::strings![
+                    "Circular dependencies between layers",
+                    "Difficult to test domain logic in isolation",
+                    "Leaking implementation details into business logic"
+                ],
+                recommendations: crate::strings![
+                    "Use Dependency Inversion Principle (DIP)",
+                    "Introduce interfaces in the stable layer",
+                    "Move the code to the appropriate layer"
+                ]
+            }
+        },
+        table: {
+            title: "Layer Violations",
+            columns: ["Location", "Violation", "pts"],
+            row: LayerViolation { from_layer, to_layer } (smell, location, pts) => [
+                location,
+                format!("`{}` → `{}`", from_layer, to_layer),
+                pts
+            ]
         }
-    }
-
-    fn render_markdown(
-        &self,
-        smells: &[&SmellWithExplanation],
-        severity_config: &crate::config::SeverityConfig,
-        _graph: Option<&crate::graph::DependencyGraph>,
-    ) -> String {
-        use crate::report::format_location;
-        crate::define_report_section!("Layer Violations", smells, {
-            crate::render_table!(
-                vec!["Location", "Violation", "pts"],
-                smells,
-                |&(smell, _): &&SmellWithExplanation| {
-                    let file_path = smell.files.first().unwrap();
-                    let (from, to) = match &smell.smell_type {
-                        SmellType::LayerViolation {
-                            from_layer,
-                            to_layer,
-                        } => (from_layer.clone(), to_layer.clone()),
-                        _ => ("unknown".into(), "unknown".into()),
-                    };
-                    let location = format_location(file_path, 0, None); // Should have line info
-                    let pts = smell.score(severity_config);
-                    vec![
-                        format!("`{}`", location),
-                        format!("`{}` → `{}`", from, to),
-                        format!("{} pts", pts),
-                    ]
-                }
-            )
-        })
-    }
+    );
 
     fn detect(&self, ctx: &AnalysisContext) -> Vec<ArchSmell> {
         let rule = match ctx.get_rule("layer_violation") {

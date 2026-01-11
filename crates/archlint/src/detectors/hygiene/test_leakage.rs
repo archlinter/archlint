@@ -1,6 +1,4 @@
-use crate::detectors::{
-    detector, ArchSmell, Detector, DetectorCategory, Explanation, SmellType, SmellWithExplanation,
-};
+use crate::detectors::{detector, ArchSmell, Detector, DetectorCategory};
 use crate::engine::AnalysisContext;
 use std::path::Path;
 
@@ -139,59 +137,33 @@ impl TestLeakageDetector {
 }
 
 impl Detector for TestLeakageDetector {
-    fn name(&self) -> &'static str {
-        "TestLeakage"
-    }
-
-    fn explain(&self, _smell: &ArchSmell) -> Explanation {
-        Explanation {
-            problem: "Test-to-Production Leakage".to_string(),
-            reason: "A production module imports a test file, mock, or test utility. This can lead to test code being included in production bundles.".to_string(),
-            risks: vec![
-                "Increased bundle size".to_string(),
-                "Potential security risks if mocks expose internal data".to_string(),
-                "Code fragility: production depends on test helpers".to_string(),
-            ],
-            recommendations: vec![
-                "Move shared utilities to a separate non-test module".to_string(),
-                "Check if the import was accidental and remove it".to_string(),
-            ],
+    crate::impl_detector_report!(
+        name: "TestLeakage",
+        explain: _smell => {
+            crate::detectors::Explanation {
+                problem: "Test-to-Production Leakage".into(),
+                reason: "A production module imports a test file, mock, or test utility. This can lead to test code being included in production bundles.".into(),
+                risks: crate::strings![
+                    "Increased bundle size",
+                    "Potential security risks if mocks expose internal data",
+                    "Code fragility: production depends on test helpers"
+                ],
+                recommendations: crate::strings![
+                    "Move shared utilities to a separate non-test module",
+                    "Check if the import was accidental and remove it"
+                ]
+            }
+        },
+        table: {
+            title: "Test Leakage",
+            columns: ["Location", "Imported Test File", "pts"],
+            row: TestLeakage { test_file } (smell, location, pts) => [
+                location,
+                test_file.to_string_lossy(),
+                pts
+            ]
         }
-    }
-
-    fn render_markdown(
-        &self,
-        smells: &[&SmellWithExplanation],
-        severity_config: &crate::config::SeverityConfig,
-        _graph: Option<&crate::graph::DependencyGraph>,
-    ) -> String {
-        use crate::report::format_location_detail;
-        crate::define_report_section!("Test Leakage", smells, {
-            crate::render_table!(
-                vec!["Location", "Imported Test File", "pts"],
-                smells,
-                |&(smell, _): &&SmellWithExplanation| {
-                    let location = smell
-                        .locations
-                        .first()
-                        .map(format_location_detail)
-                        .unwrap_or_default();
-                    let test_file = match &smell.smell_type {
-                        SmellType::TestLeakage { test_file } => {
-                            test_file.to_string_lossy().to_string()
-                        }
-                        _ => "unknown".to_string(),
-                    };
-                    let pts = smell.score(severity_config);
-                    vec![
-                        format!("`{}`", location),
-                        format!("`{}`", test_file),
-                        format!("{} pts", pts),
-                    ]
-                }
-            )
-        })
-    }
+    );
 
     fn detect(&self, ctx: &AnalysisContext) -> Vec<ArchSmell> {
         let rule = match ctx.get_rule("test_leakage") {

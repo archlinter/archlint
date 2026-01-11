@@ -1,6 +1,8 @@
 use crate::detectors::DetectorCategory;
-use crate::detectors::{detector, ArchSmell, Detector, Explanation, SmellWithExplanation};
+use crate::detectors::{detector, ArchSmell, Detector};
 use crate::engine::AnalysisContext;
+
+pub fn init() {}
 
 #[detector(
     id = "god_module",
@@ -81,43 +83,42 @@ impl GodModuleDetector {
 }
 
 impl Detector for GodModuleDetector {
-    fn name(&self) -> &'static str {
-        "GodModule"
-    }
+    crate::impl_detector_report!(
+        name: "GodModule",
+        explain: smell => {
+            let fan_in = smell.fan_in().unwrap_or(0);
+            let fan_out = smell.fan_out().unwrap_or(0);
+            let churn = smell.churn().unwrap_or(0);
 
-    fn explain(&self, smell: &ArchSmell) -> Explanation {
-        let fan_in = smell.fan_in().unwrap_or(0);
-        let fan_out = smell.fan_out().unwrap_or(0);
-        let churn = smell.churn().unwrap_or(0);
-
-        Explanation {
-            problem: format!(
-                "Module has excessive responsibilities (fan-in: {}, fan-out: {}, churn: {})",
-                fan_in, fan_out, churn
-            ),
-            reason: "This module is imported by many files (high fan-in), imports many files (high fan-out), and changes frequently (high churn). This indicates it's doing too much and violates the Single Responsibility Principle.".to_string(),
-            risks: vec![
-                "Single point of failure in the system".to_string(),
-                "Difficult to understand and maintain".to_string(),
-                "High risk of merge conflicts".to_string(),
-                "Changes affect many parts of the system".to_string(),
-                "Hard to test in isolation".to_string(),
-                "Performance bottleneck potential".to_string(),
-            ],
-            recommendations: vec![
-                "Split the module by domain or functionality".to_string(),
-                "Apply Single Responsibility Principle (SRP)".to_string(),
-                "Extract utility functions into focused, single-purpose modules".to_string(),
-                "Use facade pattern if the module serves as an integration point".to_string(),
-                "Identify cohesive groups of functions and separate them".to_string(),
-                "Consider creating a layered architecture to reduce coupling".to_string(),
-            ],
+            crate::detectors::Explanation {
+                problem: format!(
+                    "Module has excessive responsibilities (fan-in: {}, fan-out: {}, churn: {})",
+                    fan_in, fan_out, churn
+                ),
+                reason: "This module is imported by many files (high fan-in), imports many files (high fan-out), and changes frequently (high churn). This indicates it's doing too much and violates the Single Responsibility Principle.".to_string(),
+                risks: crate::strings![
+                    "Single point of failure in the system",
+                    "Difficult to understand and maintain",
+                    "High risk of merge conflicts",
+                    "Changes affect many parts of the system",
+                    "Hard to test in isolation",
+                    "Performance bottleneck potential"
+                ],
+                recommendations: crate::strings![
+                    "Split the module by domain or functionality",
+                    "Apply Single Responsibility Principle (SRP)",
+                    "Extract utility functions into focused, single-purpose modules",
+                    "Use facade pattern if the module serves as an integration point",
+                    "Identify cohesive groups of functions and separate them",
+                    "Consider creating a layered architecture to reduce coupling"
+                ]
+            }
         }
-    }
+    );
 
     fn render_markdown(
         &self,
-        gods: &[&SmellWithExplanation],
+        gods: &[&crate::detectors::SmellWithExplanation],
         severity_config: &crate::config::SeverityConfig,
         graph: Option<&crate::graph::DependencyGraph>,
     ) -> String {
@@ -183,5 +184,3 @@ impl Detector for GodModuleDetector {
         smells
     }
 }
-
-pub fn init() {}
