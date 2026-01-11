@@ -27,6 +27,18 @@ archlintは単に問題をカウントするだけではありません。アー
 | `--fail-on <severity>` | `medium`   | この重要度以上の回帰（regression）が見つかった場合、終了コード1で終了します |
 | `--explain`            | `false`    | 各回帰について詳細な説明を提供します                                        |
 
+## 設定
+
+`.archlint.yaml` ファイルで diff エンジンを微調整できます。
+
+```yaml
+diff:
+  metric_threshold_percent: 20 # メトリクスが 20% 以上悪化した場合のみ回帰として報告
+  line_tolerance: 50 # ファジー・マッチング中に 50 行以内の移動を無視
+```
+
+詳細は [設定ガイド](/ja/configuration/index#diff-の設定) を参照してください。
+
 ## 使用例
 
 ### CIでmainブランチに対してチェックする

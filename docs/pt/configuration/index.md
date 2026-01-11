@@ -81,6 +81,13 @@ scoring:
 # Detecção automática de framework (padrão true)
 auto_detect_framework: true
 
+# Configurações de diff arquitetural
+diff:
+  # Limite percentual para que a piora de uma métrica seja considerada regressão
+  metric_threshold_percent: 20
+  # Deslocamento máximo de linha para considerar smells como iguais durante o diff difuso
+  line_tolerance: 50
+
 # Configurações do Git
 git:
   enabled: true # habilitar análise (padrão true)
@@ -128,5 +135,12 @@ Quando habilitado, a ferramenta:
 1. **Carrega Aliases**: Extrai `compilerOptions.paths` e `compilerOptions.baseUrl` para configurar automaticamente os `aliases`.
 2. **Auto-ignorar**: Adiciona `compilerOptions.outDir` à lista global de `ignore`.
 3. **Exclusões**: Incorpora padrões do campo `exclude` na lista de `ignore`.
+
+## Configuração de Diff
+
+A seção `diff` controla como regressões arquiteturais são detectadas ao comparar dois snapshots:
+
+- **`metric_threshold_percent`** (padrão: `20`): Define quanto uma métrica (como complexidade ciclomática ou acoplamento) deve aumentar antes de ser relatada como um smell "piorado". Por exemplo, com um limite de 20%, a complexidade de uma função deve aumentar de 10 para pelo menos 12 para ser sinalizada.
+- **`line_tolerance`** (padrão: `50`): Define o número máximo de linhas que um símbolo de código pode se deslocar (devido a adições ou exclusões em outras partes do arquivo) antes que o archlint pare de reconhecê-lo como o mesmo smell. Essa "correspondência difusa" evita que o código deslocado seja relatado como uma nova regressão.
 
 A ferramenta procura pelo arquivo `tsconfig.json` na raiz do projeto. Se você tiver uma configuração personalizada, use o campo `tsconfig` para apontar para o arquivo correto.

@@ -27,6 +27,18 @@ archlint no solo cuenta problemas. Realiza un **diff semántico** de los defecto
 | `--fail-on <severity>` | `medium`    | Sale con código 1 si se encuentra una regresión de esta severidad o superior |
 | `--explain`            | `false`     | Proporciona una explicación detallada para cada regresión                    |
 
+## Configuración
+
+Puede ajustar el motor de diff en su archivo `.archlint.yaml`:
+
+```yaml
+diff:
+  metric_threshold_percent: 20 # informar como regresión solo si la métrica empeoró >20%
+  line_tolerance: 50 # ignorar desplazamientos de hasta 50 líneas en el diff difuso
+```
+
+Consulte la [Guía de configuración](/es/configuration/index#configuración-de-diff) para más detalles.
+
 ## Ejemplos
 
 ### Comprobar contra la rama principal en CI

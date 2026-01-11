@@ -81,6 +81,13 @@ scoring:
 # フレームワークの自動検出 (デフォルトは true)
 auto_detect_framework: true
 
+# アーキテクチャ差分の設定
+diff:
+  # メトリクスが悪化したとみなされるパーセンテージのしきい値
+  metric_threshold_percent: 20
+  # ファジー差分で同じ臭いとみなす最大行移動数
+  line_tolerance: 50
+
 # Git 設定
 git:
   enabled: true # 分析を有効にする (デフォルトは true)
@@ -128,5 +135,12 @@ archlint は `tsconfig.json` と自動的に同期できます。`tsconfig` フ�
 1. **エイリアスの読み込み**: `compilerOptions.paths` と `compilerOptions.baseUrl` を抽出し、`aliases` を自動的に設定します。
 2. **自動無視**: `compilerOptions.outDir` をグローバルな `ignore` リストに追加します。
 3. **除外設定**: `exclude` フィールドのパターンを `ignore` リストに組み込みます。
+
+## Diff の設定
+
+`diff` セクションは、2 つのスナップショットを比較する際のアーキテクチャの回帰（regression）の検出方法を制御します。
+
+- **`metric_threshold_percent`** (デフォルト: `20`): メトリクス（循環的複雑度や結合度など）がどの程度増加したら「悪化した」と報告するかを定義します。例えば、20% のしきい値では、関数の複雑度が 10 から少なくとも 12 に増加した場合にフラグが立てられます。
+- **`line_tolerance`** (デフォルト: `50`): ファイル内の他の場所での追加や削除により、コードシンボルが移動できる最大行数を定義します。この「ファジー・マッチング」により、移動したコードが新しい回帰として報告されるのを防ぎます。
 
 ツールはプロジェクトルートで `tsconfig.json` を検索します。カスタム設定を使用している場合は、`tsconfig` フィールドを使用して正しいファイルを指定してください。

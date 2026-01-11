@@ -81,6 +81,13 @@ scoring:
 # 自动检测框架（默认为 true）
 auto_detect_framework: true
 
+# 架构 diff 设置
+diff:
+  # 指标恶化的百分比阈值（例如复杂度增长）
+  metric_threshold_percent: 20
+  # 模糊匹配中视为相同问题的最大行号偏移
+  line_tolerance: 50
+
 # Git 设置
 git:
   enabled: true # 启用 Git 分析（默认为 true）
@@ -128,5 +135,12 @@ archlint 可以自动与您的 `tsconfig.json` 同步。使用 `tsconfig` 字段
 1. **加载别名**：提取 `compilerOptions.paths` 和 `compilerOptions.baseUrl` 以自动配置 `aliases`。
 2. **自动忽略**：将 `compilerOptions.outDir` 添加到全局 `ignore` 列表中。
 3. **排除项**：将 `exclude` 字段中的模式纳入 `ignore` 列表。
+
+## Diff 配置
+
+`diff` 部分控制在比较两个快照时如何检测架构退化：
+
+- **`metric_threshold_percent`** (默认值：`20`)：定义指标（如循环复杂度或耦合度）在被报告为“恶化”的问题之前必须增加多少。例如，阈值为 20% 时，函数的复杂度必须从 10 增加到至少 12 才会触发警告。
+- **`line_tolerance`** (默认值：`50`)：定义代码符号在 archlint 停止将其识别为同一问题之前可以偏移的最大行数（由于文件中其他位置的添加或删除）。这种“模糊匹配”可防止偏移后的代码被报告为新的退化。
 
 该工具在项目根目录中查找 `tsconfig.json`。如果您有自定义设置，请使用 `tsconfig` 字段指向正确的文件。
