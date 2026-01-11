@@ -704,7 +704,7 @@ impl ExplainEngine {
 
     fn explain_shotgun_surgery(smell: &ArchSmell) -> Explanation {
         let avg_co_changes = smell.avg_co_changes().unwrap_or(0.0);
-        let dependant_count = smell.dependant_count().unwrap_or(0);
+        let dependent_count = smell.dependent_count().unwrap_or(0);
         let primary_file = smell
             .files
             .first()
@@ -715,7 +715,7 @@ impl ExplainEngine {
         Explanation {
             problem: format!(
                 "Shotgun Surgery: {} is highly coupled with {} other files (avg: {:.1} files per change)",
-                primary_file, dependant_count, avg_co_changes
+                primary_file, dependent_count, avg_co_changes
             ),
             reason: format!(
                 "When {} is modified, it usually requires simultaneous changes in many other files. This 'shotgun' effect suggests that a single logical responsibility is fragmented across the codebase.",
@@ -735,7 +735,7 @@ impl ExplainEngine {
     }
 
     fn explain_hub_dependency(smell: &ArchSmell) -> Explanation {
-        let count = smell.dependant_count().unwrap_or(0);
+        let count = smell.dependent_count().unwrap_or(0);
 
         let package = match &smell.smell_type {
             SmellType::HubDependency { package } => package.clone(),

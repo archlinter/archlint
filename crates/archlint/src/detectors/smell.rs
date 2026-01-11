@@ -93,110 +93,34 @@ pub struct ArchSmell {
     pub cluster: Option<CycleCluster>,
 }
 
+macro_rules! impl_metric_accessor {
+    ($name:ident, $variant:ident, $ret:ty) => {
+        pub fn $name(&self) -> Option<$ret> {
+            self.metrics.iter().find_map(|m| match m {
+                SmellMetric::$variant(v) => Some(*v),
+                _ => None,
+            })
+        }
+    };
+}
+
 impl ArchSmell {
-    fn get_metric_usize(&self, metric_type: fn(usize) -> SmellMetric) -> Option<usize> {
-        self.metrics.iter().find_map(|m| {
-            if std::mem::discriminant(m) == std::mem::discriminant(&metric_type(0)) {
-                match m {
-                    SmellMetric::FanIn(v)
-                    | SmellMetric::FanOut(v)
-                    | SmellMetric::Churn(v)
-                    | SmellMetric::CycleLength(v)
-                    | SmellMetric::Complexity(v)
-                    | SmellMetric::Lines(v)
-                    | SmellMetric::InstabilityScore(v)
-                    | SmellMetric::DependentCount(v)
-                    | SmellMetric::Lcom(v)
-                    | SmellMetric::Components(v)
-                    | SmellMetric::Cbo(v)
-                    | SmellMetric::Depth(v)
-                    | SmellMetric::TokenCount(v) => Some(*v),
-                    _ => None,
-                }
-            } else {
-                None
-            }
-        })
-    }
-
-    fn get_metric_f64(&self, metric_type: fn(f64) -> SmellMetric) -> Option<f64> {
-        self.metrics.iter().find_map(|m| {
-            if std::mem::discriminant(m) == std::mem::discriminant(&metric_type(0.0)) {
-                match m {
-                    SmellMetric::EnvyRatio(v)
-                    | SmellMetric::AvgCoChanges(v)
-                    | SmellMetric::Instability(v) => Some(*v),
-                    _ => None,
-                }
-            } else {
-                None
-            }
-        })
-    }
-
-    pub fn fan_in(&self) -> Option<usize> {
-        self.get_metric_usize(SmellMetric::FanIn)
-    }
-
-    pub fn fan_out(&self) -> Option<usize> {
-        self.get_metric_usize(SmellMetric::FanOut)
-    }
-
-    pub fn churn(&self) -> Option<usize> {
-        self.get_metric_usize(SmellMetric::Churn)
-    }
-
-    pub fn cycle_length(&self) -> Option<usize> {
-        self.get_metric_usize(SmellMetric::CycleLength)
-    }
-
-    pub fn complexity(&self) -> Option<usize> {
-        self.get_metric_usize(SmellMetric::Complexity)
-    }
-
-    pub fn lines(&self) -> Option<usize> {
-        self.get_metric_usize(SmellMetric::Lines)
-    }
-
-    pub fn instability_score(&self) -> Option<usize> {
-        self.get_metric_usize(SmellMetric::InstabilityScore)
-    }
-
-    pub fn envy_ratio(&self) -> Option<f64> {
-        self.get_metric_f64(SmellMetric::EnvyRatio)
-    }
-
-    pub fn avg_co_changes(&self) -> Option<f64> {
-        self.get_metric_f64(SmellMetric::AvgCoChanges)
-    }
-
-    pub fn dependant_count(&self) -> Option<usize> {
-        self.get_metric_usize(SmellMetric::DependentCount)
-    }
-
-    pub fn instability(&self) -> Option<f64> {
-        self.get_metric_f64(SmellMetric::Instability)
-    }
-
-    pub fn lcom(&self) -> Option<usize> {
-        self.get_metric_usize(SmellMetric::Lcom)
-    }
-
-    pub fn components(&self) -> Option<usize> {
-        self.get_metric_usize(SmellMetric::Components)
-    }
-
-    pub fn cbo(&self) -> Option<usize> {
-        self.get_metric_usize(SmellMetric::Cbo)
-    }
-
-    pub fn depth(&self) -> Option<usize> {
-        self.get_metric_usize(SmellMetric::Depth)
-    }
-
-    pub fn token_count(&self) -> Option<usize> {
-        self.get_metric_usize(SmellMetric::TokenCount)
-    }
+    impl_metric_accessor!(fan_in, FanIn, usize);
+    impl_metric_accessor!(fan_out, FanOut, usize);
+    impl_metric_accessor!(churn, Churn, usize);
+    impl_metric_accessor!(cycle_length, CycleLength, usize);
+    impl_metric_accessor!(complexity, Complexity, usize);
+    impl_metric_accessor!(lines, Lines, usize);
+    impl_metric_accessor!(instability_score, InstabilityScore, usize);
+    impl_metric_accessor!(envy_ratio, EnvyRatio, f64);
+    impl_metric_accessor!(avg_co_changes, AvgCoChanges, f64);
+    impl_metric_accessor!(dependent_count, DependentCount, usize);
+    impl_metric_accessor!(instability, Instability, f64);
+    impl_metric_accessor!(lcom, Lcom, usize);
+    impl_metric_accessor!(components, Components, usize);
+    impl_metric_accessor!(cbo, Cbo, usize);
+    impl_metric_accessor!(depth, Depth, usize);
+    impl_metric_accessor!(token_count, TokenCount, usize);
 
     /// Get the severity level of this smell.
     pub fn effective_severity(&self) -> Severity {

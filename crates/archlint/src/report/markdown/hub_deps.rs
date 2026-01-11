@@ -25,7 +25,7 @@ pub fn generate(
 
     for (smell, _) in hub_dependencies {
         if let SmellType::HubDependency { package } = &smell.smell_type {
-            let count = smell.dependant_count().unwrap_or(0);
+            let count = smell.dependent_count().unwrap_or(0);
             let pts = smell.score(severity_config);
 
             output.push_str(&format!(
