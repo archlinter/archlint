@@ -22,13 +22,27 @@ pub fn generate_smell_id(smell: &ArchSmell, project_root: &Path) -> String {
         }
 
         SmellType::DeadSymbol { name, .. } => {
-            let line = smell.locations.first().map(|l| l.line).unwrap_or(0);
-            id_for_dead_symbol(&smell.files[0], name, line, project_root)
+            let location = smell.locations.first();
+            let line = location.map(|l| l.line).unwrap_or(0);
+            let mut id = id_for_dead_symbol(&smell.files[0], name, line, project_root);
+            if line == 0 {
+                // Fallback: add hash of description to avoid collisions for same-named symbols without location
+                let desc = location.map(|l| l.description.as_str()).unwrap_or("");
+                id = format!("{}:{}", id, short_hash(desc));
+            }
+            id
         }
 
         SmellType::HighComplexity { name, .. } => {
-            let line = smell.locations.first().map(|l| l.line).unwrap_or(0);
-            id_for_complexity(&smell.files[0], name, line, project_root)
+            let location = smell.locations.first();
+            let line = location.map(|l| l.line).unwrap_or(0);
+            let mut id = id_for_complexity(&smell.files[0], name, line, project_root);
+            if line == 0 {
+                // Fallback: add hash of description to avoid collisions for same-named symbols without location
+                let desc = location.map(|l| l.description.as_str()).unwrap_or("");
+                id = format!("{}:{}", id, short_hash(desc));
+            }
+            id
         }
 
         SmellType::HubModule => id_for_file_smell(&smell.files[0], "hub", project_root),
@@ -73,9 +87,15 @@ pub fn generate_smell_id(smell: &ArchSmell, project_root: &Path) -> String {
         }
 
         SmellType::SharedMutableState { symbol } => {
-            let line = smell.locations.first().map(|l| l.line).unwrap_or(0);
-            id_for_dead_symbol(&smell.files[0], symbol, line, project_root)
-                .replace("dead:", "shared:")
+            let location = smell.locations.first();
+            let line = location.map(|l| l.line).unwrap_or(0);
+            let mut id = id_for_dead_symbol(&smell.files[0], symbol, line, project_root)
+                .replace("dead:", "shared:");
+            if line == 0 {
+                let desc = location.map(|l| l.description.as_str()).unwrap_or("");
+                id = format!("{}:{}", id, short_hash(desc));
+            }
+            id
         }
 
         SmellType::DeepNesting { .. } => {
@@ -84,26 +104,49 @@ pub fn generate_smell_id(smell: &ArchSmell, project_root: &Path) -> String {
             let location = smell.locations.first();
             let function_name = location.map(|l| l.description.clone()).unwrap_or_default();
             let line = location.map(|l| l.line).unwrap_or(0);
-            id_for_complexity(&smell.files[0], &function_name, line, project_root)
-                .replace("cmplx:", "nest:")
+            let mut id = id_for_complexity(&smell.files[0], &function_name, line, project_root)
+                .replace("cmplx:", "nest:");
+            if line == 0 {
+                let desc = location.map(|l| l.description.as_str()).unwrap_or("");
+                id = format!("{}:{}", id, short_hash(desc));
+            }
+            id
         }
 
         SmellType::LongParameterList { function, .. } => {
-            let line = smell.locations.first().map(|l| l.line).unwrap_or(0);
-            id_for_complexity(&smell.files[0], function, line, project_root)
-                .replace("cmplx:", "params:")
+            let location = smell.locations.first();
+            let line = location.map(|l| l.line).unwrap_or(0);
+            let mut id = id_for_complexity(&smell.files[0], function, line, project_root)
+                .replace("cmplx:", "params:");
+            if line == 0 {
+                let desc = location.map(|l| l.description.as_str()).unwrap_or("");
+                id = format!("{}:{}", id, short_hash(desc));
+            }
+            id
         }
 
         SmellType::PrimitiveObsession { function, .. } => {
-            let line = smell.locations.first().map(|l| l.line).unwrap_or(0);
-            id_for_complexity(&smell.files[0], function, line, project_root)
-                .replace("cmplx:", "prim:")
+            let location = smell.locations.first();
+            let line = location.map(|l| l.line).unwrap_or(0);
+            let mut id = id_for_complexity(&smell.files[0], function, line, project_root)
+                .replace("cmplx:", "prim:");
+            if line == 0 {
+                let desc = location.map(|l| l.description.as_str()).unwrap_or("");
+                id = format!("{}:{}", id, short_hash(desc));
+            }
+            id
         }
 
         SmellType::OrphanType { name } => {
-            let line = smell.locations.first().map(|l| l.line).unwrap_or(0);
-            id_for_dead_symbol(&smell.files[0], name, line, project_root)
-                .replace("dead:", "orphan:")
+            let location = smell.locations.first();
+            let line = location.map(|l| l.line).unwrap_or(0);
+            let mut id = id_for_dead_symbol(&smell.files[0], name, line, project_root)
+                .replace("dead:", "orphan:");
+            if line == 0 {
+                let desc = location.map(|l| l.description.as_str()).unwrap_or("");
+                id = format!("{}:{}", id, short_hash(desc));
+            }
+            id
         }
 
         SmellType::ScatteredConfiguration { env_var, .. } => {
@@ -239,5 +282,47 @@ mod tests {
         assert_ne!(h1, h3);
         // It might be shorter than 6 if hash is small, but unlikely for random strings.
         // We added a check for length in the implementation.
+    }
+
+    #[test]
+    fn test_id_collision_fallback_when_line_is_zero() {
+        use crate::detectors::{LocationDetail, Severity};
+
+        let root = Path::new("/project");
+        let file = PathBuf::from("/project/src/service.ts");
+
+        let smell1 = ArchSmell {
+            smell_type: SmellType::DeadSymbol {
+                name: "unused".to_string(),
+                kind: "function".to_string(),
+            },
+            severity: Severity::Low,
+            files: vec![file.clone()],
+            metrics: vec![],
+            locations: vec![LocationDetail::new(file.clone(), 0, "Desc 1".to_string())],
+            cluster: None,
+        };
+
+        let smell2 = ArchSmell {
+            smell_type: SmellType::DeadSymbol {
+                name: "unused".to_string(),
+                kind: "function".to_string(),
+            },
+            severity: Severity::Low,
+            files: vec![file.clone()],
+            metrics: vec![],
+            locations: vec![LocationDetail::new(file.clone(), 0, "Desc 2".to_string())],
+            cluster: None,
+        };
+
+        let id1 = generate_smell_id(&smell1, root);
+        let id2 = generate_smell_id(&smell2, root);
+
+        assert_ne!(
+            id1, id2,
+            "IDs should differ when descriptions differ even if line is 0"
+        );
+        assert!(id1.contains(&short_hash("Desc 1")));
+        assert!(id2.contains(&short_hash("Desc 2")));
     }
 }
