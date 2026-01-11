@@ -98,48 +98,72 @@ impl ImportParser {
             let comment_text = &content[start as usize..comment.span.end as usize];
             let comment_line = visitor.get_line_number_from_offset(start as usize);
 
-            let Some((command, rules)) = self.parse_ignore_command(comment_text) else {
-                continue;
-            };
-
-            match command.as_str() {
-                "archlint-disable" => {
-                    for rule in rules {
-                        active_blocks.insert(rule, comment_line);
+            if let Some((command, rules)) = self.parse_ignore_command(comment_text) {
+                match command.as_str() {
+                    "archlint-disable" => {
+                        self.handle_disable(rules, comment_line, &mut active_blocks)
                     }
-                }
-                "archlint-enable" => {
-                    let rules_to_close: Vec<String> = if rules.contains("*") {
-                        active_blocks.keys().cloned().collect()
-                    } else {
-                        rules.into_iter().collect()
-                    };
-
-                    for rule in rules_to_close {
-                        if let Some(start_line) = active_blocks.remove(&rule) {
-                            self.mark_range_ignored(&mut ignored, start_line, comment_line, &rule);
-                        }
+                    "archlint-enable" => {
+                        self.handle_enable(rules, comment_line, &mut active_blocks, &mut ignored)
                     }
+                    "archlint-disable-line" => {
+                        ignored.entry(comment_line).or_default().extend(rules);
+                    }
+                    "archlint-disable-next-line" => {
+                        ignored.entry(comment_line + 1).or_default().extend(rules);
+                    }
+                    _ => {}
                 }
-                "archlint-disable-line" => {
-                    ignored.entry(comment_line).or_default().extend(rules);
-                }
-                "archlint-disable-next-line" => {
-                    ignored.entry(comment_line + 1).or_default().extend(rules);
-                }
-                _ => {}
             }
         }
 
-        // Close remaining blocks until the end of the file
+        self.close_remaining_blocks(active_blocks, total_lines, &mut ignored);
+        ignored
+    }
+
+    fn handle_disable(
+        &self,
+        rules: HashSet<String>,
+        comment_line: usize,
+        active_blocks: &mut HashMap<String, usize>,
+    ) {
+        for rule in rules {
+            active_blocks.insert(rule, comment_line);
+        }
+    }
+
+    fn handle_enable(
+        &self,
+        rules: HashSet<String>,
+        comment_line: usize,
+        active_blocks: &mut HashMap<String, usize>,
+        ignored: &mut HashMap<usize, HashSet<String>>,
+    ) {
+        let rules_to_close: Vec<String> = if rules.contains("*") {
+            active_blocks.keys().cloned().collect()
+        } else {
+            rules.into_iter().collect()
+        };
+
+        for rule in rules_to_close {
+            if let Some(start_line) = active_blocks.remove(&rule) {
+                self.mark_range_ignored(ignored, start_line, comment_line, &rule);
+            }
+        }
+    }
+
+    fn close_remaining_blocks(
+        &self,
+        active_blocks: HashMap<String, usize>,
+        total_lines: usize,
+        ignored: &mut HashMap<usize, HashSet<String>>,
+    ) {
         for (rule, start_line) in active_blocks {
             if rule == "*" && start_line <= 1 {
                 ignored.entry(0).or_default().insert("*".to_string());
             }
-            self.mark_range_ignored(&mut ignored, start_line, total_lines, &rule);
+            self.mark_range_ignored(ignored, start_line, total_lines, &rule);
         }
-
-        ignored
     }
 
     fn mark_range_ignored(
