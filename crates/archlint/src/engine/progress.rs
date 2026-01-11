@@ -8,7 +8,7 @@ pub fn create_progress_bar(len: usize, template: &str, chars: &str) -> ProgressB
     pb.set_style(
         ProgressStyle::default_bar()
             .template(template)
-            .unwrap()
+            .expect("Invalid progress bar template")
             .progress_chars(chars),
     );
     pb

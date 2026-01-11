@@ -65,7 +65,7 @@ impl<'a> DetectorRunner<'a> {
 
         let results: Vec<_> = final_detectors
             .into_par_iter()
-            .map(|(_id, detector)| {
+            .map(|(_, detector)| {
                 let smells = detector.detect(ctx);
                 (detector.name().to_string(), smells)
             })

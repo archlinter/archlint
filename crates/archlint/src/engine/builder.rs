@@ -97,7 +97,9 @@ impl<'a> EngineBuilder<'a> {
         runtime_files: &HashSet<PathBuf>,
         file_symbols: &HashMap<PathBuf, FileSymbols>,
     ) -> Result<usize> {
-        let from_node = graph.get_node(file).unwrap();
+        let Some(from_node) = graph.get_node(file) else {
+            return Ok(0);
+        };
         let Some(symbols) = file_symbols.get(file) else {
             return Ok(0);
         };

@@ -143,9 +143,10 @@ impl TsConfig {
                 .merge(parent_opts);
         }
 
-        let mut seen: HashSet<_> = self.exclude.iter().cloned().collect();
+        // Merge excludes while preserving order and avoiding duplicates.
+        // Child excludes come first, then parent excludes.
         for ex in parent.exclude {
-            if seen.insert(ex.clone()) {
+            if !self.exclude.contains(&ex) {
                 self.exclude.push(ex);
             }
         }

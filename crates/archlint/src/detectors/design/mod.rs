@@ -18,10 +18,10 @@ pub fn init() {
     god_module::init();
     orphan_types::init();
     primitive_obsession::init();
+    scattered_config::init();
+    scattered_module::init();
     sdp_violation::init();
     shared_mutable_state::init();
     shotgun_surgery::init();
     unstable_interface::init();
-    scattered_module::init();
-    scattered_config::init();
 }

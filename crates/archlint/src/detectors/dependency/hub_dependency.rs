@@ -3,7 +3,7 @@ use crate::detectors::DetectorCategory;
 use crate::detectors::{ArchSmell, Detector, DetectorFactory, DetectorInfo};
 use crate::engine::AnalysisContext;
 use crate::utils::package::PackageUtils;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::path::PathBuf;
 
 pub struct HubDependencyDetector;
@@ -71,7 +71,7 @@ impl Detector for HubDependencyDetector {
 
 impl HubDependencyDetector {
     fn collect_package_usage(ctx: &AnalysisContext) -> HashMap<String, Vec<PathBuf>> {
-        let mut package_usage: HashMap<String, Vec<PathBuf>> = HashMap::new();
+        let mut package_usage: HashMap<String, HashSet<PathBuf>> = HashMap::new();
 
         for (file, symbols) in ctx.file_symbols.as_ref() {
             for import in &symbols.imports {
@@ -79,16 +79,19 @@ impl HubDependencyDetector {
                     let package = PackageUtils::extract_package_name(&import.source);
 
                     if !PackageUtils::is_builtin_package(&package) {
-                        let files = package_usage.entry(package).or_default();
-                        if !files.contains(file) {
-                            files.push(file.clone());
-                        }
+                        package_usage
+                            .entry(package)
+                            .or_default()
+                            .insert(file.clone());
                     }
                 }
             }
         }
 
         package_usage
+            .into_iter()
+            .map(|(pkg, files)| (pkg, files.into_iter().collect()))
+            .collect()
     }
 }
 

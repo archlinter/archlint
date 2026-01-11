@@ -39,14 +39,14 @@ pub struct UnifiedVisitor {
     pub has_runtime_code: bool,
     pub functions: Vec<FunctionComplexity>,
     pub config: ParserConfig,
-    pub current_name_override: Option<SymbolName>,
-    pub current_span_override: Option<oxc_span::Span>,
-    pub current_class: Option<SymbolName>,
+    pub(crate) current_name_override: Option<SymbolName>,
+    pub(crate) current_span_override: Option<oxc_span::Span>,
+    pub(crate) current_class: Option<SymbolName>,
 
-    pub temp_fields: SymbolSet,
-    pub temp_methods: SmallVec<[MethodSymbol; 8]>,
-    pub current_method: Option<MethodSymbol>,
-    pub current_top_level_export: Option<usize>,
+    pub(crate) temp_fields: SymbolSet,
+    pub(crate) temp_methods: SmallVec<[MethodSymbol; 8]>,
+    pub(crate) current_method: Option<MethodSymbol>,
+    pub(crate) current_top_level_export: Option<usize>,
     pub env_vars: SymbolSet,
 
     /// Pre-computed line index for O(log n) line/column lookup
@@ -54,8 +54,13 @@ pub struct UnifiedVisitor {
 }
 
 impl UnifiedVisitor {
+    /// Create a new visitor for the given source text.
     pub fn new(source_text: &str, config: ParserConfig) -> Self {
-        // Pre-allocate based on file size heuristics
+        // Pre-allocate based on file size heuristics to minimize re-allocations.
+        // Heuristics:
+        // - 1 import per ~500 bytes
+        // - 1 export per ~1000 bytes
+        // - 1 function per ~200 bytes
         let estimated_imports = (source_text.len() / 500).max(8);
         let estimated_exports = (source_text.len() / 1000).max(4);
         let estimated_functions = (source_text.len() / 200).max(8);
@@ -168,18 +173,6 @@ impl<'a> Visit<'a> for UnifiedVisitor {
 
     fn visit_ts_type_name(&mut self, it: &oxc_ast::ast::TSTypeName<'a>) {
         self.handle_ts_type_name(it);
-    }
-
-    fn visit_ts_type_reference(&mut self, it: &oxc_ast::ast::TSTypeReference<'a>) {
-        self.handle_ts_type_reference(it);
-    }
-
-    fn visit_ts_type_alias_declaration(&mut self, it: &oxc_ast::ast::TSTypeAliasDeclaration<'a>) {
-        self.handle_ts_type_alias_declaration(it);
-    }
-
-    fn visit_ts_interface_declaration(&mut self, it: &oxc_ast::ast::TSInterfaceDeclaration<'a>) {
-        self.handle_ts_interface_declaration(it);
     }
 
     fn visit_expression(&mut self, expr: &oxc_ast::ast::Expression<'a>) {

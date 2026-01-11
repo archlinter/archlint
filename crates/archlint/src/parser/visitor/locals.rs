@@ -45,24 +45,6 @@ impl<'a> UnifiedVisitor {
         oxc_ast::visit::walk::walk_ts_type_name(self, it);
     }
 
-    pub(crate) fn handle_ts_type_reference(&mut self, it: &oxc_ast::ast::TSTypeReference<'a>) {
-        oxc_ast::visit::walk::walk_ts_type_reference(self, it);
-    }
-
-    pub(crate) fn handle_ts_type_alias_declaration(
-        &mut self,
-        it: &oxc_ast::ast::TSTypeAliasDeclaration<'a>,
-    ) {
-        oxc_ast::visit::walk::walk_ts_type_alias_declaration(self, it);
-    }
-
-    pub(crate) fn handle_ts_interface_declaration(
-        &mut self,
-        it: &oxc_ast::ast::TSInterfaceDeclaration<'a>,
-    ) {
-        oxc_ast::visit::walk::walk_ts_interface_declaration(self, it);
-    }
-
     pub(crate) fn handle_expression(&mut self, expr: &Expression<'a>) {
         match expr {
             Expression::ImportExpression(import) => {
