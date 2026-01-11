@@ -162,14 +162,14 @@ impl AnalysisEngine {
         let filtered_smells: Vec<_> = all_smells
             .into_iter()
             .filter(|smell| {
-                // Clones are special: we want to see them even if they touch ignored files
-                if matches!(smell.smell_type, SmellType::CodeClone { .. }) {
-                    return true;
-                }
-
                 // Check if smell is ignored by inline comments
                 if self.is_smell_ignored_by_comments(smell, &ctx.ignored_lines) {
                     return false;
+                }
+
+                // Clones are special: we want to see them even if they touch ignored files
+                if matches!(smell.smell_type, SmellType::CodeClone { .. }) {
+                    return true;
                 }
 
                 // Keep the smell if at least one of the files it's associated with is NOT ignored via config

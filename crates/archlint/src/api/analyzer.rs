@@ -277,6 +277,7 @@ impl Analyzer {
             self.state.file_symbols_mut().remove(file);
             self.state.file_metrics_mut().remove(file);
             self.state.function_complexity_mut().remove(file);
+            Arc::make_mut(&mut self.state.ignored_lines).remove(file);
             self.state.file_hashes.remove(file);
             self.state.reverse_deps.remove(file);
 
