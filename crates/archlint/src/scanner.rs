@@ -4,8 +4,9 @@ use std::path::{Path, PathBuf};
 
 /// Scans the filesystem for source files based on configuration.
 ///
-/// It respects `.gitignore` and `.archsmellignore` files and applies
-/// additional exclusion filters for system directories.
+/// It respects `.gitignore` and `.archsmellignore` files, includes hidden files (dotfiles),
+/// and applies additional exclusion filters for system directories like `node_modules`.
+/// Returned paths are canonicalized absolute paths.
 pub struct FileScanner {
     project_root: PathBuf,
     scan_root: PathBuf,

@@ -206,7 +206,7 @@ impl ArchSmell {
         })
     }
 
-    /// Get effective severity considering config overrides
+    /// Get the severity level of this smell.
     pub fn effective_severity(&self) -> Severity {
         self.severity
     }
