@@ -128,6 +128,8 @@ fn relative_path(path: &Path, project_root: &Path) -> String {
         debug!("Failed to strip prefix {:?} from {:?}", project_root, path);
         path
     });
+    // Normalise path separators and handle potential colons in paths (Windows)
+    // Note: Fuzzy matching in fuzzy.rs uses right-splitting to remain resilient to colons in paths.
     rel.to_string_lossy().replace('\\', "/")
 }
 
