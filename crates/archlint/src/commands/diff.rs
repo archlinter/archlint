@@ -22,7 +22,11 @@ pub fn run_diff(
     let baseline_snapshot = load_baseline(&baseline, &project_path, json)?;
     let current_snapshot = load_current(&current, &project_path, json)?;
 
-    let engine = DiffEngine::default();
+    let config = crate::config::Config::load_or_default(None, Some(&project_path))?;
+    let engine = DiffEngine::new()
+        .with_threshold(config.diff.metric_threshold_percent)
+        .with_line_tolerance(config.diff.line_tolerance);
+
     let result = if explain {
         engine.diff_with_explain(&baseline_snapshot, &current_snapshot)
     } else {

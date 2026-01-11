@@ -32,11 +32,17 @@ pub fn run_diff(options: JsDiffOptions) -> Result<JsDiffResult> {
             .scan()
             .map_err(|e| Error::from_reason(e.to_string()))?;
 
-        archlint::snapshot::SnapshotGenerator::new(options.project_path.into())
+        archlint::snapshot::SnapshotGenerator::new(PathBuf::from(&options.project_path))
             .generate(&scan_result)
     };
 
-    let engine = archlint::diff::DiffEngine::default();
+    let config =
+        archlint::config::Config::load_or_default(None, Some(Path::new(&options.project_path)))
+            .map_err(|e| Error::from_reason(e.to_string()))?;
+
+    let engine = archlint::diff::DiffEngine::new()
+        .with_threshold(config.diff.metric_threshold_percent)
+        .with_line_tolerance(config.diff.line_tolerance);
     let result = engine.diff_with_explain(&baseline, &current);
 
     Ok(result.into())
