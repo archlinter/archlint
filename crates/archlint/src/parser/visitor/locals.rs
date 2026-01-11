@@ -1,7 +1,6 @@
 use crate::parser::types::ImportedSymbol;
 use crate::parser::visitor::{interned, UnifiedVisitor};
 use oxc_ast::ast::{Argument, Expression};
-use oxc_ast::visit::Visit;
 
 impl<'a> UnifiedVisitor {
     pub(crate) fn handle_identifier_reference(
@@ -39,21 +38,14 @@ impl<'a> UnifiedVisitor {
     }
 
     pub(crate) fn handle_ts_type_name(&mut self, it: &oxc_ast::ast::TSTypeName<'a>) {
-        match it {
-            oxc_ast::ast::TSTypeName::IdentifierReference(ident) => {
-                self.local_usages.insert(Self::atom_to_compact(&ident.name));
-            }
-            oxc_ast::ast::TSTypeName::QualifiedName(qn) => {
-                self.visit_ts_type_name(&qn.left);
-                self.local_usages
-                    .insert(Self::atom_to_compact(&qn.right.name));
-            }
+        if let oxc_ast::ast::TSTypeName::QualifiedName(qn) = it {
+            self.local_usages
+                .insert(Self::atom_to_compact(&qn.right.name));
         }
         oxc_ast::visit::walk::walk_ts_type_name(self, it);
     }
 
     pub(crate) fn handle_ts_type_reference(&mut self, it: &oxc_ast::ast::TSTypeReference<'a>) {
-        self.visit_ts_type_name(&it.type_name);
         oxc_ast::visit::walk::walk_ts_type_reference(self, it);
     }
 
@@ -61,7 +53,6 @@ impl<'a> UnifiedVisitor {
         &mut self,
         it: &oxc_ast::ast::TSTypeAliasDeclaration<'a>,
     ) {
-        self.visit_ts_type(&it.type_annotation);
         oxc_ast::visit::walk::walk_ts_type_alias_declaration(self, it);
     }
 
@@ -69,12 +60,6 @@ impl<'a> UnifiedVisitor {
         &mut self,
         it: &oxc_ast::ast::TSInterfaceDeclaration<'a>,
     ) {
-        if let Some(extends) = &it.extends {
-            for heritage in extends {
-                self.visit_expression(&heritage.expression);
-            }
-        }
-        self.visit_ts_interface_body(&it.body);
         oxc_ast::visit::walk::walk_ts_interface_declaration(self, it);
     }
 

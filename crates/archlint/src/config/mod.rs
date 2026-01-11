@@ -59,16 +59,21 @@ impl Config {
             _ => None,
         };
 
-        let Some(tsconfig) = TsConfig::find_and_load(project_root, explicit_path)? else {
-            return Ok(());
+        let tsconfig = match TsConfig::find_and_load(project_root, explicit_path) {
+            Ok(config) => config,
+            Err(e) => {
+                log::warn!("Failed to load tsconfig.json: {}. Path aliases and excludes from tsconfig will not be applied.", e);
+                None
+            }
         };
 
-        if let Some(opts) = tsconfig.compiler_options {
-            self.apply_tsconfig_aliases(&opts);
-            self.apply_tsconfig_out_dir(&opts);
+        if let Some(tsconfig) = tsconfig {
+            if let Some(opts) = tsconfig.compiler_options {
+                self.apply_tsconfig_aliases(&opts);
+                self.apply_tsconfig_out_dir(&opts);
+            }
+            self.apply_tsconfig_excludes(tsconfig.exclude);
         }
-
-        self.apply_tsconfig_excludes(tsconfig.exclude);
 
         Ok(())
     }
@@ -84,7 +89,11 @@ impl Config {
                 (self.aliases.entry(alias.clone()), targets.first())
             {
                 let actual_path = if base_url.is_empty() {
-                    target.clone()
+                    if target.starts_with("./") || target.starts_with("/") {
+                        target.clone()
+                    } else {
+                        format!("./{}", target)
+                    }
                 } else {
                     format!("{}/{}", base_url, target)
                 };

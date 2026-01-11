@@ -38,46 +38,38 @@ impl<'a> EngineBuilder<'a> {
             "{}  Building dependency graph...",
             style("🕸️").cyan().bold()
         );
-        let resolver = PathResolver::new(self.project_root, self.config);
+
         let mut graph = DependencyGraph::new();
         for file in runtime_files {
             graph.add_file(file);
         }
 
-        let pb = if use_progress {
-            Some(create_progress_bar(
+        let pb = use_progress.then(|| {
+            create_progress_bar(
                 runtime_files.len(),
                 default_spinner_template(),
                 default_progress_chars(),
-            ))
-        } else {
-            None
-        };
+            )
+        });
 
+        let resolver = PathResolver::new(self.project_root, self.config);
         let mut resolved_count = 0;
+
         for file in runtime_files {
             if let Some(ref pb) = pb {
                 if let Some(name) = file.file_name() {
                     pb.set_message(name.to_string_lossy().to_string());
                 }
             }
-            let from_node = graph.get_node(file).unwrap();
-            let symbols = file_symbols.get(file).unwrap();
 
-            for import in &symbols.imports {
-                if let Some(resolved) = resolver.resolve(import.source.as_str(), file)? {
-                    if runtime_files.contains(&resolved) {
-                        let to_node = graph.add_file(&resolved);
-                        let edge_data = EdgeData::with_all(
-                            import.line,
-                            import.range,
-                            vec![import.name.to_string()],
-                        );
-                        graph.add_dependency(from_node, to_node, edge_data);
-                        resolved_count += 1;
-                    }
-                }
-            }
+            resolved_count += self.process_file_dependencies(
+                file,
+                &resolver,
+                &mut graph,
+                runtime_files,
+                file_symbols,
+            )?;
+
             if let Some(ref pb) = pb {
                 pb.inc(1);
             }
@@ -95,6 +87,35 @@ impl<'a> EngineBuilder<'a> {
             style(resolved_count).dim()
         );
         Ok(graph)
+    }
+
+    fn process_file_dependencies(
+        &self,
+        file: &Path,
+        resolver: &PathResolver,
+        graph: &mut DependencyGraph,
+        runtime_files: &HashSet<PathBuf>,
+        file_symbols: &HashMap<PathBuf, FileSymbols>,
+    ) -> Result<usize> {
+        let from_node = graph.get_node(file).unwrap();
+        let symbols = file_symbols.get(file).unwrap();
+        let mut count = 0;
+
+        for import in &symbols.imports {
+            if let Some(resolved) = resolver.resolve(import.source.as_str(), file)? {
+                if runtime_files.contains(&resolved) {
+                    let to_node = graph.add_file(&resolved);
+                    let edge_data = EdgeData::with_all(
+                        import.line,
+                        import.range,
+                        vec![import.name.to_string()],
+                    );
+                    graph.add_dependency(from_node, to_node, edge_data);
+                    count += 1;
+                }
+            }
+        }
+        Ok(count)
     }
 
     pub fn resolve_symbols(

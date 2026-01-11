@@ -13,10 +13,17 @@ pub use smell::*;
 pub use types::*;
 
 // Re-export detectors for convenience and backward compatibility
-pub use dependency::*;
-pub use design::*;
-pub use hygiene::*;
-pub use metrics::*;
+pub use dependency::{
+    circular_type_deps, cycles, high_coupling, hub_dependency, hub_module, layer_violation,
+    package_cycle, vendor_coupling,
+};
+pub use design::{
+    abstractness, barrel_abuse, feature_envy, god_module, orphan_types, primitive_obsession,
+    scattered_config, scattered_module, sdp_violation, shared_mutable_state, shotgun_surgery,
+    unstable_interface,
+};
+pub use hygiene::{dead_code, dead_symbols, side_effect_import, test_leakage};
+pub use metrics::{complexity, deep_nesting, large_file, lcom, long_params};
 
 /// Ensures all detectors are registered.
 /// This is needed to force the linker to include all modules when using the `inventory` crate.
