@@ -8,6 +8,7 @@
     "url": "git+https://github.com/archlinter/archlint.git",
     "directory": "packages/cli-darwin-arm64"
   },
+  "homepage": "https://archlinter.github.io/archlint/",
   "os": [
     "darwin"
   ],

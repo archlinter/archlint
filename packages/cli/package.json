@@ -8,7 +8,7 @@
     "url": "git+https://github.com/archlinter/archlint.git",
     "directory": "packages/cli"
   },
-  "homepage": "https://github.com/archlinter/archlint#readme",
+  "homepage": "https://archlinter.github.io/archlint/",
   "bugs": {
     "url": "https://github.com/archlinter/archlint/issues"
   },

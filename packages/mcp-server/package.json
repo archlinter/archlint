@@ -8,6 +8,10 @@
     "url": "git+https://github.com/archlinter/archlint.git",
     "directory": "packages/mcp-server"
   },
+  "homepage": "https://archlinter.github.io/archlint/integrations/mcp-server.html",
+  "bugs": {
+    "url": "https://github.com/archlinter/archlint/issues"
+  },
   "type": "module",
   "bin": {
     "archlint-mcp": "./dist/index.js"

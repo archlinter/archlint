@@ -3,6 +3,7 @@
   "version": "0.11.0",
   "private": true,
   "description": "Fast architecture smell detector for TypeScript/JavaScript",
+  "homepage": "https://archlinter.github.io/archlint/",
   "license": "MIT",
   "author": "fixcik",
   "repository": {

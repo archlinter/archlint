@@ -8,6 +8,7 @@
     "url": "git+https://github.com/archlinter/archlint.git",
     "directory": "packages/core-linux-x64-gnu"
   },
+  "homepage": "https://archlinter.github.io/archlint/",
   "main": "archlint.linux-x64-gnu.node",
   "files": [
     "archlint.linux-x64-gnu.node"

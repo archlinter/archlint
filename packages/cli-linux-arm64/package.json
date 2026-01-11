@@ -8,6 +8,7 @@
     "url": "git+https://github.com/archlinter/archlint.git",
     "directory": "packages/cli-linux-arm64"
   },
+  "homepage": "https://archlinter.github.io/archlint/",
   "os": [
     "linux"
   ],

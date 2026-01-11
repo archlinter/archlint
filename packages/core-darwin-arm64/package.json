@@ -8,6 +8,7 @@
     "url": "git+https://github.com/archlinter/archlint.git",
     "directory": "packages/core-darwin-arm64"
   },
+  "homepage": "https://archlinter.github.io/archlint/",
   "main": "archlint.darwin-arm64.node",
   "files": [
     "archlint.darwin-arm64.node"

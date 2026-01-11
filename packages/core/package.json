@@ -8,6 +8,10 @@
     "url": "git+https://github.com/archlinter/archlint.git",
     "directory": "packages/core"
   },
+  "homepage": "https://archlinter.github.io/archlint/",
+  "bugs": {
+    "url": "https://github.com/archlinter/archlint/issues"
+  },
   "main": "index.js",
   "types": "index.d.ts",
   "files": [

@@ -8,6 +8,7 @@
     "url": "git+https://github.com/archlinter/archlint.git",
     "directory": "packages/core-win32-x64"
   },
+  "homepage": "https://archlinter.github.io/archlint/",
   "main": "archlint.win32-x64-msvc.node",
   "files": [
     "archlint.win32-x64-msvc.node"
