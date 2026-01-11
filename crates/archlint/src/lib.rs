@@ -26,6 +26,7 @@ pub mod rule_resolver;
 pub mod scanner;
 pub mod snapshot;
 pub mod tsconfig;
+pub mod utils;
 #[cfg(feature = "cli")]
 pub mod watch;
 

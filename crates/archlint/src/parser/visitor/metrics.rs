@@ -96,16 +96,7 @@ impl<'a> UnifiedVisitor {
     }
 
     pub(crate) fn handle_function(&mut self, it: &Function<'a>, flags: ScopeFlags) {
-        let mut name = it
-            .id
-            .as_ref()
-            .map(|id| Self::atom_to_compact(&id.name))
-            .or_else(|| self.current_name_override.take())
-            .unwrap_or_else(|| interned::ANONYMOUS.clone());
-
-        if let Some(class_name) = &self.current_class {
-            name = CompactString::new(format!("{}.{}", class_name, name));
-        }
+        let name = self.get_scoped_name(it.id.as_ref().map(|id| Self::atom_to_compact(&id.name)));
 
         let (complexity, max_depth) = if self.config.collect_complexity {
             calculate_complexity(it)
@@ -119,28 +110,8 @@ impl<'a> UnifiedVisitor {
             .map(|id| id.span)
             .or(self.current_span_override.take())
             .unwrap_or(it.span);
-        let line = self.get_line_number(span);
-        let range = self.get_range(span);
 
-        let param_count = it.params.items.len();
-        let primitive_params = if self.config.collect_primitive_params {
-            self.count_primitive_params(&it.params)
-        } else {
-            0
-        };
-        let is_constructor =
-            name == *interned::CONSTRUCTOR || name.ends_with(interned::CONSTRUCTOR_SUFFIX.as_str());
-
-        self.functions.push(FunctionComplexity {
-            name,
-            line,
-            range,
-            complexity,
-            max_depth,
-            param_count,
-            primitive_params,
-            is_constructor,
-        });
+        self.collect_function_metrics(name, span, complexity, max_depth, &it.params);
 
         oxc_ast::visit::walk::walk_function(self, it, flags);
     }
@@ -149,14 +120,7 @@ impl<'a> UnifiedVisitor {
         &mut self,
         it: &oxc_ast::ast::ArrowFunctionExpression<'a>,
     ) {
-        let mut name = self
-            .current_name_override
-            .take()
-            .unwrap_or_else(|| interned::ANONYMOUS.clone());
-
-        if let Some(class_name) = &self.current_class {
-            name = CompactString::new(format!("{}.{}", class_name, name));
-        }
+        let name = self.get_scoped_name(None);
 
         let (complexity, max_depth) = if self.config.collect_complexity {
             calculate_arrow_complexity(it)
@@ -165,12 +129,37 @@ impl<'a> UnifiedVisitor {
         };
 
         let span = self.current_span_override.take().unwrap_or(it.span);
+
+        self.collect_function_metrics(name, span, complexity, max_depth, &it.params);
+
+        oxc_ast::visit::walk::walk_arrow_function_expression(self, it);
+    }
+
+    fn get_scoped_name(&mut self, base_name: Option<CompactString>) -> CompactString {
+        let mut name = base_name
+            .or_else(|| self.current_name_override.take())
+            .unwrap_or_else(|| interned::ANONYMOUS.clone());
+
+        if let Some(class_name) = &self.current_class {
+            name = CompactString::new(format!("{}.{}", class_name, name));
+        }
+        name
+    }
+
+    fn collect_function_metrics(
+        &mut self,
+        name: CompactString,
+        span: oxc_span::Span,
+        complexity: usize,
+        max_depth: usize,
+        params: &oxc_ast::ast::FormalParameters<'a>,
+    ) {
         let line = self.get_line_number(span);
         let range = self.get_range(span);
 
-        let param_count = it.params.items.len();
+        let param_count = params.items.len();
         let primitive_params = if self.config.collect_primitive_params {
-            self.count_primitive_params(&it.params)
+            self.count_primitive_params(params)
         } else {
             0
         };
@@ -187,8 +176,6 @@ impl<'a> UnifiedVisitor {
             primitive_params,
             is_constructor,
         });
-
-        oxc_ast::visit::walk::walk_arrow_function_expression(self, it);
     }
 
     fn count_primitive_params(&self, params: &oxc_ast::ast::FormalParameters<'_>) -> usize {

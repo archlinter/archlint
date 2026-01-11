@@ -6,6 +6,7 @@ use crate::detectors::DetectorCategory;
 use crate::detectors::{ArchSmell, Detector, DetectorFactory, DetectorInfo};
 use crate::engine::AnalysisContext;
 use crate::parser::FileSymbols;
+use crate::utils::package::PackageUtils;
 use inventory;
 
 pub fn init() {}
@@ -90,98 +91,11 @@ impl VendorCouplingDetector {
         let packages = symbols
             .imports
             .iter()
-            .filter(|import| self.is_external_import(&import.source))
-            .map(|import| self.extract_package_name(&import.source))
-            .filter(|package| !self.should_ignore_package(package, &ignore_packages))
+            .filter(|import| PackageUtils::is_external_package(&import.source))
+            .map(|import| PackageUtils::extract_package_name(&import.source))
+            .filter(|package| !PackageUtils::should_ignore_package(package, &ignore_packages))
             .collect();
 
         Some(packages)
-    }
-
-    fn is_external_import(&self, source: &str) -> bool {
-        !source.starts_with('.') && !source.starts_with('/')
-    }
-
-    fn should_ignore_package(&self, package: &str, ignore_packages: &[String]) -> bool {
-        if self.is_builtin_package(package) {
-            return true;
-        }
-
-        ignore_packages
-            .iter()
-            .any(|pattern_str| self.matches_ignore_pattern(package, pattern_str))
-    }
-
-    fn matches_ignore_pattern(&self, package: &str, pattern_str: &str) -> bool {
-        if pattern_str.ends_with("/*") {
-            let prefix = &pattern_str[..pattern_str.len() - 1];
-            package.starts_with(prefix)
-        } else if pattern_str.contains('*') {
-            glob::Pattern::new(pattern_str)
-                .map(|pattern| pattern.matches(package))
-                .unwrap_or(false)
-        } else {
-            pattern_str == package
-        }
-    }
-
-    fn is_builtin_package(&self, name: &str) -> bool {
-        if name.starts_with("node:") {
-            return true;
-        }
-
-        let builtins = [
-            "assert",
-            "async_hooks",
-            "buffer",
-            "child_process",
-            "cluster",
-            "console",
-            "constants",
-            "crypto",
-            "dgram",
-            "diagnostics_channel",
-            "dns",
-            "domain",
-            "events",
-            "fs",
-            "http",
-            "http2",
-            "https",
-            "inspector",
-            "module",
-            "net",
-            "os",
-            "path",
-            "perf_hooks",
-            "process",
-            "punycode",
-            "querystring",
-            "readline",
-            "repl",
-            "stream",
-            "string_decoder",
-            "timers",
-            "tls",
-            "trace_events",
-            "tty",
-            "url",
-            "util",
-            "v8",
-            "vm",
-            "wasi",
-            "worker_threads",
-            "zlib",
-        ];
-
-        builtins.contains(&name)
-    }
-
-    fn extract_package_name(&self, source: &str) -> String {
-        if source.starts_with('@') {
-            source.split('/').take(2).collect::<Vec<_>>().join("/")
-        } else {
-            source.split('/').next().unwrap_or(source).to_string()
-        }
     }
 }
