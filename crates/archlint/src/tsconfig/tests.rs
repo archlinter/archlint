@@ -196,10 +196,65 @@ fn test_extends_from_node_modules() -> Result<()> {
     let tsconfig_path = project_root.join("tsconfig.json");
     fs::write(&tsconfig_path, r#"{"extends": "@my-org/config/base.json"}"#)?;
 
+    let _config = TsConfig::load(&tsconfig_path)?;
+    Ok(())
+}
+
+#[test]
+fn test_extends_from_node_modules_subpath_no_ext() -> Result<()> {
+    let dir = tempdir()?;
+    let project_root = dir.path();
+
+    let node_modules = project_root.join("node_modules");
+    let pkg_dir = node_modules.join("@super-protocol/eslint-config-typescript");
+    fs::create_dir_all(pkg_dir.join("tsconfig"))?;
+
+    fs::write(
+        pkg_dir.join("tsconfig/node-cjs.json"),
+        r#"{"compilerOptions": {"baseUrl": "from-subpath"}}"#,
+    )?;
+
+    let tsconfig_path = project_root.join("tsconfig.json");
+    fs::write(
+        &tsconfig_path,
+        r#"{"extends": "@super-protocol/eslint-config-typescript/tsconfig/node-cjs"}"#,
+    )?;
+
     let config = TsConfig::load(&tsconfig_path)?;
     assert_eq!(
         config.compiler_options.unwrap().base_url.unwrap(),
-        "from-pkg"
+        "from-subpath"
+    );
+
+    Ok(())
+}
+
+#[test]
+fn test_extends_from_node_modules_package_json() -> Result<()> {
+    let dir = tempdir()?;
+    let project_root = dir.path();
+
+    let node_modules = project_root.join("node_modules");
+    let pkg_dir = node_modules.join("my-config-pkg");
+    fs::create_dir_all(&pkg_dir)?;
+
+    fs::write(
+        pkg_dir.join("package.json"),
+        r#"{"name": "my-config-pkg", "tsconfig": "./configs/strict.json"}"#,
+    )?;
+    fs::create_dir_all(pkg_dir.join("configs"))?;
+    fs::write(
+        pkg_dir.join("configs/strict.json"),
+        r#"{"compilerOptions": {"baseUrl": "from-pkg-json"}}"#,
+    )?;
+
+    let tsconfig_path = project_root.join("tsconfig.json");
+    fs::write(&tsconfig_path, r#"{"extends": "my-config-pkg"}"#)?;
+
+    let config = TsConfig::load(&tsconfig_path)?;
+    assert_eq!(
+        config.compiler_options.unwrap().base_url.unwrap(),
+        "from-pkg-json"
     );
 
     Ok(())
