@@ -20,6 +20,7 @@ impl<'a> UnifiedVisitor {
                     range,
                     is_type_only: is_type_only_decl,
                     is_reexport: false,
+                    is_dynamic: false,
                 });
             } else {
                 for specifier in specifiers {
@@ -35,6 +36,7 @@ impl<'a> UnifiedVisitor {
                                 range,
                                 is_type_only: is_type_only_decl || s.import_kind.is_type(),
                                 is_reexport: false,
+                                is_dynamic: false,
                             });
                         }
                         oxc_ast::ast::ImportDeclarationSpecifier::ImportDefaultSpecifier(s) => {
@@ -47,6 +49,7 @@ impl<'a> UnifiedVisitor {
                                 range,
                                 is_type_only: is_type_only_decl,
                                 is_reexport: false,
+                                is_dynamic: false,
                             });
                         }
                         oxc_ast::ast::ImportDeclarationSpecifier::ImportNamespaceSpecifier(s) => {
@@ -59,6 +62,7 @@ impl<'a> UnifiedVisitor {
                                 range,
                                 is_type_only: is_type_only_decl,
                                 is_reexport: false,
+                                is_dynamic: false,
                             });
                         }
                     }
@@ -75,6 +79,7 @@ impl<'a> UnifiedVisitor {
                 range,
                 is_type_only: is_type_only_decl,
                 is_reexport: false,
+                is_dynamic: false,
             });
         }
         oxc_ast::visit::walk::walk_import_declaration(self, it);
@@ -96,6 +101,7 @@ impl<'a> UnifiedVisitor {
                 range,
                 is_type_only: it.export_kind.is_type(),
                 is_reexport: true,
+                is_dynamic: false,
             });
         }
 
@@ -110,6 +116,7 @@ impl<'a> UnifiedVisitor {
                 range,
                 is_type_only: it.export_kind.is_type(),
                 is_reexport: true,
+                is_dynamic: false,
             });
         }
     }

@@ -77,6 +77,7 @@ impl<'a> UnifiedVisitor {
                         range,
                         is_type_only: false,
                         is_reexport: false,
+                        is_dynamic: true,
                     });
                 }
             }
@@ -95,6 +96,7 @@ impl<'a> UnifiedVisitor {
                                 range,
                                 is_type_only: false,
                                 is_reexport: false,
+                                is_dynamic: true,
                             });
                         }
                     }

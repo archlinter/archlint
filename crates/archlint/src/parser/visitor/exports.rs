@@ -61,6 +61,7 @@ impl<'a> UnifiedVisitor {
             range,
             is_type_only: it.export_kind.is_type(),
             is_reexport: true,
+            is_dynamic: false,
         });
         oxc_ast::visit::walk::walk_export_all_declaration(self, it);
     }

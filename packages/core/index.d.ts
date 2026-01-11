@@ -20,6 +20,8 @@ export interface JsScanOptions {
   git?: boolean
   /** Git history analysis period (e.g. "90d", "1y", "all") */
   gitHistoryPeriod?: string
+  /** Maximum file size in bytes to analyze */
+  maxFileSize?: number
 }
 export interface JsScanResult {
   smells: Array<JsSmellWithExplanation>

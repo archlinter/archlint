@@ -73,7 +73,9 @@ pub enum SmellType {
     },
 
     DeepNesting {
+        function: String,
         depth: usize,
+        line: usize,
     },
     LongParameterList {
         count: usize,

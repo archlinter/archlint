@@ -126,38 +126,19 @@ impl<'a> EngineBuilder<'a> {
         info!("{} Resolving symbols...", style("🔗").cyan().bold());
         let resolver = PathResolver::new(self.project_root, self.config);
 
-        let pb = if use_progress {
-            Some(create_progress_bar(
+        let pb = use_progress.then(|| {
+            create_progress_bar(
                 file_symbols.len(),
                 default_spinner_template(),
                 default_progress_chars(),
-            ))
-        } else {
-            None
-        };
+            )
+        });
 
         let resolved_file_symbols: HashMap<_, _> = file_symbols
             .into_par_iter()
             .map(|(file, symbols)| {
-                let mut resolved_symbols = symbols.clone();
-                for import in &mut resolved_symbols.imports {
-                    if let Some(resolved) = resolver
-                        .resolve(import.source.as_str(), &file)
-                        .ok()
-                        .flatten()
-                    {
-                        import.source = resolved.to_string_lossy().to_string().into();
-                    }
-                }
-                for export in &mut resolved_symbols.exports {
-                    if let Some(ref source) = export.source {
-                        if let Some(resolved) =
-                            resolver.resolve(source.as_str(), &file).ok().flatten()
-                        {
-                            export.source = Some(resolved.to_string_lossy().to_string().into());
-                        }
-                    }
-                }
+                let resolved_symbols =
+                    self.resolve_single_file_symbols(file.clone(), symbols, &resolver);
                 if let Some(ref pb) = pb {
                     pb.inc(1);
                 }
@@ -169,5 +150,30 @@ impl<'a> EngineBuilder<'a> {
             pb.finish_and_clear();
         }
         resolved_file_symbols
+    }
+
+    fn resolve_single_file_symbols(
+        &self,
+        file: PathBuf,
+        mut symbols: FileSymbols,
+        resolver: &PathResolver,
+    ) -> FileSymbols {
+        for import in &mut symbols.imports {
+            if let Some(resolved) = resolver
+                .resolve(import.source.as_str(), &file)
+                .ok()
+                .flatten()
+            {
+                import.source = resolved.to_string_lossy().to_string().into();
+            }
+        }
+        for export in &mut symbols.exports {
+            if let Some(ref source) = export.source {
+                if let Some(resolved) = resolver.resolve(source.as_str(), &file).ok().flatten() {
+                    export.source = Some(resolved.to_string_lossy().to_string().into());
+                }
+            }
+        }
+        symbols
     }
 }

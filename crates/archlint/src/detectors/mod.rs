@@ -41,4 +41,3 @@ pub trait Detector: Send + Sync {
     fn name(&self) -> &'static str;
     fn detect(&self, ctx: &AnalysisContext) -> Vec<ArchSmell>;
 }
-

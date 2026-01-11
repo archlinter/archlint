@@ -44,6 +44,37 @@ pub struct Config {
 
     #[serde(default)]
     pub git: GitConfig,
+
+    #[serde(default)]
+    pub diff: DiffConfig,
+}
+
+/// Configuration for diff command.
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct DiffConfig {
+    /// Percentage threshold for metric changes to be considered significant.
+    #[serde(default = "default_metric_threshold")]
+    pub metric_threshold_percent: f64,
+    /// Number of lines of tolerance when matching smells by location.
+    #[serde(default = "default_line_tolerance")]
+    pub line_tolerance: usize,
+}
+
+impl Default for DiffConfig {
+    fn default() -> Self {
+        Self {
+            metric_threshold_percent: default_metric_threshold(),
+            line_tolerance: default_line_tolerance(),
+        }
+    }
+}
+
+fn default_metric_threshold() -> f64 {
+    5.0
+}
+
+fn default_line_tolerance() -> usize {
+    3
 }
 
 /// Configuration options for TypeScript integration.
@@ -352,6 +383,7 @@ impl Default for Config {
             tsconfig: Some(TsConfigConfig::default()),
             max_file_size: default_max_file_size(),
             git: GitConfig::default(),
+            diff: DiffConfig::default(),
         }
     }
 }
