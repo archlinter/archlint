@@ -285,4 +285,82 @@ mod tests {
         assert!(id1.contains(&short_hash("Desc 1")));
         assert!(id2.contains(&short_hash("Desc 2")));
     }
+
+    #[test]
+    fn test_id_generation_no_hash_when_line_positive() {
+        use crate::detectors::{LocationDetail, Severity};
+
+        let root = Path::new("/project");
+        let file = PathBuf::from("/project/src/service.ts");
+
+        let smell = ArchSmell {
+            smell_type: SmellType::DeadSymbol {
+                name: "unused".to_string(),
+                kind: "function".to_string(),
+            },
+            severity: Severity::Low,
+            files: vec![file.clone()],
+            metrics: vec![],
+            locations: vec![LocationDetail::new(
+                file.clone(),
+                10,
+                "Some desc".to_string(),
+            )],
+            cluster: None,
+        };
+
+        let id = generate_smell_id(&smell, root);
+        // ID format: dead:src/service.ts:unused:10
+        assert_eq!(id, "dead:src/service.ts:unused:10");
+        assert!(!id.contains(&short_hash("Some desc")));
+    }
+
+    #[test]
+    fn test_id_generation_empty_locations_uses_debug_hash() {
+        use crate::detectors::Severity;
+
+        let root = Path::new("/project");
+        let file = PathBuf::from("/project/src/service.ts");
+
+        let smell = ArchSmell {
+            smell_type: SmellType::DeadSymbol {
+                name: "unused".to_string(),
+                kind: "function".to_string(),
+            },
+            severity: Severity::Low,
+            files: vec![file.clone()],
+            metrics: vec![],
+            locations: vec![], // Empty locations
+            cluster: None,
+        };
+
+        let id = generate_smell_id(&smell, root);
+        let expected_hash = short_hash(&format!("{:?}", smell));
+        assert!(id.contains(&expected_hash));
+    }
+
+    #[test]
+    fn test_id_generation_side_effect_import_hash() {
+        use crate::detectors::{LocationDetail, Severity};
+
+        let root = Path::new("/project");
+        let file = PathBuf::from("/project/src/service.ts");
+
+        let smell = ArchSmell {
+            smell_type: SmellType::SideEffectImport,
+            severity: Severity::Low,
+            files: vec![file.clone()],
+            metrics: vec![],
+            locations: vec![LocationDetail::new(
+                file.clone(),
+                0,
+                "Side effect".to_string(),
+            )],
+            cluster: None,
+        };
+
+        let id = generate_smell_id(&smell, root);
+        assert!(id.starts_with("sideeffect:src/service.ts:0:"));
+        assert!(id.contains(&short_hash("Side effect")));
+    }
 }
