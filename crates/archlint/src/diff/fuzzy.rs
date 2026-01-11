@@ -4,7 +4,7 @@
 //! Fuzzy matching identifies these "shifted" smells to avoid false positives in diff.
 
 use crate::snapshot::{SmellDetails, SnapshotSmell};
-use std::collections::{HashMap, HashSet};
+use std::collections::{BTreeMap, HashSet};
 
 /// Matcher for finding corresponding smells when exact ID matching fails.
 pub struct FuzzyMatcher {
@@ -56,7 +56,7 @@ impl FuzzyMatcher {
                 if let Some(current) =
                     self.find_best_match(baseline, current_smells, &used_current_ids)
                 {
-                    used_current_ids.insert(&current.id);
+                    used_current_ids.insert(current.id.clone());
                     matched.push(MatchedPair { baseline, current });
                 }
             }
@@ -70,13 +70,13 @@ impl FuzzyMatcher {
         &self,
         baseline: &SnapshotSmell,
         candidates: &[&'a SnapshotSmell],
-        used_ids: &HashSet<&str>,
+        used_ids: &HashSet<String>,
     ) -> Option<&'a SnapshotSmell> {
         let baseline_line = Self::extract_line(baseline)?;
 
         candidates
             .iter()
-            .filter(|c| !used_ids.contains(c.id.as_str()))
+            .filter(|c| !used_ids.contains(&c.id))
             .filter_map(|current| {
                 let current_line = Self::extract_line(current)?;
                 let diff = baseline_line.abs_diff(current_line);
@@ -87,8 +87,10 @@ impl FuzzyMatcher {
     }
 
     /// Group smells by their matching key.
-    fn group_by_key<'a>(smells: &[&'a SnapshotSmell]) -> HashMap<SmellKey, Vec<&'a SnapshotSmell>> {
-        let mut groups: HashMap<SmellKey, Vec<&'a SnapshotSmell>> = HashMap::new();
+    fn group_by_key<'a>(
+        smells: &[&'a SnapshotSmell],
+    ) -> BTreeMap<SmellKey, Vec<&'a SnapshotSmell>> {
+        let mut groups: BTreeMap<SmellKey, Vec<&'a SnapshotSmell>> = BTreeMap::new();
 
         for smell in smells {
             if let Some(key) = Self::extract_key(smell) {
@@ -103,8 +105,13 @@ impl FuzzyMatcher {
     ///
     /// Returns None if key cannot be extracted (smell won't participate in fuzzy matching).
     fn extract_key(smell: &SnapshotSmell) -> Option<SmellKey> {
+        // Multi-file smells are not supported for fuzzy matching yet
+        if smell.files.len() != 1 {
+            return None;
+        }
+
         let smell_type = smell.smell_type.clone();
-        let file = smell.files.first()?.clone();
+        let file = smell.files[0].clone();
 
         let symbol_name = Self::extract_symbol_name(smell)?;
 
@@ -197,6 +204,7 @@ impl FuzzyMatcher {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::collections::HashMap;
 
     fn make_smell(id: &str, smell_type: &str, file: &str, line: usize) -> SnapshotSmell {
         SnapshotSmell {
@@ -320,5 +328,36 @@ mod tests {
             FuzzyMatcher::extract_name_from_id("sideeffect:path:10:hash"),
             None
         );
+    }
+
+    #[test]
+    fn test_fallback_matching_from_ids() {
+        // Smell with NO locations and NO details, only standard ID
+        let baseline = SnapshotSmell {
+            id: "dead:src/foo.ts:unusedVar:10".to_string(),
+            smell_type: "DeadSymbol".to_string(),
+            severity: "Medium".to_string(),
+            files: vec!["src/foo.ts".to_string()],
+            metrics: HashMap::new(),
+            details: None,
+            locations: vec![],
+        };
+
+        let current = SnapshotSmell {
+            id: "dead:src/foo.ts:unusedVar:15".to_string(),
+            smell_type: "DeadSymbol".to_string(),
+            severity: "Medium".to_string(),
+            files: vec!["src/foo.ts".to_string()],
+            metrics: HashMap::new(),
+            details: None,
+            locations: vec![],
+        };
+
+        let matcher = FuzzyMatcher::new(10);
+        let pairs = matcher.match_orphans(&[&baseline], &[&current]);
+
+        assert_eq!(pairs.len(), 1, "Should match using fallbacks from ID");
+        assert_eq!(pairs[0].baseline.id, baseline.id);
+        assert_eq!(pairs[0].current.id, current.id);
     }
 }
