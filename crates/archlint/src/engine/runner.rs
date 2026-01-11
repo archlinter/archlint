@@ -1,30 +1,29 @@
 use crate::args::{Language, ScanArgs};
 use crate::cache::hash::file_content_hash;
 use crate::cache::AnalysisCache;
-use crate::config::{Config, RuleConfig, RuleSeverity};
+use crate::config::{Config, RuleConfig};
 use crate::detectors::{self, Severity, SmellType};
+use crate::engine::builder::EngineBuilder;
+use crate::engine::detector_runner::{apply_arg_overrides, DetectorRunner};
+use crate::engine::progress::{
+    create_progress_bar, default_progress_chars, default_spinner_template,
+};
 use crate::engine::AnalysisContext;
 use crate::framework::detector::FrameworkDetector;
 use crate::framework::preset_loader::PresetLoader;
 use crate::framework::presets::FrameworkPreset;
 use crate::framework::Framework;
 use crate::git_cache::GitHistoryCache;
-use crate::graph::{DependencyGraph, EdgeData};
 #[cfg(not(feature = "cli"))]
 use crate::no_cli_mocks::console::{style, Term};
-#[cfg(not(feature = "cli"))]
-use crate::no_cli_mocks::indicatif::{ProgressBar, ProgressStyle};
 use crate::package_json;
 use crate::parser::{FileIgnoredLines, ImportParser, ParsedFile, ParserConfig};
 use crate::project_root::detect_project_root;
 use crate::report::AnalysisReport;
-use crate::resolver::PathResolver;
 use crate::scanner::FileScanner;
 use crate::Result;
 #[cfg(feature = "cli")]
 use console::{style, Term};
-#[cfg(feature = "cli")]
-use indicatif::{ProgressBar, ProgressStyle};
 use log::{debug, info};
 use rayon::prelude::*;
 use std::collections::{HashMap, HashSet};
@@ -47,34 +46,7 @@ impl AnalysisEngine {
         let project_root = detect_project_root(&target_path);
 
         let mut config = config;
-
-        // Overrides from args
-        if let Some(ref detectors) = args.detectors {
-            for id in detectors.split(',').map(|s| s.trim()) {
-                config
-                    .rules
-                    .insert(id.to_string(), RuleConfig::Short(RuleSeverity::High));
-            }
-        }
-        if let Some(ref exclude) = args.exclude_detectors {
-            for id in exclude.split(',').map(|s| s.trim()) {
-                config
-                    .rules
-                    .insert(id.to_string(), RuleConfig::Short(RuleSeverity::Off));
-            }
-        }
-
-        // Overrides for git
-        if args.no_git {
-            config.git.enabled = false;
-        }
-        if let Some(ref period) = args.git_history_period {
-            config.git.history_period = period.clone();
-        }
-
-        if let Some(max_size) = args.max_file_size {
-            config.max_file_size = max_size;
-        }
+        apply_arg_overrides(&args, &mut config);
 
         Ok(Self {
             args,
@@ -105,7 +77,8 @@ impl AnalysisEngine {
 
         let final_config = self.apply_presets(&presets);
 
-        let active_ids = self.get_active_detectors(&final_config, &presets);
+        let detector_runner = DetectorRunner::new(&self.args);
+        let active_ids = detector_runner.get_active_detectors(&final_config, &presets);
         let parser_config = ParserConfig::from_active_detectors(&active_ids);
 
         let mut cache = self.load_cache()?;
@@ -118,9 +91,10 @@ impl AnalysisEngine {
 
         self.log_runtime_info(runtime_files.len(), files.len());
 
-        let graph = self.build_graph(&runtime_files, &file_symbols, use_progress)?;
+        let builder = EngineBuilder::new(&self.project_root, &final_config);
+        let graph = builder.build_graph(&runtime_files, &file_symbols, use_progress)?;
         let churn_map = self.get_churn_map(&files, use_progress, &mut cache);
-        let resolved_file_symbols = self.resolve_symbols(file_symbols, use_progress);
+        let resolved_file_symbols = builder.resolve_symbols(file_symbols, use_progress);
 
         let pkg_config = package_json::PackageJsonParser::parse(&self.project_root)?;
 
@@ -139,7 +113,7 @@ impl AnalysisEngine {
             presets: presets.clone(),
         };
 
-        let all_smells = self.run_detectors(&ctx, use_progress, &presets)?;
+        let all_smells = detector_runner.run_detectors(&ctx, use_progress, &presets)?;
 
         let report = self.create_report(ctx, all_smells, files.len(), presets)?;
 
@@ -158,7 +132,6 @@ impl AnalysisEngine {
         files_len: usize,
         presets: Vec<FrameworkPreset>,
     ) -> Result<AnalysisReport> {
-        // Filter smells: only keep smells that are NOT in ignored files AND not ignored via inline comments
         let filtered_smells: Vec<_> = all_smells
             .into_iter()
             .filter(|smell| {
@@ -206,15 +179,12 @@ impl AnalysisEngine {
 
     fn load_presets_and_detect(&self) -> Result<(Vec<FrameworkPreset>, Vec<Framework>)> {
         let mut presets = Vec::new();
-
         self.load_explicit_presets(&mut presets)?;
         let detected_frameworks = self.auto_detect_and_load_presets(&mut presets);
-
         Ok((presets, detected_frameworks))
     }
 
     fn load_explicit_presets(&self, presets: &mut Vec<FrameworkPreset>) -> Result<()> {
-        // From extends (explicit)
         for preset_name in &self.config.extends {
             match PresetLoader::load_any(preset_name) {
                 Ok(p) => presets.push(p),
@@ -226,7 +196,6 @@ impl AnalysisEngine {
             }
         }
 
-        // From explicit framework field (legacy)
         if let Some(ref fw) = self.config.framework {
             if !self.config.extends.contains(fw) {
                 if let Ok(p) = PresetLoader::load_any(fw) {
@@ -261,7 +230,6 @@ impl AnalysisEngine {
             .yellow()
         );
 
-        // Load presets for detected frameworks if they are not already loaded via extends
         for fw in &detected {
             let name = match fw {
                 Framework::NestJS => "nestjs",
@@ -366,14 +334,12 @@ impl AnalysisEngine {
     }
 
     fn merge_preset_into_config(&self, config: &mut Config, preset: &FrameworkPreset) {
-        // 1. Merge rules from presets
         for (rule_name, preset_rule) in &preset.rules {
             let user_rule = config
                 .rules
                 .entry(rule_name.clone())
                 .or_insert_with(|| preset_rule.clone());
 
-            // If user already has this rule, we might want to merge options if it's not overriding everything
             if let (RuleConfig::Full(preset_full), RuleConfig::Full(user_rule_full)) =
                 (preset_rule, user_rule)
             {
@@ -381,14 +347,12 @@ impl AnalysisEngine {
             }
         }
 
-        // 2. Merge entry points
         for pattern in &preset.entry_points {
             if !config.entry_points.contains(pattern) {
                 config.entry_points.push(pattern.clone());
             }
         }
 
-        // 3. Merge overrides
         for ov in &preset.overrides {
             if !config.overrides.contains(ov) {
                 config.overrides.push(ov.clone());
@@ -407,7 +371,6 @@ impl AnalysisEngine {
             if !user_map.contains_key(key) {
                 user_map.insert(key.clone(), preset_val.clone());
             } else {
-                // If both are sequences (like ignore_methods), merge them
                 let user_val = user_map.get_mut(key).unwrap();
                 Self::merge_sequences(user_val, preset_val);
             }
@@ -424,19 +387,6 @@ impl AnalysisEngine {
                 }
             }
         }
-    }
-
-    fn get_active_detectors(
-        &self,
-        config: &Config,
-        presets: &[FrameworkPreset],
-    ) -> HashSet<String> {
-        let registry = detectors::registry::DetectorRegistry::new();
-        let (enabled_detectors, _) =
-            registry.get_enabled_full(config, presets, self.args.all_detectors);
-
-        let active_detectors = self.filter_detectors(enabled_detectors, |(id, _)| id);
-        active_detectors.into_iter().map(|(id, _)| id).collect()
     }
 
     fn load_cache(&self) -> Result<Option<AnalysisCache>> {
@@ -456,50 +406,40 @@ impl AnalysisEngine {
         cache: &Option<AnalysisCache>,
     ) -> Result<HashMap<PathBuf, ParsedFile>> {
         let parser = ImportParser::new()?;
-        if use_progress {
-            let pb = ProgressBar::new(files.len() as u64);
-            pb.set_style(
-                ProgressStyle::default_bar()
-                    .template(
-                        "{spinner:.green} [{elapsed_precise}] [{bar:40.cyan/blue}] {pos}/{len} {msg}",
-                    )
-                    .unwrap()
-                    .progress_chars("█▉▊▋▌▍▎▏  "),
-            );
-
-            let result = files
-                .par_iter()
-                .map(|file| {
-                    let hash = file_content_hash(file)?;
-                    if let Some(ref c) = cache {
-                        if let Some(cached) = c.get(file, &hash) {
-                            pb.inc(1);
-                            return Ok((file.clone(), (*cached).clone()));
-                        }
-                    }
-                    let parsed = parser.parse_file_with_config(file, config)?;
-                    pb.inc(1);
-                    Ok((file.clone(), parsed))
-                })
-                .collect::<Result<HashMap<_, _>>>();
-            pb.finish_and_clear();
-            result
+        let pb = if use_progress {
+            Some(create_progress_bar(
+                files.len(),
+                default_spinner_template(),
+                default_progress_chars(),
+            ))
         } else {
-            files
-                .par_iter()
-                .map(|file| {
-                    let hash = file_content_hash(file)?;
-                    if let Some(ref c) = cache {
-                        if let Some(cached) = c.get(file, &hash) {
-                            return Ok((file.clone(), (*cached).clone()));
+            None
+        };
+
+        let result = files
+            .par_iter()
+            .map(|file| {
+                let hash = file_content_hash(file)?;
+                if let Some(ref c) = cache {
+                    if let Some(cached) = c.get(file, &hash) {
+                        if let Some(ref pb) = pb {
+                            pb.inc(1);
                         }
+                        return Ok((file.clone(), (*cached).clone()));
                     }
-                    debug!("Parsing: {}", file.display());
-                    let parsed = parser.parse_file_with_config(file, config)?;
-                    Ok((file.clone(), parsed))
-                })
-                .collect::<Result<HashMap<_, _>>>()
+                }
+                let parsed = parser.parse_file_with_config(file, config)?;
+                if let Some(ref pb) = pb {
+                    pb.inc(1);
+                }
+                Ok((file.clone(), parsed))
+            })
+            .collect::<Result<HashMap<_, _>>>();
+
+        if let Some(pb) = pb {
+            pb.finish_and_clear();
         }
+        result
     }
 
     fn update_cache(
@@ -551,14 +491,12 @@ impl AnalysisEngine {
     ) -> bool {
         let rule_id = smell.smell_type.category().to_id();
 
-        // Check if any location of the smell is ignored
         for loc in &smell.locations {
             if self.is_ignored(&loc.file, loc.line, rule_id, ignored_lines) {
                 return true;
             }
         }
 
-        // If no locations, but has files, check file-wide ignores for those files
         if smell.locations.is_empty() {
             for file in &smell.files {
                 if self.is_ignored(file, 0, rule_id, ignored_lines) {
@@ -583,14 +521,11 @@ impl AnalysisEngine {
         };
 
         if line == 0 {
-            // For file-wide smells, check only line 0
             return file_ignores
                 .get(&0)
                 .is_some_and(|rules| rules.contains("*") || rules.contains(rule_id));
         }
 
-        // For regular lines, check specifically that line.
-        // We no longer check line 0 here because block ignores now fill specific lines.
         file_ignores
             .get(&line)
             .is_some_and(|rules| rules.contains("*") || rules.contains(rule_id))
@@ -614,80 +549,6 @@ impl AnalysisEngine {
             style(runtime_count).cyan(),
             style(total_count - runtime_count).dim()
         );
-    }
-
-    fn build_graph(
-        &self,
-        runtime_files: &HashSet<PathBuf>,
-        file_symbols: &HashMap<PathBuf, crate::parser::FileSymbols>,
-        use_progress: bool,
-    ) -> Result<DependencyGraph> {
-        info!(
-            "{}  Building dependency graph...",
-            style("🕸️").cyan().bold()
-        );
-        let resolver = PathResolver::new(&self.project_root, &self.config);
-        let mut graph = DependencyGraph::new();
-        for file in runtime_files {
-            graph.add_file(file);
-        }
-
-        let pb = if use_progress {
-            let pb = ProgressBar::new(runtime_files.len() as u64);
-            pb.set_style(
-                ProgressStyle::default_bar()
-                    .template(
-                        "{spinner:.green} [{elapsed_precise}] [{bar:40.cyan/blue}] {pos}/{len} {msg}",
-                    )
-                    .unwrap()
-                    .progress_chars("█▉▊▋▌▍▎▏  "),
-            );
-            Some(pb)
-        } else {
-            None
-        };
-
-        let mut resolved_count = 0;
-        for file in runtime_files {
-            if let Some(ref pb) = pb {
-                if let Some(name) = file.file_name() {
-                    pb.set_message(name.to_string_lossy().to_string());
-                }
-            }
-            let from_node = graph.get_node(file).unwrap();
-            let symbols = file_symbols.get(file).unwrap();
-
-            for import in &symbols.imports {
-                if let Some(resolved) = resolver.resolve(import.source.as_str(), file)? {
-                    if runtime_files.contains(&resolved) {
-                        let to_node = graph.add_file(&resolved);
-                        let edge_data = EdgeData::with_all(
-                            import.line,
-                            import.range,
-                            vec![import.name.to_string()],
-                        );
-                        graph.add_dependency(from_node, to_node, edge_data);
-                        resolved_count += 1;
-                    }
-                }
-            }
-            if let Some(ref pb) = pb {
-                pb.inc(1);
-            }
-        }
-
-        if let Some(pb) = pb {
-            pb.finish_and_clear();
-        }
-
-        info!(
-            "   {} Nodes: {}, Edges: {}, Resolved: {}",
-            style("↳").dim(),
-            style(graph.node_count()).yellow(),
-            style(graph.edge_count()).yellow(),
-            style(resolved_count).dim()
-        );
-        Ok(graph)
     }
 
     fn get_churn_map(
@@ -729,174 +590,5 @@ impl AnalysisEngine {
                 HashMap::new()
             }
         }
-    }
-
-    fn resolve_symbols(
-        &self,
-        file_symbols: HashMap<PathBuf, crate::parser::FileSymbols>,
-        use_progress: bool,
-    ) -> HashMap<PathBuf, crate::parser::FileSymbols> {
-        info!("{} Resolving symbols...", style("🔗").cyan().bold());
-        let resolver = PathResolver::new(&self.project_root, &self.config);
-
-        let pb = if use_progress {
-            let pb = ProgressBar::new(file_symbols.len() as u64);
-            pb.set_style(
-                ProgressStyle::default_bar()
-                    .template(
-                        "{spinner:.green} [{elapsed_precise}] [{bar:40.cyan/blue}] {pos}/{len} {msg}",
-                    )
-                    .unwrap()
-                    .progress_chars("█▉▊▋▌▍▎▏  "),
-            );
-            Some(pb)
-        } else {
-            None
-        };
-
-        let resolved_file_symbols: HashMap<_, _> = file_symbols
-            .into_par_iter()
-            .map(|(file, symbols)| {
-                let mut resolved_symbols = symbols.clone();
-                for import in &mut resolved_symbols.imports {
-                    if let Some(resolved) = resolver
-                        .resolve(import.source.as_str(), &file)
-                        .ok()
-                        .flatten()
-                    {
-                        import.source = resolved.to_string_lossy().to_string().into();
-                    }
-                }
-                for export in &mut resolved_symbols.exports {
-                    if let Some(ref source) = export.source {
-                        if let Some(resolved) =
-                            resolver.resolve(source.as_str(), &file).ok().flatten()
-                        {
-                            export.source = Some(resolved.to_string_lossy().to_string().into());
-                        }
-                    }
-                }
-                if let Some(ref pb) = pb {
-                    pb.inc(1);
-                }
-                (file, resolved_symbols)
-            })
-            .collect();
-
-        if let Some(pb) = pb {
-            pb.finish_and_clear();
-        }
-        resolved_file_symbols
-    }
-
-    fn run_detectors(
-        &self,
-        ctx: &AnalysisContext,
-        use_progress: bool,
-        presets: &[FrameworkPreset],
-    ) -> Result<Vec<detectors::ArchSmell>> {
-        let registry = detectors::registry::DetectorRegistry::new();
-        let (final_detectors, _) =
-            registry.get_enabled_full(&ctx.config, presets, self.args.all_detectors);
-
-        let final_detectors = self.filter_detectors(final_detectors, |(id, _)| id);
-
-        let needs_deep = final_detectors.iter().any(|(id, _)| {
-            registry
-                .get_info(id)
-                .map(|info| info.is_deep)
-                .unwrap_or(false)
-        });
-
-        info!(
-            "{} Detecting architectural smells...{}",
-            style("🧪").green().bold(),
-            if needs_deep {
-                style(" (deep analysis enabled)").dim().to_string()
-            } else {
-                "".to_string()
-            }
-        );
-
-        let pb = if use_progress {
-            let pb = ProgressBar::new(final_detectors.len() as u64);
-            pb.set_style(
-                ProgressStyle::default_bar()
-                    .template(
-                        "{spinner:.green} [{elapsed_precise}] [{bar:40.green/white}] {pos}/{len} {msg}",
-                    )
-                    .unwrap()
-                    .progress_chars("█▉▊▋▌▍▎▏  "),
-            );
-            Some(pb)
-        } else {
-            None
-        };
-
-        let results: Vec<_> = final_detectors
-            .into_par_iter()
-            .map(|(_id, detector)| {
-                let smells = detector.detect(ctx);
-                (detector.name().to_string(), smells)
-            })
-            .collect();
-
-        let mut all_smells = Vec::new();
-        for (name, smells) in results {
-            let status = format!(
-                "   {} {:<27} found: {}",
-                style("↳").dim(),
-                name,
-                if smells.is_empty() {
-                    style("0".to_string()).dim()
-                } else {
-                    style(smells.len().to_string()).red().bold()
-                }
-            );
-
-            if let Some(ref pb) = pb {
-                pb.set_message(name);
-                pb.println(status);
-                pb.inc(1);
-            } else {
-                info!("{}", status);
-            }
-            all_smells.extend(smells);
-        }
-
-        if let Some(pb) = pb {
-            pb.finish_and_clear();
-        }
-        Ok(all_smells)
-    }
-
-    fn parse_detector_id_set(&self, ids: &Option<String>) -> Option<HashSet<String>> {
-        ids.as_ref().map(|s| {
-            s.split(',')
-                .map(|id| id.trim())
-                .filter(|id| !id.is_empty())
-                .map(|id| id.to_string())
-                .collect::<HashSet<_>>()
-        })
-    }
-
-    fn filter_detectors<T, F: Fn(&T) -> &str>(
-        &self,
-        detectors: impl IntoIterator<Item = T>,
-        id_extractor: F,
-    ) -> Vec<T> {
-        let include = self.parse_detector_id_set(&self.args.detectors);
-        let exclude = self
-            .parse_detector_id_set(&self.args.exclude_detectors)
-            .unwrap_or_default();
-
-        detectors
-            .into_iter()
-            .filter(|d| match include.as_ref() {
-                Some(set) => set.contains(id_extractor(d)),
-                None => true,
-            })
-            .filter(|d| !exclude.contains(id_extractor(d)))
-            .collect()
     }
 }
