@@ -31,9 +31,9 @@ impl MermaidGenerator {
     }
 
     fn collect_problem_data(
-        smells: &[(ArchSmell, crate::explain::Explanation)],
+        smells: &[(ArchSmell, crate::detectors::Explanation)],
     ) -> (HashSet<PathBuf>, HashMap<PathBuf, Vec<&SmellType>>) {
-        let mut problem_files = HashSet::new();
+        let mut problem_files: HashSet<PathBuf> = HashSet::new();
         let mut file_smells: HashMap<PathBuf, Vec<&SmellType>> = HashMap::new();
 
         for (smell, _) in smells {
@@ -48,13 +48,12 @@ impl MermaidGenerator {
 
         (problem_files, file_smells)
     }
-
     fn generate_nodes(
         output: &mut String,
         problem_files: &HashSet<PathBuf>,
         file_smells: &HashMap<PathBuf, Vec<&SmellType>>,
     ) -> HashMap<PathBuf, String> {
-        let mut node_ids = HashMap::new();
+        let mut node_ids: HashMap<PathBuf, String> = HashMap::new();
         let mut sorted_files: Vec<&PathBuf> = problem_files.iter().collect();
         sorted_files.sort();
 

@@ -1,41 +1,102 @@
-use crate::config::Config;
-use crate::detectors::DetectorCategory;
-use crate::detectors::{ArchSmell, Detector, DetectorFactory, DetectorInfo};
+use crate::detectors::{
+    detector, ArchSmell, Detector, DetectorCategory, Explanation, SmellType, SmellWithExplanation,
+};
 use crate::engine::AnalysisContext;
-use inventory;
 use petgraph::graph::UnGraph;
 
 pub fn init() {}
 
+#[detector(
+    id = "lcom",
+    name = "Lack of Cohesion of Methods (LCOM4)",
+    description = "Detects classes with low cohesion where methods don't share common fields",
+    category = DetectorCategory::FileLocal,
+    default_enabled = false
+)]
 pub struct LcomDetector;
 
-pub struct LcomDetectorFactory;
+impl LcomDetector {
+    pub fn new_default(_config: &crate::config::Config) -> Self {
+        Self
+    }
 
-impl DetectorFactory for LcomDetectorFactory {
-    fn info(&self) -> DetectorInfo {
-        DetectorInfo {
-            id: "lcom",
-            name: "Lack of Cohesion of Methods (LCOM4)",
-            description:
-                "Detects classes with low cohesion where methods don't share common fields",
-            default_enabled: false,
-            is_deep: false,
-            category: DetectorCategory::FileLocal,
+    fn calculate_lcom4(&self, class: &crate::parser::ClassSymbol) -> usize {
+        let mut graph = UnGraph::<(), ()>::new_undirected();
+        let mut method_nodes = Vec::new();
+
+        for _ in 0..class.methods.len() {
+            method_nodes.push(graph.add_node(()));
         }
-    }
 
-    fn create(&self, _config: &Config) -> Box<dyn Detector> {
-        Box::new(LcomDetector)
-    }
-}
+        for i in 0..class.methods.len() {
+            for j in (i + 1)..class.methods.len() {
+                let m1 = &class.methods[i];
+                let m2 = &class.methods[j];
 
-inventory::submit! {
-    &LcomDetectorFactory as &dyn DetectorFactory
+                // methods are connected if they share a field
+                let shares_field = m1.used_fields.iter().any(|f| m2.used_fields.contains(f));
+
+                // or if one calls the other (simplified: if m1 uses m2's name)
+                // we don't have perfect call graph yet, but we can check used_methods
+                let calls_each_other =
+                    m1.used_methods.contains(&m2.name) || m2.used_methods.contains(&m1.name);
+
+                if shares_field || calls_each_other {
+                    graph.add_edge(method_nodes[i], method_nodes[j], ());
+                }
+            }
+        }
+
+        petgraph::algo::connected_components(&graph)
+    }
 }
 
 impl Detector for LcomDetector {
     fn name(&self) -> &'static str {
         "Lcom"
+    }
+
+    fn explain(&self, _smell: &ArchSmell) -> Explanation {
+        Explanation {
+            problem: "Low Cohesion of Methods (LCOM)".to_string(),
+            reason: "The methods in this class don't share common fields, suggesting the class might be doing too many unrelated things.".to_string(),
+            risks: vec!["Violation of SRP".to_string(), "Difficult to maintain and test".to_string()],
+            recommendations: vec!["Split the class into smaller, more focused classes".to_string()],
+        }
+    }
+
+    fn render_markdown(
+        &self,
+        smells: &[&SmellWithExplanation],
+        severity_config: &crate::config::SeverityConfig,
+        _graph: Option<&crate::graph::DependencyGraph>,
+    ) -> String {
+        use crate::explain::ExplainEngine;
+        crate::define_report_section!("Low Cohesion (LCOM)", smells, {
+            crate::render_table!(
+                vec!["Class", "LCOM4 Score", "pts"],
+                smells,
+                |&(smell, _): &&SmellWithExplanation| {
+                    let (name, lcom): (String, usize) = match &smell.smell_type {
+                        SmellType::LowCohesion { lcom } => (
+                            smell
+                                .files
+                                .first()
+                                .map(|f| ExplainEngine::format_file_path(f))
+                                .unwrap_or_default(),
+                            *lcom,
+                        ),
+                        _ => ("unknown".to_string(), 0),
+                    };
+                    let pts = smell.score(severity_config);
+                    vec![
+                        format!("`{}`", name),
+                        lcom.to_string(),
+                        format!("{} pts", pts),
+                    ]
+                }
+            )
+        })
     }
 
     fn detect(&self, ctx: &AnalysisContext) -> Vec<ArchSmell> {
@@ -67,37 +128,5 @@ impl Detector for LcomDetector {
         }
 
         smells
-    }
-}
-
-impl LcomDetector {
-    fn calculate_lcom4(&self, class: &crate::parser::ClassSymbol) -> usize {
-        let mut graph = UnGraph::<(), ()>::new_undirected();
-        let mut method_nodes = Vec::new();
-
-        for _ in 0..class.methods.len() {
-            method_nodes.push(graph.add_node(()));
-        }
-
-        for i in 0..class.methods.len() {
-            for j in (i + 1)..class.methods.len() {
-                let m1 = &class.methods[i];
-                let m2 = &class.methods[j];
-
-                // methods are connected if they share a field
-                let shares_field = m1.used_fields.iter().any(|f| m2.used_fields.contains(f));
-
-                // or if one calls the other (simplified: if m1 uses m2's name)
-                // we don't have perfect call graph yet, but we can check used_methods
-                let calls_each_other =
-                    m1.used_methods.contains(&m2.name) || m2.used_methods.contains(&m1.name);
-
-                if shares_field || calls_each_other {
-                    graph.add_edge(method_nodes[i], method_nodes[j], ());
-                }
-            }
-        }
-
-        petgraph::algo::connected_components(&graph)
     }
 }

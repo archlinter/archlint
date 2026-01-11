@@ -171,6 +171,8 @@ pub struct AnalysisReport {
     pub min_severity: Option<Severity>,
     /// Minimum score filter applied to the report.
     pub min_score: Option<u32>,
+    /// Config used during analysis
+    pub config: crate::config::Config,
 }
 
 impl AnalysisReport {
@@ -184,8 +186,9 @@ impl AnalysisReport {
         ignored_lines: FileIgnoredLines,
         churn_map: std::collections::HashMap<PathBuf, usize>,
         presets: Vec<FrameworkPreset>,
+        config: &crate::config::Config,
     ) -> Self {
-        // ... (rest of the logic stays same)
+        // ...
         let cyclic_dependencies = smells
             .iter()
             .filter(|s| {
@@ -246,10 +249,17 @@ impl AnalysisReport {
             .filter(|s| matches!(s.smell_type, SmellType::CodeClone { .. }))
             .count();
 
+        let registry = crate::detectors::DetectorRegistry::new();
         let smells_with_explanations = smells
             .into_iter()
             .map(|smell| {
-                let explanation = ExplainEngine::explain(&smell);
+                let detector_id = smell.smell_type.category().to_id();
+                let explanation =
+                    if let Some(detector) = registry.create_detector(detector_id, config) {
+                        detector.explain(&smell)
+                    } else {
+                        ExplainEngine::explain(&smell)
+                    };
                 (smell, explanation)
             })
             .collect();
@@ -277,6 +287,7 @@ impl AnalysisReport {
             presets,
             min_severity: None,
             min_score: None,
+            config: config.clone(),
         }
     }
 

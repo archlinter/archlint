@@ -1,66 +1,27 @@
-use crate::config::{Config, LayerConfig};
-use crate::detectors::DetectorCategory;
-use crate::detectors::{ArchSmell, Detector, DetectorFactory, DetectorInfo};
+use crate::config::LayerConfig;
+use crate::detectors::{
+    detector, ArchSmell, Detector, DetectorCategory, Explanation, SmellType, SmellWithExplanation,
+};
 use crate::engine::AnalysisContext;
-use inventory;
 use petgraph::graph::NodeIndex;
 use std::path::{Path, PathBuf};
 
 pub fn init() {}
 
+#[detector(
+    id = "layer_violation",
+    name = "Layer Architecture Violation Detector",
+    description = "Detects violations of layered architecture rules",
+    category = DetectorCategory::ImportBased,
+    default_enabled = false
+)]
 pub struct LayerViolationDetector;
 
-pub struct LayerViolationDetectorFactory;
-
-impl DetectorFactory for LayerViolationDetectorFactory {
-    fn info(&self) -> DetectorInfo {
-        DetectorInfo {
-            id: "layer_violation",
-            name: "Layer Architecture Violation Detector",
-            description: "Detects violations of layered architecture rules",
-            default_enabled: false,
-            is_deep: false,
-            category: DetectorCategory::ImportBased,
-        }
-    }
-
-    fn create(&self, _config: &Config) -> Box<dyn Detector> {
-        Box::new(LayerViolationDetector)
-    }
-}
-
-inventory::submit! {
-    &LayerViolationDetectorFactory as &dyn DetectorFactory
-}
-
-impl Detector for LayerViolationDetector {
-    fn name(&self) -> &'static str {
-        "LayerViolation"
-    }
-
-    fn detect(&self, ctx: &AnalysisContext) -> Vec<ArchSmell> {
-        let rule = match ctx.get_rule("layer_violation") {
-            Some(r) => r,
-            None => return Vec::new(),
-        };
-
-        let layers: Vec<LayerConfig> = rule.get_option("layers").unwrap_or_default();
-
-        if layers.is_empty() {
-            return Vec::new();
-        }
-
-        ctx.graph
-            .nodes()
-            .filter_map(|node| self.get_node_info(ctx, node, &layers))
-            .flat_map(|from_info| {
-                Self::check_dependencies_for_violations(ctx, from_info, &layers, self, &rule)
-            })
-            .collect()
-    }
-}
-
 impl LayerViolationDetector {
+    pub fn new_default(_config: &crate::config::Config) -> Self {
+        Self
+    }
+
     fn check_dependencies_for_violations(
         ctx: &AnalysisContext,
         from_info: (&PathBuf, &LayerConfig),
@@ -92,9 +53,7 @@ impl LayerViolationDetector {
 
         smells
     }
-}
 
-impl LayerViolationDetector {
     fn find_layer<'a>(&self, path: &Path, layers: &'a [LayerConfig]) -> Option<&'a LayerConfig> {
         // Find the most specific layer (longest matching path)
         let mut matching_layers: Vec<&LayerConfig> = layers
@@ -166,5 +125,81 @@ impl LayerViolationDetector {
         } else {
             None
         }
+    }
+}
+
+impl Detector for LayerViolationDetector {
+    fn name(&self) -> &'static str {
+        "LayerViolation"
+    }
+
+    fn explain(&self, _smell: &ArchSmell) -> Explanation {
+        Explanation {
+            problem: "Layer Architecture Violation".to_string(),
+            reason: "A module in one layer imports a module from a layer it shouldn't know about (e.g., domain depending on infrastructure).".to_string(),
+            risks: vec![
+                "Circular dependencies between layers".to_string(),
+                "Difficult to test domain logic in isolation".to_string(),
+                "Leaking implementation details into business logic".to_string(),
+            ],
+            recommendations: vec![
+                "Use Dependency Inversion Principle (DIP)".to_string(),
+                "Introduce interfaces in the stable layer".to_string(),
+                "Move the code to the appropriate layer".to_string(),
+            ],
+        }
+    }
+
+    fn render_markdown(
+        &self,
+        smells: &[&SmellWithExplanation],
+        severity_config: &crate::config::SeverityConfig,
+        _graph: Option<&crate::graph::DependencyGraph>,
+    ) -> String {
+        use crate::report::format_location;
+        crate::define_report_section!("Layer Violations", smells, {
+            crate::render_table!(
+                vec!["Location", "Violation", "pts"],
+                smells,
+                |&(smell, _): &&SmellWithExplanation| {
+                    let file_path = smell.files.first().unwrap();
+                    let (from, to) = match &smell.smell_type {
+                        SmellType::LayerViolation {
+                            from_layer,
+                            to_layer,
+                        } => (from_layer.clone(), to_layer.clone()),
+                        _ => ("unknown".into(), "unknown".into()),
+                    };
+                    let location = format_location(file_path, 0, None); // Should have line info
+                    let pts = smell.score(severity_config);
+                    vec![
+                        format!("`{}`", location),
+                        format!("`{}` → `{}`", from, to),
+                        format!("{} pts", pts),
+                    ]
+                }
+            )
+        })
+    }
+
+    fn detect(&self, ctx: &AnalysisContext) -> Vec<ArchSmell> {
+        let rule = match ctx.get_rule("layer_violation") {
+            Some(r) => r,
+            None => return Vec::new(),
+        };
+
+        let layers: Vec<LayerConfig> = rule.get_option("layers").unwrap_or_default();
+
+        if layers.is_empty() {
+            return Vec::new();
+        }
+
+        ctx.graph
+            .nodes()
+            .filter_map(|node| self.get_node_info(ctx, node, &layers))
+            .flat_map(|from_info| {
+                Self::check_dependencies_for_violations(ctx, from_info, &layers, self, &rule)
+            })
+            .collect()
     }
 }

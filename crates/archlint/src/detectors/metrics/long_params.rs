@@ -1,39 +1,75 @@
-use crate::config::Config;
-use crate::detectors::DetectorCategory;
-use crate::detectors::{ArchSmell, Detector, DetectorFactory, DetectorInfo};
+use crate::detectors::{
+    detector, ArchSmell, Detector, DetectorCategory, Explanation, SmellType, SmellWithExplanation,
+};
 use crate::engine::AnalysisContext;
-use inventory;
 
 pub fn init() {}
 
+#[detector(
+    id = "long_params",
+    name = "Long Parameter List Detector",
+    description = "Detects functions with too many parameters",
+    category = DetectorCategory::FileLocal
+)]
 pub struct LongParameterListDetector;
 
-pub struct LongParameterListDetectorFactory;
-
-impl DetectorFactory for LongParameterListDetectorFactory {
-    fn info(&self) -> DetectorInfo {
-        DetectorInfo {
-            id: "long_params",
-            name: "Long Parameter List Detector",
-            description: "Detects functions with too many parameters",
-            default_enabled: true,
-            is_deep: false,
-            category: DetectorCategory::FileLocal,
-        }
+impl LongParameterListDetector {
+    pub fn new_default(_config: &crate::config::Config) -> Self {
+        Self
     }
-
-    fn create(&self, _config: &Config) -> Box<dyn Detector> {
-        Box::new(LongParameterListDetector)
-    }
-}
-
-inventory::submit! {
-    &LongParameterListDetectorFactory as &dyn DetectorFactory
 }
 
 impl Detector for LongParameterListDetector {
     fn name(&self) -> &'static str {
         "LongParameterList"
+    }
+
+    fn explain(&self, smell: &ArchSmell) -> Explanation {
+        let (function, count) = match &smell.smell_type {
+            SmellType::LongParameterList { count, function } => (function.clone(), *count),
+            _ => ("unknown".to_string(), 0),
+        };
+        Explanation {
+            problem: format!("Function `{}` has too many parameters ({})", function, count),
+            reason: "Functions with too many parameters are difficult to use and maintain. They often indicate that the function has too many responsibilities.".to_string(),
+            risks: vec!["Violation of SRP".to_string(), "Difficult to test and mock".to_string()],
+            recommendations: vec!["Group related parameters into an object or split the function".to_string()],
+        }
+    }
+
+    fn render_markdown(
+        &self,
+        smells: &[&SmellWithExplanation],
+        severity_config: &crate::config::SeverityConfig,
+        _graph: Option<&crate::graph::DependencyGraph>,
+    ) -> String {
+        use crate::report::format_location_detail;
+        crate::define_report_section!("Long Parameter Lists", smells, {
+            crate::render_table!(
+                vec!["Location", "Function", "Params", "pts"],
+                smells,
+                |&(smell, _): &&SmellWithExplanation| {
+                    let (function, count): (String, usize) = match &smell.smell_type {
+                        SmellType::LongParameterList { count, function } => {
+                            (function.clone(), *count)
+                        }
+                        _ => ("unknown".to_string(), 0),
+                    };
+                    let location = smell
+                        .locations
+                        .first()
+                        .map(format_location_detail)
+                        .unwrap_or_default();
+                    let pts = smell.score(severity_config);
+                    vec![
+                        format!("`{}`", location),
+                        format!("`{}`", function),
+                        count.to_string(),
+                        format!("{} pts", pts),
+                    ]
+                }
+            )
+        })
     }
 
     fn detect(&self, ctx: &AnalysisContext) -> Vec<ArchSmell> {

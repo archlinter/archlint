@@ -1,83 +1,25 @@
-use crate::config::Config;
-use crate::detectors::DetectorCategory;
-use crate::detectors::{ArchSmell, Detector, DetectorFactory, DetectorInfo};
+use crate::detectors::{
+    detector, ArchSmell, Detector, DetectorCategory, Explanation, SmellType, SmellWithExplanation,
+};
 use crate::engine::AnalysisContext;
-use inventory;
 use std::path::Path;
 
 pub fn init() {}
 
+#[detector(
+    id = "test_leakage",
+    name = "Test to Production Leakage Detector",
+    description = "Detects when production code imports test files, mocks, or test utilities",
+    category = DetectorCategory::ImportBased,
+    default_enabled = false
+)]
 pub struct TestLeakageDetector;
 
-pub struct TestLeakageDetectorFactory;
-
-impl DetectorFactory for TestLeakageDetectorFactory {
-    fn info(&self) -> DetectorInfo {
-        DetectorInfo {
-            id: "test_leakage",
-            name: "Test to Production Leakage Detector",
-            description:
-                "Detects when production code imports test files, mocks, or test utilities",
-            default_enabled: false,
-            is_deep: false,
-            category: DetectorCategory::ImportBased,
-        }
-    }
-
-    fn create(&self, _config: &Config) -> Box<dyn Detector> {
-        Box::new(TestLeakageDetector)
-    }
-}
-
-inventory::submit! {
-    &TestLeakageDetectorFactory as &dyn DetectorFactory
-}
-
-impl Detector for TestLeakageDetector {
-    fn name(&self) -> &'static str {
-        "TestLeakage"
-    }
-
-    fn detect(&self, ctx: &AnalysisContext) -> Vec<ArchSmell> {
-        let rule = match ctx.get_rule("test_leakage") {
-            Some(r) => r,
-            None => return Vec::new(),
-        };
-
-        let test_patterns: Vec<String> = rule.get_option("test_patterns").unwrap_or_else(|| {
-            vec![
-                "**/*.test.ts".to_string(),
-                "**/*.test.js".to_string(),
-                "**/*.spec.ts".to_string(),
-                "**/*.spec.js".to_string(),
-                "**/__tests__/**".to_string(),
-                "**/__mocks__/**".to_string(),
-            ]
-        });
-
-        ctx.graph
-            .nodes()
-            .filter_map(|node| {
-                let from_path = ctx.graph.get_file_path(node)?;
-                let file_rule = ctx.get_rule_for_file("test_leakage", from_path)?;
-
-                if !self.is_test_file(from_path, Some(&test_patterns)) {
-                    let mut node_smells =
-                        Self::check_node_leakage(ctx, node, Some(&test_patterns), self);
-                    for smell in &mut node_smells {
-                        smell.severity = file_rule.severity;
-                    }
-                    Some(node_smells)
-                } else {
-                    None
-                }
-            })
-            .flatten()
-            .collect()
-    }
-}
-
 impl TestLeakageDetector {
+    pub fn new_default(_config: &crate::config::Config) -> Self {
+        Self
+    }
+
     fn check_node_leakage(
         ctx: &AnalysisContext,
         node: petgraph::graph::NodeIndex,
@@ -110,9 +52,7 @@ impl TestLeakageDetector {
 
         smells
     }
-}
 
-impl TestLeakageDetector {
     fn is_test_file(&self, path: &Path, patterns: Option<&[String]>) -> bool {
         if let Some(patterns) = patterns {
             return self.matches_custom_patterns(path, patterns);
@@ -195,5 +135,99 @@ impl TestLeakageDetector {
                 })
                 .unwrap_or(false)
         })
+    }
+}
+
+impl Detector for TestLeakageDetector {
+    fn name(&self) -> &'static str {
+        "TestLeakage"
+    }
+
+    fn explain(&self, _smell: &ArchSmell) -> Explanation {
+        Explanation {
+            problem: "Test-to-Production Leakage".to_string(),
+            reason: "A production module imports a test file, mock, or test utility. This can lead to test code being included in production bundles.".to_string(),
+            risks: vec![
+                "Increased bundle size".to_string(),
+                "Potential security risks if mocks expose internal data".to_string(),
+                "Code fragility: production depends on test helpers".to_string(),
+            ],
+            recommendations: vec![
+                "Move shared utilities to a separate non-test module".to_string(),
+                "Check if the import was accidental and remove it".to_string(),
+            ],
+        }
+    }
+
+    fn render_markdown(
+        &self,
+        smells: &[&SmellWithExplanation],
+        severity_config: &crate::config::SeverityConfig,
+        _graph: Option<&crate::graph::DependencyGraph>,
+    ) -> String {
+        use crate::report::format_location_detail;
+        crate::define_report_section!("Test Leakage", smells, {
+            crate::render_table!(
+                vec!["Location", "Imported Test File", "pts"],
+                smells,
+                |&(smell, _): &&SmellWithExplanation| {
+                    let location = smell
+                        .locations
+                        .first()
+                        .map(format_location_detail)
+                        .unwrap_or_default();
+                    let test_file = match &smell.smell_type {
+                        SmellType::TestLeakage { test_file } => {
+                            test_file.to_string_lossy().to_string()
+                        }
+                        _ => "unknown".to_string(),
+                    };
+                    let pts = smell.score(severity_config);
+                    vec![
+                        format!("`{}`", location),
+                        format!("`{}`", test_file),
+                        format!("{} pts", pts),
+                    ]
+                }
+            )
+        })
+    }
+
+    fn detect(&self, ctx: &AnalysisContext) -> Vec<ArchSmell> {
+        let rule = match ctx.get_rule("test_leakage") {
+            Some(r) => r,
+            None => return Vec::new(),
+        };
+
+        let test_patterns: Vec<String> = rule.get_option("test_patterns").unwrap_or_else(|| {
+            vec![
+                "**/*.test.ts".to_string(),
+                "**/*.test.js".to_string(),
+                "**/*.spec.ts".to_string(),
+                "**/*.spec.js".to_string(),
+                "**/__tests__/**".to_string(),
+                "**/__mocks__/**".to_string(),
+            ]
+        });
+
+        ctx.graph
+            .nodes()
+            .filter_map(|node| {
+                let from_path = ctx.graph.get_file_path(node)?;
+                let file_rule = ctx.get_rule_for_file("test_leakage", from_path)?;
+
+                if !self.is_test_file(from_path, Some(&test_patterns)) {
+                    let mut node_smells =
+                        Self::check_node_leakage(ctx, node, Some(&test_patterns), self);
+                    for smell in &mut node_smells {
+                        smell.severity = file_rule.severity;
+                    }
+                    Some(node_smells)
+                } else {
+                    None
+                }
+            })
+            .flatten()
+            .collect()
     }
 }

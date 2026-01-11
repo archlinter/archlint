@@ -1,42 +1,68 @@
-use crate::config::Config;
-use crate::detectors::DetectorCategory;
-use crate::detectors::{ArchSmell, Detector, DetectorFactory, DetectorInfo};
+use crate::detectors::{
+    detector, ArchSmell, Detector, DetectorCategory, Explanation, SmellType, SmellWithExplanation,
+};
 use crate::engine::AnalysisContext;
-use inventory;
 use std::collections::HashMap;
 use std::path::PathBuf;
 
 pub fn init() {}
 
+#[detector(
+    id = "scattered_config",
+    name = "Scattered Configuration Detector",
+    description = "Detects environment variables that are accessed from many different modules",
+    category = DetectorCategory::Global,
+    default_enabled = false
+)]
 pub struct ScatteredConfigDetector;
 
-pub struct ScatteredConfigDetectorFactory;
-
-impl DetectorFactory for ScatteredConfigDetectorFactory {
-    fn info(&self) -> DetectorInfo {
-        DetectorInfo {
-            id: "scattered_config",
-            name: "Scattered Configuration Detector",
-            description:
-                "Detects environment variables that are accessed from many different modules",
-            default_enabled: false,
-            is_deep: false,
-            category: DetectorCategory::Global,
-        }
+impl ScatteredConfigDetector {
+    pub fn new_default(_config: &crate::config::Config) -> Self {
+        Self
     }
-
-    fn create(&self, _config: &Config) -> Box<dyn Detector> {
-        Box::new(ScatteredConfigDetector)
-    }
-}
-
-inventory::submit! {
-    &ScatteredConfigDetectorFactory as &dyn DetectorFactory
 }
 
 impl Detector for ScatteredConfigDetector {
     fn name(&self) -> &'static str {
         "ScatteredConfiguration"
+    }
+
+    fn explain(&self, _smell: &ArchSmell) -> Explanation {
+        Explanation {
+            problem: "Scattered Configuration".to_string(),
+            reason: "Configuration (like environment variables) is spread across many different files, making it hard to track where settings are used.".to_string(),
+            risks: vec!["Difficult to audit configuration".to_string(), "Potential bugs when settings change".to_string()],
+            recommendations: vec!["Centralize configuration access in a dedicated module or service".to_string()],
+        }
+    }
+
+    fn render_markdown(
+        &self,
+        smells: &[&SmellWithExplanation],
+        severity_config: &crate::config::SeverityConfig,
+        _graph: Option<&crate::graph::DependencyGraph>,
+    ) -> String {
+        crate::define_report_section!("Scattered Configuration", smells, {
+            crate::render_table!(
+                vec!["Env Var", "Usage Count", "pts"],
+                smells,
+                |&(smell, _): &&SmellWithExplanation| {
+                    let (env_var, count) = match &smell.smell_type {
+                        SmellType::ScatteredConfiguration {
+                            env_var,
+                            files_count,
+                        } => (env_var.clone(), *files_count),
+                        _ => ("unknown".to_string(), 0),
+                    };
+                    let pts = smell.score(severity_config);
+                    vec![
+                        format!("`{}`", env_var),
+                        format!("{} files", count),
+                        format!("{} pts", pts),
+                    ]
+                }
+            )
+        })
     }
 
     fn detect(&self, ctx: &AnalysisContext) -> Vec<ArchSmell> {

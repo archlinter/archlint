@@ -129,6 +129,10 @@ impl DetectorRegistry {
     pub fn get_info(&self, id: &str) -> Option<DetectorInfo> {
         self.factories.get(id).map(|f| f.info())
     }
+
+    pub fn create_detector(&self, id: &str, config: &Config) -> Option<Box<dyn Detector>> {
+        self.factories.get(id).map(|f| f.create(config))
+    }
 }
 
 impl Default for DetectorRegistry {

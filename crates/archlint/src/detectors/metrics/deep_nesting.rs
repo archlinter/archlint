@@ -1,39 +1,77 @@
-use crate::config::Config;
-use crate::detectors::DetectorCategory;
-use crate::detectors::{ArchSmell, Detector, DetectorFactory, DetectorInfo};
+use crate::detectors::{
+    detector, ArchSmell, Detector, DetectorCategory, Explanation, SmellType, SmellWithExplanation,
+};
 use crate::engine::AnalysisContext;
-use inventory;
 
 pub fn init() {}
 
+#[detector(
+    id = "deep_nesting",
+    name = "Deep Nesting Detector",
+    description = "Detects functions with excessive nesting depth",
+    category = DetectorCategory::FileLocal
+)]
 pub struct DeepNestingDetector;
 
-pub struct DeepNestingDetectorFactory;
-
-impl DetectorFactory for DeepNestingDetectorFactory {
-    fn info(&self) -> DetectorInfo {
-        DetectorInfo {
-            id: "deep_nesting",
-            name: "Deep Nesting Detector",
-            description: "Detects functions with excessive nesting depth",
-            default_enabled: true,
-            is_deep: false,
-            category: DetectorCategory::FileLocal,
-        }
+impl DeepNestingDetector {
+    pub fn new_default(_config: &crate::config::Config) -> Self {
+        Self
     }
-
-    fn create(&self, _config: &Config) -> Box<dyn Detector> {
-        Box::new(DeepNestingDetector)
-    }
-}
-
-inventory::submit! {
-    &DeepNestingDetectorFactory as &dyn DetectorFactory
 }
 
 impl Detector for DeepNestingDetector {
     fn name(&self) -> &'static str {
         "DeepNesting"
+    }
+
+    fn explain(&self, smell: &ArchSmell) -> Explanation {
+        let (function, depth) = match &smell.smell_type {
+            SmellType::DeepNesting {
+                function, depth, ..
+            } => (function.clone(), *depth),
+            _ => ("unknown".to_string(), 0),
+        };
+        Explanation {
+            problem: format!("Function `{}` is too deeply nested (depth: {})", function, depth),
+            reason: "Deeply nested code structures (if, for, while, etc.) make the logic hard to follow and increase the risk of bugs.".to_string(),
+            risks: vec!["Increased cognitive load".to_string(), "Difficult to test all branches".to_string()],
+            recommendations: vec!["Refactor using guard clauses, early returns, or extract nested blocks into separate functions".to_string()],
+        }
+    }
+
+    fn render_markdown(
+        &self,
+        smells: &[&SmellWithExplanation],
+        severity_config: &crate::config::SeverityConfig,
+        _graph: Option<&crate::graph::DependencyGraph>,
+    ) -> String {
+        use crate::report::format_location_detail;
+        crate::define_report_section!("Deep Nesting", smells, {
+            crate::render_table!(
+                vec!["Location", "Function", "Depth", "pts"],
+                smells,
+                |&(smell, _): &&SmellWithExplanation| {
+                    let (function, depth): (String, usize) = match &smell.smell_type {
+                        SmellType::DeepNesting {
+                            function, depth, ..
+                        } => (function.clone(), *depth),
+                        _ => ("unknown".to_string(), 0),
+                    };
+                    let location = smell
+                        .locations
+                        .first()
+                        .map(format_location_detail)
+                        .unwrap_or_default();
+                    let pts = smell.score(severity_config);
+                    vec![
+                        format!("`{}`", location),
+                        format!("`{}`", function),
+                        depth.to_string(),
+                        format!("{} pts", pts),
+                    ]
+                }
+            )
+        })
     }
 
     fn detect(&self, ctx: &AnalysisContext) -> Vec<ArchSmell> {

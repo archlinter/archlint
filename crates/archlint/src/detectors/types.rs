@@ -230,7 +230,7 @@ impl ConfigurableSmellType {
             ConfigurableSmellType::ScatteredModule => "module_cohesion",
             ConfigurableSmellType::HighCoupling => "high_coupling",
             ConfigurableSmellType::PackageCycle => "package_cycles",
-            ConfigurableSmellType::SharedMutableState => "shared_state",
+            ConfigurableSmellType::SharedMutableState => "shared_mutable_state",
             ConfigurableSmellType::DeepNesting => "deep_nesting",
             ConfigurableSmellType::LongParameterList => "long_params",
             ConfigurableSmellType::PrimitiveObsession => "primitive_obsession",
@@ -305,6 +305,17 @@ impl std::str::FromStr for Severity {
         }
     }
 }
+
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct Explanation {
+    pub problem: String,
+    pub reason: String,
+    pub risks: Vec<String>,
+    pub recommendations: Vec<String>,
+}
+
+use crate::detectors::ArchSmell;
+pub type SmellWithExplanation = (ArchSmell, Explanation);
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(tag = "type", content = "value")]

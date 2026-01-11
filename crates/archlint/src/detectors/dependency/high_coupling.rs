@@ -1,39 +1,62 @@
-use crate::config::Config;
-use crate::detectors::DetectorCategory;
-use crate::detectors::{ArchSmell, Detector, DetectorFactory, DetectorInfo};
+use crate::detectors::{
+    detector, ArchSmell, Detector, DetectorCategory, Explanation, SmellType, SmellWithExplanation,
+};
 use crate::engine::AnalysisContext;
-use inventory;
 
 pub fn init() {}
 
+#[detector(
+    id = "high_coupling",
+    name = "High Coupling Detector (CBO)",
+    description = "Detects modules with too many incoming and outgoing dependencies",
+    category = DetectorCategory::GraphBased,
+    default_enabled = false
+)]
 pub struct HighCouplingDetector;
 
-pub struct HighCouplingDetectorFactory;
-
-impl DetectorFactory for HighCouplingDetectorFactory {
-    fn info(&self) -> DetectorInfo {
-        DetectorInfo {
-            id: "high_coupling",
-            name: "High Coupling Detector (CBO)",
-            description: "Detects modules with too many incoming and outgoing dependencies",
-            default_enabled: false,
-            is_deep: false,
-            category: DetectorCategory::GraphBased,
-        }
+impl HighCouplingDetector {
+    pub fn new_default(_config: &crate::config::Config) -> Self {
+        Self
     }
-
-    fn create(&self, _config: &Config) -> Box<dyn Detector> {
-        Box::new(HighCouplingDetector)
-    }
-}
-
-inventory::submit! {
-    &HighCouplingDetectorFactory as &dyn DetectorFactory
 }
 
 impl Detector for HighCouplingDetector {
     fn name(&self) -> &'static str {
         "HighCoupling"
+    }
+
+    fn explain(&self, _smell: &ArchSmell) -> Explanation {
+        Explanation {
+            problem: "High Coupling (CBO)".to_string(),
+            reason: "Module has too many incoming and outgoing dependencies (Coupling Between Objects). High coupling makes code difficult to change and test in isolation.".to_string(),
+            risks: vec!["Fragile system: changes ripple through many modules".to_string(), "Difficult to mock dependencies for testing".to_string()],
+            recommendations: vec!["Refactor to reduce dependencies or move functionality to a more appropriate place".to_string()],
+        }
+    }
+
+    fn render_markdown(
+        &self,
+        smells: &[&SmellWithExplanation],
+        severity_config: &crate::config::SeverityConfig,
+        _graph: Option<&crate::graph::DependencyGraph>,
+    ) -> String {
+        use crate::explain::ExplainEngine;
+        crate::define_report_section!("High Coupling", smells, {
+            crate::render_table!(
+                vec!["File", "CBO Score", "pts"],
+                smells,
+                |&(smell, _): &&SmellWithExplanation| {
+                    let file_path = smell.files.first().unwrap();
+                    let formatted_path = ExplainEngine::format_file_path(file_path);
+                    let cbo = match &smell.smell_type {
+                        SmellType::HighCoupling { cbo } => cbo.to_string(),
+                        _ => "unknown".to_string(),
+                    };
+                    let pts = smell.score(severity_config);
+                    vec![format!("`{}`", formatted_path), cbo, format!("{} pts", pts)]
+                }
+            )
+        })
     }
 
     fn detect(&self, ctx: &AnalysisContext) -> Vec<ArchSmell> {

@@ -1,53 +1,29 @@
-use crate::config::Config;
 use crate::detectors::{
-    ArchSmell, Detector, DetectorCategory, DetectorFactory, DetectorInfo, Severity, SmellType,
+    detector, ArchSmell, Detector, DetectorCategory, Explanation, Severity, SmellType,
+    SmellWithExplanation,
 };
 use crate::engine::AnalysisContext;
 use crate::parser::ImportedSymbol;
-use inventory;
 use petgraph::graph::DiGraph;
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 
 pub fn init() {}
 
+#[detector(
+    id = "circular_type_deps",
+    name = "Circular Type Dependencies Detector",
+    description = "Detects circular dependencies between modules that only involve types",
+    category = DetectorCategory::GraphBased,
+    default_enabled = false
+)]
 pub struct CircularTypeDepsDetector;
 
-pub struct CircularTypeDepsDetectorFactory;
-
-impl DetectorFactory for CircularTypeDepsDetectorFactory {
-    fn info(&self) -> DetectorInfo {
-        DetectorInfo {
-            id: "circular_type_deps",
-            name: "Circular Type Dependencies Detector",
-            description: "Detects circular dependencies between modules that only involve types",
-            default_enabled: false,
-            is_deep: false,
-            category: DetectorCategory::GraphBased,
-        }
-    }
-
-    fn create(&self, _config: &Config) -> Box<dyn Detector> {
-        Box::new(CircularTypeDepsDetector)
-    }
-}
-
-inventory::submit! {
-    &CircularTypeDepsDetectorFactory as &dyn DetectorFactory
-}
-
-impl Detector for CircularTypeDepsDetector {
-    fn name(&self) -> &'static str {
-        "CircularTypeDependencies"
-    }
-
-    fn detect(&self, ctx: &AnalysisContext) -> Vec<ArchSmell> {
-        let type_graph = self.build_type_graph(ctx);
-        self.process_sccs(&type_graph, ctx)
-    }
-}
-
 impl CircularTypeDepsDetector {
+    pub fn new_default(_config: &crate::config::Config) -> Self {
+        Self
+    }
+
     fn build_type_graph(&self, ctx: &AnalysisContext) -> DiGraph<PathBuf, ()> {
         let mut type_graph = DiGraph::new();
         let mut path_to_node = HashMap::new();
@@ -160,5 +136,50 @@ impl CircularTypeDepsDetector {
             }
         }
         true
+    }
+}
+
+impl Detector for CircularTypeDepsDetector {
+    fn name(&self) -> &'static str {
+        "CircularTypeDependencies"
+    }
+
+    fn explain(&self, _smell: &ArchSmell) -> Explanation {
+        Explanation {
+            problem: "Circular Type Dependency".to_string(),
+            reason: "Two or more modules have a circular dependency that only involves types (type-only imports). While allowed by some compilers, it often indicates a flaw in module design.".to_string(),
+            risks: vec!["Difficult to reason about data structures".to_string(), "Tight coupling between types".to_string()],
+            recommendations: vec!["Refactor shared types into a dedicated common module".to_string()],
+        }
+    }
+
+    fn render_markdown(
+        &self,
+        smells: &[&SmellWithExplanation],
+        severity_config: &crate::config::SeverityConfig,
+        _graph: Option<&crate::graph::DependencyGraph>,
+    ) -> String {
+        use crate::explain::ExplainEngine;
+        crate::define_report_section!("Circular Type Dependencies", smells, {
+            crate::render_table!(
+                vec!["Cycle Path", "pts"],
+                smells,
+                |&(smell, _): &&SmellWithExplanation| {
+                    let path = smell
+                        .files
+                        .iter()
+                        .map(|p| format!("`{}`", ExplainEngine::format_file_path(p)))
+                        .collect::<Vec<_>>()
+                        .join(" → ");
+                    let pts = smell.score(severity_config);
+                    vec![path, format!("{} pts", pts)]
+                }
+            )
+        })
+    }
+
+    fn detect(&self, ctx: &AnalysisContext) -> Vec<ArchSmell> {
+        let type_graph = self.build_type_graph(ctx);
+        self.process_sccs(&type_graph, ctx)
     }
 }

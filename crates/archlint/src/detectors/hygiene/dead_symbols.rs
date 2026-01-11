@@ -1,67 +1,21 @@
-use crate::config::Config;
-use crate::detectors::DetectorCategory;
-use crate::detectors::{ArchSmell, Detector, DetectorFactory, DetectorInfo};
+use crate::detectors::{
+    detector, ArchSmell, Detector, DetectorCategory, Explanation, SmellType, SmellWithExplanation,
+};
 use crate::engine::AnalysisContext;
 use crate::parser::{FileSymbols, MethodAccessibility, SymbolKind};
-use inventory;
 use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
 
 pub fn init() {}
 
+#[detector(
+    id = "dead_symbols",
+    name = "Dead Symbols Detector",
+    description = "Detects unused functions, classes, and variables within files",
+    category = DetectorCategory::Global,
+    is_deep = true
+)]
 pub struct DeadSymbolsDetector;
-
-pub struct DeadSymbolsDetectorFactory;
-
-impl DetectorFactory for DeadSymbolsDetectorFactory {
-    fn info(&self) -> DetectorInfo {
-        DetectorInfo {
-            id: "dead_symbols",
-            name: "Dead Symbols Detector",
-            description: "Detects unused functions, classes, and variables within files",
-            default_enabled: true,
-            is_deep: true,
-            category: DetectorCategory::Global,
-        }
-    }
-
-    fn create(&self, _config: &Config) -> Box<dyn Detector> {
-        Box::new(DeadSymbolsDetector)
-    }
-}
-
-inventory::submit! {
-    &DeadSymbolsDetectorFactory as &dyn DetectorFactory
-}
-
-impl Detector for DeadSymbolsDetector {
-    fn name(&self) -> &'static str {
-        "DeadSymbols"
-    }
-
-    fn detect(&self, ctx: &AnalysisContext) -> Vec<ArchSmell> {
-        let _rule = match ctx.get_rule("dead_symbols") {
-            Some(r) => r,
-            None => return Vec::new(),
-        };
-
-        let smells = Self::detect_symbols(ctx.file_symbols.as_ref(), &ctx.script_entry_points, ctx);
-
-        smells
-            .into_iter()
-            .filter_map(|mut smell| {
-                if let Some(path) = smell.files.first() {
-                    let file_rule = match ctx.get_rule_for_file("dead_symbols", path) {
-                        Some(r) => r,
-                        None => return None,
-                    };
-                    smell.severity = file_rule.severity;
-                }
-                Some(smell)
-            })
-            .collect()
-    }
-}
 
 #[derive(Default)]
 struct InheritanceContext {
@@ -74,6 +28,10 @@ struct InheritanceContext {
 }
 
 impl DeadSymbolsDetector {
+    pub fn new_default(_config: &crate::config::Config) -> Self {
+        Self
+    }
+
     pub fn new(_entry_points: HashSet<PathBuf>) -> Self {
         Self
     }
@@ -580,6 +538,99 @@ impl DeadSymbolsDetector {
             _ => "Symbol",
         }
         .to_string()
+    }
+}
+
+impl Detector for DeadSymbolsDetector {
+    fn name(&self) -> &'static str {
+        "DeadSymbols"
+    }
+
+    fn explain(&self, smell: &ArchSmell) -> Explanation {
+        let (name, kind) = match &smell.smell_type {
+            SmellType::DeadSymbol { name, kind } => (name.as_str(), kind.as_str()),
+            _ => ("unknown", "Symbol"),
+        };
+
+        Explanation {
+            problem: format!("Unused {} detected", kind),
+            reason: format!(
+                "The {} '{}' is defined but not imported by any other file or used locally.",
+                kind, name
+            ),
+            risks: vec![
+                "Increases cognitive load when reading the file".to_string(),
+                "Dead code can hide bugs and complicate refactoring".to_string(),
+                "May lead to confusion about the intended API of the module".to_string(),
+            ],
+            recommendations: vec![
+                format!("Remove the unused {} if it is truly no longer needed", kind),
+                "Check if it should be an internal helper or if it was meant to be exported and used".to_string(),
+                "Use a tool like 'ts-unused-exports' or similar for detailed symbol tracking if this is common".to_string(),
+            ],
+        }
+    }
+
+    fn render_markdown(
+        &self,
+        dead_symbols: &[&SmellWithExplanation],
+        _severity_config: &crate::config::SeverityConfig,
+        _graph: Option<&crate::graph::DependencyGraph>,
+    ) -> String {
+        use crate::explain::ExplainEngine;
+        use crate::report::format_location_detail;
+
+        crate::define_report_section!("Dead Symbols", dead_symbols, {
+            crate::render_table!(
+                vec!["Location", "Symbol", "Kind"],
+                dead_symbols,
+                |&(smell, _): &&SmellWithExplanation| {
+                    if let SmellType::DeadSymbol { name, kind } = &smell.smell_type {
+                        let location = smell
+                            .locations
+                            .first()
+                            .map(format_location_detail)
+                            .unwrap_or_else(|| {
+                                smell
+                                    .files
+                                    .first()
+                                    .map(|f| ExplainEngine::format_file_path(f))
+                                    .unwrap_or_else(|| "unknown".to_string())
+                            });
+                        vec![
+                            format!("`{}`", location),
+                            format!("`{}`", name),
+                            kind.clone(),
+                        ]
+                    } else {
+                        vec!["-".into(); 3]
+                    }
+                }
+            )
+        })
+    }
+
+    fn detect(&self, ctx: &AnalysisContext) -> Vec<ArchSmell> {
+        let _rule = match ctx.get_rule("dead_symbols") {
+            Some(r) => r,
+            None => return Vec::new(),
+        };
+
+        let smells = Self::detect_symbols(ctx.file_symbols.as_ref(), &ctx.script_entry_points, ctx);
+
+        smells
+            .into_iter()
+            .filter_map(|mut smell| {
+                if let Some(path) = smell.files.first() {
+                    let file_rule = match ctx.get_rule_for_file("dead_symbols", path) {
+                        Some(r) => r,
+                        None => return None,
+                    };
+                    smell.severity = file_rule.severity;
+                }
+                Some(smell)
+            })
+            .collect()
     }
 }
 

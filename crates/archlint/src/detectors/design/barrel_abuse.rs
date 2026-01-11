@@ -1,41 +1,70 @@
-use crate::config::Config;
-use crate::detectors::DetectorCategory;
-use crate::detectors::{ArchSmell, Detector, DetectorFactory, DetectorInfo};
+use crate::detectors::{
+    detector, ArchSmell, Detector, DetectorCategory, Explanation, SmellWithExplanation,
+};
 use crate::engine::AnalysisContext;
-use inventory;
 use std::path::Path;
 
 pub fn init() {}
 
+#[detector(
+    id = "barrel_file",
+    name = "Barrel File Abuse Detector",
+    description = "Detects excessive use of barrel files (index.ts) that inflate the dependency graph",
+    category = DetectorCategory::ImportBased
+)]
 pub struct BarrelFileAbuseDetector;
 
-pub struct BarrelFileAbuseDetectorFactory;
-
-impl DetectorFactory for BarrelFileAbuseDetectorFactory {
-    fn info(&self) -> DetectorInfo {
-        DetectorInfo {
-            id: "barrel_file",
-            name: "Barrel File Abuse Detector",
-            description:
-                "Detects excessive use of barrel files (index.ts) that inflate the dependency graph",
-            default_enabled: true,
-            is_deep: false,
-            category: DetectorCategory::ImportBased,
-        }
+impl BarrelFileAbuseDetector {
+    pub fn new_default(_config: &crate::config::Config) -> Self {
+        Self
     }
 
-    fn create(&self, _config: &Config) -> Box<dyn Detector> {
-        Box::new(BarrelFileAbuseDetector)
+    fn is_barrel_file(&self, path: &Path) -> bool {
+        path.file_name()
+            .and_then(|n| n.to_str())
+            .map(|s| s.starts_with("index."))
+            .unwrap_or(false)
     }
-}
-
-inventory::submit! {
-    &BarrelFileAbuseDetectorFactory as &dyn DetectorFactory
 }
 
 impl Detector for BarrelFileAbuseDetector {
     fn name(&self) -> &'static str {
         "BarrelFileAbuse"
+    }
+
+    fn explain(&self, _smell: &ArchSmell) -> Explanation {
+        Explanation {
+            problem: "Barrel File Abuse".to_string(),
+            reason: "Excessive re-exports in index file. Large barrel files can lead to unnecessary coupling and slower build times.".to_string(),
+            risks: vec!["Increased build times".to_string(), "Circular dependencies risk".to_string()],
+            recommendations: vec!["Split the barrel file or import directly from sub-modules".to_string()],
+        }
+    }
+
+    fn render_markdown(
+        &self,
+        smells: &[&SmellWithExplanation],
+        severity_config: &crate::config::SeverityConfig,
+        _graph: Option<&crate::graph::DependencyGraph>,
+    ) -> String {
+        use crate::explain::ExplainEngine;
+        crate::define_report_section!("Barrel Files", smells, {
+            crate::render_table!(
+                vec!["File", "Re-exports", "pts"],
+                smells,
+                |&(smell, _): &&SmellWithExplanation| {
+                    let file_path = smell.files.first().unwrap();
+                    let formatted_path = ExplainEngine::format_file_path(file_path);
+                    let count = smell.dependent_count().unwrap_or(0);
+                    let pts = smell.score(severity_config);
+                    vec![
+                        format!("`{}`", formatted_path),
+                        count.to_string(),
+                        format!("{} pts", pts),
+                    ]
+                }
+            )
+        })
     }
 
     fn detect(&self, ctx: &AnalysisContext) -> Vec<ArchSmell> {
@@ -67,14 +96,5 @@ impl Detector for BarrelFileAbuseDetector {
         }
 
         smells
-    }
-}
-
-impl BarrelFileAbuseDetector {
-    fn is_barrel_file(&self, path: &Path) -> bool {
-        path.file_name()
-            .and_then(|n| n.to_str())
-            .map(|s| s.starts_with("index."))
-            .unwrap_or(false)
     }
 }

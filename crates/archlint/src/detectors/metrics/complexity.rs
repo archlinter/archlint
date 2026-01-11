@@ -1,41 +1,120 @@
-use crate::config::Config;
-use crate::detectors::DetectorCategory;
-use crate::detectors::{ArchSmell, Detector, DetectorFactory, DetectorInfo};
+use crate::detectors::{
+    detector, ArchSmell, Detector, DetectorCategory, Explanation, SmellType, SmellWithExplanation,
+};
 use crate::engine::AnalysisContext;
-use crate::parser::FunctionComplexity;
-use inventory;
 use std::path::Path;
 
 pub fn init() {}
 
+#[detector(
+    id = "complexity",
+    name = "Complexity Detector",
+    description = "Detects functions and files with high cyclomatic complexity",
+    category = DetectorCategory::FileLocal
+)]
 pub struct ComplexityDetector;
 
-pub struct ComplexityDetectorFactory;
+impl ComplexityDetector {
+    pub fn new_default(_config: &crate::config::Config) -> Self {
+        Self
+    }
 
-impl DetectorFactory for ComplexityDetectorFactory {
-    fn info(&self) -> DetectorInfo {
-        DetectorInfo {
-            id: "complexity",
-            name: "Complexity Detector",
-            description: "Detects functions and files with high cyclomatic complexity",
-            default_enabled: true,
-            is_deep: false,
-            category: DetectorCategory::FileLocal,
+    pub fn detect_file(
+        file_path: &Path,
+        functions: &[crate::parser::FunctionComplexity],
+        threshold: usize,
+    ) -> Vec<ArchSmell> {
+        let mut smells = Vec::new();
+
+        for func in functions {
+            if func.complexity >= threshold {
+                smells.push(ArchSmell::new_high_complexity(
+                    file_path.to_path_buf(),
+                    func.name.to_string(),
+                    func.line,
+                    func.complexity,
+                    threshold,
+                    Some(func.range),
+                ));
+            }
         }
-    }
 
-    fn create(&self, _config: &Config) -> Box<dyn Detector> {
-        Box::new(ComplexityDetector)
+        smells
     }
-}
-
-inventory::submit! {
-    &ComplexityDetectorFactory as &dyn DetectorFactory
 }
 
 impl Detector for ComplexityDetector {
     fn name(&self) -> &'static str {
         "Complexity"
+    }
+
+    fn explain(&self, smell: &ArchSmell) -> Explanation {
+        let name = match &smell.smell_type {
+            SmellType::HighComplexity { name, .. } => name.clone(),
+            _ => "unknown".to_string(),
+        };
+
+        let complexity = smell.complexity().unwrap_or(0);
+
+        Explanation {
+            problem: format!(
+                "Function `{}` has high cyclomatic complexity ({})",
+                name, complexity
+            ),
+            reason: "High cyclomatic complexity indicates that the function has too many decision points (if, for, while, etc.), making it difficult to understand, test, and maintain.".to_string(),
+            risks: vec![
+                "Higher probability of bugs due to complex logic".to_string(),
+                "Difficult to achieve high test coverage".to_string(),
+                "Hard for other developers to read and understand".to_string(),
+                "Refactoring becomes dangerous and difficult".to_string(),
+            ],
+            recommendations: vec![
+                "Extract complex nested logic into smaller, focused helper functions".to_string(),
+                "Use early returns to reduce nesting depth".to_string(),
+                "Simplify logical expressions".to_string(),
+                "Consider using design patterns like Strategy or Command for complex branching".to_string(),
+                "Break down large switch statements".to_string(),
+            ],
+        }
+    }
+
+    fn render_markdown(
+        &self,
+        high_complexity: &[&SmellWithExplanation],
+        severity_config: &crate::config::SeverityConfig,
+        _graph: Option<&crate::graph::DependencyGraph>,
+    ) -> String {
+        use crate::report::format_location_detail;
+
+        crate::define_report_section!("High Complexity Functions", high_complexity, {
+            crate::render_table!(
+                vec!["Location", "Function", "Complexity", "Score"],
+                high_complexity,
+                |&(smell, _): &&SmellWithExplanation| {
+                    if let SmellType::HighComplexity { name, line, .. } = &smell.smell_type {
+                        let file_path = smell.files.first().unwrap();
+                        let location = smell
+                            .locations
+                            .first()
+                            .map(format_location_detail)
+                            .unwrap_or_else(|| {
+                                crate::report::format_location(file_path, *line, None)
+                            });
+                        let complexity = smell.complexity().unwrap_or(0);
+                        let score = smell.score(severity_config);
+
+                        vec![
+                            format!("`{}`", location),
+                            format!("`{}`", name),
+                            complexity.to_string(),
+                            format!("{} pts", score),
+                        ]
+                    } else {
+                        vec!["-".into(); 4]
+                    }
+                }
+            )
+        })
     }
 
     fn detect(&self, ctx: &AnalysisContext) -> Vec<ArchSmell> {
@@ -65,31 +144,6 @@ impl Detector for ComplexityDetector {
                     smell.severity = rule.severity;
                     smells.push(smell);
                 }
-            }
-        }
-
-        smells
-    }
-}
-
-impl ComplexityDetector {
-    pub fn detect_file(
-        file_path: &Path,
-        functions: &[FunctionComplexity],
-        threshold: usize,
-    ) -> Vec<ArchSmell> {
-        let mut smells = Vec::new();
-
-        for func in functions {
-            if func.complexity >= threshold {
-                smells.push(ArchSmell::new_high_complexity(
-                    file_path.to_path_buf(),
-                    func.name.to_string(),
-                    func.line,
-                    func.complexity,
-                    threshold,
-                    Some(func.range),
-                ));
             }
         }
 

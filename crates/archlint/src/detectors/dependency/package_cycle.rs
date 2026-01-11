@@ -1,66 +1,27 @@
-use crate::config::Config;
-use crate::detectors::DetectorCategory;
-use crate::detectors::{ArchSmell, Detector, DetectorFactory, DetectorInfo};
+use crate::detectors::{
+    detector, ArchSmell, Detector, DetectorCategory, Explanation, SmellType, SmellWithExplanation,
+};
 use crate::engine::AnalysisContext;
-use inventory;
 use petgraph::graph::DiGraph;
 use std::collections::{HashMap, HashSet};
 use std::path::Path;
 
 pub fn init() {}
 
+#[detector(
+    id = "package_cycles",
+    name = "Package-level Cycle Detector",
+    description = "Detects circular dependencies between logical folders (packages)",
+    category = DetectorCategory::GraphBased,
+    default_enabled = false
+)]
 pub struct PackageCycleDetector;
 
-pub struct PackageCycleDetectorFactory;
-
-impl DetectorFactory for PackageCycleDetectorFactory {
-    fn info(&self) -> DetectorInfo {
-        DetectorInfo {
-            id: "package_cycles",
-            name: "Package-level Cycle Detector",
-            description: "Detects circular dependencies between logical folders (packages)",
-            default_enabled: false,
-            is_deep: false,
-            category: DetectorCategory::GraphBased,
-        }
-    }
-
-    fn create(&self, _config: &Config) -> Box<dyn Detector> {
-        Box::new(PackageCycleDetector)
-    }
-}
-
-inventory::submit! {
-    &PackageCycleDetectorFactory as &dyn DetectorFactory
-}
-
-impl Detector for PackageCycleDetector {
-    fn name(&self) -> &'static str {
-        "PackageCycle"
-    }
-
-    fn detect(&self, ctx: &AnalysisContext) -> Vec<ArchSmell> {
-        let rule = match ctx.get_rule("package_cycles") {
-            Some(r) => r,
-            None => return Vec::new(),
-        };
-
-        let package_depth: usize = rule.get_option("package_depth").unwrap_or(2);
-
-        let pkg_graph = Self::build_package_graph(ctx, package_depth);
-        let smells = Self::find_package_cycles(&pkg_graph);
-
-        smells
-            .into_iter()
-            .map(|mut s| {
-                s.severity = rule.severity;
-                s
-            })
-            .collect()
-    }
-}
-
 impl PackageCycleDetector {
+    pub fn new_default(_config: &crate::config::Config) -> Self {
+        Self
+    }
+
     fn build_package_graph(ctx: &AnalysisContext, package_depth: usize) -> DiGraph<String, ()> {
         let mut pkg_graph = DiGraph::<String, ()>::new();
         let mut pkg_to_node = HashMap::new();
@@ -156,5 +117,62 @@ impl PackageCycleDetector {
         } else {
             components.join("/")
         }
+    }
+}
+
+impl Detector for PackageCycleDetector {
+    fn name(&self) -> &'static str {
+        "PackageCycle"
+    }
+
+    fn explain(&self, _smell: &ArchSmell) -> Explanation {
+        Explanation {
+            problem: "Package-level Cycle".to_string(),
+            reason: "Circular dependency detected between different packages/folders. This violates the goal of creating a hierarchical, directed dependency graph between logical components.".to_string(),
+            risks: vec!["Packages cannot be developed or deployed in isolation".to_string(), "Modular structure becomes a big ball of mud".to_string()],
+            recommendations: vec!["Move shared code to a lower-level package or use abstractions to break the cycle".to_string()],
+        }
+    }
+
+    fn render_markdown(
+        &self,
+        smells: &[&SmellWithExplanation],
+        severity_config: &crate::config::SeverityConfig,
+        _graph: Option<&crate::graph::DependencyGraph>,
+    ) -> String {
+        crate::define_report_section!("Package Cycles", smells, {
+            crate::render_table!(
+                vec!["Cycle Path", "pts"],
+                smells,
+                |&(smell, _): &&SmellWithExplanation| {
+                    let path = match &smell.smell_type {
+                        SmellType::PackageCycle { packages } => packages.join(" → "),
+                        _ => "unknown".to_string(),
+                    };
+                    let pts = smell.score(severity_config);
+                    vec![format!("`{}`", path), format!("{} pts", pts)]
+                }
+            )
+        })
+    }
+
+    fn detect(&self, ctx: &AnalysisContext) -> Vec<ArchSmell> {
+        let rule = match ctx.get_rule("package_cycles") {
+            Some(r) => r,
+            None => return Vec::new(),
+        };
+
+        let package_depth: usize = rule.get_option("package_depth").unwrap_or(2);
+
+        let pkg_graph = Self::build_package_graph(ctx, package_depth);
+        let smells = Self::find_package_cycles(&pkg_graph);
+
+        smells
+            .into_iter()
+            .map(|mut s| {
+                s.severity = rule.severity;
+                s
+            })
+            .collect()
     }
 }

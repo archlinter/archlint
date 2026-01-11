@@ -1,66 +1,25 @@
-use crate::config::Config;
-use crate::detectors::DetectorCategory;
-use crate::detectors::{ArchSmell, Detector, DetectorFactory, DetectorInfo};
+use crate::detectors::{
+    detector, ArchSmell, Detector, DetectorCategory, Explanation, SmellWithExplanation,
+};
 use crate::engine::AnalysisContext;
-use inventory;
 use petgraph::graph::NodeIndex;
 
 pub fn init() {}
 
+#[detector(
+    id = "sdp_violation",
+    name = "Stable Dependency Principle Violation Detector",
+    description = "Detects when stable modules depend on unstable ones",
+    category = DetectorCategory::GraphBased,
+    default_enabled = false
+)]
 pub struct SdpViolationDetector;
 
-pub struct SdpViolationDetectorFactory;
-
-impl DetectorFactory for SdpViolationDetectorFactory {
-    fn info(&self) -> DetectorInfo {
-        DetectorInfo {
-            id: "sdp_violation",
-            name: "Stable Dependency Principle Violation Detector",
-            description: "Detects when stable modules depend on unstable ones",
-            default_enabled: false,
-            is_deep: false,
-            category: DetectorCategory::GraphBased,
-        }
-    }
-
-    fn create(&self, _config: &Config) -> Box<dyn Detector> {
-        Box::new(SdpViolationDetector)
-    }
-}
-
-inventory::submit! {
-    &SdpViolationDetectorFactory as &dyn DetectorFactory
-}
-
-impl Detector for SdpViolationDetector {
-    fn name(&self) -> &'static str {
-        "SdpViolation"
-    }
-
-    fn detect(&self, ctx: &AnalysisContext) -> Vec<ArchSmell> {
-        ctx.graph
-            .nodes()
-            .flat_map(|node| {
-                if let Some(path) = ctx.graph.get_file_path(node) {
-                    let rule = match ctx.get_rule_for_file("sdp_violation", path) {
-                        Some(r) => r,
-                        None => return Vec::new(),
-                    };
-
-                    let mut node_smells = Self::check_node_violations(ctx, node, &rule);
-                    for smell in &mut node_smells {
-                        smell.severity = rule.severity;
-                    }
-                    node_smells
-                } else {
-                    Vec::new()
-                }
-            })
-            .collect()
-    }
-}
-
 impl SdpViolationDetector {
+    pub fn new_default(_config: &crate::config::Config) -> Self {
+        Self
+    }
+
     fn check_node_violations(
         ctx: &AnalysisContext,
         node: NodeIndex,
@@ -114,5 +73,74 @@ impl SdpViolationDetector {
             return 0.0;
         }
         fan_out as f64 / (fan_in + fan_out) as f64
+    }
+}
+
+impl Detector for SdpViolationDetector {
+    fn name(&self) -> &'static str {
+        "SdpViolation"
+    }
+
+    fn explain(&self, _smell: &ArchSmell) -> Explanation {
+        Explanation {
+            problem: "Stable Dependency Principle (SDP) Violation".to_string(),
+            reason: "A stable module (rarely changing, many dependants) depends on an unstable module (frequently changing).".to_string(),
+            risks: vec![
+                "Stable modules become unstable due to their dependencies".to_string(),
+                "Fragile architecture: changes in unstable parts break the core".to_string(),
+            ],
+            recommendations: vec![
+                "Identify stable interfaces and depend on them".to_string(),
+                "Refactor the unstable dependency to be more stable".to_string(),
+                "Invert the dependency using abstractions".to_string(),
+            ],
+        }
+    }
+
+    fn render_markdown(
+        &self,
+        smells: &[&SmellWithExplanation],
+        severity_config: &crate::config::SeverityConfig,
+        _graph: Option<&crate::graph::DependencyGraph>,
+    ) -> String {
+        use crate::report::format_location;
+        crate::define_report_section!("SDP Violations", smells, {
+            crate::render_table!(
+                vec!["Location", "Stability Gap", "pts"],
+                smells,
+                |&(smell, _): &&SmellWithExplanation| {
+                    let file_path = smell.files.first().unwrap();
+                    let location = format_location(file_path, 0, None); // Should have line info
+                    let pts = smell.score(severity_config);
+                    vec![
+                        format!("`{}`", location),
+                        "High instability diff".to_string(),
+                        format!("{} pts", pts),
+                    ]
+                }
+            )
+        })
+    }
+
+    fn detect(&self, ctx: &AnalysisContext) -> Vec<ArchSmell> {
+        ctx.graph
+            .nodes()
+            .flat_map(|node| {
+                if let Some(path) = ctx.graph.get_file_path(node) {
+                    let rule = match ctx.get_rule_for_file("sdp_violation", path) {
+                        Some(r) => r,
+                        None => return Vec::new(),
+                    };
+
+                    let mut node_smells = Self::check_node_violations(ctx, node, &rule);
+                    for smell in &mut node_smells {
+                        smell.severity = rule.severity;
+                    }
+                    node_smells
+                } else {
+                    Vec::new()
+                }
+            })
+            .collect()
     }
 }

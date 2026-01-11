@@ -2,9 +2,9 @@ pub mod engine;
 pub mod tokenizer;
 pub mod types;
 
-use crate::config::Config;
 use crate::detectors::{
-    ArchSmell, CodeRange, Detector, DetectorCategory, DetectorFactory, DetectorInfo, LocationDetail,
+    detector, ArchSmell, CodeRange, Detector, DetectorCategory, Explanation, LocationDetail,
+    SmellType, SmellWithExplanation,
 };
 use crate::engine::AnalysisContext;
 use rustc_hash::FxHashSet;
@@ -13,59 +13,20 @@ use self::engine::{build_window_map, detect_clusters, merge_overlapping_occurren
 use self::tokenizer::tokenize_files;
 
 /// Main detector for code clones (duplicated code blocks).
+#[detector(
+    id = "code_clone",
+    name = "Code Clone Detector",
+    description = "Detects duplicated code blocks across the project (Type-1 clones)",
+    category = DetectorCategory::Global,
+    is_deep = true
+)]
 pub struct CodeCloneDetector;
 
-/// Factory for creating `CodeCloneDetector` instances.
-pub struct CodeCloneDetectorFactory;
-
-impl DetectorFactory for CodeCloneDetectorFactory {
-    fn info(&self) -> DetectorInfo {
-        DetectorInfo {
-            id: "code_clone",
-            name: "Code Clone Detector",
-            description: "Detects duplicated code blocks across the project (Type-1 clones)",
-            default_enabled: true,
-            is_deep: true,
-            category: DetectorCategory::Global,
-        }
-    }
-
-    fn create(&self, _config: &Config) -> Box<dyn Detector> {
-        Box::new(CodeCloneDetector)
-    }
-}
-
-inventory::submit! {
-    &CodeCloneDetectorFactory as &dyn DetectorFactory
-}
-
-impl Detector for CodeCloneDetector {
-    fn name(&self) -> &'static str {
-        "Code Clone"
-    }
-
-    fn detect(&self, ctx: &AnalysisContext) -> Vec<ArchSmell> {
-        let (min_tokens, min_lines, max_bucket_size) = self.resolve_config(ctx);
-
-        let file_tokens = tokenize_files(ctx, min_tokens);
-        if file_tokens.is_empty() {
-            return Vec::new();
-        }
-
-        let window_map = build_window_map(&file_tokens, min_tokens);
-        let clusters = detect_clusters(
-            &file_tokens,
-            window_map,
-            min_tokens,
-            min_lines,
-            max_bucket_size,
-        );
-
-        self.report_smells(ctx, clusters)
-    }
-}
-
 impl CodeCloneDetector {
+    pub fn new_default(_config: &crate::config::Config) -> Self {
+        Self
+    }
+
     /// Resolves detector configuration options from the analysis context.
     fn resolve_config(&self, ctx: &AnalysisContext) -> (usize, usize, usize) {
         let global_rule = ctx.resolve_rule("code_clone", None);
@@ -162,9 +123,75 @@ impl CodeCloneDetector {
     }
 }
 
-/// Ensures all detectors in this module are registered.
-///
-/// This function is intentionally empty. The `inventory::submit!` macro
-/// registers the detector factory at compile time. Calling this function
-/// ensures the module is linked and the static registration takes effect.
+impl Detector for CodeCloneDetector {
+    fn name(&self) -> &'static str {
+        "Code Clone"
+    }
+
+    fn explain(&self, _smell: &ArchSmell) -> Explanation {
+        Explanation {
+            problem: "Code Clone".to_string(),
+            reason: "Identical or near-identical code blocks found in multiple locations. This violates the DRY (Don't Repeat Yourself) principle.".to_string(),
+            risks: vec!["Increased maintenance effort".to_string(), "Bugs must be fixed in multiple places".to_string()],
+            recommendations: vec!["Extract the duplicated code into a shared function, class, or module".to_string()],
+        }
+    }
+
+    fn render_markdown(
+        &self,
+        smells: &[&SmellWithExplanation],
+        _severity_config: &crate::config::SeverityConfig,
+        _graph: Option<&crate::graph::DependencyGraph>,
+    ) -> String {
+        use crate::report::format_location_detail;
+        crate::define_report_section!("Code Clones", smells, {
+            let mut body = String::new();
+            for (smell, _) in smells {
+                if let SmellType::CodeClone {
+                    clone_hash,
+                    token_count,
+                } = &smell.smell_type
+                {
+                    body.push_str(&format!(
+                        "### Clone `{}` ({} tokens)\n\n",
+                        &clone_hash[..8],
+                        token_count
+                    ));
+                    body.push_str("| Location | Description |\n");
+                    body.push_str("|----------|-------------|\n");
+                    for loc in &smell.locations {
+                        body.push_str(&format!(
+                            "| `{}` | {} |\n",
+                            format_location_detail(loc),
+                            loc.description
+                        ));
+                    }
+                    body.push('\n');
+                }
+            }
+            body
+        })
+    }
+
+    fn detect(&self, ctx: &AnalysisContext) -> Vec<ArchSmell> {
+        let (min_tokens, min_lines, max_bucket_size) = self.resolve_config(ctx);
+
+        let file_tokens = tokenize_files(ctx, min_tokens);
+        if file_tokens.is_empty() {
+            return Vec::new();
+        }
+
+        let window_map = build_window_map(&file_tokens, min_tokens);
+        let clusters = detect_clusters(
+            &file_tokens,
+            window_map,
+            min_tokens,
+            min_lines,
+            max_bucket_size,
+        );
+
+        self.report_smells(ctx, clusters)
+    }
+}
+
 pub fn init() {}

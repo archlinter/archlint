@@ -159,6 +159,7 @@ impl AnalysisEngine {
             Arc::try_unwrap(ctx.ignored_lines).unwrap_or_else(|arc| (*arc).clone()),
             ctx.churn_map,
             presets,
+            &self.config,
         );
         report.set_files_analyzed(files_len);
 

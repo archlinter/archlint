@@ -1,4 +1,5 @@
 pub mod code_clone;
+pub use archlint_macros::detector;
 pub mod registry;
 pub mod smell;
 pub mod types;
@@ -10,7 +11,10 @@ pub mod metrics;
 
 pub use registry::{DetectorFactory, DetectorInfo, DetectorRegistry};
 pub use smell::{ArchSmell, CodeRange, CriticalEdge, CycleCluster, HotspotInfo, LocationDetail};
-pub use types::{ConfigurableSmellType, DetectorCategory, Severity, SmellMetric, SmellType};
+pub use types::{
+    ConfigurableSmellType, DetectorCategory, Explanation, Severity, SmellMetric, SmellType,
+    SmellWithExplanation,
+};
 
 // Re-export detectors for convenience and backward compatibility
 pub use dependency::{
@@ -40,4 +44,22 @@ use crate::engine::AnalysisContext;
 pub trait Detector: Send + Sync {
     fn name(&self) -> &'static str;
     fn detect(&self, ctx: &AnalysisContext) -> Vec<ArchSmell>;
+
+    fn explain(&self, _smell: &ArchSmell) -> Explanation {
+        Explanation {
+            problem: "Unknown Problem".to_string(),
+            reason: "No explanation provided for this detector".to_string(),
+            risks: vec![],
+            recommendations: vec![],
+        }
+    }
+
+    fn render_markdown(
+        &self,
+        _smells: &[&SmellWithExplanation],
+        _severity_config: &crate::config::SeverityConfig,
+        _graph: Option<&crate::graph::DependencyGraph>,
+    ) -> String {
+        String::new()
+    }
 }

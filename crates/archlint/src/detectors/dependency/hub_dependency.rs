@@ -1,39 +1,113 @@
-use crate::config::Config;
-use crate::detectors::DetectorCategory;
-use crate::detectors::{ArchSmell, Detector, DetectorFactory, DetectorInfo};
+use crate::detectors::{
+    detector, ArchSmell, Detector, DetectorCategory, Explanation, SmellType, SmellWithExplanation,
+};
 use crate::engine::AnalysisContext;
 use crate::utils::package::PackageUtils;
 use std::collections::{HashMap, HashSet};
 use std::path::PathBuf;
 
+pub fn init() {}
+
+#[detector(
+    id = "hub_dependency",
+    name = "Hub Dependency Detector",
+    description = "Detects over-reliance on external packages",
+    category = DetectorCategory::GraphBased,
+    default_enabled = false
+)]
 pub struct HubDependencyDetector;
 
-pub struct HubDependencyDetectorFactory;
+impl HubDependencyDetector {
+    pub fn new_default(_config: &crate::config::Config) -> Self {
+        Self
+    }
 
-impl DetectorFactory for HubDependencyDetectorFactory {
-    fn info(&self) -> DetectorInfo {
-        DetectorInfo {
-            id: "hub_dependency",
-            name: "Hub Dependency Detector",
-            description: "Detects over-reliance on external packages",
-            default_enabled: false,
-            is_deep: false,
-            category: DetectorCategory::GraphBased,
+    fn collect_package_usage(ctx: &AnalysisContext) -> HashMap<String, Vec<PathBuf>> {
+        let mut package_usage: HashMap<String, HashSet<PathBuf>> = HashMap::new();
+
+        for (file, symbols) in ctx.file_symbols.as_ref() {
+            for import in &symbols.imports {
+                if PackageUtils::is_external_package(&import.source) {
+                    let package = PackageUtils::extract_package_name(&import.source);
+
+                    if !PackageUtils::is_builtin_package(&package) {
+                        package_usage
+                            .entry(package)
+                            .or_default()
+                            .insert(file.clone());
+                    }
+                }
+            }
         }
-    }
 
-    fn create(&self, _config: &Config) -> Box<dyn Detector> {
-        Box::new(HubDependencyDetector)
+        package_usage
+            .into_iter()
+            .map(|(pkg, files)| (pkg, files.into_iter().collect()))
+            .collect()
     }
-}
-
-inventory::submit! {
-    &HubDependencyDetectorFactory as &dyn DetectorFactory
 }
 
 impl Detector for HubDependencyDetector {
     fn name(&self) -> &'static str {
         "HubDependency"
+    }
+
+    fn explain(&self, smell: &ArchSmell) -> Explanation {
+        let count = smell.dependent_count().unwrap_or(0);
+
+        let package = match &smell.smell_type {
+            SmellType::HubDependency { package } => package.clone(),
+            _ => "unknown".to_string(),
+        };
+
+        Explanation {
+            problem: format!(
+                "Hub Dependency: Too many files ({}) depend on package `{}`",
+                count, package
+            ),
+            reason: format!(
+                "The package `{}` is used by {} different files in the project. This makes it a critical dependency that is hard to replace or update.",
+                package, count
+            ),
+            risks: vec![
+                "Difficulty in upgrading the package due to widespread usage".to_string(),
+                "High impact if the package becomes deprecated or has security issues".to_string(),
+                "Tightly coupled to a specific external library's API".to_string(),
+            ],
+            recommendations: vec![
+                "Create a wrapper/abstraction around the package to isolate its usage".to_string(),
+                "Evaluate if the dependency is truly necessary in all those files".to_string(),
+                "Use dependency injection to provide the functionality if possible".to_string(),
+            ],
+        }
+    }
+
+    fn render_markdown(
+        &self,
+        hub_dependencies: &[&SmellWithExplanation],
+        severity_config: &crate::config::SeverityConfig,
+        _graph: Option<&crate::graph::DependencyGraph>,
+    ) -> String {
+        crate::define_report_section!("Hub Dependencies", hub_dependencies, {
+            crate::render_table!(
+                vec!["Package", "Dependants", "pts"],
+                hub_dependencies,
+                |&(smell, _): &&SmellWithExplanation| {
+                    if let SmellType::HubDependency { package } = &smell.smell_type {
+                        let count = smell.dependent_count().unwrap_or(0);
+                        let pts = smell.score(severity_config);
+
+                        vec![
+                            format!("`{}`", package),
+                            format!("{} files", count),
+                            format!("{} pts", pts),
+                        ]
+                    } else {
+                        vec!["-".into(); 3]
+                    }
+                }
+            )
+        })
     }
 
     fn detect(&self, ctx: &AnalysisContext) -> Vec<ArchSmell> {
@@ -70,32 +144,3 @@ impl Detector for HubDependencyDetector {
             .collect()
     }
 }
-
-impl HubDependencyDetector {
-    fn collect_package_usage(ctx: &AnalysisContext) -> HashMap<String, Vec<PathBuf>> {
-        let mut package_usage: HashMap<String, HashSet<PathBuf>> = HashMap::new();
-
-        for (file, symbols) in ctx.file_symbols.as_ref() {
-            for import in &symbols.imports {
-                if PackageUtils::is_external_package(&import.source) {
-                    let package = PackageUtils::extract_package_name(&import.source);
-
-                    if !PackageUtils::is_builtin_package(&package) {
-                        package_usage
-                            .entry(package)
-                            .or_default()
-                            .insert(file.clone());
-                    }
-                }
-            }
-        }
-
-        package_usage
-            .into_iter()
-            .map(|(pkg, files)| (pkg, files.into_iter().collect()))
-            .collect()
-    }
-}
-
-/// Required for detector registration via the `inventory` crate.
-pub fn init() {}

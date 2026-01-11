@@ -30,7 +30,7 @@ pub fn generate_json(
                     _ => format!("{:?}", smell.smell_type),
                 },
                 "severity": format!("{:?}", smell.severity),
-                "files": smell.files.iter().map(|p| p.to_string_lossy()).collect::<Vec<_>>(),
+                "files": smell.files.iter().map(|p: &std::path::PathBuf| p.to_string_lossy()).collect::<Vec<_>>(),
                 "locations": smell.locations.iter().map(|loc| {
                     let mut loc_json = json!({
                         "file": loc.file.to_string_lossy(),
@@ -62,7 +62,7 @@ pub fn generate_json(
             // Add cluster information if present
             if let Some(cluster) = &smell.cluster {
                 smell_json["cluster"] = json!({
-                    "files": cluster.files.iter().map(|p| p.to_string_lossy()).collect::<Vec<_>>(),
+                    "files": cluster.files.iter().map(|p: &std::path::PathBuf| p.to_string_lossy()).collect::<Vec<_>>(),
                     "hotspots": cluster.hotspots.iter().map(|h| {
                         json!({
                             "file": h.file.to_string_lossy(),
