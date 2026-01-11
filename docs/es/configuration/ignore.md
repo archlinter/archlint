@@ -58,9 +58,16 @@ Puede ignorar problemas arquitectónicos específicos directamente en su código
 ### Ejemplos:
 
 ```typescript
-// archlint-disable-next-line complexity
-function veryComplexFunction() {
-  // El detector de complejidad será ignorado para esta función
+// archlint-disable-next-line long-params
+function processTransaction(
+  id: string,
+  amount: number,
+  currency: string,
+  date: Date,
+  recipient: string,
+  note: string
+) {
+  // El detector de parámetros largos será ignorado solo para esta línea
 }
 
 import { internal } from './private'; // archlint-disable-line layer_violation

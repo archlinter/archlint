@@ -58,9 +58,16 @@ overrides:
 ### 例:
 
 ```typescript
-// archlint-disable-next-line complexity
-function veryComplexFunction() {
-  // この関数に対して複雑度検出は無視されます
+// archlint-disable-next-line long-params
+function processTransaction(
+  id: string,
+  amount: number,
+  currency: string,
+  date: Date,
+  recipient: string,
+  note: string
+) {
+  // 長すぎる引数の検出はこの行に対してのみ無視されます
 }
 
 import { internal } from './private'; // archlint-disable-line layer_violation

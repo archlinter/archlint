@@ -58,9 +58,16 @@ You can ignore specific architectural smells directly in your source code using 
 ### Examples:
 
 ```typescript
-// archlint-disable-next-line complexity
-function veryComplexFunction() {
-  // Complexity detector will be ignored for this function
+// archlint-disable-next-line long-params
+function processTransaction(
+  id: string,
+  amount: number,
+  currency: string,
+  date: Date,
+  recipient: string,
+  note: string
+) {
+  // Long params detector will be ignored only for this line
 }
 
 import { internal } from './private'; // archlint-disable-line layer_violation
