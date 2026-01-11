@@ -6,6 +6,12 @@
 use crate::snapshot::{SmellDetails, SnapshotSmell};
 use std::collections::{BTreeMap, HashSet};
 
+/// Smell type prefixes that support symbol-based fuzzy matching.
+/// Side-effect smells use hash-based IDs and are excluded.
+const SYMBOL_BASED_PREFIXES: &[&str] = &[
+    "cmplx", "nest", "params", "prim", "dead", "shared", "orphan",
+];
+
 /// Matcher for finding corresponding smells when exact ID matching fails.
 ///
 /// It uses a "fuzzy" approach by grouping smells by their type and symbol name,
@@ -31,8 +37,16 @@ pub struct MatchedPair<'a> {
     pub current: &'a SnapshotSmell,
 }
 
-/// Key for grouping smells: (smell_type, file, symbol_name)
-type SmellKey = (String, String, String);
+/// Key for grouping smells for fuzzy matching.
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+struct SmellKey {
+    /// The type of architectural smell.
+    smell_type: String,
+    /// The file path where the smell was detected.
+    file: String,
+    /// The name of the symbol (function, class, variable) affected.
+    symbol_name: String,
+}
 
 impl FuzzyMatcher {
     /// Create a new FuzzyMatcher with the specified line tolerance.
@@ -116,6 +130,11 @@ impl FuzzyMatcher {
 
     /// Extract matching key from smell: (smell_type, file, symbol_name).
     ///
+    /// Fuzzy matching is only supported for "symbol-based" smells that affect a single file.
+    /// Multi-file smells (like cyclic dependencies between multiple files) are excluded
+    /// because line shifts in one file don't unambiguously represent a shift of the
+    /// entire multi-file architectural issue.
+    ///
     /// Returns None if key cannot be extracted (smell won't participate in fuzzy matching).
     fn extract_key(smell: &SnapshotSmell) -> Option<SmellKey> {
         // Multi-file smells are not supported for fuzzy matching yet
@@ -128,7 +147,11 @@ impl FuzzyMatcher {
 
         let symbol_name = Self::extract_symbol_name(smell)?;
 
-        Some((smell_type, file, symbol_name))
+        Some(SmellKey {
+            smell_type,
+            file,
+            symbol_name,
+        })
     }
 
     /// Extract symbol/function name from smell details or ID.
@@ -175,15 +198,11 @@ impl FuzzyMatcher {
         // Extract prefix from the remaining left part
         let prefix = prefix_part.split(':').next()?;
 
-        match prefix {
-            "cmplx" | "nest" | "params" | "prim" | "dead" | "shared" | "orphan" => {
-                Some(name_part.to_string())
-            }
-            "sideeffect" => {
-                // SideEffectImport uses hash, not symbol name - skip fuzzy matching
-                None
-            }
-            _ => None,
+        if SYMBOL_BASED_PREFIXES.contains(&prefix) {
+            Some(name_part.to_string())
+        } else {
+            // Side-effect and other smells don't use symbol names for fuzzy matching
+            None
         }
     }
 
@@ -383,5 +402,81 @@ mod tests {
         assert_eq!(pairs.len(), 1, "Should match using fallbacks from ID");
         assert_eq!(pairs[0].baseline.id, baseline.id);
         assert_eq!(pairs[0].current.id, current.id);
+    }
+
+    #[test]
+    fn test_deterministic_selection_same_distance() {
+        let baseline = make_smell(
+            "cmplx:src/foo.ts:test:10",
+            "HighComplexity",
+            "src/foo.ts",
+            10,
+        );
+        // Two candidates at the same distance (5 lines away)
+        let current1 = make_smell("cmplx:src/foo.ts:test:5", "HighComplexity", "src/foo.ts", 5);
+        let current2 = make_smell(
+            "cmplx:src/foo.ts:test:15",
+            "HighComplexity",
+            "src/foo.ts",
+            15,
+        );
+
+        let matcher = FuzzyMatcher::new(10);
+        let pairs = matcher.match_orphans(&[&baseline], &[&current1, &current2]);
+
+        assert_eq!(pairs.len(), 1);
+        // Should select current1 because it appears first in the list (min_by_key stability or list order)
+        // min_by_key returns the first one found if values are equal.
+        assert_eq!(pairs[0].current.id, current1.id);
+    }
+
+    #[test]
+    fn test_already_matched_not_reused() {
+        let baseline1 = make_smell(
+            "cmplx:src/foo.ts:test:10",
+            "HighComplexity",
+            "src/foo.ts",
+            10,
+        );
+        let baseline2 = make_smell(
+            "cmplx:src/foo.ts:test:12",
+            "HighComplexity",
+            "src/foo.ts",
+            12,
+        );
+        let current = make_smell(
+            "cmplx:src/foo.ts:test:11",
+            "HighComplexity",
+            "src/foo.ts",
+            11,
+        );
+
+        let matcher = FuzzyMatcher::new(10);
+        let pairs = matcher.match_orphans(&[&baseline1, &baseline2], &[&current]);
+
+        assert_eq!(pairs.len(), 1);
+        assert_eq!(pairs[0].baseline.id, baseline1.id);
+        assert_eq!(pairs[0].current.id, current.id);
+    }
+
+    #[test]
+    fn test_empty_lists() {
+        let matcher = FuzzyMatcher::new(10);
+        let pairs = matcher.match_orphans(&[], &[]);
+        assert!(pairs.is_empty());
+    }
+
+    #[test]
+    fn test_multi_file_smell_excluded() {
+        let mut multi_file = make_smell("cycle:abc", "CyclicDependency", "src/a.ts", 10);
+        multi_file.files.push("src/b.ts".to_string());
+
+        let matcher = FuzzyMatcher::new(10);
+        let pairs = matcher.match_orphans(&[&multi_file], &[&multi_file]);
+
+        assert!(
+            pairs.is_empty(),
+            "Multi-file smells should be excluded from fuzzy matching"
+        );
     }
 }
