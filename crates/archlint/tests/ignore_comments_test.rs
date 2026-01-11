@@ -2,6 +2,13 @@ use archlint::parser::ImportParser;
 
 const FILE_WIDE_IGNORE: usize = 0;
 
+fn get_line_number(code: &str, pattern: &str) -> usize {
+    code.lines()
+        .position(|line| line.contains(pattern))
+        .map(|pos| pos + 1)
+        .unwrap_or_else(|| panic!("Pattern '{}' not found in code", pattern))
+}
+
 #[test]
 fn test_parse_ignore_comments_line() {
     let parser = ImportParser::new().unwrap();
@@ -12,19 +19,18 @@ function complex() {}
 function another() {} // archlint-disable-line *"#;
     let result = parser.parse_code(code, "test.ts").unwrap();
 
-    // Line numbers are 1-based in our LineIndex
-    // Line 1: // archlint-disable-line complexity
-    // Line 5: function another() {} // archlint-disable-line *
+    let line_complexity = get_line_number(code, "archlint-disable-line complexity");
+    let line_another = get_line_number(code, "function another()");
 
     assert!(result
         .ignored_lines
-        .get(&1)
-        .expect("expected ignore rules for line 1")
+        .get(&line_complexity)
+        .expect("expected ignore rules for complexity line")
         .contains("complexity"));
     assert!(result
         .ignored_lines
-        .get(&5)
-        .expect("expected ignore rules for line 5")
+        .get(&line_another)
+        .expect("expected ignore rules for another() line")
         .contains("*"));
 }
 
@@ -38,18 +44,18 @@ function complex() {}
 function another() {}"#;
     let result = parser.parse_code(code, "test.ts").unwrap();
 
-    // Line 1: // archlint-disable-next-line complexity (affects line 2)
-    // Line 4: // archlint-disable-next-line * (affects line 5)
+    let line_complex_func = get_line_number(code, "function complex()");
+    let line_another_func = get_line_number(code, "function another()");
 
     assert!(result
         .ignored_lines
-        .get(&2)
-        .expect("expected ignore rules for line 2")
+        .get(&line_complex_func)
+        .expect("expected ignore rules for complex() function line")
         .contains("complexity"));
     assert!(result
         .ignored_lines
-        .get(&5)
-        .expect("expected ignore rules for line 5")
+        .get(&line_another_func)
+        .expect("expected ignore rules for another() function line")
         .contains("*"));
 }
 
@@ -60,14 +66,21 @@ fn test_parse_ignore_comments_file_wide() {
 function complex() {}"#;
     let result = parser.parse_code(code, "test.ts").unwrap();
 
-    // Should contain line 0 (magic), 1 (the comment itself), and 2 (the function)
     assert!(result
         .ignored_lines
         .get(&FILE_WIDE_IGNORE)
         .expect("expected file-wide ignore rules")
         .contains("*"));
-    assert!(result.ignored_lines.get(&1).unwrap().contains("*"));
-    assert!(result.ignored_lines.get(&2).unwrap().contains("*"));
+
+    let line_comment = get_line_number(code, "// archlint-disable");
+    let line_func = get_line_number(code, "function complex()");
+
+    assert!(result
+        .ignored_lines
+        .get(&line_comment)
+        .unwrap()
+        .contains("*"));
+    assert!(result.ignored_lines.get(&line_func).unwrap().contains("*"));
 }
 
 #[test]
@@ -80,14 +93,34 @@ function b() {}
 function c() {}"#;
     let result = parser.parse_code(code, "test.ts").unwrap();
 
-    // complexity should be ignored on lines 1-4
-    assert!(result.ignored_lines.get(&1).unwrap().contains("complexity"));
-    assert!(result.ignored_lines.get(&2).unwrap().contains("complexity"));
-    assert!(result.ignored_lines.get(&3).unwrap().contains("complexity"));
-    assert!(result.ignored_lines.get(&4).unwrap().contains("complexity"));
+    let line_a = get_line_number(code, "function a()");
+    let line_b = get_line_number(code, "function b()");
+    let line_c = get_line_number(code, "function c()");
+    let line_disable = get_line_number(code, "// archlint-disable complexity");
+    let line_enable = get_line_number(code, "// archlint-enable complexity");
 
-    // line 5 should not be ignored
-    assert!(!result.ignored_lines.contains_key(&5));
+    assert!(result
+        .ignored_lines
+        .get(&line_disable)
+        .unwrap()
+        .contains("complexity"));
+    assert!(result
+        .ignored_lines
+        .get(&line_a)
+        .unwrap()
+        .contains("complexity"));
+    assert!(result
+        .ignored_lines
+        .get(&line_b)
+        .unwrap()
+        .contains("complexity"));
+    assert!(result
+        .ignored_lines
+        .get(&line_enable)
+        .unwrap()
+        .contains("complexity"));
+
+    assert!(!result.ignored_lines.contains_key(&line_c));
 }
 
 #[test]
@@ -99,11 +132,24 @@ function a() {}
 function b() {}"#;
     let result = parser.parse_code(code, "test.ts").unwrap();
 
-    assert!(result.ignored_lines.get(&1).unwrap().contains("*"));
-    assert!(result.ignored_lines.get(&2).unwrap().contains("*"));
-    assert!(result.ignored_lines.get(&3).unwrap().contains("*"));
+    let line_disable = get_line_number(code, "// archlint-disable");
+    let line_a = get_line_number(code, "function a()");
+    let line_enable = get_line_number(code, "// archlint-enable");
+    let line_b = get_line_number(code, "function b()");
 
-    assert!(!result.ignored_lines.contains_key(&4));
+    assert!(result
+        .ignored_lines
+        .get(&line_disable)
+        .unwrap()
+        .contains("*"));
+    assert!(result.ignored_lines.get(&line_a).unwrap().contains("*"));
+    assert!(result
+        .ignored_lines
+        .get(&line_enable)
+        .unwrap()
+        .contains("*"));
+
+    assert!(!result.ignored_lines.contains_key(&line_b));
 }
 
 #[test]
@@ -113,7 +159,8 @@ fn test_parse_ignore_comments_with_rules() {
 function complex() {}"#;
     let result = parser.parse_code(code, "test.ts").unwrap();
 
-    let rules = result.ignored_lines.get(&1).unwrap();
+    let line_comment = get_line_number(code, "archlint-disable-line");
+    let rules = result.ignored_lines.get(&line_comment).unwrap();
     assert!(rules.contains("complexity"));
     assert!(rules.contains("large_file"));
     assert!(rules.contains("custom-rule"));
@@ -127,7 +174,8 @@ fn test_parse_ignore_comments_with_reasons() {
 function complex() {}"#;
     let result = parser.parse_code(code, "test.ts").unwrap();
 
-    let rules = result.ignored_lines.get(&1).unwrap();
+    let line_comment = get_line_number(code, "archlint-disable-line");
+    let rules = result.ignored_lines.get(&line_comment).unwrap();
     assert!(rules.contains("complexity"));
     assert_eq!(rules.len(), 1);
 }

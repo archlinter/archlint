@@ -98,75 +98,60 @@ impl ImportParser {
             let comment_text = &content[start as usize..comment.span.end as usize];
             let comment_line = visitor.get_line_number_from_offset(start as usize);
 
-            if let Some((command, rules)) = self.parse_ignore_command(comment_text) {
-                match command.as_str() {
-                    "archlint-disable" => {
-                        for rule in rules {
-                            active_blocks.insert(rule, comment_line);
-                        }
+            let Some((command, rules)) = self.parse_ignore_command(comment_text) else {
+                continue;
+            };
+
+            match command.as_str() {
+                "archlint-disable" => {
+                    for rule in rules {
+                        active_blocks.insert(rule, comment_line);
                     }
-                    "archlint-enable" => {
-                        if rules.contains("*") {
-                            let keys: Vec<String> = active_blocks.keys().cloned().collect();
-                            for rule in keys {
-                                if let Some(start_line) = active_blocks.remove(&rule) {
-                                    for l in start_line..=comment_line {
-                                        ignored
-                                            .entry(l)
-                                            .or_insert_with(HashSet::new)
-                                            .insert(rule.clone());
-                                    }
-                                }
-                            }
-                        } else {
-                            for rule in rules {
-                                if let Some(start_line) = active_blocks.remove(&rule) {
-                                    for l in start_line..=comment_line {
-                                        ignored
-                                            .entry(l)
-                                            .or_insert_with(HashSet::new)
-                                            .insert(rule.clone());
-                                    }
-                                }
-                            }
-                        }
-                    }
-                    "archlint-disable-line" => {
-                        ignored
-                            .entry(comment_line)
-                            .or_insert_with(HashSet::new)
-                            .extend(rules);
-                    }
-                    "archlint-disable-next-line" => {
-                        ignored
-                            .entry(comment_line + 1)
-                            .or_insert_with(HashSet::new)
-                            .extend(rules);
-                    }
-                    _ => {}
                 }
+                "archlint-enable" => {
+                    let rules_to_close: Vec<String> = if rules.contains("*") {
+                        active_blocks.keys().cloned().collect()
+                    } else {
+                        rules.into_iter().collect()
+                    };
+
+                    for rule in rules_to_close {
+                        if let Some(start_line) = active_blocks.remove(&rule) {
+                            self.mark_range_ignored(&mut ignored, start_line, comment_line, &rule);
+                        }
+                    }
+                }
+                "archlint-disable-line" => {
+                    ignored.entry(comment_line).or_default().extend(rules);
+                }
+                "archlint-disable-next-line" => {
+                    ignored.entry(comment_line + 1).or_default().extend(rules);
+                }
+                _ => {}
             }
         }
 
         // Close remaining blocks until the end of the file
         for (rule, start_line) in active_blocks {
-            // If it is a global ignore (*) starting at the top, also add to line 0 for file-wide smells
             if rule == "*" && start_line <= 1 {
-                ignored
-                    .entry(0)
-                    .or_insert_with(HashSet::new)
-                    .insert("*".to_string());
+                ignored.entry(0).or_default().insert("*".to_string());
             }
-
-            for l in start_line..=total_lines {
-                ignored
-                    .entry(l)
-                    .or_insert_with(HashSet::new)
-                    .insert(rule.clone());
-            }
+            self.mark_range_ignored(&mut ignored, start_line, total_lines, &rule);
         }
 
         ignored
+    }
+
+    fn mark_range_ignored(
+        &self,
+        ignored: &mut HashMap<usize, HashSet<String>>,
+        start: usize,
+        end: usize,
+        rule: &str,
+    ) {
+        for l in start..=end {
+            ignored.entry(l).or_default().insert(rule.to_string());
+        }
     }
 
     fn parse_ignore_command(&self, text: &str) -> Option<(String, HashSet<String>)> {
