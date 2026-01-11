@@ -21,5 +21,5 @@
 ```yaml
 rules:
   shotgun_surgery:
-    severity: warn
+    severity: medium
 ```

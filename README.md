@@ -202,7 +202,7 @@ rules:
         allowed_imports: ['domain']
 
   god_module:
-    severity: error
+    severity: high
     fan_in: 15
     fan_out: 15
 

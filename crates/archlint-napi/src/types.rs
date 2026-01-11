@@ -445,7 +445,7 @@ impl From<archlint::Config> for JsConfig {
             scoring: serde_json::to_value(&c.scoring)
                 .unwrap_or(serde_json::Value::Object(Default::default())),
             entry_points: c.entry_points,
-            enable_git: c.enable_git,
+            enable_git: c.git.enabled,
         }
     }
 }

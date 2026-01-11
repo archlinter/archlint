@@ -17,7 +17,7 @@
 ```yaml
 rules:
   feature_envy:
-    severity: warn
+    severity: medium
     ratio: 3.0
 ```
 

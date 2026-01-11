@@ -31,7 +31,7 @@ Un "Módulo Dios" (God Module) es un archivo que ha crecido demasiado y ha asumi
 ```yaml
 rules:
   god_module:
-    severity: error
+    severity: high
     fan_in: 15
     fan_out: 15
     churn: 20

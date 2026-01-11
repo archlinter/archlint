@@ -54,7 +54,7 @@ export class AuthCoordinator {
 ```yaml
 rules:
   hub_module:
-    severity: warn
+    severity: medium
     min_fan_in: 5
     min_fan_out: 5
     max_complexity: 5

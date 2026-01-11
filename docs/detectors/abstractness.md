@@ -19,5 +19,5 @@ This detector uses Robert C. Martin's "Main Sequence" metrics to evaluate the re
 ```yaml
 rules:
   abstractness:
-    severity: warn
+    severity: medium
 ```

@@ -34,7 +34,7 @@ export default [
 ```yaml
 rules:
   dead_symbols:
-    severity: info
+    severity: low
     ignore_methods: []
     exclude: []
 ```

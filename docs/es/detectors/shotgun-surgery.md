@@ -21,5 +21,5 @@ La Cirugía de Escopeta ocurre cuando un solo cambio en los requisitos te obliga
 ```yaml
 rules:
   shotgun_surgery:
-    severity: warn
+    severity: medium
 ```

@@ -15,7 +15,7 @@ Los archivos barrel (por ejemplo, archivos `index.ts` que solo reexportan otros 
 ```yaml
 rules:
   barrel_file:
-    severity: error
+    severity: high
     max_reexports: 10
 ```
 

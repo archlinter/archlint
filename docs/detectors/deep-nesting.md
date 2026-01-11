@@ -19,7 +19,7 @@ Deeply nested code is exponentially harder to read and understand. It's often a 
 ```yaml
 rules:
   deep_nesting:
-    severity: info
+    severity: low
     max_depth: 4
 ```
 

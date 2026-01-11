@@ -17,7 +17,7 @@ Use o **Padrão Adapter**. Crie uma interface em seu domínio e implemente-a usa
 ```yaml
 rules:
   vendor_coupling:
-    severity: warn
+    severity: medium
     max_files_per_package: 10
     ignore_packages:
       - 'lodash'

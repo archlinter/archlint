@@ -1,3 +1,7 @@
+/**
+ * Provides a comprehensive help guide for the archlint MCP server tools.
+ * Returns a list of tool descriptions and usage tips.
+ */
 export function archlintHelp(): { content: { type: 'text'; text: string }[] } {
   const helpText = `
 # archlint MCP Server Usage Guide
@@ -19,7 +23,7 @@ Get a summary of architectural health (grade, counts of issues).
 Get detailed information about detected smells with filtering and pagination.
 - **path**: (required) Absolute path to the project.
 - **types**: (optional) Filter by smell type (e.g., ["CyclicDependency", "GodModule"]).
-- **severity**: (optional) Minimum severity (info, low, medium, high, critical).
+- **severity**: (optional) Minimum severity (low, medium, high, critical).
 - **file**: (optional) Filter smells by file path.
 - **minScore**: (optional) Filter smells by minimum score.
 - **limit/offset**: (optional) For pagination.

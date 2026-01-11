@@ -19,7 +19,7 @@ Código profundamente aninhado é exponencialmente mais difícil de ler e entend
 ```yaml
 rules:
   deep_nesting:
-    severity: info
+    severity: low
     max_depth: 4
 ```
 

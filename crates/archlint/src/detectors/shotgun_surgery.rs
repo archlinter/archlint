@@ -77,7 +77,7 @@ impl ShotgunSurgeryDetector {
         ctx: &AnalysisContext,
         lookback: usize,
     ) -> Result<HashMap<PathBuf, CoChangeStats>, Box<dyn std::error::Error>> {
-        if !ctx.config.enable_git {
+        if !ctx.config.git.enabled {
             return Ok(HashMap::new());
         }
 

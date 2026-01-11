@@ -20,7 +20,7 @@ High coupling occurs when a module depends on too many other modules (high Fan-o
 ```yaml
 rules:
   high_coupling:
-    severity: warn
+    severity: medium
     max_cbo: 20
 ```
 

@@ -69,7 +69,7 @@ impl AnalysisCache {
                         && data.meta.config_hash == config_hash(config) =>
                 {
                     // Only check git head if git is enabled
-                    let current_head = if config.enable_git {
+                    let current_head = if config.git.enabled {
                         crate::cache::hash::get_git_head(project_root)
                     } else {
                         None
@@ -99,7 +99,7 @@ impl AnalysisCache {
                 version: Self::VERSION.to_string(),
                 app_version: Self::APP_VERSION.to_string(),
                 config_hash: config_hash(config),
-                git_head: if config.enable_git {
+                git_head: if config.git.enabled {
                     crate::cache::hash::get_git_head(project_root)
                 } else {
                     None

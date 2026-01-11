@@ -35,7 +35,7 @@ impl Detector for UnstableInterfaceDetector {
 
     fn detect(&self, ctx: &AnalysisContext) -> Vec<ArchSmell> {
         // Check if git churn information is available
-        let git_available = ctx.config.enable_git && !ctx.churn_map.is_empty();
+        let git_available = ctx.config.git.enabled && !ctx.churn_map.is_empty();
 
         ctx.graph
             .nodes()

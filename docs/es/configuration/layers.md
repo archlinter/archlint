@@ -15,7 +15,7 @@ Las capas se configuran dentro de la regla `layer_violation`. Cada definición d
 ```yaml
 rules:
   layer_violation:
-    severity: error
+    severity: high
     layers:
       - name: domain
         path: '**/domain/**'

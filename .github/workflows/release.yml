@@ -8,13 +8,12 @@ on:
         type: boolean
         default: false
 
-permissions:
-  contents: write
-
 jobs:
   release:
     name: Semantic Release
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v4
         with:
@@ -22,9 +21,7 @@ jobs:
           fetch-tags: true
           token: ${{ secrets.GH_PAT }}
 
-      - uses: pnpm/action-setup@v3
-        with:
-          version: 9
+      - uses: pnpm/action-setup@v4
 
       - uses: actions/setup-node@v4
         with:

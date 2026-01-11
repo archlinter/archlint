@@ -17,7 +17,7 @@ Use the **Adapter Pattern**. Create an interface in your domain and implement it
 ```yaml
 rules:
   vendor_coupling:
-    severity: warn
+    severity: medium
     max_files_per_package: 10
     ignore_packages:
       - 'lodash'

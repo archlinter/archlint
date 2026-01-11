@@ -442,9 +442,9 @@ impl std::str::FromStr for Severity {
 
     fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
         match s.to_lowercase().as_str() {
-            "low" | "info" => Ok(Severity::Low),
-            "medium" | "warn" => Ok(Severity::Medium),
-            "high" | "error" => Ok(Severity::High),
+            "low" => Ok(Severity::Low),
+            "medium" => Ok(Severity::Medium),
+            "high" => Ok(Severity::High),
             "critical" => Ok(Severity::Critical),
             _ => Err(format!("Unknown severity: {}", s)),
         }

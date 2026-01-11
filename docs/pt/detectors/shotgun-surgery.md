@@ -21,5 +21,5 @@ A cirurgia por difusão ocorre quando uma única mudança em seus requisitos exi
 ```yaml
 rules:
   shotgun_surgery:
-    severity: warn
+    severity: medium
 ```

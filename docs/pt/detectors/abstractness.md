@@ -18,5 +18,5 @@ Módulos que são estáveis e concretos estão na "Zona de Dor" (difíceis de mu
 ```yaml
 rules:
   abstractness:
-    severity: warn
+    severity: medium
 ```

@@ -16,8 +16,13 @@ ignore:
   - '**/node_modules/**'
 
 # 路径别名（类似于 tsconfig.json 或 webpack）
+# 默认情况下，archlint 会自动从 tsconfig.json 加载别名。
+# 在此显式定义的别名优先级高于 tsconfig.json 中的别名。
 aliases:
   '@/*': 'src/*'
+
+# TypeScript 集成设置（true、false 或文件路径）
+tsconfig: true
 
 # 从内置或自定义预设扩展
 extends:
@@ -31,12 +36,12 @@ entry_points:
 # 每个检测器的规则配置
 rules:
   # 短格式：严重程度级别或 "off"
-  cycles: error
-  dead_code: warn
+  cycles: high
+  dead_code: medium
 
   # 完整格式：带有额外选项
   god_module:
-    severity: error
+    severity: high
     enabled: true
     exclude: ['**/generated/**']
     # 检测器特定的选项
@@ -45,20 +50,20 @@ rules:
     churn: 20
 
   vendor_coupling:
-    severity: warn
+    severity: medium
     ignore_packages: ['lodash', 'rxjs']
 
 # 特定路径的规则覆盖
 overrides:
   - files: ['**/legacy/**']
     rules:
-      complexity: warn
+      complexity: medium
       god_module: off
 
 # 评分和分级配置
 scoring:
-  # 要报告的最低严重程度级别 (info, warn, error, critical)
-  minimum: warn
+  # 要报告的最低严重程度级别 (low, medium, high, critical)
+  minimum: low
   # 总分计算的权重
   weights:
     critical: 100
@@ -76,11 +81,9 @@ scoring:
 # 自动检测框架（默认为 true）
 auto_detect_framework: true
 
-# 启用 Git 历史分析（默认为 true）
-enable_git: true
-
 # Git 设置
 git:
+  enabled: true # 启用 Git 分析（默认为 true）
   history_period: '1y'
 ```
 
@@ -99,9 +102,9 @@ git:
 在 `rules` 部分，您可以使用以下级别：
 
 - `critical`: 需要立即关注的严重问题。
-- `error`: 架构错误。
-- `warn`: 关于潜在问题的警告。
-- `info`: 信息性消息。
+- `high`: 高严重性的架构问题。
+- `medium`: 中等严重性的问题或警告。
+- `low`: 低严重性的问题或信息性消息。
 - `off`: 完全禁用检测器。
 
 ## CLI 配置
@@ -111,3 +114,19 @@ git:
 ```bash
 archlint scan --config custom-config.yaml
 ```
+
+## TypeScript 集成
+
+archlint 可以自动与您的 `tsconfig.json` 同步。使用 `tsconfig` 字段来控制此功能：
+
+- `tsconfig: true` (默认)：自动在项目根目录中查找 `tsconfig.json`。
+- `tsconfig: false` 或 `tsconfig: null`：禁用 TypeScript 集成。
+- `tsconfig: "./path/to/tsconfig.json"`：使用特定的配置文件。
+
+启用后，该工具将：
+
+1. **加载别名**：提取 `compilerOptions.paths` 和 `compilerOptions.baseUrl` 以自动配置 `aliases`。
+2. **自动忽略**：将 `compilerOptions.outDir` 添加到全局 `ignore` 列表中。
+3. **排除项**：将 `exclude` 字段中的模式纳入 `ignore` 列表。
+
+该工具在项目根目录中查找 `tsconfig.json`。如果您有自定义设置，请使用 `tsconfig` 字段指向正确的文件。

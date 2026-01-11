@@ -8,6 +8,14 @@ ignore:
   - "**/*.spec.ts"
 
 # Path aliases (similar to tsconfig.json)
+# By default, archlint automatically loads aliases from tsconfig.json
+#   tsconfig: true   - search for tsconfig.json (default)
+#   tsconfig: false  - disable tsconfig synchronization
+#   tsconfig: null   - disable tsconfig synchronization
+#   tsconfig: "./path/to/tsconfig.json" - use specific file
+tsconfig: true
+
+# Manual aliases (these take precedence over tsconfig.json)
 aliases:
   "@/*": "src/*"
 
@@ -25,15 +33,15 @@ max_file_size: 1048576
 # Rule-specific configuration
 rules:
   # Short form: level or "off"
-  cycles: error
-  dead_code: warn
+  cycles: high
+  dead_code: medium
 
   vendor_coupling:
-    severity: warn
+    severity: medium
     ignore_packages: ["lodash", "rxjs"]
 
   hub_dependency:
-    severity: error
+    severity: high
     ignore_packages: ["lodash", "rxjs"]
 
   # Full form: with additional parameters
@@ -45,7 +53,7 @@ rules:
     exclude: ["**/legacy/**"]
 
   layer_violation:
-    severity: error
+    severity: high
     layers:
       - name: domain
         path: "**/domain/**"
@@ -63,7 +71,7 @@ overrides:
 
 # Scoring and grading configuration
 scoring:
-  minimum: warn
+  minimum: medium
   weights:
     critical: 100
     high: 50
@@ -71,3 +79,8 @@ scoring:
     low: 5
 
 auto_detect_framework: true
+
+# Git settings
+git:
+  enabled: true
+  history_period: "1y"

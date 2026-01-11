@@ -175,7 +175,7 @@ entry_points:
 
 # Rule-specific configuration
 rules:
-  cycles: error
+  cycles: high
 
   god_module:
     severity: high
@@ -184,7 +184,7 @@ rules:
     churn: 20
 
   layer_violation:
-    severity: error
+    severity: high
     layers:
       - name: domain
         path: '**/domain/**'
@@ -205,7 +205,7 @@ overrides:
 
 # Scoring and grading settings
 scoring:
-  minimum: warn
+  minimum: medium
   weights:
     critical: 100
     high: 50

@@ -15,7 +15,7 @@
 ```yaml
 rules:
   barrel_file:
-    severity: error
+    severity: high
     max_reexports: 10
 ```
 

@@ -16,8 +16,13 @@ ignore:
   - '**/node_modules/**'
 
 # パスエイリアス (tsconfig.json や webpack と同様)
+# デフォルトでは、archlint は tsconfig.json からエイリアスを自動的に読み込みます。
+# ここで明示的に定義されたエイリアスは、tsconfig.json から派生した値よりも優先されます。
 aliases:
   '@/*': 'src/*'
+
+# TypeScript 統合設定 (true、false、またはファイルパス)
+tsconfig: true
 
 # 組み込みまたはカスタムプリセットから拡張
 extends:
@@ -31,12 +36,12 @@ entry_points:
 # 各検出器のルール設定
 rules:
   # 短縮形式: 重要度レベルまたは "off"
-  cycles: error
-  dead_code: warn
+  cycles: high
+  dead_code: medium
 
   # 完全形式: 追加オプション付き
   god_module:
-    severity: error
+    severity: high
     enabled: true
     exclude: ['**/generated/**']
     # 検出器固有のオプション
@@ -45,20 +50,20 @@ rules:
     churn: 20
 
   vendor_coupling:
-    severity: warn
+    severity: medium
     ignore_packages: ['lodash', 'rxjs']
 
 # 特定のパスに対するルールのオーバーライド
 overrides:
   - files: ['**/legacy/**']
     rules:
-      complexity: warn
+      complexity: medium
       god_module: off
 
 # スコアリングとグレーディングの設定
 scoring:
-  # 報告する最小重要度レベル (info, warn, error, critical)
-  minimum: warn
+  # 報告する最小重要度レベル (low, medium, high, critical)
+  minimum: low
   # 総スコア計算の重み
   weights:
     critical: 100
@@ -76,11 +81,9 @@ scoring:
 # フレームワークの自動検出 (デフォルトは true)
 auto_detect_framework: true
 
-# Git 履歴分析の有効化 (デフォルトは true)
-enable_git: true
-
 # Git 設定
 git:
+  enabled: true # 分析を有効にする (デフォルトは true)
   history_period: '1y'
 ```
 
@@ -99,9 +102,9 @@ git:
 `rules` セクションでは、以下のレベルを使用できます。
 
 - `critical`: 即時の対応が必要な重大な問題。
-- `error`: アーキテクチャ上のエラー。
-- `warn`: 潜在的な問題に関する警告。
-- `info`: 情報メッセージ。
+- `high`: 重要度の高いアーキテクチャ上の問題。
+- `medium`: 中程度の重要度の問題または警告。
+- `low`: 低い重要度の問題または情報メッセージ。
 - `off`: 検出器を完全に無効にします。
 
 ## CLI による設定
@@ -111,3 +114,19 @@ CLI から設定ファイルのパスを明示的に指定することもでき�
 ```bash
 archlint scan --config custom-config.yaml
 ```
+
+## TypeScript との統合
+
+archlint は `tsconfig.json` と自動的に同期できます。`tsconfig` フィールドを使用してこれを制御します：
+
+- `tsconfig: true` (デフォルト): プロジェクトルートで `tsconfig.json` を自動的に検索します。
+- `tsconfig: false` または `tsconfig: null`: TypeScript 統合を無効にします。
+- `tsconfig: "./path/to/tsconfig.json"`: 特定の設定ファイルを使用します。
+
+有効にすると、ツールは：
+
+1. **エイリアスの読み込み**: `compilerOptions.paths` と `compilerOptions.baseUrl` を抽出し、`aliases` を自動的に設定します。
+2. **自動無視**: `compilerOptions.outDir` をグローバルな `ignore` リストに追加します。
+3. **除外設定**: `exclude` フィールドのパターンを `ignore` リストに組み込みます。
+
+ツールはプロジェクトルートで `tsconfig.json` を検索します。カスタム設定を使用している場合は、`tsconfig` フィールドを使用して正しいファイルを指定してください。

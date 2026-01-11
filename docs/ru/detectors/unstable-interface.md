@@ -19,7 +19,7 @@
 ```yaml
 rules:
   unstable_interface:
-    severity: warn
+    severity: medium
     min_churn: 10
     min_dependants: 5
     score_threshold: 100
@@ -27,6 +27,6 @@ rules:
 
 ### Параметры по умолчанию
 
-- `min_churn`: `10` - минимальное количество изменений файла в git (требует `enable_git: true`)
+- `min_churn`: `10` - минимальное количество изменений файла в git (требует `git: { enabled: true }`)
 - `min_dependants`: `5` - минимальное количество модулей, зависящих от данного модуля
 - `score_threshold`: `100` - пороговое значение нестабильности интерфейса

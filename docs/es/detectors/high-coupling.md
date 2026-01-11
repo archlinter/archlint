@@ -20,7 +20,7 @@ El alto acoplamiento ocurre cuando un módulo depende de demasiados otros módul
 ```yaml
 rules:
   high_coupling:
-    severity: warn
+    severity: medium
     max_cbo: 20
 ```
 

@@ -21,7 +21,7 @@ Este detector identifica funciones con una alta Complejidad Ciclomática.
 ```yaml
 rules:
   complexity:
-    severity: warn
+    severity: medium
     max_complexity: 15
 ```
 

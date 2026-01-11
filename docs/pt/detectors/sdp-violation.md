@@ -50,7 +50,7 @@ export class User {
 ```yaml
 rules:
   sdp_violation:
-    severity: warn
+    severity: medium
     min_fan_total: 5
     instability_diff: 0.3
 ```
