@@ -2,7 +2,7 @@ use crate::config::Config;
 use crate::framework::presets::FrameworkPreset;
 use crate::framework::Framework;
 use crate::graph::DependencyGraph;
-use crate::parser::{FileSymbols, FunctionComplexity};
+use crate::parser::{FileIgnoredLines, FileSymbols, FunctionComplexity};
 use crate::rule_resolver::ResolvedRuleConfig;
 use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
@@ -20,7 +20,7 @@ pub struct AnalysisContext {
     pub file_symbols: Arc<HashMap<PathBuf, FileSymbols>>,
     pub function_complexity: Arc<HashMap<PathBuf, Vec<FunctionComplexity>>>,
     pub file_metrics: Arc<HashMap<PathBuf, FileMetrics>>,
-    pub ignored_lines: Arc<HashMap<PathBuf, HashMap<usize, HashSet<String>>>>,
+    pub ignored_lines: Arc<FileIgnoredLines>,
     // Small, keep owned
     pub churn_map: HashMap<PathBuf, usize>,
     pub config: Config,
@@ -81,7 +81,7 @@ impl AnalysisContext {
             file_symbols: Arc::new(HashMap::new()),
             function_complexity: Arc::new(HashMap::new()),
             file_metrics: Arc::new(HashMap::new()),
-            ignored_lines: Arc::new(HashMap::new()),
+            ignored_lines: Arc::new(FileIgnoredLines::default()),
             churn_map: HashMap::new(),
             config: Config::default(),
             script_entry_points: HashSet::new(),
@@ -105,6 +105,10 @@ impl AnalysisContext {
 
     pub fn file_metrics_mut(&mut self) -> &mut HashMap<PathBuf, FileMetrics> {
         Arc::make_mut(&mut self.file_metrics)
+    }
+
+    pub fn ignored_lines_mut(&mut self) -> &mut FileIgnoredLines {
+        Arc::make_mut(&mut self.ignored_lines)
     }
 }
 

@@ -7,7 +7,7 @@ use crate::engine::context::AnalysisContext;
 use crate::engine::AnalysisEngine;
 use crate::error::Result;
 use crate::incremental::IncrementalState;
-use crate::parser::{ImportParser, ParserConfig};
+use crate::parser::{FileIgnoredLines, ImportParser, ParserConfig};
 use crate::resolver::PathResolver;
 use sha2::{Digest, Sha256};
 use std::collections::{HashMap, HashSet};
@@ -277,7 +277,7 @@ impl Analyzer {
             self.state.file_symbols_mut().remove(file);
             self.state.file_metrics_mut().remove(file);
             self.state.function_complexity_mut().remove(file);
-            Arc::make_mut(&mut self.state.ignored_lines).remove(file);
+            Arc::<FileIgnoredLines>::make_mut(&mut self.state.ignored_lines).remove(file);
             self.state.file_hashes.remove(file);
             self.state.reverse_deps.remove(file);
 

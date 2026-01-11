@@ -3,7 +3,7 @@ use crate::engine::context::FileMetrics;
 use crate::framework::presets::FrameworkPreset;
 use crate::framework::Framework;
 use crate::graph::DependencyGraph;
-use crate::parser::{FileSymbols, FunctionComplexity};
+use crate::parser::{FileIgnoredLines, FileSymbols, FunctionComplexity};
 use std::collections::{HashMap, HashSet};
 use std::path::PathBuf;
 use std::sync::Arc;
@@ -15,7 +15,7 @@ pub struct IncrementalState {
     pub file_symbols: Arc<HashMap<PathBuf, FileSymbols>>,
     pub file_metrics: Arc<HashMap<PathBuf, FileMetrics>>,
     pub function_complexity: Arc<HashMap<PathBuf, Vec<FunctionComplexity>>>,
-    pub ignored_lines: Arc<HashMap<PathBuf, HashMap<usize, HashSet<String>>>>,
+    pub ignored_lines: Arc<FileIgnoredLines>,
 
     // Light structures remain owned
     pub file_hashes: HashMap<PathBuf, String>,
@@ -47,7 +47,7 @@ impl IncrementalState {
             file_symbols: Arc::new(HashMap::new()),
             file_metrics: Arc::new(HashMap::new()),
             function_complexity: Arc::new(HashMap::new()),
-            ignored_lines: Arc::new(HashMap::new()),
+            ignored_lines: Arc::new(FileIgnoredLines::default()),
             file_hashes: HashMap::new(),
             churn_map: HashMap::new(),
             reverse_deps: HashMap::new(),
@@ -68,7 +68,7 @@ impl IncrementalState {
         self.file_symbols = Arc::new(HashMap::new());
         self.file_metrics = Arc::new(HashMap::new());
         self.function_complexity = Arc::new(HashMap::new());
-        self.ignored_lines = Arc::new(HashMap::new());
+        self.ignored_lines = Arc::new(FileIgnoredLines::default());
         self.file_hashes.clear();
         self.churn_map.clear();
         self.reverse_deps.clear();
@@ -98,5 +98,10 @@ impl IncrementalState {
     /// Get mutable access to function_complexity via Arc::make_mut (copy-on-write)
     pub fn function_complexity_mut(&mut self) -> &mut HashMap<PathBuf, Vec<FunctionComplexity>> {
         Arc::make_mut(&mut self.function_complexity)
+    }
+
+    /// Get mutable access to ignored_lines via Arc::make_mut (copy-on-write)
+    pub fn ignored_lines_mut(&mut self) -> &mut FileIgnoredLines {
+        Arc::make_mut(&mut self.ignored_lines)
     }
 }

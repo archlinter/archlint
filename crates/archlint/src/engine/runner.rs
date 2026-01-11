@@ -15,7 +15,7 @@ use crate::no_cli_mocks::console::{style, Term};
 #[cfg(not(feature = "cli"))]
 use crate::no_cli_mocks::indicatif::{ProgressBar, ProgressStyle};
 use crate::package_json;
-use crate::parser::{ImportParser, ParsedFile, ParserConfig};
+use crate::parser::{FileIgnoredLines, ImportParser, ParsedFile, ParserConfig};
 use crate::project_root::detect_project_root;
 use crate::report::AnalysisReport;
 use crate::resolver::PathResolver;
@@ -524,12 +524,12 @@ impl AnalysisEngine {
         HashMap<PathBuf, crate::parser::FileSymbols>,
         HashMap<PathBuf, Vec<crate::parser::FunctionComplexity>>,
         HashMap<PathBuf, crate::engine::context::FileMetrics>,
-        HashMap<PathBuf, HashMap<usize, HashSet<String>>>,
+        FileIgnoredLines,
     ) {
         let mut symbols = HashMap::new();
         let mut complexity = HashMap::new();
         let mut metrics = HashMap::new();
-        let mut ignored = HashMap::new();
+        let mut ignored = FileIgnoredLines::default();
         for (file, parsed) in parsed_files {
             symbols.insert(file.clone(), parsed.symbols);
             complexity.insert(file.clone(), parsed.functions);
@@ -547,7 +547,7 @@ impl AnalysisEngine {
     fn is_smell_ignored_by_comments(
         &self,
         smell: &detectors::ArchSmell,
-        ignored_lines: &HashMap<PathBuf, HashMap<usize, HashSet<String>>>,
+        ignored_lines: &FileIgnoredLines,
     ) -> bool {
         let rule_id = smell.smell_type.category().to_id();
 
@@ -575,7 +575,7 @@ impl AnalysisEngine {
         file: &PathBuf,
         line: usize,
         rule_id: &str,
-        ignored_lines: &HashMap<PathBuf, HashMap<usize, HashSet<String>>>,
+        ignored_lines: &FileIgnoredLines,
     ) -> bool {
         let file_ignores = match ignored_lines.get(file) {
             Some(ignores) => ignores,

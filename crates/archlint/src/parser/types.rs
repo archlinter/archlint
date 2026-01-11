@@ -1,15 +1,21 @@
 use crate::detectors::CodeRange;
 use compact_str::CompactString;
-use rustc_hash::FxHashSet;
+use rustc_hash::{FxHashMap, FxHashSet};
 use serde::{Deserialize, Serialize};
 use smallvec::SmallVec;
-use std::collections::{HashMap, HashSet};
+use std::collections::HashSet;
 
 /// Compact string type for symbol names (inline up to 24 bytes, no heap allocation for short strings)
 pub type SymbolName = CompactString;
 
 /// Fast hash set optimized for string keys
 pub type SymbolSet = FxHashSet<SymbolName>;
+
+/// Map of line number to set of ignored rule IDs
+pub type IgnoredRulesMap = FxHashMap<usize, FxHashSet<String>>;
+
+/// Map of file path to its ignored lines and rules
+pub type FileIgnoredLines = FxHashMap<std::path::PathBuf, IgnoredRulesMap>;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum SymbolKind {
@@ -148,7 +154,7 @@ pub struct ParsedFile {
     pub symbols: FileSymbols,
     pub functions: Vec<FunctionComplexity>,
     pub lines: usize,
-    pub ignored_lines: HashMap<usize, HashSet<String>>,
+    pub ignored_lines: IgnoredRulesMap,
 }
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
