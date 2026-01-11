@@ -29,6 +29,7 @@ pub struct MatchedPair<'a> {
 type SmellKey = (String, String, String);
 
 impl FuzzyMatcher {
+    /// Create a new FuzzyMatcher with the specified line tolerance.
     pub fn new(line_tolerance: usize) -> Self {
         Self { line_tolerance }
     }
@@ -87,6 +88,8 @@ impl FuzzyMatcher {
     }
 
     /// Group smells by their matching key.
+    ///
+    /// Key format: (smell_type, first_file, symbol_name).
     fn group_by_key<'a>(
         smells: &[&'a SnapshotSmell],
     ) -> BTreeMap<SmellKey, Vec<&'a SnapshotSmell>> {
@@ -119,7 +122,7 @@ impl FuzzyMatcher {
     }
 
     /// Extract symbol/function name from smell details or ID.
-    fn extract_symbol_name(smell: &SnapshotSmell) -> Option<String> {
+    pub fn extract_symbol_name(smell: &SnapshotSmell) -> Option<String> {
         // First, try to get from details
         if let Some(ref details) = smell.details {
             let name = match details {
@@ -145,32 +148,28 @@ impl FuzzyMatcher {
         }
 
         // Fallback: try to extract from ID
-        // ID formats: "cmplx:path:name:line", "nest:path:desc:line", etc.
         Self::extract_name_from_id(&smell.id)
     }
 
     /// Try to extract symbol name from ID string.
+    ///
+    /// Resilience: parses from the right to handle ':' in paths or descriptions.
+    /// Expected format from right: ...:symbol_name:line
     fn extract_name_from_id(id: &str) -> Option<String> {
-        let parts: Vec<&str> = id.split(':').collect();
+        // We expect at least 3 parts: prefix:path...:name:line
+        let mut it = id.rsplitn(3, ':');
+        let _line_part = it.next()?;
+        let name_part = it.next()?;
+        let prefix_part = it.next().unwrap_or("");
 
-        // Expected formats:
-        // - "cmplx:path:name:line" (4 parts)
-        // - "nest:path:desc:line" (4 parts)
-        // - "params:path:name:line" (4 parts)
-        // - "dead:path:name:line" (4 parts)
-        // - "sideeffect:path:line:hash" (4 parts, but name is in description)
+        // Extract prefix from the remaining left part
+        let prefix = prefix_part.split(':').next()?;
 
-        match parts.first() {
-            Some(&"cmplx") | Some(&"nest") | Some(&"params") | Some(&"prim") | Some(&"dead")
-            | Some(&"shared") | Some(&"orphan") => {
-                // Format: prefix:path:name:line
-                if parts.len() >= 4 {
-                    Some(parts[2].to_string())
-                } else {
-                    None
-                }
+        match prefix {
+            "cmplx" | "nest" | "params" | "prim" | "dead" | "shared" | "orphan" => {
+                Some(name_part.to_string())
             }
-            Some(&"sideeffect") => {
+            "sideeffect" => {
                 // SideEffectImport uses hash, not symbol name - skip fuzzy matching
                 None
             }
@@ -179,7 +178,7 @@ impl FuzzyMatcher {
     }
 
     /// Extract line number from smell.
-    fn extract_line(smell: &SnapshotSmell) -> Option<usize> {
+    pub fn extract_line(smell: &SnapshotSmell) -> Option<usize> {
         // First, try locations
         if let Some(loc) = smell.locations.first() {
             return Some(loc.line);
@@ -190,14 +189,25 @@ impl FuzzyMatcher {
             return Some(*line);
         }
 
-        // Fallback: try to extract from ID (last part is usually line)
+        // Fallback: try to extract from ID
         Self::extract_line_from_id(&smell.id)
     }
 
     /// Try to extract line number from ID string.
+    ///
+    /// Resilience: tries last segment, then second-to-last (to handle ...:line:hash).
     fn extract_line_from_id(id: &str) -> Option<usize> {
-        let parts: Vec<&str> = id.split(':').collect();
-        parts.last()?.parse().ok()
+        let mut it = id.rsplit(':');
+        let last = it.next()?;
+
+        // Case 1: Standard format prefix:path:name:line
+        if let Ok(line) = last.parse::<usize>() {
+            return Some(line);
+        }
+
+        // Case 2: Side-effect format sideeffect:path:line:hash
+        let second_last = it.next()?;
+        second_last.parse::<usize>().ok()
     }
 }
 
@@ -310,6 +320,10 @@ mod tests {
         assert_eq!(
             FuzzyMatcher::extract_line_from_id("nest:path:desc:100"),
             Some(100)
+        );
+        assert_eq!(
+            FuzzyMatcher::extract_line_from_id("sideeffect:path:10:hash"),
+            Some(10)
         );
         assert_eq!(FuzzyMatcher::extract_line_from_id("invalid"), None);
     }
