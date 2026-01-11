@@ -582,12 +582,18 @@ impl AnalysisEngine {
             None => return false,
         };
 
-        // Check specific line and file-wide (line 0)
-        [0, line].iter().any(|&l| {
-            file_ignores
-                .get(&l)
-                .is_some_and(|rules| rules.contains("*") || rules.contains(rule_id))
-        })
+        if line == 0 {
+            // For file-wide smells, check only line 0
+            return file_ignores
+                .get(&0)
+                .is_some_and(|rules| rules.contains("*") || rules.contains(rule_id));
+        }
+
+        // For regular lines, check specifically that line.
+        // We no longer check line 0 here because block ignores now fill specific lines.
+        file_ignores
+            .get(&line)
+            .is_some_and(|rules| rules.contains("*") || rules.contains(rule_id))
     }
 
     fn get_runtime_files(

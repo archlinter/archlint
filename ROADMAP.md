@@ -1,6 +1,6 @@
 # Roadmap
 
-This roadmap is intentionally short. If something is not listed here, it is not planned.
+This roadmap is intentionally short. If something is not listed here, it is not currently planned. We stay focused on high-impact features, but we're open to suggestions and contributions that align with our core goals.
 
 ## Scope
 

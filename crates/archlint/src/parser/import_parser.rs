@@ -90,24 +90,46 @@ impl ImportParser {
         visitor: &UnifiedVisitor,
     ) -> HashMap<usize, HashSet<String>> {
         let mut ignored = HashMap::new();
+        let mut active_blocks: HashMap<String, usize> = HashMap::new();
+        let total_lines = visitor.line_count();
 
         for comment in comments {
             let start = comment.span.start;
             let comment_text = &content[start as usize..comment.span.end as usize];
             let comment_line = visitor.get_line_number_from_offset(start as usize);
 
-            if let Some(caps) = self.parse_ignore_command(comment_text) {
-                let (command, rules) = caps;
-
+            if let Some((command, rules)) = self.parse_ignore_command(comment_text) {
                 match command.as_str() {
                     "archlint-disable" => {
-                        // File-wide or until end of file. For now, let's treat it as file-wide if at the top,
-                        // or just mark line 0 as "ignore all" if it's a general disable.
-                        // Actually, let's use line 0 for file-wide ignore.
-                        ignored
-                            .entry(0)
-                            .or_insert_with(HashSet::new)
-                            .extend(rules.clone());
+                        for rule in rules {
+                            active_blocks.insert(rule, comment_line);
+                        }
+                    }
+                    "archlint-enable" => {
+                        if rules.contains("*") {
+                            let keys: Vec<String> = active_blocks.keys().cloned().collect();
+                            for rule in keys {
+                                if let Some(start_line) = active_blocks.remove(&rule) {
+                                    for l in start_line..=comment_line {
+                                        ignored
+                                            .entry(l)
+                                            .or_insert_with(HashSet::new)
+                                            .insert(rule.clone());
+                                    }
+                                }
+                            }
+                        } else {
+                            for rule in rules {
+                                if let Some(start_line) = active_blocks.remove(&rule) {
+                                    for l in start_line..=comment_line {
+                                        ignored
+                                            .entry(l)
+                                            .or_insert_with(HashSet::new)
+                                            .insert(rule.clone());
+                                    }
+                                }
+                            }
+                        }
                     }
                     "archlint-disable-line" => {
                         ignored
@@ -126,6 +148,24 @@ impl ImportParser {
             }
         }
 
+        // Close remaining blocks until the end of the file
+        for (rule, start_line) in active_blocks {
+            // If it is a global ignore (*) starting at the top, also add to line 0 for file-wide smells
+            if rule == "*" && start_line <= 1 {
+                ignored
+                    .entry(0)
+                    .or_insert_with(HashSet::new)
+                    .insert("*".to_string());
+            }
+
+            for l in start_line..=total_lines {
+                ignored
+                    .entry(l)
+                    .or_insert_with(HashSet::new)
+                    .insert(rule.clone());
+            }
+        }
+
         ignored
     }
 
@@ -139,8 +179,12 @@ impl ImportParser {
             text
         };
 
-        let text = text.trim();
-        if !text.starts_with("archlint-disable") {
+        let text = text.trim().trim_start_matches(['/', '*']).trim_start();
+
+        let is_disable = text.starts_with("archlint-disable");
+        let is_enable = text.starts_with("archlint-enable");
+
+        if !is_disable && !is_enable {
             return None;
         }
 
@@ -153,9 +197,9 @@ impl ImportParser {
         let mut rules = HashSet::new();
 
         if parts.len() > 1 {
-            let rules_part = parts[1..].join("");
-            for rule in rules_part.split(',') {
-                let rule = rule.trim();
+            let rules_part = parts[1..].join(" ");
+            for rule_chunk in rules_part.split(',') {
+                let rule = rule_chunk.split_whitespace().next().unwrap_or("").trim();
                 if !rule.is_empty() {
                     rules.insert(rule.to_string());
                 }
