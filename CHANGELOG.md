@@ -1,3 +1,11 @@
+## [0.11.0](https://github.com/archlinter/archlint/compare/v0.10.0...v0.11.0) (2026-01-11)
+
+### Features
+
+- add Trivy security scanning to CI and fix dependency vulnerability ([#18](https://github.com/archlinter/archlint/issues/18)) ([03ab184](https://github.com/archlinter/archlint/commit/03ab184d0755f44943b8a258213616714feca32f))
+- refactor framework preset system to YAML-based unified configuration ([#17](https://github.com/archlinter/archlint/issues/17)) ([bc8b86f](https://github.com/archlinter/archlint/commit/bc8b86f55bc4d728026cea6fb26b2c58add9127d))
+- unify severity levels and implement tsconfig integration ([#20](https://github.com/archlinter/archlint/issues/20)) ([82ae522](https://github.com/archlinter/archlint/commit/82ae522e934ed018302730d3d3c6dd0da7bbd49e))
+
 ## [0.10.0](https://github.com/archlinter/archlint/compare/v0.9.0...v0.10.0) (2026-01-08)
 
 ### Features
