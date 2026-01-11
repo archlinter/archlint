@@ -59,15 +59,15 @@ Você pode ignorar problemas arquiteturais específicos diretamente no seu códi
 
 ```typescript
 // prettier-ignore
-// archlint-disable-next-line long-params
+// archlint-disable-next-line long-params - Esta função legada requer muitos parâmetros
 function processTransaction(id: string, amount: number, currency: string, date: Date, recipient: string, note: string) {
   // O detector de parâmetros longos será ignorado apenas para esta linha
 }
 
-import { internal } from './private'; // archlint-disable-line layer_violation
+import { internal } from './private'; // archlint-disable-line layer_violation - Exclusão temporária para migração
 
-// archlint-disable cycles, god_module
-// Ignorar regras específicas para todo o arquivo
+// archlint-disable * - Todo o arquivo usa padrões legados
+// Ignorar todas as regras para todo o arquivo
 
 /* archlint-disable complexity */
 function legacyCode() {

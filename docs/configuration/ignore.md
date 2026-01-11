@@ -59,15 +59,15 @@ You can ignore specific architectural smells directly in your source code using 
 
 ```typescript
 // prettier-ignore
-// archlint-disable-next-line long-params
+// archlint-disable-next-line long-params - This legacy function requires many parameters
 function processTransaction(id: string, amount: number, currency: string, date: Date, recipient: string, note: string) {
   // Long params detector will be ignored only for this line
 }
 
-import { internal } from './private'; // archlint-disable-line layer_violation
+import { internal } from './private'; // archlint-disable-line layer_violation - Temporary exclusion for migration
 
-// archlint-disable cycles, god_module
-// Ignore specific rules for the entire file
+// archlint-disable * - Entire file uses legacy patterns
+// Ignore all rules for the entire file
 
 /* archlint-disable complexity */
 function legacyCode() {

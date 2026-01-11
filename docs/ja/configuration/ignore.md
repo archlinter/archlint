@@ -59,15 +59,15 @@ overrides:
 
 ```typescript
 // prettier-ignore
-// archlint-disable-next-line long-params
+// archlint-disable-next-line long-params - このレガシー関数は多くの引数を必要とします
 function processTransaction(id: string, amount: number, currency: string, date: Date, recipient: string, note: string) {
   // 長すぎる引数の検出はこの行に対してのみ無視されます
 }
 
-import { internal } from './private'; // archlint-disable-line layer_violation
+import { internal } from './private'; // archlint-disable-line layer_violation - 移行のための一時的な除外
 
-// archlint-disable cycles, god_module
-// ファイル全体で特定のルールを無視する
+// archlint-disable * - ファイル全体でレガシーなパターンを使用
+// ファイル全体ですべてのルールを無視する
 
 /* archlint-disable complexity */
 function legacyCode() {

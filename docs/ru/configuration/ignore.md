@@ -59,15 +59,15 @@ overrides:
 
 ```typescript
 // prettier-ignore
-// archlint-disable-next-line long-params
+// archlint-disable-next-line long-params - Эта легаси функция требует много параметров
 function processTransaction(id: string, amount: number, currency: string, date: Date, recipient: string, note: string) {
   // Детектор длинных параметров будет проигнорирован только для этой строки
 }
 
-import { internal } from './private'; // archlint-disable-line layer_violation
+import { internal } from './private'; // archlint-disable-line layer_violation - Временное исключение для миграции
 
-// archlint-disable cycles, god_module
-// Игнорировать конкретные правила для всего файла
+// archlint-disable * - Весь файл использует устаревшие паттерны
+// Игнорировать все правила для всего файла
 
 /* archlint-disable complexity */
 function legacyCode() {

@@ -59,15 +59,15 @@ overrides:
 
 ```typescript
 // prettier-ignore
-// archlint-disable-next-line long-params
+// archlint-disable-next-line long-params - 此遗留函数需要许多参数
 function processTransaction(id: string, amount: number, currency: string, date: Date, recipient: string, note: string) {
   // 长参数检测将仅针对此行被忽略
 }
 
-import { internal } from './private'; // archlint-disable-line layer_violation
+import { internal } from './private'; // archlint-disable-line layer_violation - 迁移的临时排除
 
-// archlint-disable cycles, god_module
-// 忽略整个文件的特定规则
+// archlint-disable * - 整个文件使用遗留模式
+// 忽略整个文件的所有规则
 
 /* archlint-disable complexity */
 function legacyCode() {
