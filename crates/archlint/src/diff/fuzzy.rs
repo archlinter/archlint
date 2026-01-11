@@ -72,13 +72,13 @@ impl FuzzyMatcher {
         candidates: &[&'a SnapshotSmell],
         used_ids: &std::collections::HashSet<&str>,
     ) -> Option<&'a SnapshotSmell> {
-        let baseline_line = Self::extract_line(baseline);
+        let baseline_line = Self::extract_line(baseline)?;
 
         candidates
             .iter()
             .filter(|c| !used_ids.contains(c.id.as_str()))
             .filter_map(|current| {
-                let current_line = Self::extract_line(current);
+                let current_line = Self::extract_line(current)?;
                 let diff = baseline_line.abs_diff(current_line);
                 (diff <= self.line_tolerance).then_some((current, diff))
             })
@@ -172,19 +172,19 @@ impl FuzzyMatcher {
     }
 
     /// Extract line number from smell.
-    fn extract_line(smell: &SnapshotSmell) -> usize {
+    fn extract_line(smell: &SnapshotSmell) -> Option<usize> {
         // First, try locations
         if let Some(loc) = smell.locations.first() {
-            return loc.line;
+            return Some(loc.line);
         }
 
         // Then, try details
         if let Some(SmellDetails::Complexity { line, .. }) = &smell.details {
-            return *line;
+            return Some(*line);
         }
 
         // Fallback: try to extract from ID (last part is usually line)
-        Self::extract_line_from_id(&smell.id).unwrap_or(0)
+        Self::extract_line_from_id(&smell.id)
     }
 
     /// Try to extract line number from ID string.
