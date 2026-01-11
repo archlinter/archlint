@@ -24,6 +24,9 @@ impl FileScanner {
     }
 
     /// Perform the scan and return a list of found files.
+    ///
+    /// Supports both scanning a single file or an entire directory recursively.
+    /// All returned paths are canonicalized absolute paths.
     pub fn scan(&self) -> Result<Vec<PathBuf>> {
         if self.scan_root.is_file() {
             return Ok(self.scan_single_file());

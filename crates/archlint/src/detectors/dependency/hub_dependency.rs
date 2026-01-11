@@ -42,7 +42,9 @@ impl Detector for HubDependencyDetector {
             None => return Vec::new(),
         };
 
+        // Default threshold of 20 dependants is a heuristic for "hub" status in medium-sized projects.
         let min_dependants: usize = rule.get_option("min_dependants").unwrap_or(20);
+        // Standard libraries and frameworks are ignored by default as they are expected hubs.
         let ignore_packages: Vec<String> =
             rule.get_option("ignore_packages").unwrap_or_else(|| {
                 vec![
@@ -95,4 +97,5 @@ impl HubDependencyDetector {
     }
 }
 
+/// Required for detector registration via the `inventory` crate.
 pub fn init() {}

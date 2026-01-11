@@ -6,6 +6,9 @@ pub struct TsConfigResolver;
 
 impl TsConfigResolver {
     /// Parses a package specifier into a package name and an optional subpath.
+    ///
+    /// Handles scoped packages (e.g., `@scope/pkg/path`) and regular packages.
+    /// If a specifier starts with `@` but is malformed, it falls back to regular parsing.
     pub fn parse_package_specifier(specifier: &str) -> (String, Option<&str>) {
         if specifier.starts_with('@') {
             let parts: Vec<&str> = specifier.splitn(3, '/').collect();

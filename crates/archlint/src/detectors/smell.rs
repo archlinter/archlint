@@ -94,116 +94,108 @@ pub struct ArchSmell {
 }
 
 impl ArchSmell {
-    pub fn fan_in(&self) -> Option<usize> {
-        self.metrics.iter().find_map(|m| match m {
-            SmellMetric::FanIn(v) => Some(*v),
-            _ => None,
+    fn get_metric_usize(&self, metric_type: fn(usize) -> SmellMetric) -> Option<usize> {
+        self.metrics.iter().find_map(|m| {
+            if std::mem::discriminant(m) == std::mem::discriminant(&metric_type(0)) {
+                match m {
+                    SmellMetric::FanIn(v)
+                    | SmellMetric::FanOut(v)
+                    | SmellMetric::Churn(v)
+                    | SmellMetric::CycleLength(v)
+                    | SmellMetric::Complexity(v)
+                    | SmellMetric::Lines(v)
+                    | SmellMetric::InstabilityScore(v)
+                    | SmellMetric::DependentCount(v)
+                    | SmellMetric::Lcom(v)
+                    | SmellMetric::Components(v)
+                    | SmellMetric::Cbo(v)
+                    | SmellMetric::Depth(v)
+                    | SmellMetric::TokenCount(v) => Some(*v),
+                    _ => None,
+                }
+            } else {
+                None
+            }
         })
+    }
+
+    fn get_metric_f64(&self, metric_type: fn(f64) -> SmellMetric) -> Option<f64> {
+        self.metrics.iter().find_map(|m| {
+            if std::mem::discriminant(m) == std::mem::discriminant(&metric_type(0.0)) {
+                match m {
+                    SmellMetric::EnvyRatio(v)
+                    | SmellMetric::AvgCoChanges(v)
+                    | SmellMetric::Instability(v) => Some(*v),
+                    _ => None,
+                }
+            } else {
+                None
+            }
+        })
+    }
+
+    pub fn fan_in(&self) -> Option<usize> {
+        self.get_metric_usize(SmellMetric::FanIn)
     }
 
     pub fn fan_out(&self) -> Option<usize> {
-        self.metrics.iter().find_map(|m| match m {
-            SmellMetric::FanOut(v) => Some(*v),
-            _ => None,
-        })
+        self.get_metric_usize(SmellMetric::FanOut)
     }
 
     pub fn churn(&self) -> Option<usize> {
-        self.metrics.iter().find_map(|m| match m {
-            SmellMetric::Churn(v) => Some(*v),
-            _ => None,
-        })
+        self.get_metric_usize(SmellMetric::Churn)
     }
 
     pub fn cycle_length(&self) -> Option<usize> {
-        self.metrics.iter().find_map(|m| match m {
-            SmellMetric::CycleLength(v) => Some(*v),
-            _ => None,
-        })
+        self.get_metric_usize(SmellMetric::CycleLength)
     }
 
     pub fn complexity(&self) -> Option<usize> {
-        self.metrics.iter().find_map(|m| match m {
-            SmellMetric::Complexity(v) => Some(*v),
-            _ => None,
-        })
+        self.get_metric_usize(SmellMetric::Complexity)
     }
 
     pub fn lines(&self) -> Option<usize> {
-        self.metrics.iter().find_map(|m| match m {
-            SmellMetric::Lines(v) => Some(*v),
-            _ => None,
-        })
+        self.get_metric_usize(SmellMetric::Lines)
     }
 
     pub fn instability_score(&self) -> Option<usize> {
-        self.metrics.iter().find_map(|m| match m {
-            SmellMetric::InstabilityScore(v) => Some(*v),
-            _ => None,
-        })
+        self.get_metric_usize(SmellMetric::InstabilityScore)
     }
 
     pub fn envy_ratio(&self) -> Option<f64> {
-        self.metrics.iter().find_map(|m| match m {
-            SmellMetric::EnvyRatio(v) => Some(*v),
-            _ => None,
-        })
+        self.get_metric_f64(SmellMetric::EnvyRatio)
     }
 
     pub fn avg_co_changes(&self) -> Option<f64> {
-        self.metrics.iter().find_map(|m| match m {
-            SmellMetric::AvgCoChanges(v) => Some(*v),
-            _ => None,
-        })
+        self.get_metric_f64(SmellMetric::AvgCoChanges)
     }
 
     pub fn dependant_count(&self) -> Option<usize> {
-        self.metrics.iter().find_map(|m| match m {
-            SmellMetric::DependentCount(v) => Some(*v),
-            _ => None,
-        })
+        self.get_metric_usize(SmellMetric::DependentCount)
     }
 
     pub fn instability(&self) -> Option<f64> {
-        self.metrics.iter().find_map(|m| match m {
-            SmellMetric::Instability(v) => Some(*v),
-            _ => None,
-        })
+        self.get_metric_f64(SmellMetric::Instability)
     }
 
     pub fn lcom(&self) -> Option<usize> {
-        self.metrics.iter().find_map(|m| match m {
-            SmellMetric::Lcom(v) => Some(*v),
-            _ => None,
-        })
+        self.get_metric_usize(SmellMetric::Lcom)
     }
 
     pub fn components(&self) -> Option<usize> {
-        self.metrics.iter().find_map(|m| match m {
-            SmellMetric::Components(v) => Some(*v),
-            _ => None,
-        })
+        self.get_metric_usize(SmellMetric::Components)
     }
 
     pub fn cbo(&self) -> Option<usize> {
-        self.metrics.iter().find_map(|m| match m {
-            SmellMetric::Cbo(v) => Some(*v),
-            _ => None,
-        })
+        self.get_metric_usize(SmellMetric::Cbo)
     }
 
     pub fn depth(&self) -> Option<usize> {
-        self.metrics.iter().find_map(|m| match m {
-            SmellMetric::Depth(v) => Some(*v),
-            _ => None,
-        })
+        self.get_metric_usize(SmellMetric::Depth)
     }
 
     pub fn token_count(&self) -> Option<usize> {
-        self.metrics.iter().find_map(|m| match m {
-            SmellMetric::TokenCount(v) => Some(*v),
-            _ => None,
-        })
+        self.get_metric_usize(SmellMetric::TokenCount)
     }
 
     /// Get the severity level of this smell.
