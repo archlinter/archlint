@@ -2,6 +2,10 @@ use crate::Result;
 use ignore::WalkBuilder;
 use std::path::{Path, PathBuf};
 
+/// Scans the filesystem for source files based on configuration.
+///
+/// It respects `.gitignore` and `.archsmellignore` files and applies
+/// additional exclusion filters for system directories.
 pub struct FileScanner {
     project_root: PathBuf,
     scan_root: PathBuf,
@@ -9,6 +13,7 @@ pub struct FileScanner {
 }
 
 impl FileScanner {
+    /// Create a new scanner for the given directories and extensions.
     pub fn new<P: AsRef<Path>>(project_root: P, scan_root: P, extensions: Vec<String>) -> Self {
         Self {
             project_root: project_root.as_ref().to_path_buf(),
@@ -17,6 +22,7 @@ impl FileScanner {
         }
     }
 
+    /// Perform the scan and return a list of found files.
     pub fn scan(&self) -> Result<Vec<PathBuf>> {
         if self.scan_root.is_file() {
             return Ok(self.scan_single_file());

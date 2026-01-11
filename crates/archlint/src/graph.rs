@@ -9,14 +9,19 @@ pub struct FileNode {
     pub path: PathBuf,
 }
 
+/// Data associated with a dependency edge in the graph.
 #[derive(Debug, Clone)]
 pub struct EdgeData {
+    /// Line number where the import occurs.
     pub import_line: usize,
+    /// Exact code range of the import statement.
     pub import_range: Option<CodeRange>,
+    /// List of symbols imported through this dependency.
     pub imported_symbols: Vec<String>,
 }
 
 impl EdgeData {
+    /// Create new edge data with only the line number.
     pub fn new(import_line: usize) -> Self {
         Self {
             import_line,
@@ -25,6 +30,7 @@ impl EdgeData {
         }
     }
 
+    /// Create edge data with line number and range.
     pub fn with_range(import_line: usize, range: CodeRange) -> Self {
         Self {
             import_line,
@@ -33,6 +39,7 @@ impl EdgeData {
         }
     }
 
+    /// Create edge data with line number and imported symbols.
     pub fn with_symbols(import_line: usize, imported_symbols: Vec<String>) -> Self {
         Self {
             import_line,
@@ -41,6 +48,7 @@ impl EdgeData {
         }
     }
 
+    /// Create edge data with all available information.
     pub fn with_all(import_line: usize, range: CodeRange, imported_symbols: Vec<String>) -> Self {
         Self {
             import_line,
@@ -50,6 +58,7 @@ impl EdgeData {
     }
 }
 
+/// A directed graph representing dependencies between files.
 #[derive(Clone)]
 pub struct DependencyGraph {
     graph: DiGraph<FileNode, EdgeData>,
@@ -57,6 +66,7 @@ pub struct DependencyGraph {
 }
 
 impl DependencyGraph {
+    /// Create a new empty dependency graph.
     pub fn new() -> Self {
         Self {
             graph: DiGraph::new(),
@@ -64,6 +74,7 @@ impl DependencyGraph {
         }
     }
 
+    /// Add a file to the graph and return its node index.
     pub fn add_file<P: AsRef<Path>>(&mut self, path: P) -> NodeIndex {
         let path = path.as_ref().to_path_buf();
 

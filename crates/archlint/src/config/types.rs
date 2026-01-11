@@ -175,9 +175,9 @@ pub struct RuleFullConfig {
 /// Configuration overrides for specific file patterns.
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
 pub struct Override {
-    /// Files or directories to apply these overrides to.
+    /// Files or directories to apply these overrides to (glob patterns).
     pub files: Vec<String>,
-    /// Rule configurations to override.
+    /// Rule configurations to apply as overrides.
     pub rules: HashMap<String, RuleConfig>,
 }
 

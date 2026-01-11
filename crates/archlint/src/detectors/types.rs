@@ -14,93 +14,94 @@ pub enum DetectorCategory {
     Global,
 }
 
+/// Defines the specific type of an architectural smell.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Hash)]
 pub enum SmellType {
+    /// Two or more files form a dependency cycle.
     CyclicDependency,
+    /// A large group of interconnected cycles.
     CyclicDependencyCluster,
+    /// A module with excessive incoming and outgoing dependencies.
     GodModule,
+    /// Code that is never imported or executed.
     DeadCode,
-    DeadSymbol {
-        name: String,
-        kind: String,
-    },
+    /// An exported symbol (function, class, etc.) that is never used.
+    DeadSymbol { name: String, kind: String },
+    /// A function with high cyclomatic complexity.
     HighComplexity {
         name: String,
         line: usize,
         complexity: usize,
     },
+    /// A file with too many lines of code.
     LargeFile,
+    /// An interface that changes frequently despite having many dependants.
     UnstableInterface,
-    FeatureEnvy {
-        most_envied_module: PathBuf,
-    },
+    /// A module that accesses more data from another module than its own.
+    FeatureEnvy { most_envied_module: PathBuf },
+    /// A change in one module requires many small changes in other modules.
     ShotgunSurgery,
-    HubDependency {
-        package: String,
-    },
+    /// A package that is a central dependency for many parts of the project.
+    HubDependency { package: String },
 
-    TestLeakage {
-        test_file: PathBuf,
-    },
+    /// A test file that is imported by non-test code.
+    TestLeakage { test_file: PathBuf },
+    /// A dependency that violates defined architectural layers.
     LayerViolation {
         from_layer: String,
         to_layer: String,
     },
+    /// A stable module depending on a less stable module (Stable Dependencies Principle).
     SdpViolation,
 
+    /// A file that exports too many unrelated symbols.
     BarrelFileAbuse,
-    VendorCoupling {
-        package: String,
-    },
+    /// Excessive reliance on a specific third-party package.
+    VendorCoupling { package: String },
+    /// An import that is only executed for its side effects.
     SideEffectImport,
+    /// A module that acts as a central hub for many other modules.
     HubModule,
 
-    LowCohesion {
-        lcom: usize,
-    },
-    ScatteredModule {
-        components: usize,
-    },
-    HighCoupling {
-        cbo: usize,
-    },
+    /// A class where methods don't operate on common fields (Lack of Cohesion of Methods).
+    LowCohesion { lcom: usize },
+    /// A module that consists of multiple unconnected components.
+    ScatteredModule { components: usize },
+    /// A module with high coupling to other modules (Coupling Between Objects).
+    HighCoupling { cbo: usize },
 
-    PackageCycle {
-        packages: Vec<String>,
-    },
-    SharedMutableState {
-        symbol: String,
-    },
+    /// A dependency cycle between different packages.
+    PackageCycle { packages: Vec<String> },
+    /// A shared global state that is modified from multiple locations.
+    SharedMutableState { symbol: String },
 
+    /// A function with too many levels of nested control structures.
     DeepNesting {
         function: String,
         depth: usize,
         line: usize,
     },
-    LongParameterList {
-        count: usize,
-        function: String,
-    },
+    /// A function with an excessively long list of parameters.
+    LongParameterList { count: usize, function: String },
 
-    PrimitiveObsession {
-        primitives: usize,
-        function: String,
-    },
-    OrphanType {
-        name: String,
-    },
+    /// Excessive use of primitive types instead of domain-specific objects.
+    PrimitiveObsession { primitives: usize, function: String },
+    /// A type that is defined but never used.
+    OrphanType { name: String },
+    /// Circular dependency involving only types (type-only imports).
     CircularTypeDependency,
+    /// A module that is neither stable nor abstract enough (Abstractness violation).
     AbstractnessViolation,
-    ScatteredConfiguration {
-        env_var: String,
-        files_count: usize,
-    },
+    /// Environment variables accessed from many different files.
+    ScatteredConfiguration { env_var: String, files_count: usize },
+    /// Identical or near-identical code blocks in multiple locations.
     CodeClone {
         clone_hash: String,
         token_count: usize,
     },
 }
 
+/// Represents a smell type that can be configured in the `.archlint.yaml`.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Hash, Copy)]
 #[serde(rename_all = "PascalCase")]
 pub enum ConfigurableSmellType {
@@ -116,7 +117,6 @@ pub enum ConfigurableSmellType {
     ShotgunSurgery,
     HubDependency,
 
-    // Phase 1
     TestLeakage,
     LayerViolation,
     SdpViolation,

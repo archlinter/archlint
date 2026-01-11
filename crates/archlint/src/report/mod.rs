@@ -53,10 +53,14 @@ impl std::fmt::Display for GradeLevel {
     }
 }
 
+/// Represents the overall architectural grade of a project.
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct ArchitectureGrade {
+    /// Numerical score (0.0 to 10.0).
     pub score: f32,
+    /// Qualitative level (Excellent, Good, etc.).
     pub level: GradeLevel,
+    /// Calculated density of smells (total weighted score / analyzed files).
     pub density: f32,
 }
 
@@ -121,28 +125,51 @@ pub(crate) fn format_location_parts(
     }
 }
 
+/// A comprehensive report containing all analysis results.
 pub struct AnalysisReport {
+    /// Number of files analyzed.
     pub files_analyzed: usize,
+    /// Count of cyclic dependencies found.
     pub cyclic_dependencies: usize,
+    /// Count of god modules found.
     pub god_modules: usize,
+    /// Count of dead code files.
     pub dead_code: usize,
+    /// Count of unused exported symbols.
     pub dead_symbols: usize,
+    /// Count of high complexity functions.
     pub high_complexity_functions: usize,
+    /// Count of large files.
     pub large_files: usize,
+    /// Count of unstable interfaces.
     pub unstable_interfaces: usize,
+    /// Count of feature envy instances.
     pub feature_envy: usize,
+    /// Count of shotgun surgery instances.
     pub shotgun_surgery: usize,
+    /// Count of hub dependencies.
     pub hub_dependencies: usize,
+    /// Count of code clone instances.
     pub code_clones: usize,
+    /// List of detected smells with their human-readable explanations.
     pub smells: Vec<(ArchSmell, Explanation)>,
+    /// The project's dependency graph.
     pub graph: Option<DependencyGraph>,
+    /// Symbol information for each analyzed file.
     pub file_symbols: std::collections::HashMap<PathBuf, FileSymbols>,
+    /// Basic metrics for each file.
     pub file_metrics: std::collections::HashMap<PathBuf, FileMetrics>,
+    /// Complexity details for functions in each file.
     pub function_complexity: std::collections::HashMap<PathBuf, Vec<FunctionComplexity>>,
+    /// Line-level ignore rules.
     pub ignored_lines: FileIgnoredLines,
+    /// Git history metrics (churn).
     pub churn_map: std::collections::HashMap<PathBuf, usize>,
+    /// Framework-specific presets applied.
     pub presets: Vec<FrameworkPreset>,
+    /// Minimum severity filter applied to the report.
     pub min_severity: Option<Severity>,
+    /// Minimum score filter applied to the report.
     pub min_score: Option<u32>,
 }
 

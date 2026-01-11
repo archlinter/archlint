@@ -71,6 +71,7 @@ pub fn clear_cache<P: AsRef<Path>>(path: P) -> Result<()> {
     crate::cache::AnalysisCache::clear(path.as_ref())
 }
 
+/// Internal helper to build high-level file information from analysis report.
 pub(crate) fn build_file_info(
     report: &crate::report::AnalysisReport,
     project_path: &Path,

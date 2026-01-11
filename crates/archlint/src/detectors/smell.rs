@@ -4,16 +4,23 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
 use std::path::PathBuf;
 
+/// Detailed information about a specific location in a source file.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct LocationDetail {
+    /// Absolute path to the file.
     pub file: PathBuf,
+    /// Line number (1-based).
     pub line: usize,
+    /// Column number (optional, 1-based).
     pub column: Option<usize>,
+    /// Exact code range (optional).
     pub range: Option<CodeRange>,
+    /// Description of why this location is relevant to the smell.
     pub description: String,
 }
 
 impl LocationDetail {
+    /// Create a new location detail.
     pub fn new(file: PathBuf, line: usize, description: String) -> Self {
         Self {
             file,
@@ -24,6 +31,7 @@ impl LocationDetail {
         }
     }
 
+    /// Add exact range information to the location detail.
     pub fn with_range(mut self, range: CodeRange) -> Self {
         self.line = range.start_line;
         self.column = Some(range.start_column);
@@ -32,6 +40,7 @@ impl LocationDetail {
     }
 }
 
+/// A range of code in a source file.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Hash, Copy, Default)]
 pub struct CodeRange {
     pub start_line: usize,
@@ -40,6 +49,7 @@ pub struct CodeRange {
     pub end_column: usize,
 }
 
+/// A group of interconnected cyclic dependencies.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct CycleCluster {
     pub files: Vec<PathBuf>,
@@ -48,6 +58,7 @@ pub struct CycleCluster {
     pub internal_edges: Vec<LocationDetail>,
 }
 
+/// Information about a file that is a "hotspot" within a cycle cluster.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct HotspotInfo {
     pub file: PathBuf,
@@ -55,6 +66,7 @@ pub struct HotspotInfo {
     pub out_degree: usize,
 }
 
+/// A dependency edge that is part of a cycle.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct CriticalEdge {
     pub from: PathBuf,
@@ -64,13 +76,20 @@ pub struct CriticalEdge {
     pub impact: String,
 }
 
+/// Represents a detected architectural smell or violation.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct ArchSmell {
+    /// The type/category of the smell.
     pub smell_type: SmellType,
+    /// Severity level of this specific instance.
     pub severity: Severity,
+    /// Files involved in this smell.
     pub files: Vec<PathBuf>,
+    /// Quantitative metrics associated with the smell.
     pub metrics: Vec<SmellMetric>,
+    /// Relevant code locations.
     pub locations: Vec<LocationDetail>,
+    /// Optional clustering information for cycles.
     pub cluster: Option<CycleCluster>,
 }
 
