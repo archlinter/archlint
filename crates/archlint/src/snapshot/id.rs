@@ -21,29 +21,13 @@ pub fn generate_smell_id(smell: &ArchSmell, project_root: &Path) -> String {
             id_for_layer_violation(&smell.files[0], to_layer, project_root)
         }
 
-        SmellType::DeadSymbol { name, .. } => {
-            let location = smell.locations.first();
-            let line = location.map(|l| l.line).unwrap_or(0);
-            let mut id = id_for_dead_symbol(&smell.files[0], name, line, project_root);
-            if line == 0 {
-                // Fallback: add hash of description to avoid collisions for same-named symbols without location
-                let desc = location.map(|l| l.description.as_str()).unwrap_or("");
-                id = format!("{}:{}", id, short_hash(desc));
-            }
-            id
-        }
+        SmellType::DeadSymbol { name, .. } => with_line_hash_fallback(smell, |line| {
+            id_for_symbol_smell("dead", &smell.files[0], name, line, project_root)
+        }),
 
-        SmellType::HighComplexity { name, .. } => {
-            let location = smell.locations.first();
-            let line = location.map(|l| l.line).unwrap_or(0);
-            let mut id = id_for_complexity(&smell.files[0], name, line, project_root);
-            if line == 0 {
-                // Fallback: add hash of description to avoid collisions for same-named symbols without location
-                let desc = location.map(|l| l.description.as_str()).unwrap_or("");
-                id = format!("{}:{}", id, short_hash(desc));
-            }
-            id
-        }
+        SmellType::HighComplexity { name, .. } => with_line_hash_fallback(smell, |line| {
+            id_for_symbol_smell("cmplx", &smell.files[0], name, line, project_root)
+        }),
 
         SmellType::HubModule => id_for_file_smell(&smell.files[0], "hub", project_root),
 
@@ -65,10 +49,13 @@ pub fn generate_smell_id(smell: &ArchSmell, project_root: &Path) -> String {
                 "sideeffect:{}:{}:{}",
                 relative,
                 line,
-                short_hash(&format!(
-                    "{:?}",
-                    smell.locations.first().map(|l| &l.description)
-                ))
+                short_hash(
+                    smell
+                        .locations
+                        .first()
+                        .map(|l| l.description.as_str())
+                        .unwrap_or("")
+                )
             )
         }
 
@@ -86,68 +73,29 @@ pub fn generate_smell_id(smell: &ArchSmell, project_root: &Path) -> String {
             format!("envy:{}:{}", from_rel, to_rel)
         }
 
-        SmellType::SharedMutableState { symbol } => {
-            let location = smell.locations.first();
-            let line = location.map(|l| l.line).unwrap_or(0);
-            let mut id = id_for_dead_symbol(&smell.files[0], symbol, line, project_root)
-                .replace("dead:", "shared:");
-            if line == 0 {
-                let desc = location.map(|l| l.description.as_str()).unwrap_or("");
-                id = format!("{}:{}", id, short_hash(desc));
-            }
-            id
-        }
+        SmellType::SharedMutableState { symbol } => with_line_hash_fallback(smell, |line| {
+            id_for_symbol_smell("shared", &smell.files[0], symbol, line, project_root)
+        }),
 
         SmellType::DeepNesting { .. } => {
-            // Need function name if possible, but it's not in the enum variant.
-            // Let's use the first location's description if it contains function name.
             let location = smell.locations.first();
             let function_name = location.map(|l| l.description.clone()).unwrap_or_default();
-            let line = location.map(|l| l.line).unwrap_or(0);
-            let mut id = id_for_complexity(&smell.files[0], &function_name, line, project_root)
-                .replace("cmplx:", "nest:");
-            if line == 0 {
-                let desc = location.map(|l| l.description.as_str()).unwrap_or("");
-                id = format!("{}:{}", id, short_hash(desc));
-            }
-            id
+            with_line_hash_fallback(smell, |line| {
+                id_for_symbol_smell("nest", &smell.files[0], &function_name, line, project_root)
+            })
         }
 
-        SmellType::LongParameterList { function, .. } => {
-            let location = smell.locations.first();
-            let line = location.map(|l| l.line).unwrap_or(0);
-            let mut id = id_for_complexity(&smell.files[0], function, line, project_root)
-                .replace("cmplx:", "params:");
-            if line == 0 {
-                let desc = location.map(|l| l.description.as_str()).unwrap_or("");
-                id = format!("{}:{}", id, short_hash(desc));
-            }
-            id
-        }
+        SmellType::LongParameterList { function, .. } => with_line_hash_fallback(smell, |line| {
+            id_for_symbol_smell("params", &smell.files[0], function, line, project_root)
+        }),
 
-        SmellType::PrimitiveObsession { function, .. } => {
-            let location = smell.locations.first();
-            let line = location.map(|l| l.line).unwrap_or(0);
-            let mut id = id_for_complexity(&smell.files[0], function, line, project_root)
-                .replace("cmplx:", "prim:");
-            if line == 0 {
-                let desc = location.map(|l| l.description.as_str()).unwrap_or("");
-                id = format!("{}:{}", id, short_hash(desc));
-            }
-            id
-        }
+        SmellType::PrimitiveObsession { function, .. } => with_line_hash_fallback(smell, |line| {
+            id_for_symbol_smell("prim", &smell.files[0], function, line, project_root)
+        }),
 
-        SmellType::OrphanType { name } => {
-            let location = smell.locations.first();
-            let line = location.map(|l| l.line).unwrap_or(0);
-            let mut id = id_for_dead_symbol(&smell.files[0], name, line, project_root)
-                .replace("dead:", "orphan:");
-            if line == 0 {
-                let desc = location.map(|l| l.description.as_str()).unwrap_or("");
-                id = format!("{}:{}", id, short_hash(desc));
-            }
-            id
-        }
+        SmellType::OrphanType { name } => with_line_hash_fallback(smell, |line| {
+            id_for_symbol_smell("orphan", &smell.files[0], name, line, project_root)
+        }),
 
         SmellType::ScatteredConfiguration { env_var, .. } => {
             format!("config:{}", env_var)
@@ -164,6 +112,22 @@ pub fn generate_smell_id(smell: &ArchSmell, project_root: &Path) -> String {
             id_generic(type_short, &smell.files, "", project_root)
         }
     }
+}
+
+/// Helper to generate ID with line number and hash fallback when line is 0.
+fn with_line_hash_fallback<F>(smell: &ArchSmell, f: F) -> String
+where
+    F: FnOnce(usize) -> String,
+{
+    let location = smell.locations.first();
+    let line = location.map(|l| l.line).unwrap_or(0);
+    let mut id = f(line);
+    if line == 0 {
+        // Fallback: add hash of description to avoid collisions for same-named symbols without location
+        let desc = location.map(|l| l.description.as_str()).unwrap_or("");
+        id = format!("{}:{}", id, short_hash(desc));
+    }
+    id
 }
 
 fn relative_path(path: &Path, project_root: &Path) -> String {
@@ -201,14 +165,15 @@ fn id_for_layer_violation(from_file: &Path, to_layer: &str, project_root: &Path)
     format!("layer:{}:{}", relative, to_layer)
 }
 
-fn id_for_dead_symbol(file: &Path, symbol_name: &str, line: usize, project_root: &Path) -> String {
+fn id_for_symbol_smell(
+    prefix: &str,
+    file: &Path,
+    symbol_name: &str,
+    line: usize,
+    project_root: &Path,
+) -> String {
     let relative = relative_path(file, project_root);
-    format!("dead:{}:{}:{}", relative, symbol_name, line)
-}
-
-fn id_for_complexity(file: &Path, function_name: &str, line: usize, project_root: &Path) -> String {
-    let relative = relative_path(file, project_root);
-    format!("cmplx:{}:{}:{}", relative, function_name, line)
+    format!("{}:{}:{}:{}", prefix, relative, symbol_name, line)
 }
 
 fn id_generic(smell_type: &str, files: &[PathBuf], extra: &str, project_root: &Path) -> String {
