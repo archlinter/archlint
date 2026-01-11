@@ -41,44 +41,49 @@ impl FuzzyMatcher {
         orphaned_baseline: &[&'a SnapshotSmell],
         orphaned_current: &[&'a SnapshotSmell],
     ) -> Vec<MatchedPair<'a>> {
-        // Group by key for efficient matching
         let baseline_by_key = Self::group_by_key(orphaned_baseline);
         let current_by_key = Self::group_by_key(orphaned_current);
 
         let mut matched = Vec::new();
-        let mut used_current_ids: std::collections::HashSet<&str> =
-            std::collections::HashSet::new();
+        let mut used_current_ids = std::collections::HashSet::new();
 
-        // For each baseline smell, try to find a matching current smell
         for (key, baseline_smells) in &baseline_by_key {
-            if let Some(current_smells) = current_by_key.get(key) {
-                for baseline in baseline_smells {
-                    let baseline_line = Self::extract_line(baseline);
+            let Some(current_smells) = current_by_key.get(key) else {
+                continue;
+            };
 
-                    // Find best match by line proximity
-                    let best_match = current_smells
-                        .iter()
-                        .filter(|c| !used_current_ids.contains(c.id.as_str()))
-                        .filter_map(|current| {
-                            let current_line = Self::extract_line(current);
-                            let diff = baseline_line.abs_diff(current_line);
-                            if diff <= self.line_tolerance {
-                                Some((current, diff))
-                            } else {
-                                None
-                            }
-                        })
-                        .min_by_key(|(_, diff)| *diff);
-
-                    if let Some((current, _)) = best_match {
-                        used_current_ids.insert(&current.id);
-                        matched.push(MatchedPair { baseline, current });
-                    }
+            for baseline in baseline_smells {
+                if let Some(current) =
+                    self.find_best_match(baseline, current_smells, &used_current_ids)
+                {
+                    used_current_ids.insert(&current.id);
+                    matched.push(MatchedPair { baseline, current });
                 }
             }
         }
 
         matched
+    }
+
+    /// Find the best matching current smell for a given baseline smell from a list of candidates.
+    fn find_best_match<'a>(
+        &self,
+        baseline: &SnapshotSmell,
+        candidates: &[&'a SnapshotSmell],
+        used_ids: &std::collections::HashSet<&str>,
+    ) -> Option<&'a SnapshotSmell> {
+        let baseline_line = Self::extract_line(baseline);
+
+        candidates
+            .iter()
+            .filter(|c| !used_ids.contains(c.id.as_str()))
+            .filter_map(|current| {
+                let current_line = Self::extract_line(current);
+                let diff = baseline_line.abs_diff(current_line);
+                (diff <= self.line_tolerance).then_some((current, diff))
+            })
+            .min_by_key(|(_, diff)| *diff)
+            .map(|(current, _)| *current)
     }
 
     /// Group smells by their matching key.
