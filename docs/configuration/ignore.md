@@ -53,6 +53,7 @@ You can ignore specific architectural smells directly in your source code using 
 1. **Whole File**: Add `// archlint-disable` at the top of the file.
 2. **Current Line**: Add `// archlint-disable-line` at the end of the line or on the line above.
 3. **Next Line**: Use `// archlint-disable-next-line` before the problematic line.
+4. **Blocks**: Use `// archlint-disable` and `// archlint-enable` to wrap a section of code.
 
 ### Examples:
 
@@ -66,6 +67,12 @@ import { internal } from './private'; // archlint-disable-line layer_violation
 
 // archlint-disable cycles, god_module
 // Ignore specific rules for the entire file
+
+/* archlint-disable complexity */
+function legacyCode() {
+  // This block is ignored
+}
+/* archlint-enable complexity */
 ```
 
 You can specify multiple rules separated by commas or use `*` to ignore all rules.

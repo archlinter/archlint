@@ -53,6 +53,7 @@ overrides:
 1. **Весь файл**: Добавьте `// archlint-disable` в начале файла.
 2. **Конкретная строка**: Добавьте `// archlint-disable-line` в конце строки или на строке выше.
 3. **Следующая строка**: Используйте `// archlint-disable-next-line` перед проблемной строкой.
+4. **Блоки**: Используйте `// archlint-disable` и `// archlint-enable` для выделения участка кода.
 
 ### Примеры:
 
@@ -66,6 +67,12 @@ import { internal } from './private'; // archlint-disable-line layer_violation
 
 // archlint-disable cycles, god_module
 // Игнорировать конкретные правила для всего файла
+
+/* archlint-disable complexity */
+function legacyCode() {
+  // Этот блок будет проигнорирован
+}
+/* archlint-enable complexity */
 ```
 
 Вы можете указать несколько правил через запятую или использовать `*`, чтобы игнорировать все правила.

@@ -53,6 +53,7 @@ overrides:
 1. **整个文件**：在文件顶部添加 `// archlint-disable`。
 2. **当前行**：在行尾或上一行添加 `// archlint-disable-line`。
 3. **下一行**：在有问题的行之前使用 `// archlint-disable-next-line`。
+4. **代码块**：使用 `// archlint-disable` 和 `// archlint-enable` 来包裹一段代码。
 
 ### 示例：
 
@@ -66,6 +67,12 @@ import { internal } from './private'; // archlint-disable-line layer_violation
 
 // archlint-disable cycles, god_module
 // 忽略整个文件的特定规则
+
+/* archlint-disable complexity */
+function legacyCode() {
+  // 此代码块将被忽略
+}
+/* archlint-enable complexity */
 ```
 
 您可以指定多个以逗号分隔的规则，或使用 `*` 忽略所有规则。

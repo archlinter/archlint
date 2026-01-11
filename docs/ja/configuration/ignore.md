@@ -53,6 +53,7 @@ overrides:
 1. **ファイル全体**: ファイルの先頭に `// archlint-disable` を追加します。
 2. **現在の行**: 行の末尾、またはその上の行に `// archlint-disable-line` を追加します。
 3. **次の行**: 問題のある行の前に `// archlint-disable-next-line` を使用します。
+4. **ブロック**: `// archlint-disable` と `// archlint-enable` を使用してコードのセクションを囲みます。
 
 ### 例:
 
@@ -66,6 +67,12 @@ import { internal } from './private'; // archlint-disable-line layer_violation
 
 // archlint-disable cycles, god_module
 // ファイル全体で特定のルールを無視する
+
+/* archlint-disable complexity */
+function legacyCode() {
+  // このブロックは無視されます
+}
+/* archlint-enable complexity */
 ```
 
 カンマで区切って複数のルールを指定したり、`*` を使用してすべてのルールを無視したりできます。

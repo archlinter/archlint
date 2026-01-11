@@ -53,6 +53,7 @@ Você pode ignorar problemas arquiteturais específicos diretamente no seu códi
 1. **Todo o arquivo**: Adicione `// archlint-disable` no início do arquivo.
 2. **Linha atual**: Adicione `// archlint-disable-line` no final da linha ou na linha acima.
 3. **Próxima linha**: Use `// archlint-disable-next-line` antes da linha problemática.
+4. **Blocos**: Use `// archlint-disable` e `// archlint-enable` para envolver uma seção de código.
 
 ### Exemplos:
 
@@ -66,6 +67,12 @@ import { internal } from './private'; // archlint-disable-line layer_violation
 
 // archlint-disable cycles, god_module
 // Ignorar regras específicas para todo o arquivo
+
+/* archlint-disable complexity */
+function legacyCode() {
+  // Este bloco será ignorado
+}
+/* archlint-enable complexity */
 ```
 
 Você pode especificar várias regras separadas por vírgulas ou usar `*` para ignorar todas as regras.
