@@ -22,7 +22,7 @@ O archlint não apenas conta problemas. Ele realiza um **diff semântico** dos d
 
 ## Opções
 
-| Opция                  | Padrão   | Descrição                                                                     |
+| Opção                  | Padrão   | Descrição                                                                     |
 | ---------------------- | -------- | ----------------------------------------------------------------------------- |
 | `--fail-on <severity>` | `medium` | Sai com código 1 se uma regressão desta severidade ou superior for encontrada |
 | `--explain`            | `false`  | Fornece uma explicação detalhada para cada regressão                          |
