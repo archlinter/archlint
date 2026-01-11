@@ -9,8 +9,8 @@ pub mod hygiene;
 pub mod metrics;
 
 pub use registry::{DetectorFactory, DetectorInfo, DetectorRegistry};
-pub use smell::*;
-pub use types::*;
+pub use smell::{ArchSmell, CodeRange, CriticalEdge, CycleCluster, HotspotInfo, LocationDetail};
+pub use types::{ConfigurableSmellType, DetectorCategory, Severity, SmellMetric, SmellType};
 
 // Re-export detectors for convenience and backward compatibility
 pub use dependency::{

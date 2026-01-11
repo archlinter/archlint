@@ -161,18 +161,40 @@ impl<'a> EngineBuilder<'a> {
         resolver: &PathResolver,
     ) -> FileSymbols {
         for import in &mut symbols.imports {
-            if let Some(resolved) = resolver
-                .resolve(import.source.as_str(), &file)
-                .ok()
-                .flatten()
-            {
-                import.source = resolved.to_string_lossy().to_string().into();
+            match resolver.resolve(import.source.as_str(), &file) {
+                Ok(Some(resolved)) => {
+                    import.source = resolved.to_string_lossy().to_string().into();
+                }
+                Ok(None) => {
+                    log::debug!("Could not resolve import '{}' in {:?}", import.source, file);
+                }
+                Err(e) => {
+                    log::debug!(
+                        "Error resolving import '{}' in {:?}: {}",
+                        import.source,
+                        file,
+                        e
+                    );
+                }
             }
         }
         for export in &mut symbols.exports {
             if let Some(ref source) = export.source {
-                if let Some(resolved) = resolver.resolve(source.as_str(), &file).ok().flatten() {
-                    export.source = Some(resolved.to_string_lossy().to_string().into());
+                match resolver.resolve(source.as_str(), &file) {
+                    Ok(Some(resolved)) => {
+                        export.source = Some(resolved.to_string_lossy().to_string().into());
+                    }
+                    Ok(None) => {
+                        log::debug!("Could not resolve export source '{}' in {:?}", source, file);
+                    }
+                    Err(e) => {
+                        log::debug!(
+                            "Error resolving export source '{}' in {:?}: {}",
+                            source,
+                            file,
+                            e
+                        );
+                    }
                 }
             }
         }

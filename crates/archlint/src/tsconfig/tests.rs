@@ -167,19 +167,6 @@ fn test_non_existent_extends() -> Result<()> {
 }
 
 #[test]
-fn test_missing_parent_directory() -> Result<()> {
-    let dir = tempdir()?;
-    let tsconfig_path = dir.path().join("tsconfig.json");
-    fs::write(&tsconfig_path, r#"{"extends": "./base.json"}"#)?;
-
-    // Should error if base.json doesn't exist
-    let result = TsConfig::load(&tsconfig_path);
-    assert!(result.is_err());
-
-    Ok(())
-}
-
-#[test]
 fn test_extends_from_node_modules() -> Result<()> {
     let dir = tempdir()?;
     let project_root = dir.path();
@@ -196,7 +183,11 @@ fn test_extends_from_node_modules() -> Result<()> {
     let tsconfig_path = project_root.join("tsconfig.json");
     fs::write(&tsconfig_path, r#"{"extends": "@my-org/config/base.json"}"#)?;
 
-    let _config = TsConfig::load(&tsconfig_path)?;
+    let config = TsConfig::load(&tsconfig_path)?;
+    assert_eq!(
+        config.compiler_options.unwrap().base_url.unwrap(),
+        "from-pkg"
+    );
     Ok(())
 }
 
