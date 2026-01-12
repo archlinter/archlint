@@ -31,7 +31,9 @@ pub fn generate_smell_id(smell: &ArchSmell, project_root: &Path) -> String {
 
         SmellType::HubModule => id_for_file_smell(&smell.files[0], "hub", project_root),
 
-        SmellType::LowCohesion { .. } => id_for_file_smell(&smell.files[0], "lcom", project_root),
+        SmellType::LowCohesion { class_name, .. } => with_line_hash_fallback(smell, |line| {
+            id_for_symbol_smell("lcom", &smell.files[0], class_name, line, project_root)
+        }),
 
         SmellType::HubDependency { package } => {
             format!("hub_dep:{}", package)
@@ -65,16 +67,16 @@ pub fn generate_smell_id(smell: &ArchSmell, project_root: &Path) -> String {
             id_for_symbol_smell("shared", &smell.files[0], symbol, line, project_root)
         }),
 
-        SmellType::DeepNesting { function, .. } => with_line_hash_fallback(smell, |line| {
-            id_for_symbol_smell("nest", &smell.files[0], function, line, project_root)
+        SmellType::DeepNesting { name, .. } => with_line_hash_fallback(smell, |line| {
+            id_for_symbol_smell("nest", &smell.files[0], name, line, project_root)
         }),
 
-        SmellType::LongParameterList { function, .. } => with_line_hash_fallback(smell, |line| {
-            id_for_symbol_smell("params", &smell.files[0], function, line, project_root)
+        SmellType::LongParameterList { name, .. } => with_line_hash_fallback(smell, |line| {
+            id_for_symbol_smell("params", &smell.files[0], name, line, project_root)
         }),
 
-        SmellType::PrimitiveObsession { function, .. } => with_line_hash_fallback(smell, |line| {
-            id_for_symbol_smell("prim", &smell.files[0], function, line, project_root)
+        SmellType::PrimitiveObsession { name, .. } => with_line_hash_fallback(smell, |line| {
+            id_for_symbol_smell("prim", &smell.files[0], name, line, project_root)
         }),
 
         SmellType::OrphanType { name } => with_line_hash_fallback(smell, |line| {
@@ -232,8 +234,6 @@ mod tests {
 
         assert_eq!(h1, h2);
         assert_ne!(h1, h3);
-        // It might be shorter than 6 if hash is small, but unlikely for random strings.
-        // We added a check for length in the implementation.
     }
 
     #[test]

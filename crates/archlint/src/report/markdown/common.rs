@@ -1,23 +1,6 @@
-use crate::detectors::ArchSmell;
-use crate::explain::Explanation;
+use crate::detectors::{Explanation, SmellWithExplanation};
 use std::collections::BTreeMap;
 use std::path::{Component, Path};
-
-pub type SmellWithExplanation = (ArchSmell, Explanation);
-
-pub struct FilteredSmells<'a> {
-    pub cycles: Vec<&'a SmellWithExplanation>,
-    pub cycle_clusters: Vec<&'a SmellWithExplanation>,
-    pub gods: Vec<&'a SmellWithExplanation>,
-    pub dead: Vec<&'a SmellWithExplanation>,
-    pub dead_symbols: Vec<&'a SmellWithExplanation>,
-    pub high_complexity: Vec<&'a SmellWithExplanation>,
-    pub large_files: Vec<&'a SmellWithExplanation>,
-    pub unstable_interfaces: Vec<&'a SmellWithExplanation>,
-    pub feature_envy: Vec<&'a SmellWithExplanation>,
-    pub shotgun_surgery: Vec<&'a SmellWithExplanation>,
-    pub hub_dependencies: Vec<&'a SmellWithExplanation>,
-}
 
 pub fn append_explanation(output: &mut String, explanation: &Explanation) {
     output.push_str(&format!("**Problem:** {}\n\n", explanation.problem));
@@ -36,60 +19,18 @@ pub fn append_explanation(output: &mut String, explanation: &Explanation) {
     output.push('\n');
 }
 
-pub fn filter_smells(smells: &[SmellWithExplanation]) -> FilteredSmells<'_> {
-    use crate::detectors::SmellType;
-
-    FilteredSmells {
-        cycles: smells
-            .iter()
-            .filter(|(s, _)| {
-                matches!(
-                    s.smell_type,
-                    SmellType::CyclicDependency | SmellType::CyclicDependencyCluster
-                )
-            })
-            .collect(),
-        cycle_clusters: smells
-            .iter()
-            .filter(|(s, _)| matches!(s.smell_type, SmellType::CyclicDependencyCluster))
-            .collect(),
-        gods: smells
-            .iter()
-            .filter(|(s, _)| matches!(s.smell_type, SmellType::GodModule))
-            .collect(),
-        dead: smells
-            .iter()
-            .filter(|(s, _)| matches!(s.smell_type, SmellType::DeadCode))
-            .collect(),
-        dead_symbols: smells
-            .iter()
-            .filter(|(s, _)| matches!(s.smell_type, SmellType::DeadSymbol { .. }))
-            .collect(),
-        high_complexity: smells
-            .iter()
-            .filter(|(s, _)| matches!(s.smell_type, SmellType::HighComplexity { .. }))
-            .collect(),
-        large_files: smells
-            .iter()
-            .filter(|(s, _)| matches!(s.smell_type, SmellType::LargeFile))
-            .collect(),
-        unstable_interfaces: smells
-            .iter()
-            .filter(|(s, _)| matches!(s.smell_type, SmellType::UnstableInterface))
-            .collect(),
-        feature_envy: smells
-            .iter()
-            .filter(|(s, _)| matches!(s.smell_type, SmellType::FeatureEnvy { .. }))
-            .collect(),
-        shotgun_surgery: smells
-            .iter()
-            .filter(|(s, _)| matches!(s.smell_type, SmellType::ShotgunSurgery))
-            .collect(),
-        hub_dependencies: smells
-            .iter()
-            .filter(|(s, _)| matches!(s.smell_type, SmellType::HubDependency { .. }))
-            .collect(),
+pub fn group_smells_by_detector(
+    smells: &[SmellWithExplanation],
+) -> std::collections::HashMap<String, Vec<&SmellWithExplanation>> {
+    let mut grouped = std::collections::HashMap::new();
+    for smell in smells {
+        let detector_id = smell.0.smell_type.category().to_id().to_string();
+        grouped
+            .entry(detector_id)
+            .or_insert_with(Vec::new)
+            .push(smell);
     }
+    grouped
 }
 
 fn extract_short_directory(file_path: &Path) -> String {

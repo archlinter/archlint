@@ -6,7 +6,7 @@ Identifies modules whose public API (exports) changes frequently according to gi
 
 ## Why this is a smell
 
-An unstable interface causes a ripple effect. Every time the interface changes, all its dependants might need to be updated, leading to a lot of busywork and potential bugs.
+An unstable interface causes a ripple effect. Every time the interface changes, all its dependents might need to be updated, leading to a lot of busywork and potential bugs.
 
 ## How to fix
 

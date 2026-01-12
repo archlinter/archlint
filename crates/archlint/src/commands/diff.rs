@@ -28,7 +28,7 @@ pub fn run_diff(
         .with_line_tolerance(config.diff.line_tolerance);
 
     let result = if explain {
-        engine.diff_with_explain(&baseline_snapshot, &current_snapshot)
+        engine.diff_with_explain(&baseline_snapshot, &current_snapshot, &config)
     } else {
         engine.diff(&baseline_snapshot, &current_snapshot)
     };

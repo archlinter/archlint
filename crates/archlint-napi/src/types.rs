@@ -106,6 +106,7 @@ pub struct JsSummary {
     pub feature_envy: u32,
     pub shotgun_surgery: u32,
     pub hub_dependencies: u32,
+    pub large_files: u32,
 }
 
 #[napi(object)]
@@ -206,6 +207,39 @@ pub struct JsConfig {
 
 // ============ Conversions ============
 
+trait ToJsU32 {
+    type Output;
+    fn to_js_u32(self) -> Self::Output;
+}
+
+impl ToJsU32 for usize {
+    type Output = u32;
+    fn to_js_u32(self) -> u32 {
+        self.try_into().unwrap_or(u32::MAX)
+    }
+}
+
+impl ToJsU32 for u64 {
+    type Output = u32;
+    fn to_js_u32(self) -> u32 {
+        self.try_into().unwrap_or(u32::MAX)
+    }
+}
+
+impl ToJsU32 for Option<usize> {
+    type Output = Option<u32>;
+    fn to_js_u32(self) -> Option<u32> {
+        self.map(|v| v.try_into().unwrap_or(u32::MAX))
+    }
+}
+
+impl ToJsU32 for Option<u64> {
+    type Output = Option<u32>;
+    fn to_js_u32(self) -> Option<u32> {
+        self.map(|v| v.try_into().unwrap_or(u32::MAX))
+    }
+}
+
 impl From<JsScanOptions> for archlint::ScanOptions {
     fn from(opts: JsScanOptions) -> Self {
         archlint::ScanOptions {
@@ -244,9 +278,9 @@ impl From<archlint::IncrementalResult> for JsIncrementalResult {
                 .into_iter()
                 .map(|p: PathBuf| p.to_string_lossy().to_string())
                 .collect(),
-            changed_count: res.changed_count as u32,
-            affected_count: res.affected_count as u32,
-            analysis_time_ms: res.analysis_time_ms as u32,
+            changed_count: res.changed_count.to_js_u32(),
+            affected_count: res.affected_count.to_js_u32(),
+            analysis_time_ms: res.analysis_time_ms.to_js_u32(),
         }
     }
 }
@@ -282,8 +316,8 @@ impl From<archlint::LocationDetail> for JsLocationDetail {
     fn from(l: archlint::LocationDetail) -> Self {
         Self {
             file: l.file.to_string_lossy().to_string(),
-            line: l.line as u32,
-            column: l.column.map(|c| c as u32),
+            line: l.line.to_js_u32(),
+            column: l.column.to_js_u32(),
             range: l.range.map(Into::into),
             description: l.description,
         }
@@ -293,10 +327,10 @@ impl From<archlint::LocationDetail> for JsLocationDetail {
 impl From<archlint::CodeRange> for JsCodeRange {
     fn from(r: archlint::CodeRange) -> Self {
         Self {
-            start_line: r.start_line as u32,
-            start_column: r.start_column as u32,
-            end_line: r.end_line as u32,
-            end_column: r.end_column as u32,
+            start_line: r.start_line.to_js_u32(),
+            start_column: r.start_column.to_js_u32(),
+            end_line: r.end_line.to_js_u32(),
+            end_column: r.end_column.to_js_u32(),
         }
     }
 }
@@ -315,19 +349,20 @@ impl From<archlint::Explanation> for JsExplanation {
 impl From<archlint::Summary> for JsSummary {
     fn from(s: archlint::Summary) -> Self {
         Self {
-            files_analyzed: s.files_analyzed as u32,
-            total_smells: s.total_smells as u32,
-            cyclic_dependencies: s.cyclic_dependencies as u32,
-            cycle_clusters: s.cycle_clusters as u32,
-            files_in_cycles: s.files_in_cycles as u32,
-            god_modules: s.god_modules as u32,
-            dead_code: s.dead_code as u32,
-            dead_symbols: s.dead_symbols as u32,
-            high_complexity_functions: s.high_complexity_functions as u32,
-            unstable_interfaces: s.unstable_interfaces as u32,
-            feature_envy: s.feature_envy as u32,
-            shotgun_surgery: s.shotgun_surgery as u32,
-            hub_dependencies: s.hub_dependencies as u32,
+            files_analyzed: s.files_analyzed.to_js_u32(),
+            total_smells: s.total_smells.to_js_u32(),
+            cyclic_dependencies: s.cyclic_dependencies.to_js_u32(),
+            cycle_clusters: s.cycle_clusters.to_js_u32(),
+            files_in_cycles: s.files_in_cycles.to_js_u32(),
+            god_modules: s.god_modules.to_js_u32(),
+            dead_code: s.dead_code.to_js_u32(),
+            dead_symbols: s.dead_symbols.to_js_u32(),
+            high_complexity_functions: s.high_complexity_functions.to_js_u32(),
+            unstable_interfaces: s.unstable_interfaces.to_js_u32(),
+            feature_envy: s.feature_envy.to_js_u32(),
+            shotgun_surgery: s.shotgun_surgery.to_js_u32(),
+            hub_dependencies: s.hub_dependencies.to_js_u32(),
+            large_files: s.large_files.to_js_u32(),
         }
     }
 }
@@ -359,7 +394,7 @@ impl From<archlint::ImportInfo> for JsImportInfo {
         Self {
             source: i.source,
             names: i.names,
-            line: i.line as u32,
+            line: i.line.to_js_u32(),
             is_default: i.is_default,
             is_namespace: i.is_namespace,
         }
@@ -380,10 +415,10 @@ impl From<archlint::ExportInfo> for JsExportInfo {
 impl From<archlint::FileMetrics> for JsFileMetrics {
     fn from(m: archlint::FileMetrics) -> Self {
         Self {
-            lines: m.lines as u32,
-            complexity: m.complexity.map(|c| c as u32),
-            fan_in: m.fan_in as u32,
-            fan_out: m.fan_out as u32,
+            lines: m.lines.to_js_u32(),
+            complexity: m.complexity.to_js_u32(),
+            fan_in: m.fan_in.to_js_u32(),
+            fan_out: m.fan_out.to_js_u32(),
         }
     }
 }
@@ -401,8 +436,8 @@ impl From<archlint::CycleCluster> for JsCycleCluster {
                 .into_iter()
                 .map(|h| JsCycleHotspot {
                     file: h.file.to_string_lossy().to_string(),
-                    in_degree: h.in_degree as u32,
-                    out_degree: h.out_degree as u32,
+                    in_degree: h.in_degree.to_js_u32(),
+                    out_degree: h.out_degree.to_js_u32(),
                 })
                 .collect(),
             critical_edges: c
@@ -411,7 +446,7 @@ impl From<archlint::CycleCluster> for JsCycleCluster {
                 .map(|e| JsCriticalEdge {
                     from: e.from.to_string_lossy().to_string(),
                     to: e.to.to_string_lossy().to_string(),
-                    line: e.line as u32,
+                    line: e.line.to_js_u32(),
                     range: e.range.map(Into::into),
                     impact: e.impact,
                 })
@@ -462,9 +497,9 @@ pub struct JsStateStats {
 impl From<archlint::StateStats> for JsStateStats {
     fn from(s: archlint::StateStats) -> Self {
         Self {
-            files_count: s.files_count as u32,
-            graph_nodes: s.graph_nodes as u32,
-            graph_edges: s.graph_edges as u32,
+            files_count: s.files_count.to_js_u32(),
+            graph_nodes: s.graph_nodes.to_js_u32(),
+            graph_edges: s.graph_edges.to_js_u32(),
         }
     }
 }
@@ -663,12 +698,12 @@ impl From<archlint::diff::ImprovementType> for JsImprovementType {
 impl From<archlint::diff::DiffSummary> for JsDiffSummary {
     fn from(s: archlint::diff::DiffSummary) -> Self {
         Self {
-            new_smells: s.new_smells.try_into().unwrap_or(u32::MAX),
-            fixed_smells: s.fixed_smells.try_into().unwrap_or(u32::MAX),
-            worsened_smells: s.worsened_smells.try_into().unwrap_or(u32::MAX),
-            improved_smells: s.improved_smells.try_into().unwrap_or(u32::MAX),
-            total_regressions: s.total_regressions.try_into().unwrap_or(u32::MAX),
-            total_improvements: s.total_improvements.try_into().unwrap_or(u32::MAX),
+            new_smells: s.new_smells.to_js_u32(),
+            fixed_smells: s.fixed_smells.to_js_u32(),
+            worsened_smells: s.worsened_smells.to_js_u32(),
+            improved_smells: s.improved_smells.to_js_u32(),
+            total_regressions: s.total_regressions.to_js_u32(),
+            total_improvements: s.total_improvements.to_js_u32(),
         }
     }
 }
@@ -697,8 +732,8 @@ impl From<archlint::snapshot::SnapshotSmell> for JsSnapshotSmell {
                 .into_iter()
                 .map(|l| JsLocationDetail {
                     file: l.file,
-                    line: l.line as u32,
-                    column: l.column.map(|c| c as u32),
+                    line: l.line.to_js_u32(),
+                    column: l.column.to_js_u32(),
                     range: None,
                     description: l.description.unwrap_or_default(),
                 })

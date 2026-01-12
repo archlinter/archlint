@@ -133,7 +133,7 @@ fn format_log_record(
     }
 }
 
-fn determine_exit_code(report: &report::AnalysisReport, _config: &config::Config) -> i32 {
+fn determine_exit_code(report: &report::AnalysisReport) -> i32 {
     let has_critical = report
         .smells
         .iter()
@@ -233,7 +233,7 @@ fn handle_scan_command(args: ScanArgs) -> Result<()> {
 
     write_report(&args, &report, &config, &engine.project_root)?;
     print_scan_results(&args, &report, &config, start);
-    exit_with_code(&report, &config)
+    exit_with_code(&report)
 }
 
 fn handle_watch_command(args: cli::WatchArgs) -> Result<()> {
@@ -281,7 +281,7 @@ fn handle_default_command(cli: cli::Cli) -> Result<()> {
 
     write_report(&args, &report, &config, &engine.project_root)?;
     print_scan_results(&args, &report, &config, start);
-    exit_with_code(&report, &config)
+    exit_with_code(&report)
 }
 
 fn write_report(
@@ -379,8 +379,8 @@ fn format_grade_level(grade: &report::ArchitectureGrade) -> console::StyledObjec
     }
 }
 
-fn exit_with_code(report: &report::AnalysisReport, config: &config::Config) -> Result<()> {
-    let exit_code = determine_exit_code(report, config);
+fn exit_with_code(report: &report::AnalysisReport) -> Result<()> {
+    let exit_code = determine_exit_code(report);
     if exit_code != 0 {
         process::exit(exit_code);
     }

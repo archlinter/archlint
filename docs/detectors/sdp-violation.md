@@ -8,7 +8,7 @@ Stability in this context is measured by how many other modules depend on a modu
 
 ## Why this is a smell
 
-When a stable module—one that many other components rely on—depends on an unstable module, it becomes difficult to change. Any modification in the unstable dependency can break the stable module, which then ripples through all its dependants. This effectively "freezes" the unstable module or makes the entire system fragile.
+When a stable module—one that many other components rely on—depends on an unstable module, it becomes difficult to change. Any modification in the unstable dependency can break the stable module, which then ripples through all its dependents. This effectively "freezes" the unstable module or makes the entire system fragile.
 
 ## Examples
 

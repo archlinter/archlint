@@ -1,7 +1,21 @@
 use crate::Result;
 use ignore::WalkBuilder;
+use log::debug;
 use std::path::{Path, PathBuf};
 
+const DEFAULT_EXCLUSIONS: &[&str] = &[
+    "**/node_modules/**",
+    "**/dist/**",
+    "**/build/**",
+    "**/.next/**",
+    "**/coverage/**",
+];
+
+/// Scans the filesystem for source files based on configuration.
+///
+/// It respects `.gitignore` and `.archsmellignore` files, includes hidden files (dotfiles),
+/// and applies additional exclusion filters for system directories like `node_modules`.
+/// Returned paths are canonicalized absolute paths.
 pub struct FileScanner {
     project_root: PathBuf,
     scan_root: PathBuf,
@@ -9,6 +23,7 @@ pub struct FileScanner {
 }
 
 impl FileScanner {
+    /// Create a new scanner for the given directories and extensions.
     pub fn new<P: AsRef<Path>>(project_root: P, scan_root: P, extensions: Vec<String>) -> Self {
         Self {
             project_root: project_root.as_ref().to_path_buf(),
@@ -17,6 +32,10 @@ impl FileScanner {
         }
     }
 
+    /// Perform the scan and return a list of found files.
+    ///
+    /// Supports both scanning a single file or an entire directory recursively.
+    /// All returned paths are canonicalized absolute paths.
     pub fn scan(&self) -> Result<Vec<PathBuf>> {
         if self.scan_root.is_file() {
             return Ok(self.scan_single_file());
@@ -41,8 +60,12 @@ impl FileScanner {
                 .iter()
                 .any(|e| e == ext.to_string_lossy().as_ref())
             {
-                if let Ok(canonical) = self.scan_root.canonicalize() {
-                    return vec![canonical];
+                match self.scan_root.canonicalize() {
+                    Ok(canonical) => return vec![canonical],
+                    Err(e) => debug!(
+                        "Failed to canonicalize scan root {:?}: {}",
+                        self.scan_root, e
+                    ),
                 }
             }
         }
@@ -62,14 +85,7 @@ impl FileScanner {
         // for dependency resolution, but filter out their smells later in the engine.
 
         // Exclude only hard-coded system directories that should NEVER be scanned
-        let defaults = [
-            "**/node_modules/**",
-            "**/dist/**",
-            "**/build/**",
-            "**/.next/**",
-            "**/coverage/**",
-        ];
-        for def in defaults {
+        for def in DEFAULT_EXCLUSIONS {
             override_builder.add(&format!("!{}", def))?;
         }
 
@@ -94,7 +110,13 @@ impl FileScanner {
             .iter()
             .any(|e| e == ext.to_string_lossy().as_ref())
         {
-            return path.canonicalize().ok();
+            return match path.canonicalize() {
+                Ok(canonical) => Some(canonical),
+                Err(e) => {
+                    debug!("Failed to canonicalize path {:?}: {}", path, e);
+                    None
+                }
+            };
         }
         None
     }

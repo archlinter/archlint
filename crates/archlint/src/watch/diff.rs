@@ -9,12 +9,12 @@ pub struct ReportDiff {
 
 impl ReportDiff {
     pub fn calculate(old: &AnalysisReport, new: &AnalysisReport) -> Self {
-        let old_smells: Vec<_> = old.smells.iter().map(|(s, _)| s).collect();
-        let new_smells: Vec<_> = new.smells.iter().map(|(s, _)| s).collect();
+        let old_smells: Vec<&ArchSmell> = old.smells.iter().map(|(s, _)| s).collect();
+        let new_smells: Vec<&ArchSmell> = new.smells.iter().map(|(s, _)| s).collect();
 
-        let mut new_items = Vec::new();
-        let mut fixed_items = Vec::new();
-        let mut unchanged_items = Vec::new();
+        let mut new_items: Vec<ArchSmell> = Vec::new();
+        let mut fixed_items: Vec<ArchSmell> = Vec::new();
+        let mut unchanged_items: Vec<ArchSmell> = Vec::new();
 
         // Find new and unchanged
         for &new_smell in &new_smells {

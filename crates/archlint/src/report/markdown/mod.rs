@@ -1,17 +1,5 @@
-mod common;
-mod complexity;
-mod cycles;
-mod dead_code;
-mod dead_symbols;
-mod envy;
-mod god_modules;
-mod hub_deps;
-mod large_files;
+pub mod common;
 mod summary;
-mod surgery;
-mod unstable;
-
-pub use common::filter_smells;
 
 use crate::config::SeverityConfig;
 use crate::graph::DependencyGraph;
@@ -44,41 +32,49 @@ pub fn generate_markdown(
         }
     }
 
-    let filtered = filter_smells(&report.smells);
+    let grouped = common::group_smells_by_detector(&report.smells);
+    let registry = crate::detectors::DetectorRegistry::new();
 
-    output.push_str(&cycles::generate(
-        &filtered.cycles,
-        &filtered.cycle_clusters,
-        severity_config,
-    ));
-    output.push_str(&god_modules::generate(
-        &filtered.gods,
-        graph,
-        severity_config,
-    ));
-    output.push_str(&dead_code::generate(&filtered.dead));
-    output.push_str(&dead_symbols::generate(&filtered.dead_symbols));
-    output.push_str(&complexity::generate(
-        &filtered.high_complexity,
-        severity_config,
-    ));
-    output.push_str(&large_files::generate(
-        &filtered.large_files,
-        severity_config,
-    ));
-    output.push_str(&unstable::generate(
-        &filtered.unstable_interfaces,
-        severity_config,
-    ));
-    output.push_str(&envy::generate(&filtered.feature_envy, severity_config));
-    output.push_str(&surgery::generate(
-        &filtered.shotgun_surgery,
-        severity_config,
-    ));
-    output.push_str(&hub_deps::generate(
-        &filtered.hub_dependencies,
-        severity_config,
-    ));
+    let report_order = vec![
+        "cycles",
+        "god_module",
+        "dead_code",
+        "dead_symbols",
+        "complexity",
+        "large_file",
+        "unstable_interface",
+        "feature_envy",
+        "shotgun_surgery",
+        "hub_dependency",
+        "barrel_file",
+        "vendor_coupling",
+        "side_effect_import",
+        "hub_module",
+        "lcom",
+        "module_cohesion",
+        "high_coupling",
+        "package_cycles",
+        "shared_mutable_state",
+        "deep_nesting",
+        "long_params",
+        "primitive_obsession",
+        "orphan_types",
+        "circular_type_deps",
+        "abstractness",
+        "scattered_config",
+        "code_clone",
+        "test_leakage",
+        "layer_violation",
+        "sdp_violation",
+    ];
+
+    for detector_id in report_order {
+        if let Some(smells) = grouped.get(detector_id) {
+            if let Some(detector) = registry.create_detector(detector_id, &report.config) {
+                output.push_str(&detector.render_markdown(smells, severity_config, graph));
+            }
+        }
+    }
 
     output
 }

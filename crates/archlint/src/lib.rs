@@ -1,3 +1,8 @@
+//! # archlint
+//!
+//! A powerful architectural linter for TypeScript and JavaScript projects.
+//! It detects architectural smells, dependency cycles, and design violations.
+
 pub mod args;
 pub mod cache;
 #[cfg(feature = "cli")]
@@ -26,6 +31,7 @@ pub mod rule_resolver;
 pub mod scanner;
 pub mod snapshot;
 pub mod tsconfig;
+pub mod utils;
 #[cfg(feature = "cli")]
 pub mod watch;
 

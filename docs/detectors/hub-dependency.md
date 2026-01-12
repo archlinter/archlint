@@ -14,7 +14,7 @@ When your project depends too heavily on a single external library, it becomes d
 rules:
   hub_dependency:
     severity: medium
-    min_dependants: 20
+    min_dependents: 20
     ignore_packages:
       - 'react'
       - 'lodash'
@@ -23,7 +23,7 @@ rules:
 
 ### Options
 
-- `min_dependants` (default: 20): The minimum number of files importing a package to trigger this smell.
+- `min_dependents` (default: 20): The minimum number of files importing a package to trigger this smell.
 - `ignore_packages`: A list of package names or glob patterns to ignore.
 
 ## How to fix

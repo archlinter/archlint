@@ -3,13 +3,14 @@
 //! When code is modified (lines added/removed above a smell), the line number in the ID changes.
 //! Fuzzy matching identifies these "shifted" smells to avoid false positives in diff.
 
-use crate::snapshot::{SmellDetails, SnapshotSmell};
+use crate::detectors::SmellType;
+use crate::snapshot::SnapshotSmell;
 use std::collections::{BTreeMap, HashSet};
 
 /// Smell type prefixes that support symbol-based fuzzy matching.
 /// Side-effect smells use hash-based IDs and are excluded.
 const SYMBOL_BASED_PREFIXES: &[&str] = &[
-    "cmplx", "nest", "params", "prim", "dead", "shared", "orphan",
+    "cmplx", "nest", "params", "prim", "dead", "shared", "orphan", "lcom",
 ];
 
 /// Matcher for finding corresponding smells when exact ID matching fails.
@@ -44,8 +45,6 @@ struct SmellKey {
     smell_type: String,
     /// The file path where the smell was detected.
     file: String,
-    /// The name of the symbol (function, class, variable) affected.
-    symbol_name: String,
 }
 
 impl FuzzyMatcher {
@@ -90,7 +89,7 @@ impl FuzzyMatcher {
     /// Find the best matching current smell for a given baseline smell from a list of candidates.
     ///
     /// Best match is defined as the one with the smallest line number difference
-    /// within the configured tolerance.
+    /// within the configured tolerance. Matching symbol names are preferred.
     fn find_best_match<'a>(
         &self,
         baseline: &SnapshotSmell,
@@ -98,6 +97,7 @@ impl FuzzyMatcher {
         used_ids: &HashSet<String>,
     ) -> Option<&'a SnapshotSmell> {
         let baseline_line = Self::extract_line(baseline)?;
+        let baseline_name = Self::extract_symbol_name(baseline);
 
         candidates
             .iter()
@@ -105,15 +105,23 @@ impl FuzzyMatcher {
             .filter_map(|current| {
                 let current_line = Self::extract_line(current)?;
                 let diff = baseline_line.abs_diff(current_line);
-                (diff <= self.line_tolerance).then_some((current, diff))
+                if diff <= self.line_tolerance {
+                    let current_name = Self::extract_symbol_name(current);
+                    let name_matches = baseline_name.is_some()
+                        && current_name.is_some()
+                        && baseline_name == current_name;
+                    Some((current, name_matches, diff))
+                } else {
+                    None
+                }
             })
-            .min_by_key(|(_, diff)| *diff)
-            .map(|(current, _)| *current)
+            .min_by_key(|(_, name_matches, diff)| (!name_matches, *diff))
+            .map(|(current, _, _)| *current)
     }
 
     /// Group smells by their matching key for efficient lookup.
     ///
-    /// Key format: (smell_type, first_file, symbol_name).
+    /// Key format: (smell_type, first_file).
     fn group_by_key<'a>(
         smells: &[&'a SnapshotSmell],
     ) -> BTreeMap<SmellKey, Vec<&'a SnapshotSmell>> {
@@ -128,7 +136,7 @@ impl FuzzyMatcher {
         groups
     }
 
-    /// Extract matching key from smell: (smell_type, file, symbol_name).
+    /// Extract matching key from smell: (smell_type, file).
     ///
     /// Fuzzy matching is only supported for "symbol-based" smells that affect a single file.
     /// Multi-file smells (like cyclic dependencies between multiple files) are excluded
@@ -145,13 +153,7 @@ impl FuzzyMatcher {
         let smell_type = smell.smell_type.clone();
         let file = smell.files[0].clone();
 
-        let symbol_name = Self::extract_symbol_name(smell)?;
-
-        Some(SmellKey {
-            smell_type,
-            file,
-            symbol_name,
-        })
+        Some(SmellKey { smell_type, file })
     }
 
     /// Extract symbol/function name from smell details or ID.
@@ -159,20 +161,39 @@ impl FuzzyMatcher {
         // First, try to get from details
         if let Some(ref details) = smell.details {
             let name = match details {
-                SmellDetails::Complexity { function_name, .. } => Some(function_name.clone()),
-                SmellDetails::DeadSymbol { name, .. } => Some(name.clone()),
-                SmellDetails::LongParameterList { function } => Some(function.clone()),
-                SmellDetails::PrimitiveObsession { function } => Some(function.clone()),
-                SmellDetails::SharedMutableState { symbol } => Some(symbol.clone()),
-                SmellDetails::OrphanType { name } => Some(name.clone()),
+                SmellType::HighComplexity { name, .. } => Some(name.clone()),
+                SmellType::DeadSymbol { name, .. } => Some(name.clone()),
+                SmellType::LongParameterList { name, .. } => Some(name.clone()),
+                SmellType::PrimitiveObsession { name, .. } => Some(name.clone()),
+                SmellType::SharedMutableState { symbol } => Some(symbol.clone()),
+                SmellType::OrphanType { name } => Some(name.clone()),
+                SmellType::LowCohesion { class_name, .. } => Some(class_name.clone()),
+                SmellType::DeepNesting { name, .. } => Some(name.clone()),
                 // These don't have symbol names that would shift
-                SmellDetails::Cycle { .. }
-                | SmellDetails::LayerViolation { .. }
-                | SmellDetails::FeatureEnvy { .. }
-                | SmellDetails::TestLeakage { .. }
-                | SmellDetails::VendorCoupling { .. }
-                | SmellDetails::PackageCycle { .. }
-                | SmellDetails::ScatteredConfiguration { .. } => None,
+                SmellType::CyclicDependency
+                | SmellType::CyclicDependencyCluster
+                | SmellType::GodModule
+                | SmellType::DeadCode
+                | SmellType::LargeFile
+                | SmellType::UnstableInterface
+                | SmellType::FeatureEnvy { .. }
+                | SmellType::ShotgunSurgery
+                | SmellType::HubDependency { .. }
+                | SmellType::TestLeakage { .. }
+                | SmellType::LayerViolation { .. }
+                | SmellType::SdpViolation
+                | SmellType::BarrelFileAbuse
+                | SmellType::VendorCoupling { .. }
+                | SmellType::SideEffectImport
+                | SmellType::HubModule
+                | SmellType::ScatteredModule { .. }
+                | SmellType::HighCoupling { .. }
+                | SmellType::PackageCycle { .. }
+                | SmellType::CircularTypeDependency
+                | SmellType::AbstractnessViolation
+                | SmellType::ScatteredConfiguration { .. }
+                | SmellType::CodeClone { .. }
+                | SmellType::Unknown { .. } => None,
             };
 
             if name.is_some() {
@@ -214,8 +235,12 @@ impl FuzzyMatcher {
         }
 
         // Then, try details
-        if let Some(SmellDetails::Complexity { line, .. }) = &smell.details {
-            return Some(*line);
+        if let Some(ref details) = smell.details {
+            match details {
+                SmellType::HighComplexity { line, .. } => return Some(*line),
+                SmellType::DeepNesting { line, .. } => return Some(*line),
+                _ => {}
+            }
         }
 
         // Fallback: try to extract from ID
@@ -252,9 +277,10 @@ mod tests {
             severity: "Medium".to_string(),
             files: vec![file.to_string()],
             metrics: HashMap::new(),
-            details: Some(SmellDetails::Complexity {
-                function_name: "testFunc".to_string(),
+            details: Some(SmellType::HighComplexity {
+                name: "testFunc".to_string(),
                 line,
+                complexity: 0,
             }),
             locations: vec![crate::snapshot::Location {
                 file: file.to_string(),
@@ -290,33 +316,91 @@ mod tests {
     }
 
     #[test]
-    fn test_different_functions_no_match() {
+    fn test_renamed_function_matches_by_proximity() {
         let mut baseline = make_smell(
             "cmplx:src/foo.ts:funcA:10",
             "HighComplexity",
             "src/foo.ts",
             10,
         );
-        baseline.details = Some(SmellDetails::Complexity {
-            function_name: "funcA".to_string(),
+        baseline.details = Some(SmellType::HighComplexity {
+            name: "funcA".to_string(),
             line: 10,
+            complexity: 0,
         });
 
         let mut current = make_smell(
-            "cmplx:src/foo.ts:funcB:15",
+            "cmplx:src/foo.ts:funcX:12",
             "HighComplexity",
             "src/foo.ts",
-            15,
+            12,
         );
-        current.details = Some(SmellDetails::Complexity {
-            function_name: "funcB".to_string(),
-            line: 15,
+        current.details = Some(SmellType::HighComplexity {
+            name: "funcX".to_string(),
+            line: 12,
+            complexity: 0,
         });
 
         let matcher = FuzzyMatcher::new(10);
         let pairs = matcher.match_orphans(&[&baseline], &[&current]);
 
-        assert_eq!(pairs.len(), 0);
+        assert_eq!(
+            pairs.len(),
+            1,
+            "Renamed functions should match if close enough"
+        );
+        assert_eq!(pairs[0].baseline.id, baseline.id);
+        assert_eq!(pairs[0].current.id, current.id);
+    }
+
+    #[test]
+    fn test_prefer_matching_name_over_closer_proximity() {
+        let mut baseline = make_smell(
+            "cmplx:src/foo.ts:target:10",
+            "HighComplexity",
+            "src/foo.ts",
+            10,
+        );
+        baseline.details = Some(SmellType::HighComplexity {
+            name: "target".to_string(),
+            line: 10,
+            complexity: 0,
+        });
+
+        // Candidate 1: matching name but further (diff 5)
+        let mut current1 = make_smell(
+            "cmplx:src/foo.ts:target:15",
+            "HighComplexity",
+            "src/foo.ts",
+            15,
+        );
+        current1.details = Some(SmellType::HighComplexity {
+            name: "target".to_string(),
+            line: 15,
+            complexity: 0,
+        });
+
+        // Candidate 2: different name but closer (diff 2)
+        let mut current2 = make_smell(
+            "cmplx:src/foo.ts:other:12",
+            "HighComplexity",
+            "src/foo.ts",
+            12,
+        );
+        current2.details = Some(SmellType::HighComplexity {
+            name: "other".to_string(),
+            line: 12,
+            complexity: 0,
+        });
+
+        let matcher = FuzzyMatcher::new(10);
+        let pairs = matcher.match_orphans(&[&baseline], &[&current1, &current2]);
+
+        assert_eq!(pairs.len(), 1);
+        assert_eq!(
+            pairs[0].current.id, current1.id,
+            "Should prefer matching name even if slightly further away"
+        );
     }
 
     #[test]
@@ -477,6 +561,53 @@ mod tests {
         assert!(
             pairs.is_empty(),
             "Multi-file smells should be excluded from fuzzy matching"
+        );
+    }
+
+    #[test]
+    fn test_low_cohesion_symbol_extraction() {
+        let smell = SnapshotSmell {
+            id: "lcom:src/file.ts:MyClass:10".to_string(),
+            smell_type: "LowCohesion".to_string(),
+            severity: "Medium".to_string(),
+            files: vec!["src/file.ts".to_string()],
+            metrics: HashMap::new(),
+            details: Some(SmellType::LowCohesion {
+                lcom: 0,
+                class_name: "MyClass".to_string(),
+            }),
+            locations: vec![],
+        };
+
+        assert_eq!(
+            FuzzyMatcher::extract_symbol_name(&smell),
+            Some("MyClass".to_string())
+        );
+    }
+
+    #[test]
+    fn test_hub_dependency_excluded() {
+        let smell = SnapshotSmell {
+            id: "hub_dep:axios".to_string(),
+            smell_type: "HubDependency".to_string(),
+            severity: "High".to_string(),
+            files: vec![], // HubDependency has no project files
+            metrics: HashMap::new(),
+            details: Some(SmellType::HubDependency {
+                package: "axios".to_string(),
+            }),
+            locations: vec![],
+        };
+
+        assert!(
+            FuzzyMatcher::extract_symbol_name(&smell).is_none(),
+            "HubDependency should not have a symbol name for fuzzy matching"
+        );
+        // HubDependency returns None from extract_key because files.is_empty(),
+        // not specifically because of the HubDependency type itself.
+        assert!(
+            FuzzyMatcher::extract_key(&smell).is_none(),
+            "HubDependency should be excluded from fuzzy matching (no files)"
         );
     }
 }

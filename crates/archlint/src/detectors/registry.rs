@@ -3,6 +3,10 @@ use crate::detectors::{Detector, DetectorCategory};
 use crate::framework::presets::FrameworkPreset;
 use inventory;
 use std::collections::HashMap;
+use std::sync::OnceLock;
+
+static REGISTRY_FACTORIES: OnceLock<HashMap<&'static str, &'static dyn DetectorFactory>> =
+    OnceLock::new();
 
 /// Metadata for a detector
 pub struct DetectorInfo {
@@ -28,18 +32,22 @@ inventory::collect!(&'static dyn DetectorFactory);
 
 /// Registry of all available detectors
 pub struct DetectorRegistry {
-    factories: HashMap<&'static str, &'static dyn DetectorFactory>,
+    factories: &'static HashMap<&'static str, &'static dyn DetectorFactory>,
 }
 
 impl DetectorRegistry {
     pub fn new() -> Self {
-        // Force initialization of all detector modules
-        crate::detectors::init();
+        let factories = REGISTRY_FACTORIES.get_or_init(|| {
+            // Force initialization of all detector modules
+            crate::detectors::init();
 
-        let mut factories = HashMap::new();
-        for factory in inventory::iter::<&'static dyn DetectorFactory> {
-            factories.insert(factory.info().id, *factory);
-        }
+            let mut m = HashMap::new();
+            for factory in inventory::iter::<&'static dyn DetectorFactory> {
+                m.insert(factory.info().id, *factory);
+            }
+            m
+        });
+
         Self { factories }
     }
 
@@ -128,6 +136,10 @@ impl DetectorRegistry {
 
     pub fn get_info(&self, id: &str) -> Option<DetectorInfo> {
         self.factories.get(id).map(|f| f.info())
+    }
+
+    pub fn create_detector(&self, id: &str, config: &Config) -> Option<Box<dyn Detector>> {
+        self.factories.get(id).map(|f| f.create(config))
     }
 }
 

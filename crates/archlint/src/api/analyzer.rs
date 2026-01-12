@@ -19,9 +19,14 @@ fn compute_config_hash(config: &Config) -> Result<String> {
     let serialized = serde_json::to_string(config)?;
     let mut hasher = Sha256::new();
     hasher.update(serialized.as_bytes());
-    Ok(format!("{:x}", hasher.finalize())[..16].to_string())
+    Ok(format!("{:x}", hasher.finalize()))
 }
 
+/// High-level analyzer for incremental project analysis.
+///
+/// The `Analyzer` maintains an internal state of the project, allowing for fast
+/// incremental scans when files change. It tracks dependencies, symbols, and metrics
+/// to only re-run necessary detectors.
 pub struct Analyzer {
     state: IncrementalState,
     args: ScanArgs,
@@ -30,6 +35,9 @@ pub struct Analyzer {
 }
 
 impl Analyzer {
+    /// Create a new analyzer for the given project path.
+    ///
+    /// This will perform initial configuration discovery and project root detection.
     pub fn new<P: AsRef<Path>>(path: P, options: ScanOptions) -> Result<Self> {
         let path_ref = path.as_ref();
         let config = match (options.config.clone(), options.config_path.as_ref()) {
@@ -50,6 +58,9 @@ impl Analyzer {
         })
     }
 
+    /// Perform a full scan of the project.
+    ///
+    /// This should be called at least once to initialize the analyzer state.
     pub fn scan(&mut self) -> Result<ScanResult> {
         let engine = AnalysisEngine::new(self.args.clone(), self.config.clone())?;
         let report = engine.run()?;
@@ -73,6 +84,9 @@ impl Analyzer {
         self.state.script_entry_points = pkg_config.entry_points;
         self.state.dynamic_load_patterns = pkg_config.dynamic_load_patterns;
 
+        // Synchronize config hash
+        self.state.config_hash = compute_config_hash(&self.config)?;
+
         // Build reverse deps
         self.state.reverse_deps.clear();
         for (from, to) in self.state.graph.edges() {
@@ -89,9 +103,18 @@ impl Analyzer {
         }
 
         let files = crate::api::build_file_info(&report, &self.project_root)?;
-        Ok(ScanResult::from_report(report, files, &self.project_root))
+        Ok(ScanResult::from_report(
+            report,
+            files,
+            &self.project_root,
+            &self.config.scoring,
+        ))
     }
 
+    /// Perform an incremental scan for the changed files.
+    ///
+    /// This will automatically detect affected files based on the dependency graph
+    /// and only re-run detectors for those files.
     pub fn scan_incremental(&mut self, changed: Vec<PathBuf>) -> Result<IncrementalResult> {
         self.scan_incremental_inner(changed, None)
     }
@@ -107,7 +130,6 @@ impl Analyzer {
         }
 
         log::info!("Config changed, triggering full rescan");
-        self.state.config_hash = current_hash;
         let result = self.scan()?;
         Ok(Some(IncrementalResult {
             smells: result.smells,
@@ -180,7 +202,7 @@ impl Analyzer {
             // Filter to affected files
             for smell in smells {
                 if smell.files.iter().any(|f| affected.contains(f)) {
-                    let explanation = crate::explain::ExplainEngine::explain(&smell);
+                    let explanation = crate::explain::ExplainEngine::explain(&smell, &ctx.config);
                     all_smells.push(SmellWithExplanation { smell, explanation });
                 }
             }
@@ -189,6 +211,11 @@ impl Analyzer {
         all_smells
     }
 
+    /// Perform an incremental scan using file content overlays.
+    ///
+    /// This is useful for IDEs where files might be changed in-memory but not yet
+    /// saved to disk. The `overlays` map should contain the file path and its
+    /// current content.
     pub fn scan_incremental_with_overlays(
         &mut self,
         changed: Vec<PathBuf>,
@@ -270,7 +297,10 @@ impl Analyzer {
         })
     }
 
-    /// Invalidate files (e.g., deleted files)
+    /// Invalidate internal state for the given files.
+    ///
+    /// This should be called when files are deleted or moved to ensure the
+    /// dependency graph and symbol caches are up-to-date.
     pub fn invalidate(&mut self, files: &[PathBuf]) {
         for file in files {
             self.state.graph_mut().remove_file(file);
@@ -285,21 +315,27 @@ impl Analyzer {
             for importers in self.state.reverse_deps.values_mut() {
                 importers.remove(file);
             }
+
+            // Invalidate file_local_cache
+            self.state.file_local_cache.retain(|(_, f), _| f != file);
         }
     }
 
-    /// Force full rescan
+    /// Force a full project rescan by clearing the current state.
     pub fn rescan(&mut self) -> Result<ScanResult> {
         self.state.clear();
         self.scan()
     }
 
-    /// Get affected files without running detectors
+    /// Get the list of files affected by changes in the given files.
+    ///
+    /// This uses the dependency graph to find all files that directly or
+    /// transitively depend on the changed files.
     pub fn get_affected_files(&self, changed: &[PathBuf]) -> Vec<PathBuf> {
         self.state.get_affected_files(changed).into_iter().collect()
     }
 
-    /// Get state statistics
+    /// Get statistics about the current internal state of the analyzer.
     pub fn get_state_stats(&self) -> StateStats {
         StateStats {
             files_count: self.state.file_symbols.len(),
@@ -309,10 +345,14 @@ impl Analyzer {
     }
 }
 
+/// Statistics about the analyzer's internal state.
 #[derive(Debug, Clone)]
 pub struct StateStats {
+    /// Number of files currently tracked in the symbol cache.
     pub files_count: usize,
+    /// Number of nodes in the dependency graph.
     pub graph_nodes: usize,
+    /// Number of edges in the dependency graph.
     pub graph_edges: usize,
 }
 

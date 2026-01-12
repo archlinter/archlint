@@ -13,28 +13,44 @@ pub struct FileMetrics {
     pub lines: usize,
 }
 
+/// Contextual information provided to detectors during analysis.
+///
+/// This struct contains all the necessary data collected from the source code,
+/// including the dependency graph, symbol maps, and project configuration.
 pub struct AnalysisContext {
+    /// Root directory of the project being analyzed.
     pub project_path: PathBuf,
-    // Heavy structures wrapped in Arc
+    /// The full dependency graph of the project.
     pub graph: Arc<DependencyGraph>,
+    /// Map of file paths to their extracted symbols (imports, exports, etc.).
     pub file_symbols: Arc<HashMap<PathBuf, FileSymbols>>,
+    /// Map of file paths to the complexity details of their functions.
     pub function_complexity: Arc<HashMap<PathBuf, Vec<FunctionComplexity>>>,
+    /// Basic metrics for each file (e.g., line count).
     pub file_metrics: Arc<HashMap<PathBuf, FileMetrics>>,
+    /// Map of line numbers to ignore rules for each file.
     pub ignored_lines: Arc<FileIgnoredLines>,
-    // Small, keep owned
+    /// Map of file paths to their churn count (number of commits).
     pub churn_map: HashMap<PathBuf, usize>,
+    /// Global configuration for the analysis.
     pub config: Config,
+    /// Set of entry points for script analysis.
     pub script_entry_points: HashSet<PathBuf>,
+    /// Patterns used for identifying dynamic imports.
     pub dynamic_load_patterns: Vec<String>,
+    /// List of frameworks detected in the project.
     pub detected_frameworks: Vec<Framework>,
+    /// Active framework presets.
     pub presets: Vec<FrameworkPreset>,
 }
 
 impl AnalysisContext {
+    /// Resolve a rule configuration for a specific detector and optional file path.
     pub fn resolve_rule(&self, detector_id: &str, file_path: Option<&Path>) -> ResolvedRuleConfig {
         ResolvedRuleConfig::resolve(&self.config, detector_id, file_path)
     }
 
+    /// Check if a path should be excluded based on the provided patterns.
     pub fn is_excluded(&self, path: &Path, exclude_patterns: &[String]) -> bool {
         if exclude_patterns.is_empty() {
             return false;
