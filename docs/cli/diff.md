@@ -24,6 +24,9 @@ archlint doesn't just count issues. It performs a **semantic diff** of the archi
 
 | Option                 | Default  | Description                                                          |
 | ---------------------- | -------- | -------------------------------------------------------------------- |
+| `-j, --json`           | `false`  | Output report in JSON format                                         |
+| `-v, --verbose`        | `false`  | Enable verbose output                                                |
+| `-p, --path <path>`    | `.`      | Project path                                                         |
 | `--fail-on <severity>` | `medium` | Exit with code 1 if a regression of this severity or higher is found |
 | `--explain`            | `false`  | Provide a detailed explanation for each regression                   |
 

@@ -53,6 +53,13 @@ rules:
     severity: medium
     ignore_packages: ['lodash', 'rxjs']
 
+  dead_symbols:
+    severity: high
+    # Match interface methods to avoid false positives for unused implementations
+    contract_methods:
+      MyInterface: ['method1', 'method2']
+      ValidatorConstraintInterface: ['validate', 'defaultMessage']
+
 # Rule overrides for specific paths
 overrides:
   - files: ['**/legacy/**']
@@ -98,7 +105,7 @@ git:
 
 The `extends` field allows you to load presets from different sources:
 
-- **Built-in presets**: `nestjs`, `nextjs`, `react`, `oclif`.
+- **Built-in presets**: `nestjs`, `nextjs`, `express`, `react`, `angular`, `vue`, `typeorm`, `prisma`, `oclif`, `class-validator`.
 - **Local files**: Relative path to a YAML file (e.g., `./archlint-shared.yaml`).
 - **URLs**: Direct URL to a YAML file (e.g., `https://example.com/preset.yaml`).
 
