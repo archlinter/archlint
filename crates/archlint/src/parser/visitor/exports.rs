@@ -28,7 +28,7 @@ impl<'a> UnifiedVisitor {
             }
         }
 
-        self.handle_export_specifiers(&it.specifiers, source, it.span);
+        self.handle_export_specifiers(&it.specifiers, source);
     }
 
     pub(crate) fn handle_export_all_declaration(&mut self, it: &ExportAllDeclaration<'a>) {
@@ -229,7 +229,6 @@ impl<'a> UnifiedVisitor {
         &mut self,
         specifiers: &oxc_allocator::Vec<'_, oxc_ast::ast::ExportSpecifier<'_>>,
         source: Option<SymbolName>,
-        _span: oxc_span::Span,
     ) {
         for specifier in specifiers {
             let range = self.get_range(specifier.span);

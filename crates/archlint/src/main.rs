@@ -133,7 +133,7 @@ fn format_log_record(
     }
 }
 
-fn determine_exit_code(report: &report::AnalysisReport, _config: &config::Config) -> i32 {
+fn determine_exit_code(report: &report::AnalysisReport) -> i32 {
     let has_critical = report
         .smells
         .iter()
@@ -380,7 +380,7 @@ fn format_grade_level(grade: &report::ArchitectureGrade) -> console::StyledObjec
 }
 
 fn exit_with_code(report: &report::AnalysisReport, config: &config::Config) -> Result<()> {
-    let exit_code = determine_exit_code(report, config);
+    let exit_code = determine_exit_code(report);
     if exit_code != 0 {
         process::exit(exit_code);
     }

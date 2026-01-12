@@ -45,7 +45,6 @@ impl DeadSymbolsDetector {
         ));
         all_smells.extend(Self::check_dead_methods(
             file_symbols,
-            &all_project_usages,
             &symbol_usages,
             &inheritance_ctx,
             ctx,
@@ -55,7 +54,6 @@ impl DeadSymbolsDetector {
             entry_points,
             &symbol_usages,
             &all_project_usages,
-            &inheritance_ctx,
         ));
 
         all_smells
@@ -216,7 +214,6 @@ impl DeadSymbolsDetector {
 
     fn check_dead_methods(
         file_symbols: &HashMap<PathBuf, FileSymbols>,
-        _all_project_usages: &HashSet<String>,
         symbol_usages: &HashMap<(PathBuf, String), HashSet<PathBuf>>,
         inheritance_ctx: &InheritanceContext,
         ctx: &AnalysisContext,
@@ -452,7 +449,6 @@ impl DeadSymbolsDetector {
         entry_points: &HashSet<PathBuf>,
         symbol_usages: &HashMap<(PathBuf, String), HashSet<PathBuf>>,
         all_project_usages: &HashSet<String>,
-        _inheritance_ctx: &InheritanceContext,
     ) -> Vec<ArchSmell> {
         file_symbols
             .iter()
