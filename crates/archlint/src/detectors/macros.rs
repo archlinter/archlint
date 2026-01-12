@@ -63,10 +63,13 @@ macro_rules! impl_detector_report {
                 |&($smell_row, _): &&$crate::detectors::SmellWithExplanation| {
                     if let SmellType::$variant { $($field,)* .. } = &$smell_row.smell_type {
                         let $loc_var = {
-                            let file_path = $smell_row.files.first().unwrap();
-                            $smell_row.locations.first().map(format_location_detail).unwrap_or_else(|| {
-                                format_location(file_path, 0, None)
-                            })
+                            if let Some(file_path) = $smell_row.files.first() {
+                                $smell_row.locations.first().map(format_location_detail).unwrap_or_else(|| {
+                                    format_location(file_path, 0, None)
+                                })
+                            } else {
+                                String::from("N/A")
+                            }
                         };
                         let _ = &$loc_var;
                         let $pts_var = format!("{} pts", $smell_row.score($severity_config));
@@ -93,10 +96,13 @@ macro_rules! impl_detector_report {
                 |&($smell_row, _): &&$crate::detectors::SmellWithExplanation| {
                     if let SmellType::$variant = &$smell_row.smell_type {
                         let $loc_var = {
-                            let file_path = $smell_row.files.first().unwrap();
-                            $smell_row.locations.first().map(format_location_detail).unwrap_or_else(|| {
-                                format_location(file_path, 0, None)
-                            })
+                            if let Some(file_path) = $smell_row.files.first() {
+                                $smell_row.locations.first().map(format_location_detail).unwrap_or_else(|| {
+                                    format_location(file_path, 0, None)
+                                })
+                            } else {
+                                String::from("N/A")
+                            }
                         };
                         let _ = &$loc_var;
                         let $pts_var = format!("{} pts", $smell_row.score($severity_config));

@@ -584,6 +584,7 @@ impl AnalysisReport {
                 )
             }
             SmellType::CodeClone { .. } => "Code Clone".to_string(),
+            SmellType::Unknown { raw_type } => format!("Unknown Smell ({})", raw_type),
         }
     }
 

@@ -2,6 +2,8 @@ use crate::snapshot::types::{SmellDetails, SnapshotSmell};
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 
+use crate::detectors::ArchSmell;
+
 /// Category for incremental analysis optimization
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum DetectorCategory {
@@ -100,6 +102,8 @@ pub enum SmellType {
         clone_hash: String,
         token_count: usize,
     },
+    /// Unknown smell type encountered during deserialization.
+    Unknown { raw_type: String },
 }
 
 /// Represents a smell type that can be configured in the `.archlint.yaml`.
@@ -143,6 +147,7 @@ pub enum ConfigurableSmellType {
     AbstractnessViolation,
     ScatteredConfiguration,
     CodeClone,
+    Unknown,
 }
 
 impl std::str::FromStr for ConfigurableSmellType {
@@ -240,6 +245,7 @@ impl ConfigurableSmellType {
             ConfigurableSmellType::AbstractnessViolation => "abstractness",
             ConfigurableSmellType::ScatteredConfiguration => "scattered_config",
             ConfigurableSmellType::CodeClone => "code_clone",
+            ConfigurableSmellType::Unknown => "unknown",
         }
     }
 }
@@ -281,6 +287,7 @@ impl SmellType {
                 ConfigurableSmellType::ScatteredConfiguration
             }
             SmellType::CodeClone { .. } => ConfigurableSmellType::CodeClone,
+            SmellType::Unknown { .. } => ConfigurableSmellType::Unknown,
         }
     }
 }
@@ -398,7 +405,9 @@ impl From<&SnapshotSmell> for SmellType {
             },
             unknown => {
                 log::warn!("Unknown smell type encountered: {}", unknown);
-                SmellType::GodModule // Fallback
+                SmellType::Unknown {
+                    raw_type: unknown.to_string(),
+                }
             }
         }
     }
@@ -434,7 +443,6 @@ pub struct Explanation {
     pub recommendations: Vec<String>,
 }
 
-use crate::detectors::ArchSmell;
 pub type SmellWithExplanation = (ArchSmell, Explanation);
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
