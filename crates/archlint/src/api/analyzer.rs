@@ -122,8 +122,8 @@ impl Analyzer {
         }
 
         log::info!("Config changed, triggering full rescan");
-        self.state.config_hash = current_hash;
         let result = self.scan()?;
+        self.state.config_hash = current_hash;
         Ok(Some(IncrementalResult {
             smells: result.smells,
             affected_files: result.files.iter().map(|f| f.path.clone()).collect(),
@@ -308,6 +308,9 @@ impl Analyzer {
             for importers in self.state.reverse_deps.values_mut() {
                 importers.remove(file);
             }
+
+            // Invalidate file_local_cache
+            self.state.file_local_cache.retain(|(_, f), _| f != file);
         }
     }
 

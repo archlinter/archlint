@@ -9,7 +9,7 @@ use std::collections::{BTreeMap, HashSet};
 /// Smell type prefixes that support symbol-based fuzzy matching.
 /// Side-effect smells use hash-based IDs and are excluded.
 const SYMBOL_BASED_PREFIXES: &[&str] = &[
-    "cmplx", "nest", "params", "prim", "dead", "shared", "orphan",
+    "cmplx", "nest", "params", "prim", "dead", "shared", "orphan", "lcom",
 ];
 
 /// Matcher for finding corresponding smells when exact ID matching fails.
@@ -479,6 +479,50 @@ mod tests {
         assert!(
             pairs.is_empty(),
             "Multi-file smells should be excluded from fuzzy matching"
+        );
+    }
+
+    #[test]
+    fn test_low_cohesion_symbol_extraction() {
+        let smell = SnapshotSmell {
+            id: "lcom:src/file.ts:MyClass:10".to_string(),
+            smell_type: "LowCohesion".to_string(),
+            severity: "Medium".to_string(),
+            files: vec!["src/file.ts".to_string()],
+            metrics: HashMap::new(),
+            details: Some(SmellDetails::LowCohesion {
+                class_name: "MyClass".to_string(),
+            }),
+            locations: vec![],
+        };
+
+        assert_eq!(
+            FuzzyMatcher::extract_symbol_name(&smell),
+            Some("MyClass".to_string())
+        );
+    }
+
+    #[test]
+    fn test_hub_dependency_excluded() {
+        let smell = SnapshotSmell {
+            id: "hub_dep:axios".to_string(),
+            smell_type: "HubDependency".to_string(),
+            severity: "High".to_string(),
+            files: vec![], // HubDependency has no project files
+            metrics: HashMap::new(),
+            details: Some(SmellDetails::HubDependency {
+                package: "axios".to_string(),
+            }),
+            locations: vec![],
+        };
+
+        assert!(
+            FuzzyMatcher::extract_symbol_name(&smell).is_none(),
+            "HubDependency should not have a symbol name for fuzzy matching"
+        );
+        assert!(
+            FuzzyMatcher::extract_key(&smell).is_none(),
+            "HubDependency should be excluded from fuzzy matching (no files)"
         );
     }
 }

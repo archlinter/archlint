@@ -81,7 +81,11 @@ macro_rules! impl_detector_report {
                             $($val.to_string()),*
                         ]
                     } else {
-                        vec!["-".into(); (vec![$($col),*]).len()]
+                        const COL_COUNT: usize = [$( {
+                            let _ = &$col;
+                        } ),*]
+                        .len();
+                        vec!["-".into(); COL_COUNT]
                     }
                 }
             )
@@ -112,7 +116,11 @@ macro_rules! impl_detector_report {
                             $($val.to_string()),*
                         ]
                     } else {
-                        vec!["-".into(); (vec![$($col),*]).len()]
+                        const COL_COUNT: usize = [$( {
+                            let _ = &$col;
+                        } ),*]
+                        .len();
+                        vec!["-".into(); COL_COUNT]
                     }
                 }
             )
