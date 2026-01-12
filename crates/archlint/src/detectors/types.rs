@@ -287,303 +287,114 @@ impl SmellType {
 
 impl From<&SnapshotSmell> for SmellType {
     fn from(smell: &SnapshotSmell) -> Self {
+        let details = smell.details.as_ref();
+        let metric = |name: &str| {
+            smell
+                .metrics
+                .get(name)
+                .and_then(|v| v.as_i64())
+                .map(|v| v as usize)
+                .unwrap_or(0)
+        };
+        let metric_str = |name: &str| {
+            smell
+                .metrics
+                .get(name)
+                .and_then(|v| v.as_str())
+                .unwrap_or_default()
+                .to_string()
+        };
+
+        macro_rules! d {
+            ($variant:ident, $field:ident, $default:expr) => {
+                match details {
+                    Some(SmellDetails::$variant { $field, .. }) => $field.clone(),
+                    _ => $default,
+                }
+            };
+            ($variant:ident, $field:ident) => {
+                d!($variant, $field, Default::default())
+            };
+        }
+
         match smell.smell_type.as_str() {
             "CyclicDependency" | "Cycles" => SmellType::CyclicDependency,
             "CyclicDependencyCluster" => SmellType::CyclicDependencyCluster,
             "GodModule" => SmellType::GodModule,
             "DeadCode" => SmellType::DeadCode,
-            "DeadSymbol" | "DeadSymbols" => {
-                let name = smell
-                    .details
-                    .as_ref()
-                    .and_then(|d| match d {
-                        SmellDetails::DeadSymbol { name, .. } => Some(name.clone()),
-                        _ => None,
-                    })
-                    .unwrap_or_default();
-                let kind = smell
-                    .details
-                    .as_ref()
-                    .and_then(|d| match d {
-                        SmellDetails::DeadSymbol { kind, .. } => Some(kind.clone()),
-                        _ => None,
-                    })
-                    .unwrap_or_else(|| "Symbol".to_string());
-                SmellType::DeadSymbol { name, kind }
-            }
-            "HighComplexity" | "Complexity" => {
-                let name = smell
-                    .details
-                    .as_ref()
-                    .and_then(|d| match d {
-                        SmellDetails::Complexity { function_name, .. } => {
-                            Some(function_name.clone())
-                        }
-                        _ => None,
-                    })
-                    .unwrap_or_default();
-                let line = smell
-                    .details
-                    .as_ref()
-                    .and_then(|d| match d {
-                        SmellDetails::Complexity { line, .. } => Some(*line),
-                        _ => None,
-                    })
-                    .unwrap_or_default();
-                let complexity = smell
-                    .metrics
-                    .get("complexity")
-                    .and_then(|v| v.as_i64())
-                    .map(|v| v as usize)
-                    .unwrap_or(0);
-                SmellType::HighComplexity {
-                    name,
-                    line,
-                    complexity,
-                }
-            }
-            "LayerViolation" => {
-                let (from, to) = smell
-                    .details
-                    .as_ref()
-                    .and_then(|d| match d {
-                        SmellDetails::LayerViolation {
-                            from_layer,
-                            to_layer,
-                            ..
-                        } => Some((from_layer.clone(), to_layer.clone())),
-                        _ => None,
-                    })
-                    .unwrap_or_default();
-                SmellType::LayerViolation {
-                    from_layer: from,
-                    to_layer: to,
-                }
-            }
+            "DeadSymbol" | "DeadSymbols" => SmellType::DeadSymbol {
+                name: d!(DeadSymbol, name),
+                kind: d!(DeadSymbol, kind, "Symbol".to_string()),
+            },
+            "HighComplexity" | "Complexity" => SmellType::HighComplexity {
+                name: d!(Complexity, function_name),
+                line: d!(Complexity, line),
+                complexity: metric("complexity"),
+            },
+            "LayerViolation" => SmellType::LayerViolation {
+                from_layer: d!(LayerViolation, from_layer),
+                to_layer: d!(LayerViolation, to_layer),
+            },
             "HubModule" | "HubDependency" => SmellType::HubModule,
-            "LowCohesion" | "Lcom" => {
-                let lcom = smell
-                    .metrics
-                    .get("lcom")
-                    .and_then(|v| v.as_i64())
-                    .map(|v| v as usize)
-                    .unwrap_or(0);
-                let class_name = smell
-                    .details
-                    .as_ref()
-                    .and_then(|d| match d {
-                        SmellDetails::LowCohesion { class_name } => Some(class_name.clone()),
-                        _ => None,
-                    })
-                    .unwrap_or_else(|| "unknown".to_string());
-                SmellType::LowCohesion { lcom, class_name }
-            }
+            "LowCohesion" | "Lcom" => SmellType::LowCohesion {
+                lcom: metric("lcom"),
+                class_name: d!(LowCohesion, class_name, "unknown".to_string()),
+            },
             "SdpViolation" => SmellType::SdpViolation,
             "LargeFile" => SmellType::LargeFile,
             "UnstableInterface" => SmellType::UnstableInterface,
-            "FeatureEnvy" => {
-                let most_envied_module = smell
-                    .details
-                    .as_ref()
-                    .and_then(|d| match d {
-                        SmellDetails::FeatureEnvy {
-                            most_envied_module, ..
-                        } => Some(PathBuf::from(most_envied_module)),
-                        _ => None,
-                    })
-                    .unwrap_or_default();
-                SmellType::FeatureEnvy { most_envied_module }
-            }
+            "FeatureEnvy" => SmellType::FeatureEnvy {
+                most_envied_module: PathBuf::from(d!(FeatureEnvy, most_envied_module)),
+            },
             "ShotgunSurgery" => SmellType::ShotgunSurgery,
-            "TestLeakage" => {
-                let test_file = smell
-                    .details
-                    .as_ref()
-                    .and_then(|d| match d {
-                        SmellDetails::TestLeakage { test_file, .. } => {
-                            Some(PathBuf::from(test_file))
-                        }
-                        _ => None,
-                    })
-                    .unwrap_or_default();
-                SmellType::TestLeakage { test_file }
-            }
+            "TestLeakage" => SmellType::TestLeakage {
+                test_file: PathBuf::from(d!(TestLeakage, test_file)),
+            },
             "BarrelFileAbuse" => SmellType::BarrelFileAbuse,
-            "VendorCoupling" => {
-                let package = smell
-                    .details
-                    .as_ref()
-                    .and_then(|d| match d {
-                        SmellDetails::VendorCoupling { package, .. } => Some(package.clone()),
-                        _ => None,
-                    })
-                    .unwrap_or_default();
-                SmellType::VendorCoupling { package }
-            }
+            "VendorCoupling" => SmellType::VendorCoupling {
+                package: d!(VendorCoupling, package),
+            },
             "SideEffectImport" => SmellType::SideEffectImport,
-            "ScatteredModule" => {
-                let components = smell
-                    .metrics
-                    .get("components")
-                    .and_then(|v| v.as_i64())
-                    .map(|v| v as usize)
-                    .unwrap_or(0);
-                SmellType::ScatteredModule { components }
-            }
-            "HighCoupling" => {
-                let cbo = smell
-                    .metrics
-                    .get("cbo")
-                    .and_then(|v| v.as_i64())
-                    .map(|v| v as usize)
-                    .unwrap_or(0);
-                SmellType::HighCoupling { cbo }
-            }
-            "PackageCycle" => {
-                let packages = smell
-                    .details
-                    .as_ref()
-                    .and_then(|d| match d {
-                        SmellDetails::PackageCycle { packages, .. } => Some(packages.clone()),
-                        _ => None,
-                    })
-                    .unwrap_or_default();
-                SmellType::PackageCycle { packages }
-            }
-            "SharedMutableState" => {
-                let symbol = smell
-                    .details
-                    .as_ref()
-                    .and_then(|d| match d {
-                        SmellDetails::SharedMutableState { symbol, .. } => Some(symbol.clone()),
-                        _ => None,
-                    })
-                    .unwrap_or_default();
-                SmellType::SharedMutableState { symbol }
-            }
-            "DeepNesting" => {
-                let depth = smell
-                    .metrics
-                    .get("depth")
-                    .and_then(|v| v.as_i64())
-                    .map(|v| v as usize)
-                    .unwrap_or(0);
-                let function = smell
-                    .details
-                    .as_ref()
-                    .and_then(|d| match d {
-                        SmellDetails::Complexity { function_name, .. } => {
-                            Some(function_name.clone())
-                        }
-                        _ => None,
-                    })
-                    .unwrap_or_default();
-                let line = smell
-                    .details
-                    .as_ref()
-                    .and_then(|d| match d {
-                        SmellDetails::Complexity { line, .. } => Some(*line),
-                        _ => None,
-                    })
-                    .unwrap_or_default();
-                SmellType::DeepNesting {
-                    function,
-                    depth,
-                    line,
-                }
-            }
-            "LongParameterList" => {
-                let count = smell
-                    .metrics
-                    .get("count")
-                    .and_then(|v| v.as_i64())
-                    .map(|v| v as usize)
-                    .unwrap_or(0);
-                let function = smell
-                    .details
-                    .as_ref()
-                    .and_then(|d| match d {
-                        SmellDetails::LongParameterList { function, .. } => Some(function.clone()),
-                        _ => None,
-                    })
-                    .unwrap_or_default();
-                SmellType::LongParameterList { count, function }
-            }
-            "PrimitiveObsession" => {
-                let primitives = smell
-                    .metrics
-                    .get("primitives")
-                    .and_then(|v| v.as_i64())
-                    .map(|v| v as usize)
-                    .unwrap_or(0);
-                let function = smell
-                    .details
-                    .as_ref()
-                    .and_then(|d| match d {
-                        SmellDetails::PrimitiveObsession { function, .. } => Some(function.clone()),
-                        _ => None,
-                    })
-                    .unwrap_or_default();
-                SmellType::PrimitiveObsession {
-                    primitives,
-                    function,
-                }
-            }
-            "OrphanType" | "OrphanTypes" => {
-                let name = smell
-                    .details
-                    .as_ref()
-                    .and_then(|d| match d {
-                        SmellDetails::OrphanType { name, .. } => Some(name.clone()),
-                        _ => None,
-                    })
-                    .unwrap_or_default();
-                SmellType::OrphanType { name }
-            }
+            "ScatteredModule" => SmellType::ScatteredModule {
+                components: metric("components"),
+            },
+            "HighCoupling" => SmellType::HighCoupling {
+                cbo: metric("cbo"),
+            },
+            "PackageCycle" => SmellType::PackageCycle {
+                packages: d!(PackageCycle, packages),
+            },
+            "SharedMutableState" => SmellType::SharedMutableState {
+                symbol: d!(SharedMutableState, symbol),
+            },
+            "DeepNesting" => SmellType::DeepNesting {
+                function: d!(Complexity, function_name),
+                depth: metric("depth"),
+                line: d!(Complexity, line),
+            },
+            "LongParameterList" => SmellType::LongParameterList {
+                count: metric("count"),
+                function: d!(LongParameterList, function),
+            },
+            "PrimitiveObsession" => SmellType::PrimitiveObsession {
+                primitives: metric("primitives"),
+                function: d!(PrimitiveObsession, function),
+            },
+            "OrphanType" | "OrphanTypes" => SmellType::OrphanType {
+                name: d!(OrphanType, name),
+            },
             "CircularTypeDependency" | "CircularTypeDependencies" => {
                 SmellType::CircularTypeDependency
             }
             "AbstractnessViolation" => SmellType::AbstractnessViolation,
-            "ScatteredConfiguration" => {
-                let env_var = smell
-                    .details
-                    .as_ref()
-                    .and_then(|d| match d {
-                        SmellDetails::ScatteredConfiguration { env_var, .. } => {
-                            Some(env_var.clone())
-                        }
-                        _ => None,
-                    })
-                    .unwrap_or_default();
-                let files_count = smell
-                    .metrics
-                    .get("filesCount")
-                    .and_then(|v| v.as_i64())
-                    .map(|v| v as usize)
-                    .unwrap_or(0);
-                SmellType::ScatteredConfiguration {
-                    env_var,
-                    files_count,
-                }
-            }
-            "CodeClone" => {
-                let clone_hash = smell
-                    .metrics
-                    .get("cloneHash")
-                    .and_then(|v| v.as_str())
-                    .unwrap_or_default()
-                    .to_string();
-                let token_count = smell
-                    .metrics
-                    .get("tokenCount")
-                    .and_then(|v| v.as_i64())
-                    .map(|v| v as usize)
-                    .unwrap_or(0);
-                SmellType::CodeClone {
-                    clone_hash,
-                    token_count,
-                }
-            }
+            "ScatteredConfiguration" => SmellType::ScatteredConfiguration {
+                env_var: d!(ScatteredConfiguration, env_var),
+                files_count: metric("filesCount"),
+            },
+            "CodeClone" => SmellType::CodeClone {
+                clone_hash: metric_str("cloneHash"),
+                token_count: metric("tokenCount"),
+            },
             _ => SmellType::GodModule, // Fallback
         }
     }
