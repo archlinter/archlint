@@ -110,7 +110,7 @@ impl Detector for VendorCouplingDetector {
 
         package_usage
             .into_iter()
-            .filter(|(_, files)| files.len() >= max_files)
+            .filter(|(_, files)| files.len() > max_files)
             .map(|(package, files)| {
                 let mut smell = ArchSmell::new_vendor_coupling(package, files);
                 smell.severity = rule.severity;

@@ -56,7 +56,7 @@ impl Detector for LongParameterListDetector {
                     continue;
                 }
 
-                if func.param_count >= max_params {
+                if func.param_count > max_params {
                     let mut smell = ArchSmell::new_long_params(
                         path.clone(),
                         func.name.to_string(),

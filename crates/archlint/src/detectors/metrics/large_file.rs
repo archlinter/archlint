@@ -63,7 +63,7 @@ impl Detector for LargeFileDetector {
                     .unwrap_or(1000);
 
                 if let Some(metrics) = ctx.file_metrics.get(path) {
-                    if metrics.lines >= threshold {
+                    if metrics.lines > threshold {
                         let mut smell = ArchSmell::new_large_file(path.clone(), metrics.lines);
                         smell.severity = rule.severity;
                         smells.push(smell);

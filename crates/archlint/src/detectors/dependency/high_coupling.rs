@@ -64,7 +64,7 @@ impl Detector for HighCouplingDetector {
                 let fan_out = ctx.graph.fan_out(node);
                 let cbo = fan_in + fan_out;
 
-                if cbo >= max_cbo {
+                if cbo > max_cbo {
                     let mut smell = ArchSmell::new_high_coupling(path.clone(), cbo);
                     smell.severity = rule.severity;
                     smells.push(smell);

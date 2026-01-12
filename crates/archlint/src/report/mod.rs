@@ -188,67 +188,6 @@ impl AnalysisReport {
         presets: Vec<FrameworkPreset>,
         config: &crate::config::Config,
     ) -> Self {
-        // ...
-        let cyclic_dependencies = smells
-            .iter()
-            .filter(|s| {
-                matches!(
-                    s.smell_type,
-                    SmellType::CyclicDependency | SmellType::CyclicDependencyCluster
-                )
-            })
-            .count();
-
-        let god_modules = smells
-            .iter()
-            .filter(|s| matches!(s.smell_type, SmellType::GodModule))
-            .count();
-
-        let dead_code = smells
-            .iter()
-            .filter(|s| matches!(s.smell_type, SmellType::DeadCode))
-            .count();
-
-        let dead_symbols = smells
-            .iter()
-            .filter(|s| matches!(s.smell_type, SmellType::DeadSymbol { .. }))
-            .count();
-
-        let high_complexity_functions = smells
-            .iter()
-            .filter(|s| matches!(s.smell_type, SmellType::HighComplexity { .. }))
-            .count();
-
-        let large_files = smells
-            .iter()
-            .filter(|s| matches!(s.smell_type, SmellType::LargeFile))
-            .count();
-
-        let unstable_interfaces = smells
-            .iter()
-            .filter(|s| matches!(s.smell_type, SmellType::UnstableInterface))
-            .count();
-
-        let feature_envy = smells
-            .iter()
-            .filter(|s| matches!(s.smell_type, SmellType::FeatureEnvy { .. }))
-            .count();
-
-        let shotgun_surgery = smells
-            .iter()
-            .filter(|s| matches!(s.smell_type, SmellType::ShotgunSurgery))
-            .count();
-
-        let hub_dependencies = smells
-            .iter()
-            .filter(|s| matches!(s.smell_type, SmellType::HubDependency { .. }))
-            .count();
-
-        let code_clones = smells
-            .iter()
-            .filter(|s| matches!(s.smell_type, SmellType::CodeClone { .. }))
-            .count();
-
         let registry = crate::detectors::DetectorRegistry::new();
         let smells_with_explanations = smells
             .into_iter()
@@ -264,19 +203,19 @@ impl AnalysisReport {
             })
             .collect();
 
-        Self {
+        let mut report = Self {
             files_analyzed: 0,
-            cyclic_dependencies,
-            god_modules,
-            dead_code,
-            dead_symbols,
-            high_complexity_functions,
-            large_files,
-            unstable_interfaces,
-            feature_envy,
-            shotgun_surgery,
-            hub_dependencies,
-            code_clones,
+            cyclic_dependencies: 0,
+            god_modules: 0,
+            dead_code: 0,
+            dead_symbols: 0,
+            high_complexity_functions: 0,
+            large_files: 0,
+            unstable_interfaces: 0,
+            feature_envy: 0,
+            shotgun_surgery: 0,
+            hub_dependencies: 0,
+            code_clones: 0,
             smells: smells_with_explanations,
             graph,
             file_symbols,
@@ -288,7 +227,10 @@ impl AnalysisReport {
             min_severity: None,
             min_score: None,
             config: config.clone(),
-        }
+        };
+
+        report.update_counts();
+        report
     }
 
     pub fn set_min_severity(&mut self, severity: Severity) {
@@ -327,8 +269,12 @@ impl AnalysisReport {
         });
 
         // Update counts
-        self.cyclic_dependencies = self
-            .smells
+        self.update_counts();
+    }
+
+    fn update_counts(&mut self) {
+        let smells = &self.smells;
+        self.cyclic_dependencies = smells
             .iter()
             .filter(|(s, _)| {
                 matches!(
@@ -337,53 +283,43 @@ impl AnalysisReport {
                 )
             })
             .count();
-        self.god_modules = self
-            .smells
+        self.god_modules = smells
             .iter()
             .filter(|(s, _)| matches!(s.smell_type, SmellType::GodModule))
             .count();
-        self.dead_code = self
-            .smells
+        self.dead_code = smells
             .iter()
             .filter(|(s, _)| matches!(s.smell_type, SmellType::DeadCode))
             .count();
-        self.dead_symbols = self
-            .smells
+        self.dead_symbols = smells
             .iter()
             .filter(|(s, _)| matches!(s.smell_type, SmellType::DeadSymbol { .. }))
             .count();
-        self.high_complexity_functions = self
-            .smells
+        self.high_complexity_functions = smells
             .iter()
             .filter(|(s, _)| matches!(s.smell_type, SmellType::HighComplexity { .. }))
             .count();
-        self.large_files = self
-            .smells
+        self.large_files = smells
             .iter()
             .filter(|(s, _)| matches!(s.smell_type, SmellType::LargeFile))
             .count();
-        self.unstable_interfaces = self
-            .smells
+        self.unstable_interfaces = smells
             .iter()
             .filter(|(s, _)| matches!(s.smell_type, SmellType::UnstableInterface))
             .count();
-        self.feature_envy = self
-            .smells
+        self.feature_envy = smells
             .iter()
             .filter(|(s, _)| matches!(s.smell_type, SmellType::FeatureEnvy { .. }))
             .count();
-        self.shotgun_surgery = self
-            .smells
+        self.shotgun_surgery = smells
             .iter()
             .filter(|(s, _)| matches!(s.smell_type, SmellType::ShotgunSurgery))
             .count();
-        self.hub_dependencies = self
-            .smells
+        self.hub_dependencies = smells
             .iter()
             .filter(|(s, _)| matches!(s.smell_type, SmellType::HubDependency { .. }))
             .count();
-        self.code_clones = self
-            .smells
+        self.code_clones = smells
             .iter()
             .filter(|(s, _)| matches!(s.smell_type, SmellType::CodeClone { .. }))
             .count();

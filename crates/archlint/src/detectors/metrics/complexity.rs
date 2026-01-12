@@ -27,7 +27,7 @@ impl ComplexityDetector {
         let mut smells = Vec::new();
 
         for func in functions {
-            if func.complexity >= threshold {
+            if func.complexity > threshold {
                 smells.push(ArchSmell::new_high_complexity(
                     file_path.to_path_buf(),
                     func.name.to_string(),
