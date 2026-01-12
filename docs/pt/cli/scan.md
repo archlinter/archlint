@@ -10,14 +10,18 @@ archlint scan [path] [options]
 
 ## Opções
 
-| Opção                       | Padrão   | Descrição                                                  |
-| --------------------------- | -------- | ---------------------------------------------------------- |
-| `--format <format>`         | `table`  | Formato de saída: `table`, `json`, `markdown`              |
-| `--report <file>`           | `stdout` | Salva o relatório em um arquivo                            |
-| `--min-severity <sev>`      | `low`    | Filtra por severidade: `low`, `medium`, `high`, `critical` |
-| `--detectors <ids>`         | `all`    | Lista de detectores separados por vírgula para executar    |
-| `--exclude-detectors <ids>` | `none`   | Detectors para pular                                       |
-| `--no-cache`                | `false`  | Desabilita o cache de análise                              |
+| Opção                           | Padrão   | Descrição                                                   |
+| ------------------------------- | -------- | ----------------------------------------------------------- |
+| `-f, --format <format>`         | `table`  | Formato de saída: `table`, `json`, `markdown`               |
+| `-j, --json`                    | `false`  | Atalho para `--format json`                                 |
+| `-r, --report <file>`           | `stdout` | Salva o relatório em um arquivo                             |
+| `-s, --min-severity <sev>`      | `low`    | Filtra por severidade: `low`, `medium`, `high`, `critical`  |
+| `-S, --min-score <score>`       | `none`   | Filtra pela pontuação mínima de saúde                       |
+| `-d, --detectors <ids>`         | `all`    | Lista de detectores separados por vírgula para executar     |
+| `-e, --exclude-detectors <ids>` | `none`   | Detectors para pular                                        |
+| `-A, --all`                     | `false`  | Executa todos os detectores (incluindo desativados)         |
+| `--no-cache`                    | `false`  | Desabilita o cache de análise                               |
+| `--no-git`                      | `false`  | Desabilita a integração com o git (pula a análise de churn) |
 
 ## Exemplos
 

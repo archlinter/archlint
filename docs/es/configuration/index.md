@@ -49,6 +49,13 @@ rules:
     fan_out: 15
     churn: 20
 
+  dead_symbols:
+    severity: high
+    # Coincidir con métodos de interfaz para evitar falsos positivos
+    contract_methods:
+      MyInterface: ['method1', 'method2']
+      ValidatorConstraintInterface: ['validate', 'defaultMessage']
+
   vendor_coupling:
     severity: medium
     ignore_packages: ['lodash', 'rxjs']
@@ -98,7 +105,7 @@ git:
 
 El campo `extends` le permite cargar presets desde diferentes fuentes:
 
-- **Presets integrados**: `nestjs`, `nextjs`, `react`, `oclif`.
+- **Presets integrados**: `nestjs`, `nextjs`, `express`, `react`, `angular`, `vue`, `typeorm`, `prisma`, `oclif`, `class-validator`.
 - **Archivos locales**: Ruta relativa a un archivo YAML (por ejemplo, `./archlint-shared.yaml`).
 - **URLs**: URL directa a un archivo YAML (por ejemplo, `https://example.com/preset.yaml`).
 

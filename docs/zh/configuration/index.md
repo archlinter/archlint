@@ -49,6 +49,13 @@ rules:
     fan_out: 15
     churn: 20
 
+  dead_symbols:
+    severity: high
+    # 匹配接口方法以避免未使用的实现产生误报
+    contract_methods:
+      MyInterface: ['method1', 'method2']
+      ValidatorConstraintInterface: ['validate', 'defaultMessage']
+
   vendor_coupling:
     severity: medium
     ignore_packages: ['lodash', 'rxjs']
@@ -98,7 +105,7 @@ git:
 
 `extends` 字段允许您从不同的来源加载预设：
 
-- **内置预设**：`nestjs`、`nextjs`、`react`、`oclif`。
+- **内置预设**：`nestjs`、`nextjs`、`express`、`react`、`angular`、`vue`、`typeorm`、`prisma`、`oclif`、`class-validator`。
 - **本地文件**：YAML 文件的相对路径（例如 `./archlint-shared.yaml`）。
 - **URL**：YAML 文件的直接 URL（例如 `https://example.com/preset.yaml`）。
 
