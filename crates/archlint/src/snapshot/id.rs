@@ -234,8 +234,6 @@ mod tests {
 
         assert_eq!(h1, h2);
         assert_ne!(h1, h3);
-        // It might be shorter than 6 if hash is small, but unlikely for random strings.
-        // We added a check for length in the implementation.
     }
 
     #[test]
