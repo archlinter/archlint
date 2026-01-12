@@ -114,18 +114,18 @@ pub fn generate_json(
 
     json!({
         "summary": {
-            "files_analyzed": report.files_analyzed,
-            "cyclic_dependencies": report.cyclic_dependencies,
+            "files_analyzed": report.files_analyzed(),
+            "cyclic_dependencies": report.cyclic_dependencies(),
             "cycle_clusters": cycle_clusters_count,
             "files_in_cycles": files_in_cycles,
-            "god_modules": report.god_modules,
-            "dead_code": report.dead_code,
-            "dead_symbols": report.dead_symbols,
-            "high_complexity_functions": report.high_complexity_functions,
-            "unstable_interfaces": report.unstable_interfaces,
-            "feature_envy": report.feature_envy,
-            "shotgun_surgery": report.shotgun_surgery,
-            "hub_dependencies": report.hub_dependencies,
+            "god_modules": report.god_modules(),
+            "dead_code": report.dead_code(),
+            "dead_symbols": report.dead_symbols(),
+            "high_complexity_functions": report.high_complexity_functions(),
+            "unstable_interfaces": report.unstable_interfaces(),
+            "feature_envy": report.feature_envy(),
+            "shotgun_surgery": report.shotgun_surgery(),
+            "hub_dependencies": report.hub_dependencies(),
             "total_smells": report.smells.len(),
             "architecture_grade": {
                 "score": format!("{:.1}", grade.score),

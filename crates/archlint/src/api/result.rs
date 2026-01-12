@@ -92,9 +92,9 @@ impl ScanResult {
         let grade = report.grade(&SeverityConfig::default());
 
         let summary = Summary {
-            files_analyzed: report.files_analyzed,
+            files_analyzed: report.files_analyzed(),
             total_smells: report.smells.len(),
-            cyclic_dependencies: report.cyclic_dependencies,
+            cyclic_dependencies: report.cyclic_dependencies(),
             cycle_clusters: report
                 .smells
                 .iter()
@@ -106,14 +106,14 @@ impl ScanResult {
                 .filter(|(s, _)| matches!(s.smell_type, SmellType::CyclicDependencyCluster))
                 .map(|(s, _)| s.files.len())
                 .sum(),
-            god_modules: report.god_modules,
-            dead_code: report.dead_code,
-            dead_symbols: report.dead_symbols,
-            high_complexity_functions: report.high_complexity_functions,
-            unstable_interfaces: report.unstable_interfaces,
-            feature_envy: report.feature_envy,
-            shotgun_surgery: report.shotgun_surgery,
-            hub_dependencies: report.hub_dependencies,
+            god_modules: report.god_modules(),
+            dead_code: report.dead_code(),
+            dead_symbols: report.dead_symbols(),
+            high_complexity_functions: report.high_complexity_functions(),
+            unstable_interfaces: report.unstable_interfaces(),
+            feature_envy: report.feature_envy(),
+            shotgun_surgery: report.shotgun_surgery(),
+            hub_dependencies: report.hub_dependencies(),
         };
 
         Self {

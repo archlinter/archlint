@@ -129,29 +129,29 @@ pub(crate) fn format_location_parts(
 /// A comprehensive report containing all analysis results.
 pub struct AnalysisReport {
     /// Number of files analyzed.
-    pub files_analyzed: usize,
+    files_analyzed: usize,
     /// Count of cyclic dependencies found.
-    pub cyclic_dependencies: usize,
+    cyclic_dependencies: usize,
     /// Count of god modules found.
-    pub god_modules: usize,
+    god_modules: usize,
     /// Count of dead code files.
-    pub dead_code: usize,
+    dead_code: usize,
     /// Count of unused exported symbols.
-    pub dead_symbols: usize,
+    dead_symbols: usize,
     /// Count of high complexity functions.
-    pub high_complexity_functions: usize,
+    high_complexity_functions: usize,
     /// Count of large files.
-    pub large_files: usize,
+    large_files: usize,
     /// Count of unstable interfaces.
-    pub unstable_interfaces: usize,
+    unstable_interfaces: usize,
     /// Count of feature envy instances.
-    pub feature_envy: usize,
+    feature_envy: usize,
     /// Count of shotgun surgery instances.
-    pub shotgun_surgery: usize,
+    shotgun_surgery: usize,
     /// Count of hub dependencies.
-    pub hub_dependencies: usize,
+    hub_dependencies: usize,
     /// Count of code clone instances.
-    pub code_clones: usize,
+    code_clones: usize,
     /// List of detected smells with their human-readable explanations.
     pub smells: Vec<(ArchSmell, Explanation)>,
     /// The project's dependency graph.
@@ -177,6 +177,54 @@ pub struct AnalysisReport {
 }
 
 impl AnalysisReport {
+    pub fn files_analyzed(&self) -> usize {
+        self.files_analyzed
+    }
+
+    pub fn cyclic_dependencies(&self) -> usize {
+        self.cyclic_dependencies
+    }
+
+    pub fn god_modules(&self) -> usize {
+        self.god_modules
+    }
+
+    pub fn dead_code(&self) -> usize {
+        self.dead_code
+    }
+
+    pub fn dead_symbols(&self) -> usize {
+        self.dead_symbols
+    }
+
+    pub fn high_complexity_functions(&self) -> usize {
+        self.high_complexity_functions
+    }
+
+    pub fn large_files(&self) -> usize {
+        self.large_files
+    }
+
+    pub fn unstable_interfaces(&self) -> usize {
+        self.unstable_interfaces
+    }
+
+    pub fn feature_envy(&self) -> usize {
+        self.feature_envy
+    }
+
+    pub fn shotgun_surgery(&self) -> usize {
+        self.shotgun_surgery
+    }
+
+    pub fn hub_dependencies(&self) -> usize {
+        self.hub_dependencies
+    }
+
+    pub fn code_clones(&self) -> usize {
+        self.code_clones
+    }
+
     pub fn set_min_severity(&mut self, severity: Severity) {
         self.min_severity = Some(severity);
     }
@@ -187,6 +235,12 @@ impl AnalysisReport {
 
     pub fn set_files_analyzed(&mut self, count: usize) {
         self.files_analyzed = count;
+    }
+
+    /// Recompute per-smell counters from `self.smells`.
+    /// Useful if callers mutate `smells` directly.
+    pub fn recompute_counts(&mut self) {
+        self.update_counts();
     }
 
     pub fn apply_severity_config(&mut self, config: &SeverityConfig) {
@@ -244,7 +298,27 @@ impl AnalysisReport {
                 SmellType::ShotgunSurgery => self.shotgun_surgery += 1,
                 SmellType::HubDependency { .. } => self.hub_dependencies += 1,
                 SmellType::CodeClone { .. } => self.code_clones += 1,
-                _ => {}
+                // These types don't have dedicated summary counters yet
+                SmellType::TestLeakage { .. }
+                | SmellType::LayerViolation { .. }
+                | SmellType::SdpViolation
+                | SmellType::BarrelFileAbuse
+                | SmellType::VendorCoupling { .. }
+                | SmellType::SideEffectImport
+                | SmellType::HubModule
+                | SmellType::LowCohesion { .. }
+                | SmellType::ScatteredModule { .. }
+                | SmellType::HighCoupling { .. }
+                | SmellType::PackageCycle { .. }
+                | SmellType::DeepNesting { .. }
+                | SmellType::LongParameterList { .. }
+                | SmellType::PrimitiveObsession { .. }
+                | SmellType::OrphanType { .. }
+                | SmellType::CircularTypeDependency
+                | SmellType::AbstractnessViolation
+                | SmellType::ScatteredConfiguration { .. }
+                | SmellType::SharedMutableState { symbol: _ }
+                | SmellType::Unknown { .. } => {}
             }
         }
     }

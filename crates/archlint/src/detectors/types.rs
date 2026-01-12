@@ -415,6 +415,36 @@ mod tests {
             _ => panic!("Expected Unknown, got {:?}", smell_type),
         }
     }
+
+    #[test]
+    fn test_smell_type_from_snapshot_string_fallback() {
+        let snapshot = SnapshotSmell {
+            id: "test".to_string(),
+            smell_type: "CyclicDependency".to_string(),
+            severity: "High".to_string(),
+            files: vec!["file.ts".to_string()],
+            metrics: HashMap::new(),
+            details: None,
+            locations: vec![],
+        };
+
+        let smell_type = SmellType::from(&snapshot);
+        assert_eq!(smell_type, SmellType::CyclicDependency);
+
+        let snapshot_cycles = SnapshotSmell {
+            id: "test".to_string(),
+            smell_type: "Cycles".to_string(),
+            severity: "High".to_string(),
+            files: vec!["file.ts".to_string()],
+            metrics: HashMap::new(),
+            details: None,
+            locations: vec![],
+        };
+        assert_eq!(
+            SmellType::from(&snapshot_cycles),
+            SmellType::CyclicDependency
+        );
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Copy)]

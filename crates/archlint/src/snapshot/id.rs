@@ -31,7 +31,9 @@ pub fn generate_smell_id(smell: &ArchSmell, project_root: &Path) -> String {
 
         SmellType::HubModule => id_for_file_smell(&smell.files[0], "hub", project_root),
 
-        SmellType::LowCohesion { .. } => id_for_file_smell(&smell.files[0], "lcom", project_root),
+        SmellType::LowCohesion { class_name, .. } => with_line_hash_fallback(smell, |line| {
+            id_for_symbol_smell("lcom", &smell.files[0], class_name, line, project_root)
+        }),
 
         SmellType::HubDependency { package } => {
             format!("hub_dep:{}", package)
