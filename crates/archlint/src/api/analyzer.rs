@@ -19,7 +19,7 @@ fn compute_config_hash(config: &Config) -> Result<String> {
     let serialized = serde_json::to_string(config)?;
     let mut hasher = Sha256::new();
     hasher.update(serialized.as_bytes());
-    Ok(format!("{:x}", hasher.finalize())[..16].to_string())
+    Ok(format!("{:x}", hasher.finalize()))
 }
 
 /// High-level analyzer for incremental project analysis.
@@ -131,7 +131,6 @@ impl Analyzer {
 
         log::info!("Config changed, triggering full rescan");
         let result = self.scan()?;
-        self.state.config_hash = current_hash;
         Ok(Some(IncrementalResult {
             smells: result.smells,
             affected_files: result.files.iter().map(|f| f.path.clone()).collect(),

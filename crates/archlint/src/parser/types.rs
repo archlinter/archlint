@@ -50,6 +50,8 @@ pub struct ExportedSymbol {
     pub used_symbols: SymbolSet,
     /// Whether the exported variable is mutable (e.g., `let` vs `const`).
     pub is_mutable: bool,
+    /// Whether this is a default export.
+    pub is_default: bool,
 }
 
 /// Information about a symbol imported into a file.

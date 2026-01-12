@@ -136,7 +136,7 @@ pub(crate) fn build_file_info(
                     crate::parser::SymbolKind::Enum => ExportKind::Enum,
                     crate::parser::SymbolKind::Unknown => ExportKind::Variable,
                 },
-                is_default: false,
+                is_default: e.is_default,
                 source: e.source.as_ref().map(|s| s.to_string()),
             })
             .collect();

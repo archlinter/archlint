@@ -355,20 +355,30 @@ mod tests {
 
     #[test]
     fn test_prefer_matching_name_over_closer_proximity() {
-        let baseline = make_smell(
+        let mut baseline = make_smell(
             "cmplx:src/foo.ts:target:10",
             "HighComplexity",
             "src/foo.ts",
             10,
         );
+        baseline.details = Some(SmellType::HighComplexity {
+            name: "target".to_string(),
+            line: 10,
+            complexity: 0,
+        });
 
         // Candidate 1: matching name but further (diff 5)
-        let current1 = make_smell(
+        let mut current1 = make_smell(
             "cmplx:src/foo.ts:target:15",
             "HighComplexity",
             "src/foo.ts",
             15,
         );
+        current1.details = Some(SmellType::HighComplexity {
+            name: "target".to_string(),
+            line: 15,
+            complexity: 0,
+        });
 
         // Candidate 2: different name but closer (diff 2)
         let mut current2 = make_smell(
@@ -593,6 +603,8 @@ mod tests {
             FuzzyMatcher::extract_symbol_name(&smell).is_none(),
             "HubDependency should not have a symbol name for fuzzy matching"
         );
+        // HubDependency returns None from extract_key because files.is_empty(),
+        // not specifically because of the HubDependency type itself.
         assert!(
             FuzzyMatcher::extract_key(&smell).is_none(),
             "HubDependency should be excluded from fuzzy matching (no files)"

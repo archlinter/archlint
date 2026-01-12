@@ -429,8 +429,8 @@ impl From<archlint::CycleCluster> for JsCycleCluster {
                 .into_iter()
                 .map(|h| JsCycleHotspot {
                     file: h.file.to_string_lossy().to_string(),
-                    in_degree: h.in_degree as u32,
-                    out_degree: h.out_degree as u32,
+                    in_degree: h.in_degree.to_js_u32(),
+                    out_degree: h.out_degree.to_js_u32(),
                 })
                 .collect(),
             critical_edges: c
@@ -691,12 +691,12 @@ impl From<archlint::diff::ImprovementType> for JsImprovementType {
 impl From<archlint::diff::DiffSummary> for JsDiffSummary {
     fn from(s: archlint::diff::DiffSummary) -> Self {
         Self {
-            new_smells: s.new_smells.try_into().unwrap_or(u32::MAX),
-            fixed_smells: s.fixed_smells.try_into().unwrap_or(u32::MAX),
-            worsened_smells: s.worsened_smells.try_into().unwrap_or(u32::MAX),
-            improved_smells: s.improved_smells.try_into().unwrap_or(u32::MAX),
-            total_regressions: s.total_regressions.try_into().unwrap_or(u32::MAX),
-            total_improvements: s.total_improvements.try_into().unwrap_or(u32::MAX),
+            new_smells: s.new_smells.to_js_u32(),
+            fixed_smells: s.fixed_smells.to_js_u32(),
+            worsened_smells: s.worsened_smells.to_js_u32(),
+            improved_smells: s.improved_smells.to_js_u32(),
+            total_regressions: s.total_regressions.to_js_u32(),
+            total_improvements: s.total_improvements.to_js_u32(),
         }
     }
 }
@@ -725,8 +725,8 @@ impl From<archlint::snapshot::SnapshotSmell> for JsSnapshotSmell {
                 .into_iter()
                 .map(|l| JsLocationDetail {
                     file: l.file,
-                    line: l.line as u32,
-                    column: l.column.map(|c| c as u32),
+                    line: l.line.to_js_u32(),
+                    column: l.column.to_js_u32(),
                     range: None,
                     description: l.description.unwrap_or_default(),
                 })

@@ -50,6 +50,7 @@ impl<'a> UnifiedVisitor {
             range,
             used_symbols: SymbolSet::default(),
             is_mutable: false,
+            is_default: false,
         });
         use crate::parser::types::ImportedSymbol;
         self.imports.push(ImportedSymbol {
@@ -78,6 +79,7 @@ impl<'a> UnifiedVisitor {
             range,
             used_symbols: SymbolSet::default(),
             is_mutable: false,
+            is_default: true,
         });
         self.has_runtime_code = true;
         oxc_ast::visit::walk::walk_export_default_declaration(self, it);
@@ -101,6 +103,7 @@ impl<'a> UnifiedVisitor {
                     range,
                     used_symbols: SymbolSet::default(),
                     is_mutable,
+                    is_default: false,
                 });
 
                 let old_top = self.current_top_level_export.take();
@@ -127,6 +130,7 @@ impl<'a> UnifiedVisitor {
                 range,
                 used_symbols: SymbolSet::default(),
                 is_mutable: false,
+                is_default: false,
             });
 
             let old_top = self.current_top_level_export.take();
@@ -152,6 +156,7 @@ impl<'a> UnifiedVisitor {
                 range,
                 used_symbols: SymbolSet::default(),
                 is_mutable: false,
+                is_default: false,
             });
 
             let old_top = self.current_top_level_export.take();
@@ -176,6 +181,7 @@ impl<'a> UnifiedVisitor {
             range,
             used_symbols: SymbolSet::default(),
             is_mutable: false,
+            is_default: false,
         });
         self.visit_ts_type(&d.type_annotation);
     }
@@ -192,6 +198,7 @@ impl<'a> UnifiedVisitor {
             range,
             used_symbols: SymbolSet::default(),
             is_mutable: false,
+            is_default: false,
         });
 
         if let Some(extends) = &d.extends {
@@ -215,6 +222,7 @@ impl<'a> UnifiedVisitor {
             range,
             used_symbols: SymbolSet::default(),
             is_mutable: false,
+            is_default: false,
         });
     }
 
@@ -226,8 +234,11 @@ impl<'a> UnifiedVisitor {
     ) {
         for specifier in specifiers {
             let range = self.get_range(span);
+            let name = Self::export_name_to_compact(specifier.exported.name());
+            let is_default = name == *interned::DEFAULT;
+
             self.exports.push(ExportedSymbol {
-                name: Self::export_name_to_compact(specifier.exported.name()),
+                name,
                 kind: SymbolKind::Unknown,
                 is_reexport: source.is_some(),
                 source: source.clone(),
@@ -236,6 +247,7 @@ impl<'a> UnifiedVisitor {
                 range,
                 used_symbols: SymbolSet::default(),
                 is_mutable: false,
+                is_default,
             });
         }
     }

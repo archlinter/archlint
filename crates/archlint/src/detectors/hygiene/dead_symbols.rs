@@ -723,6 +723,7 @@ mod tests {
                 range: CodeRange::default(),
                 used_symbols: FxHashSet::default(),
                 is_mutable: false,
+                is_default: false,
             }],
             classes: vec![ClassSymbol {
                 name: CompactString::new("Base"),
@@ -761,6 +762,7 @@ mod tests {
                 range: CodeRange::default(),
                 used_symbols: FxHashSet::default(),
                 is_mutable: false,
+                is_default: false,
             }],
             classes: vec![ClassSymbol {
                 name: CompactString::new("Child"),
