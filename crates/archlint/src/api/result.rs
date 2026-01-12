@@ -89,9 +89,13 @@ pub struct Summary {
 
 impl ScanResult {
     /// Create a `ScanResult` from an `AnalysisReport` and additional metadata.
-    pub fn from_report(report: AnalysisReport, files: Vec<FileInfo>, project_path: &Path) -> Self {
-        // Use default severity config for grade calculation if not provided
-        let grade = report.grade(&SeverityConfig::default());
+    pub fn from_report(
+        report: AnalysisReport,
+        files: Vec<FileInfo>,
+        project_path: &Path,
+        severity_config: &SeverityConfig,
+    ) -> Self {
+        let grade = report.grade(severity_config);
 
         let summary = Summary {
             files_analyzed: report.files_analyzed(),

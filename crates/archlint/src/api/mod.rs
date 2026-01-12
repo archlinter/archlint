@@ -43,14 +43,19 @@ pub fn scan<P: AsRef<Path>>(path: P, options: ScanOptions) -> Result<ScanResult>
     let args = options.to_scan_args(path_ref);
 
     // 3. Run analysis engine
-    let engine = AnalysisEngine::new(args, config)?;
+    let engine = AnalysisEngine::new(args, config.clone())?;
     let report = engine.run()?;
 
     // 4. Build file info (for Plugin API)
     let files = build_file_info(&report, path_ref)?;
 
     // 5. Convert to ScanResult
-    Ok(ScanResult::from_report(report, files, path_ref))
+    Ok(ScanResult::from_report(
+        report,
+        files,
+        path_ref,
+        &config.scoring,
+    ))
 }
 
 /// Load configuration from file or use defaults

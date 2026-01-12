@@ -83,6 +83,7 @@ export interface JsSummary {
   featureEnvy: number
   shotgunSurgery: number
   hubDependencies: number
+  largeFiles: number
 }
 export interface JsArchitectureGrade {
   score: number

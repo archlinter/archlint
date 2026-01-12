@@ -106,10 +106,17 @@ impl SnapshotGenerator {
         for metric in &smell.metrics {
             if let Ok(serde_json::Value::Object(map)) = serde_json::to_value(metric) {
                 for (k, v) in map {
-                    if let Ok(val) = serde_json::from_value(v) {
-                        metrics.insert(k, val);
+                    match serde_json::from_value(v) {
+                        Ok(val) => {
+                            metrics.insert(k, val);
+                        }
+                        Err(e) => {
+                            log::debug!("Failed to convert metric value for {}: {}", k, e);
+                        }
                     }
                 }
+            } else {
+                log::debug!("Failed to serialize metric to JSON object: {:?}", metric);
             }
         }
 
@@ -120,10 +127,16 @@ impl SnapshotGenerator {
                 token_count,
             } => {
                 metrics.insert("cloneHash".into(), MetricValue::String(clone_hash.clone()));
-                metrics.insert("tokenCount".into(), MetricValue::Int(*token_count as i64));
+                metrics.insert(
+                    "tokenCount".into(),
+                    MetricValue::Int(i64::try_from(*token_count).unwrap_or(i64::MAX)),
+                );
             }
             SmellType::ScatteredConfiguration { files_count, .. } => {
-                metrics.insert("filesCount".into(), MetricValue::Int(*files_count as i64));
+                metrics.insert(
+                    "filesCount".into(),
+                    MetricValue::Int(i64::try_from(*files_count).unwrap_or(i64::MAX)),
+                );
             }
             _ => {}
         }

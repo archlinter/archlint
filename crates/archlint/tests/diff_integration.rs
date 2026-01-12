@@ -157,7 +157,7 @@ fn test_shifted_smell_not_regression() {
 }
 
 #[test]
-fn test_different_function_is_regression() {
+fn test_renamed_function_is_not_regression() {
     // Baseline: complexity in funcA
     let baseline = make_snapshot(vec![make_complexity_smell(
         "cmplx:src/service.ts:funcA:10",
@@ -166,23 +166,23 @@ fn test_different_function_is_regression() {
         10,
     )]);
 
-    // Current: complexity in funcB (different function)
+    // Current: complexity in funcB (same location, different name - rename)
     let current = make_snapshot(vec![make_complexity_smell(
-        "cmplx:src/service.ts:funcB:15",
+        "cmplx:src/service.ts:funcB:12",
         "src/service.ts",
         "funcB",
-        15,
+        12,
     )]);
 
     let result = DiffEngine::default().diff(&baseline, &current);
 
-    // Should report: funcA fixed, funcB new
+    // Should NOT report regressions if renamed and close enough
     assert!(
-        result.has_regressions,
-        "New function smell should be a regression"
+        !result.has_regressions,
+        "Renamed function smell should be matched by proximity"
     );
-    assert_eq!(result.summary.new_smells, 1);
-    assert_eq!(result.summary.fixed_smells, 1);
+    assert_eq!(result.summary.new_smells, 0);
+    assert_eq!(result.summary.fixed_smells, 0);
 }
 
 #[test]

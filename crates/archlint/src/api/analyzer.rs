@@ -103,7 +103,12 @@ impl Analyzer {
         }
 
         let files = crate::api::build_file_info(&report, &self.project_root)?;
-        Ok(ScanResult::from_report(report, files, &self.project_root))
+        Ok(ScanResult::from_report(
+            report,
+            files,
+            &self.project_root,
+            &self.config.scoring,
+        ))
     }
 
     /// Perform an incremental scan for the changed files.
