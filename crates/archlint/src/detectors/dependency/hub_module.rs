@@ -2,6 +2,8 @@ use crate::detectors::{detector, ArchSmell, Detector, DetectorCategory};
 use crate::engine::AnalysisContext;
 use std::path::PathBuf;
 
+/// Initializes the detector module.
+/// This function is used for module registration side-effects.
 pub fn init() {}
 
 #[detector(
@@ -19,6 +21,7 @@ impl HubModuleDetector {
     }
 
     fn check_hub_node(
+        &self,
         ctx: &AnalysisContext,
         node: petgraph::graph::NodeIndex,
         rule: &crate::rule_resolver::ResolvedRuleConfig,
@@ -75,7 +78,7 @@ impl Detector for HubModuleDetector {
                     "Unnecessary abstraction layer"
                 ],
                 recommendations: crate::strings![
-                    "Consolidate the hub or direct dependants to the target modules"
+                    "Consolidate the hub or direct dependents to the target modules"
                 ]
             }
         },
@@ -98,7 +101,7 @@ impl Detector for HubModuleDetector {
                 let path = ctx.graph.get_file_path(node)?;
                 let rule = ctx.get_rule_for_file("hub_module", path)?;
 
-                let mut smell = Self::check_hub_node(ctx, node, &rule)?;
+                let mut smell = self.check_hub_node(ctx, node, &rule)?;
                 smell.severity = rule.severity;
                 Some(smell)
             })

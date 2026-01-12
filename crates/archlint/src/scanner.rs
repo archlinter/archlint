@@ -1,6 +1,15 @@
 use crate::Result;
 use ignore::WalkBuilder;
+use log::debug;
 use std::path::{Path, PathBuf};
+
+const DEFAULT_EXCLUSIONS: &[&str] = &[
+    "**/node_modules/**",
+    "**/dist/**",
+    "**/build/**",
+    "**/.next/**",
+    "**/coverage/**",
+];
 
 /// Scans the filesystem for source files based on configuration.
 ///
@@ -51,8 +60,12 @@ impl FileScanner {
                 .iter()
                 .any(|e| e == ext.to_string_lossy().as_ref())
             {
-                if let Ok(canonical) = self.scan_root.canonicalize() {
-                    return vec![canonical];
+                match self.scan_root.canonicalize() {
+                    Ok(canonical) => return vec![canonical],
+                    Err(e) => debug!(
+                        "Failed to canonicalize scan root {:?}: {}",
+                        self.scan_root, e
+                    ),
                 }
             }
         }
@@ -72,14 +85,7 @@ impl FileScanner {
         // for dependency resolution, but filter out their smells later in the engine.
 
         // Exclude only hard-coded system directories that should NEVER be scanned
-        let defaults = [
-            "**/node_modules/**",
-            "**/dist/**",
-            "**/build/**",
-            "**/.next/**",
-            "**/coverage/**",
-        ];
-        for def in defaults {
+        for def in DEFAULT_EXCLUSIONS {
             override_builder.add(&format!("!{}", def))?;
         }
 
@@ -104,7 +110,13 @@ impl FileScanner {
             .iter()
             .any(|e| e == ext.to_string_lossy().as_ref())
         {
-            return path.canonicalize().ok();
+            return match path.canonicalize() {
+                Ok(canonical) => Some(canonical),
+                Err(e) => {
+                    debug!("Failed to canonicalize path {:?}: {}", path, e);
+                    None
+                }
+            };
         }
         None
     }

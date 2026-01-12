@@ -169,4 +169,6 @@ impl Detector for CodeCloneDetector {
     }
 }
 
+/// Initializes the detector module.
+/// This function is used for module registration side-effects.
 pub fn init() {}

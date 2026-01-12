@@ -2,6 +2,8 @@ use crate::detectors::{detector, ArchSmell, Detector, DetectorCategory};
 use crate::engine::AnalysisContext;
 use std::path::Path;
 
+/// Initializes the detector module.
+/// This function is used for module registration side-effects.
 pub fn init() {}
 
 #[detector(
@@ -53,33 +55,33 @@ impl Detector for BarrelFileAbuseDetector {
     );
 
     fn detect(&self, ctx: &AnalysisContext) -> Vec<ArchSmell> {
-        let mut smells = Vec::new();
+        ctx.file_symbols
+            .as_ref()
+            .iter()
+            .filter_map(|(path, symbols)| {
+                let rule = ctx.get_rule_for_file("barrel_file", path)?;
 
-        for (path, symbols) in ctx.file_symbols.as_ref() {
-            let rule = match ctx.get_rule_for_file("barrel_file", path) {
-                Some(r) => r,
-                None => continue,
-            };
+                if !self.is_barrel_file(path) {
+                    return None;
+                }
 
-            if !self.is_barrel_file(path) {
-                continue;
-            }
+                let max_reexports: usize = rule.get_option("max_reexports").unwrap_or(10);
 
-            let max_reexports: usize = rule.get_option("max_reexports").unwrap_or(10);
+                let reexport_count = symbols
+                    .exports
+                    .iter()
+                    .filter(|e| e.source.is_some()) // re-exports have a source
+                    .count();
 
-            let reexport_count = symbols
-                .exports
-                .iter()
-                .filter(|e| e.source.is_some()) // re-exports have a source
-                .count();
-
-            if reexport_count > max_reexports {
-                let mut smell = ArchSmell::new_barrel_abuse(path.clone(), reexport_count, false);
-                smell.severity = rule.severity;
-                smells.push(smell);
-            }
-        }
-
-        smells
+                if reexport_count > max_reexports {
+                    let mut smell =
+                        ArchSmell::new_barrel_abuse(path.clone(), reexport_count, false);
+                    smell.severity = rule.severity;
+                    Some(smell)
+                } else {
+                    None
+                }
+            })
+            .collect()
     }
 }

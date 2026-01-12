@@ -2,6 +2,8 @@ use crate::detectors::{detector, ArchSmell, Detector, DetectorCategory};
 use crate::engine::AnalysisContext;
 use std::path::Path;
 
+/// Initializes the detector module.
+/// This function is used for module registration side-effects.
 pub fn init() {}
 
 #[detector(
@@ -19,10 +21,10 @@ impl TestLeakageDetector {
     }
 
     fn check_node_leakage(
+        &self,
         ctx: &AnalysisContext,
         node: petgraph::graph::NodeIndex,
         test_patterns: Option<&[String]>,
-        detector: &TestLeakageDetector,
     ) -> Vec<ArchSmell> {
         let from_path = match ctx.graph.get_file_path(node) {
             Some(p) => p,
@@ -32,7 +34,7 @@ impl TestLeakageDetector {
 
         for to_node in ctx.graph.dependencies(node) {
             if let Some(to_path) = ctx.graph.get_file_path(to_node) {
-                if detector.is_test_file(to_path, test_patterns) {
+                if self.is_test_file(to_path, test_patterns) {
                     let edge_data = ctx.graph.get_edge_data(node, to_node);
                     let (import_line, import_range) = edge_data
                         .map(|e| (e.import_line, e.import_range))
@@ -184,22 +186,21 @@ impl Detector for TestLeakageDetector {
 
         ctx.graph
             .nodes()
-            .filter_map(|node| {
-                let from_path = ctx.graph.get_file_path(node)?;
-                let file_rule = ctx.get_rule_for_file("test_leakage", from_path)?;
-
-                if !self.is_test_file(from_path, Some(&test_patterns)) {
-                    let mut node_smells =
-                        Self::check_node_leakage(ctx, node, Some(&test_patterns), self);
-                    for smell in &mut node_smells {
-                        smell.severity = file_rule.severity;
+            .flat_map(|node| {
+                if let Some(from_path) = ctx.graph.get_file_path(node) {
+                    if let Some(file_rule) = ctx.get_rule_for_file("test_leakage", from_path) {
+                        if !self.is_test_file(from_path, Some(&test_patterns)) {
+                            let mut node_smells =
+                                self.check_node_leakage(ctx, node, Some(&test_patterns));
+                            for smell in &mut node_smells {
+                                smell.severity = file_rule.severity;
+                            }
+                            return node_smells;
+                        }
                     }
-                    Some(node_smells)
-                } else {
-                    None
                 }
+                Vec::new()
             })
-            .flatten()
             .collect()
     }
 }

@@ -4,6 +4,8 @@ use petgraph::graph::DiGraph;
 use std::collections::{HashMap, HashSet};
 use std::path::Path;
 
+/// Initializes the detector module.
+/// This function is used for module registration side-effects.
 pub fn init() {}
 
 #[detector(
@@ -20,17 +22,21 @@ impl PackageCycleDetector {
         Self
     }
 
-    fn build_package_graph(ctx: &AnalysisContext, package_depth: usize) -> DiGraph<String, ()> {
+    fn build_package_graph(
+        &self,
+        ctx: &AnalysisContext,
+        package_depth: usize,
+    ) -> DiGraph<String, ()> {
         let mut pkg_graph = DiGraph::<String, ()>::new();
         let mut pkg_to_node = HashMap::new();
         let mut processed_edges = HashSet::new();
 
         for (from_idx, to_idx) in ctx.graph.edges() {
             if let Some((from_pkg, to_pkg)) =
-                Self::get_package_pair(ctx, from_idx, to_idx, package_depth)
+                self.get_package_pair(ctx, from_idx, to_idx, package_depth)
             {
                 if from_pkg != to_pkg {
-                    Self::add_package_edge(
+                    self.add_package_edge(
                         &mut pkg_graph,
                         &mut pkg_to_node,
                         &mut processed_edges,
@@ -45,6 +51,7 @@ impl PackageCycleDetector {
     }
 
     fn get_package_pair(
+        &self,
         ctx: &AnalysisContext,
         from_idx: petgraph::graph::NodeIndex,
         to_idx: petgraph::graph::NodeIndex,
@@ -53,13 +60,14 @@ impl PackageCycleDetector {
         let from_path = ctx.graph.get_file_path(from_idx)?;
         let to_path = ctx.graph.get_file_path(to_idx)?;
 
-        let from_pkg = Self::get_package_name_static(from_path, &ctx.project_path, package_depth);
-        let to_pkg = Self::get_package_name_static(to_path, &ctx.project_path, package_depth);
+        let from_pkg = self.get_package_name(from_path, &ctx.project_path, package_depth);
+        let to_pkg = self.get_package_name(to_path, &ctx.project_path, package_depth);
 
         Some((from_pkg, to_pkg))
     }
 
     fn add_package_edge(
+        &self,
         pkg_graph: &mut DiGraph<String, ()>,
         pkg_to_node: &mut HashMap<String, petgraph::graph::NodeIndex>,
         processed_edges: &mut HashSet<(petgraph::graph::NodeIndex, petgraph::graph::NodeIndex)>,
@@ -78,7 +86,7 @@ impl PackageCycleDetector {
         }
     }
 
-    fn find_package_cycles(pkg_graph: &DiGraph<String, ()>) -> Vec<ArchSmell> {
+    fn find_package_cycles(&self, pkg_graph: &DiGraph<String, ()>) -> Vec<ArchSmell> {
         let sccs = petgraph::algo::tarjan_scc(pkg_graph);
         let mut smells = Vec::new();
 
@@ -95,7 +103,7 @@ impl PackageCycleDetector {
         smells
     }
 
-    fn get_package_name_static(path: &Path, project_root: &Path, depth: usize) -> String {
+    fn get_package_name(&self, path: &Path, project_root: &Path, depth: usize) -> String {
         let dir = if path.is_file() {
             path.parent().unwrap_or(path)
         } else {
@@ -151,8 +159,8 @@ impl Detector for PackageCycleDetector {
 
         let package_depth: usize = rule.get_option("package_depth").unwrap_or(2);
 
-        let pkg_graph = Self::build_package_graph(ctx, package_depth);
-        let smells = Self::find_package_cycles(&pkg_graph);
+        let pkg_graph = self.build_package_graph(ctx, package_depth);
+        let smells = self.find_package_cycles(&pkg_graph);
 
         smells
             .into_iter()

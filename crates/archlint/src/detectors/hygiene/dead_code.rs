@@ -4,6 +4,8 @@ use crate::engine::AnalysisContext;
 use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
 
+/// Initializes the detector module.
+/// This function is used for module registration side-effects.
 pub fn init() {}
 
 #[detector(
@@ -70,7 +72,7 @@ impl Detector for DeadCodeDetector {
         let symbol_imports = Self::build_symbol_imports_map(ctx.file_symbols.as_ref());
         let reexport_map = Self::build_reexport_map(ctx.file_symbols.as_ref());
 
-        let dead_files = Self::find_dead_files(ctx, &detector, &symbol_imports, &reexport_map);
+        let dead_files = detector.find_dead_files(ctx, &symbol_imports, &reexport_map);
 
         dead_files
             .into_iter()
@@ -130,8 +132,8 @@ impl DeadCodeDetector {
     }
 
     fn find_dead_files(
+        &self,
         ctx: &AnalysisContext,
-        detector: &DeadCodeDetector,
         symbol_imports: &HashMap<(PathBuf, String), HashSet<PathBuf>>,
         reexport_map: &HashMap<PathBuf, HashSet<PathBuf>>,
     ) -> Vec<PathBuf> {
@@ -141,7 +143,7 @@ impl DeadCodeDetector {
             let fan_in = ctx.graph.fan_in(node);
 
             if let Some(path) = ctx.graph.get_file_path(node) {
-                if Self::is_dead_file(path, fan_in, ctx, detector, symbol_imports, reexport_map) {
+                if self.is_dead_file(path, fan_in, ctx, symbol_imports, reexport_map) {
                     dead_files.push(path.clone());
                 }
             }
@@ -151,18 +153,18 @@ impl DeadCodeDetector {
     }
 
     fn is_dead_file(
+        &self,
         path: &Path,
         fan_in: usize,
         _ctx: &AnalysisContext,
-        detector: &DeadCodeDetector,
         symbol_imports: &HashMap<(PathBuf, String), HashSet<PathBuf>>,
         reexport_map: &HashMap<PathBuf, HashSet<PathBuf>>,
     ) -> bool {
         fan_in == 0
-            && !detector.is_entry_point(path)
-            && !detector.matches_dynamic_load_pattern(path)
-            && !detector.has_used_exports(path, _ctx.file_symbols.as_ref(), symbol_imports)
-            && !detector.is_reexported(path, _ctx.file_symbols.as_ref(), reexport_map)
+            && !self.is_entry_point(path)
+            && !self.matches_dynamic_load_pattern(path)
+            && !self.has_used_exports(path, _ctx.file_symbols.as_ref(), symbol_imports)
+            && !self.is_reexported(path, _ctx.file_symbols.as_ref(), reexport_map)
     }
 
     pub fn new_default(config: &Config) -> Self {
@@ -319,12 +321,12 @@ impl DeadCodeDetector {
         let path_str = path.to_string_lossy();
         let file_name = path.file_name().and_then(|n| n.to_str()).unwrap_or("");
 
-        Self::check_reexport_map(self, path, &path_buf, file_symbols, reexport_map)
-            || Self::check_direct_reexports(self, file_symbols, &path_str, file_name)
+        self.check_reexport_map(path, &path_buf, file_symbols, reexport_map)
+            || self.check_direct_reexports(file_symbols, &path_str, file_name)
     }
 
     fn check_reexport_map(
-        detector: &DeadCodeDetector,
+        &self,
         _path: &Path,
         path_buf: &PathBuf,
         file_symbols: &HashMap<PathBuf, crate::parser::FileSymbols>,
@@ -332,7 +334,7 @@ impl DeadCodeDetector {
     ) -> bool {
         if let Some(reexporters) = reexport_map.get(path_buf) {
             for reexporter in reexporters {
-                if detector.is_entry_point(reexporter) {
+                if self.is_entry_point(reexporter) {
                     return true;
                 }
 
@@ -363,16 +365,14 @@ impl DeadCodeDetector {
     }
 
     fn check_direct_reexports(
-        detector: &DeadCodeDetector,
+        &self,
         file_symbols: &HashMap<PathBuf, crate::parser::FileSymbols>,
         path_str: &str,
         file_name: &str,
     ) -> bool {
         file_symbols
             .iter()
-            .filter(|(reexporter_path, _)| {
-                Self::is_reexporter_used(detector, file_symbols, reexporter_path)
-            })
+            .filter(|(reexporter_path, _)| self.is_reexporter_used(file_symbols, reexporter_path))
             .any(|(_, symbols)| Self::has_reexport_to_path(symbols, path_str, file_name))
     }
 
@@ -392,11 +392,11 @@ impl DeadCodeDetector {
     }
 
     fn is_reexporter_used(
-        detector: &DeadCodeDetector,
+        &self,
         file_symbols: &HashMap<PathBuf, crate::parser::FileSymbols>,
         reexporter_path: &Path,
     ) -> bool {
-        detector.is_entry_point(reexporter_path)
+        self.is_entry_point(reexporter_path)
             || Self::is_reexporter_imported(file_symbols, reexporter_path)
     }
 

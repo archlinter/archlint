@@ -3,6 +3,8 @@ use crate::engine::AnalysisContext;
 use crate::parser::SymbolKind;
 use petgraph::graph::NodeIndex;
 
+/// Initializes the detector module.
+/// This function is used for module registration side-effects.
 pub fn init() {}
 
 #[detector(

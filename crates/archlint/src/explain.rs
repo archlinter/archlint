@@ -414,7 +414,7 @@ impl ExplainEngine {
     fn explain_sdp_violation(_smell: &ArchSmell) -> Explanation {
         Explanation {
             problem: "Stable Dependency Principle (SDP) Violation".to_string(),
-            reason: "A stable module (rarely changing, many dependants) depends on an unstable module (frequently changing).".to_string(),
+            reason: "A stable module (rarely changing, many dependents) depends on an unstable module (frequently changing).".to_string(),
             risks: vec![
                 "Stable modules become unstable due to their dependencies".to_string(),
                 "Fragile architecture: changes in unstable parts break the core".to_string(),

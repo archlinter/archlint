@@ -14,7 +14,7 @@
 rules:
   hub_dependency:
     severity: medium
-    min_dependants: 20
+    min_dependents: 20
     ignore_packages:
       - 'react'
       - 'lodash'
@@ -23,7 +23,7 @@ rules:
 
 ### 选项
 
-- `min_dependants`（默认：20）：触发此坏味道所需的导入包的文件最小数量。
+- `min_dependents`（默认：20）：触发此坏味道所需的导入包的文件最小数量。
 - `ignore_packages`：要忽略的包名称或 glob 模式列表。
 
 ## 如何修复

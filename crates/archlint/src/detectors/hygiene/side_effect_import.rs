@@ -1,6 +1,8 @@
 use crate::detectors::{detector, ArchSmell, Detector, DetectorCategory};
 use crate::engine::AnalysisContext;
 
+/// Initializes the detector module.
+/// This function is used for module registration side-effects.
 pub fn init() {}
 
 #[detector(
@@ -16,16 +18,28 @@ impl SideEffectImportDetector {
         Self
     }
 
-    fn is_ignored_source(&self, source: &str) -> bool {
-        source.ends_with(".css")
-            || source.ends_with(".scss")
-            || source.ends_with(".sass")
-            || source.ends_with(".less")
-            || source == "reflect-metadata"
-            || source.contains("polyfill")
-            || source.contains("setup")
-            || source.contains("instrument")
-            || source.contains("register")
+    fn is_ignored_source(&self, source: &str, custom_ignores: &[String]) -> bool {
+        let defaults = [
+            ".css",
+            ".scss",
+            ".sass",
+            ".less",
+            "reflect-metadata",
+            "polyfill",
+            "setup",
+            "instrument",
+            "register",
+        ];
+
+        defaults.iter().any(|d| {
+            if d.starts_with('.') {
+                source.ends_with(d)
+            } else {
+                source.contains(d)
+            }
+        }) || custom_ignores
+            .iter()
+            .any(|pattern| source.contains(pattern))
     }
 }
 
@@ -65,13 +79,16 @@ impl Detector for SideEffectImportDetector {
                 None => continue,
             };
 
+            let custom_ignores: Vec<String> =
+                rule.get_option("ignore_patterns").unwrap_or_default();
+
             for import in &symbols.imports {
                 if import.name == "*"
                     && import.alias.is_none()
                     && !import.is_reexport
                     && !import.is_dynamic
                 {
-                    if self.is_ignored_source(&import.source) {
+                    if self.is_ignored_source(&import.source, &custom_ignores) {
                         continue;
                     }
 

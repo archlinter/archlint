@@ -2,7 +2,7 @@
 
 **ID:** `hub_module` | **Severity:** Medium (default)
 
-A "Hub Module" is a central point in the dependency graph, characterized by both high Fan-in (many dependants) and high Fan-out (many dependencies), while containing relatively little internal logic.
+A "Hub Module" is a central point in the dependency graph, characterized by both high Fan-in (many dependents) and high Fan-out (many dependencies), while containing relatively little internal logic.
 
 ## Why this is a smell
 

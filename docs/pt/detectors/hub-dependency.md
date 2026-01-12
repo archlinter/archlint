@@ -14,7 +14,7 @@ Quando seu projeto depende muito de uma única biblioteca externa, torna-se dif�
 rules:
   hub_dependency:
     severity: medium
-    min_dependants: 20
+    min_dependents: 20
     ignore_packages:
       - 'react'
       - 'lodash'
@@ -23,7 +23,7 @@ rules:
 
 ### Opções
 
-- `min_dependants` (padrão: 20): O número mínimo de arquivos importando um pacote para acionar este smell.
+- `min_dependents` (padrão: 20): O número mínimo de arquivos importando um pacote para acionar este smell.
 - `ignore_packages`: Uma lista de nomes de pacotes ou padrões glob para ignorar.
 
 ## Como corrigir

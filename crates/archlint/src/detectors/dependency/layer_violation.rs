@@ -4,6 +4,8 @@ use crate::engine::AnalysisContext;
 use petgraph::graph::NodeIndex;
 use std::path::{Path, PathBuf};
 
+/// Initializes the detector module.
+/// This function is used for module registration side-effects.
 pub fn init() {}
 
 #[detector(
@@ -21,10 +23,10 @@ impl LayerViolationDetector {
     }
 
     fn check_dependencies_for_violations(
+        &self,
         ctx: &AnalysisContext,
         from_info: (&PathBuf, &LayerConfig),
         layers: &[LayerConfig],
-        detector: &LayerViolationDetector,
         _global_rule: &crate::rule_resolver::ResolvedRuleConfig,
     ) -> Vec<ArchSmell> {
         let (from_path, _) = from_info;
@@ -37,10 +39,9 @@ impl LayerViolationDetector {
             };
 
             for to_node in ctx.graph.dependencies(node) {
-                if let Some(to_info) = detector.get_node_info(ctx, to_node, layers) {
+                if let Some(to_info) = self.get_node_info(ctx, to_node, layers) {
                     let edge_data = ctx.graph.get_edge_data(node, to_node);
-                    if let Some(mut smell) = detector.check_violation(from_info, to_info, edge_data)
-                    {
+                    if let Some(mut smell) = self.check_violation(from_info, to_info, edge_data) {
                         smell.severity = rule.severity;
                         smells.push(smell);
                     }
@@ -175,7 +176,7 @@ impl Detector for LayerViolationDetector {
             .nodes()
             .filter_map(|node| self.get_node_info(ctx, node, &layers))
             .flat_map(|from_info| {
-                Self::check_dependencies_for_violations(ctx, from_info, &layers, self, &rule)
+                self.check_dependencies_for_violations(ctx, from_info, &layers, &rule)
             })
             .collect()
     }

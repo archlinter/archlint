@@ -193,7 +193,9 @@ impl ArchSmell {
     }
 
     pub fn new_god_module(file: PathBuf, fan_in: usize, fan_out: usize, churn: usize) -> Self {
-        let score = fan_in + fan_out + churn / 2;
+        // Score calculation: fan-in + fan-out + (churn / 2)
+        // Churn is weighted at 50% as it can grow significantly over time
+        let score = fan_in + fan_out + (churn / 2);
         let severity = match score {
             0..=30 => Severity::Low,
             31..=60 => Severity::Medium,
@@ -323,7 +325,7 @@ impl ArchSmell {
     pub fn new_unstable_interface(
         file: PathBuf,
         churn: usize,
-        dependants: usize,
+        dependents: usize,
         score: usize,
     ) -> Self {
         let severity = match score {
@@ -338,7 +340,7 @@ impl ArchSmell {
             severity,
             files: vec![file],
             metrics: vec![
-                SmellMetric::FanIn(dependants),
+                SmellMetric::FanIn(dependents),
                 SmellMetric::Churn(churn),
                 SmellMetric::InstabilityScore(score),
             ],
@@ -414,8 +416,8 @@ impl ArchSmell {
         }
     }
 
-    pub fn new_hub_dependency(package: String, dependant_files: Vec<PathBuf>) -> Self {
-        let count = dependant_files.len();
+    pub fn new_hub_dependency(package: String, dependent_files: Vec<PathBuf>) -> Self {
+        let count = dependent_files.len();
         let severity = if count >= 50 {
             Severity::Critical
         } else if count >= 30 {
@@ -426,7 +428,7 @@ impl ArchSmell {
             Severity::Low
         };
 
-        let locations = dependant_files
+        let locations = dependent_files
             .iter()
             .map(|f| LocationDetail::new(f.clone(), 0, String::new()))
             .collect();

@@ -2,6 +2,8 @@ use crate::detectors::{detector, ArchSmell, Detector, DetectorCategory};
 use crate::engine::AnalysisContext;
 use petgraph::graph::NodeIndex;
 
+/// Initializes the detector module.
+/// This function is used for module registration side-effects.
 pub fn init() {}
 
 #[detector(
@@ -19,6 +21,7 @@ impl SdpViolationDetector {
     }
 
     fn check_node_violations(
+        &self,
         ctx: &AnalysisContext,
         node: NodeIndex,
         rule: &crate::rule_resolver::ResolvedRuleConfig,
@@ -33,11 +36,11 @@ impl SdpViolationDetector {
             return Vec::new();
         }
 
-        let from_i = Self::calculate_instability_static(ctx, node);
+        let from_i = self.calculate_instability(ctx, node);
         let mut smells = Vec::new();
 
         for to_node in ctx.graph.dependencies(node) {
-            let to_i = Self::calculate_instability_static(ctx, to_node);
+            let to_i = self.calculate_instability(ctx, to_node);
 
             if from_i < to_i && (to_i - from_i) > instability_diff {
                 if let (Some(from_path), Some(to_path)) = (
@@ -64,7 +67,7 @@ impl SdpViolationDetector {
         smells
     }
 
-    fn calculate_instability_static(ctx: &AnalysisContext, node: NodeIndex) -> f64 {
+    fn calculate_instability(&self, ctx: &AnalysisContext, node: NodeIndex) -> f64 {
         let fan_in = ctx.graph.fan_in(node);
         let fan_out = ctx.graph.fan_out(node);
         if fan_in + fan_out == 0 {
@@ -80,7 +83,7 @@ impl Detector for SdpViolationDetector {
         explain: _smell => {
             crate::detectors::Explanation {
                 problem: "Stable Dependency Principle (SDP) Violation".into(),
-                reason: "A stable module (rarely changing, many dependants) depends on an unstable module (frequently changing).".into(),
+                reason: "A stable module (rarely changing, many dependents) depends on an unstable module (frequently changing).".into(),
                 risks: crate::strings![
                     "Stable modules become unstable due to their dependencies",
                     "Fragile architecture: changes in unstable parts break the core"
@@ -104,19 +107,15 @@ impl Detector for SdpViolationDetector {
             .nodes()
             .flat_map(|node| {
                 if let Some(path) = ctx.graph.get_file_path(node) {
-                    let rule = match ctx.get_rule_for_file("sdp_violation", path) {
-                        Some(r) => r,
-                        None => return Vec::new(),
-                    };
-
-                    let mut node_smells = Self::check_node_violations(ctx, node, &rule);
-                    for smell in &mut node_smells {
-                        smell.severity = rule.severity;
+                    if let Some(rule) = ctx.get_rule_for_file("sdp_violation", path) {
+                        let mut node_smells = self.check_node_violations(ctx, node, &rule);
+                        for smell in &mut node_smells {
+                            smell.severity = rule.severity;
+                        }
+                        return node_smells;
                     }
-                    node_smells
-                } else {
-                    Vec::new()
                 }
+                Vec::new()
             })
             .collect()
     }

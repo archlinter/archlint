@@ -14,7 +14,7 @@
 rules:
   hub_dependency:
     severity: medium
-    min_dependants: 20
+    min_dependents: 20
     ignore_packages:
       - 'react'
       - 'lodash'
@@ -23,7 +23,7 @@ rules:
 
 ### オプション
 
-- `min_dependants`（デフォルト: 20）: この不吉な臭いをトリガーするためにパッケージをインポートする必要があるファイルの最小数。
+- `min_dependents`（デフォルト: 20）: この不吉な臭いをトリガーするためにパッケージをインポートする必要があるファイルの最小数。
 - `ignore_packages`: 無視するパッケージ名またはglobパターンのリスト。
 
 ## 修正方法

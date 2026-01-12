@@ -2,6 +2,8 @@ use crate::detectors::DetectorCategory;
 use crate::detectors::{detector, ArchSmell, Detector};
 use crate::engine::AnalysisContext;
 
+/// Initializes the detector module.
+/// This function is used for module registration side-effects.
 pub fn init() {}
 
 #[detector(
@@ -148,20 +150,17 @@ impl Detector for GodModuleDetector {
     }
 
     fn detect(&self, ctx: &AnalysisContext) -> Vec<ArchSmell> {
-        let mut smells = Vec::new();
-
         // Check if git churn information is available
         let git_available = ctx.config.git.enabled && !ctx.churn_map.is_empty();
 
-        for node in ctx.graph.nodes() {
-            let fan_in = ctx.graph.fan_in(node);
-            let fan_out = ctx.graph.fan_out(node);
+        ctx.graph
+            .nodes()
+            .filter_map(|node| {
+                let fan_in = ctx.graph.fan_in(node);
+                let fan_out = ctx.graph.fan_out(node);
+                let path = ctx.graph.get_file_path(node)?;
 
-            if let Some(path) = ctx.graph.get_file_path(node) {
-                let rule = match ctx.get_rule_for_file("god_module", path) {
-                    Some(r) => r,
-                    None => continue,
-                };
+                let rule = ctx.get_rule_for_file("god_module", path)?;
 
                 let fan_in_threshold: usize = rule.get_option("fan_in").unwrap_or(10);
                 let fan_out_threshold: usize = rule.get_option("fan_out").unwrap_or(10);
@@ -176,11 +175,11 @@ impl Detector for GodModuleDetector {
                     let mut smell =
                         ArchSmell::new_god_module(path.clone(), fan_in, fan_out, file_churn);
                     smell.severity = rule.severity;
-                    smells.push(smell);
+                    Some(smell)
+                } else {
+                    None
                 }
-            }
-        }
-
-        smells
+            })
+            .collect()
     }
 }

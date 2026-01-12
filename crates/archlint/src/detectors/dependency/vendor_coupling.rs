@@ -6,6 +6,8 @@ use crate::engine::AnalysisContext;
 use crate::parser::FileSymbols;
 use crate::utils::package::PackageUtils;
 
+/// Initializes the detector module.
+/// This function is used for module registration side-effects.
 pub fn init() {}
 
 #[detector(

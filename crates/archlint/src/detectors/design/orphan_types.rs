@@ -4,6 +4,8 @@ use crate::parser::{SymbolKind, SymbolName};
 use std::collections::HashSet;
 use std::path::PathBuf;
 
+/// Initializes the detector module.
+/// This function is used for module registration side-effects.
 pub fn init() {}
 
 #[detector(
@@ -91,7 +93,7 @@ impl Detector for OrphanTypesDetector {
         type_definitions
             .into_iter()
             .filter(|(_, name)| !all_usages.contains(*name))
-            .filter_map(|(path, name)| {
+            .flat_map(|(path, name)| {
                 let file_rule = ctx.get_rule_for_file("orphan_types", path)?;
                 let mut smell = ArchSmell::new_orphan_type(path.clone(), name.to_string());
                 smell.severity = file_rule.severity;

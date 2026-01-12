@@ -3,6 +3,8 @@ use crate::engine::AnalysisContext;
 use std::collections::HashMap;
 use std::path::PathBuf;
 
+/// Initializes the detector module.
+/// This function is used for module registration side-effects.
 pub fn init() {}
 
 #[detector(

@@ -4,6 +4,8 @@ use git2::{Commit, Repository};
 use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
 
+/// Initializes the detector module.
+/// This function is used for module registration side-effects.
 pub fn init() {}
 
 #[detector(
@@ -85,37 +87,41 @@ impl ShotgunSurgeryDetector {
         for oid in revwalk.take(lookback) {
             let oid = oid?;
             let commit = repo.find_commit(oid)?;
-            Self::process_commit(&repo, &commit, &mut stats, self)?;
+            self.process_commit(&repo, &commit, &mut stats)?;
         }
 
         Ok(stats)
     }
 
     fn process_commit(
+        &self,
         repo: &Repository,
         commit: &Commit,
         stats: &mut HashMap<PathBuf, CoChangeStats>,
-        detector: &ShotgunSurgeryDetector,
     ) -> Result<(), git2::Error> {
-        let changed_files = detector.get_changed_files(repo, commit)?;
+        let changed_files = self.get_changed_files(repo, commit)?;
         let source_files: HashSet<PathBuf> = changed_files
             .into_iter()
-            .filter(|p| detector.is_source_code(p))
+            .filter(|p| self.is_source_code(p))
             .collect();
 
-        if Self::should_process_commit(&source_files) {
-            Self::update_stats(stats, &source_files);
+        if self.should_process_commit(&source_files) {
+            self.update_stats(stats, &source_files);
         }
 
         Ok(())
     }
 
-    fn should_process_commit(source_files: &HashSet<PathBuf>) -> bool {
+    fn should_process_commit(&self, source_files: &HashSet<PathBuf>) -> bool {
         let count = source_files.len();
         count > 1 && count < 50
     }
 
-    fn update_stats(stats: &mut HashMap<PathBuf, CoChangeStats>, source_files: &HashSet<PathBuf>) {
+    fn update_stats(
+        &self,
+        stats: &mut HashMap<PathBuf, CoChangeStats>,
+        source_files: &HashSet<PathBuf>,
+    ) {
         for file in source_files {
             let entry = stats.entry(file.clone()).or_insert(CoChangeStats {
                 total_co_changed: 0,

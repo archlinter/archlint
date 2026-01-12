@@ -5,6 +5,8 @@ use petgraph::graph::DiGraph;
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 
+/// Initializes the detector module.
+/// This function is used for module registration side-effects.
 pub fn init() {}
 
 #[detector(

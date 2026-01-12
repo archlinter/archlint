@@ -35,7 +35,7 @@ pub enum SmellType {
     },
     /// A file with too many lines of code.
     LargeFile,
-    /// An interface that changes frequently despite having many dependants.
+    /// An interface that changes frequently despite having many dependents.
     UnstableInterface,
     /// A module that accesses more data from another module than its own.
     FeatureEnvy { most_envied_module: PathBuf },

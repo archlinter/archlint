@@ -4,6 +4,8 @@ use crate::utils::package::PackageUtils;
 use std::collections::{HashMap, HashSet};
 use std::path::PathBuf;
 
+/// Initializes the detector module.
+/// This function is used for module registration side-effects.
 pub fn init() {}
 
 #[detector(
@@ -72,7 +74,7 @@ impl Detector for HubDependencyDetector {
         },
         table: {
             title: "Hub Dependencies",
-            columns: ["Package", "Dependants", "pts"],
+            columns: ["Package", "Dependents", "pts"],
             row: HubDependency { package } (smell, location, pts) => [
                 package,
                 format!("{} files", smell.dependent_count().unwrap_or(0)),
@@ -87,7 +89,10 @@ impl Detector for HubDependencyDetector {
             None => return Vec::new(),
         };
 
-        let min_dependants: usize = rule.get_option("min_dependants").unwrap_or(20);
+        let min_dependents: usize = rule
+            .get_option("min_dependents")
+            .or_else(|| rule.get_option("min_dependants"))
+            .unwrap_or(20);
         let ignore_packages: Vec<String> =
             rule.get_option("ignore_packages").unwrap_or_else(|| {
                 vec![
@@ -103,10 +108,11 @@ impl Detector for HubDependencyDetector {
             .into_iter()
             .filter(|(pkg, files)| {
                 !PackageUtils::should_ignore_package(pkg, &ignore_packages)
-                    && files.len() >= min_dependants
+                    && files.len() >= min_dependents
             })
             .map(|(pkg, files)| {
                 let mut smell = ArchSmell::new_hub_dependency(pkg, files);
+                // Rule severity intentionally overrides the count-based default from factory
                 smell.severity = rule.severity;
                 smell
             })

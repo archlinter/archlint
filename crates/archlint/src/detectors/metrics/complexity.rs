@@ -1,6 +1,8 @@
 use crate::detectors::{detector, ArchSmell, Detector, DetectorCategory};
 use crate::engine::AnalysisContext;
 
+/// Initializes the detector module.
+/// This function is used for module registration side-effects.
 pub fn init() {}
 
 #[detector(
@@ -16,7 +18,8 @@ impl ComplexityDetector {
         Self
     }
 
-    pub fn detect_file(
+    fn detect_file(
+        &self,
         file_path: &std::path::Path,
         functions: &[crate::parser::FunctionComplexity],
         threshold: usize,
@@ -87,19 +90,10 @@ impl Detector for ComplexityDetector {
                 .or(rule.get_option("function_threshold"))
                 .unwrap_or(15);
 
-            for func in functions {
-                if func.complexity >= function_threshold {
-                    let mut smell = ArchSmell::new_high_complexity(
-                        path.clone(),
-                        func.name.to_string(),
-                        func.line,
-                        func.complexity,
-                        function_threshold,
-                        Some(func.range),
-                    );
-                    smell.severity = rule.severity;
-                    smells.push(smell);
-                }
+            let file_smells = self.detect_file(path, functions, function_threshold);
+            for mut smell in file_smells {
+                smell.severity = rule.severity;
+                smells.push(smell);
             }
         }
 

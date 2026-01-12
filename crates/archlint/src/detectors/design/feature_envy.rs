@@ -3,6 +3,8 @@ use crate::engine::AnalysisContext;
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 
+/// Initializes the detector module.
+/// This function is used for module registration side-effects.
 pub fn init() {}
 
 #[detector(
@@ -123,6 +125,7 @@ impl Detector for FeatureEnvyDetector {
 
     fn detect(&self, ctx: &AnalysisContext) -> Vec<ArchSmell> {
         ctx.file_symbols
+            .as_ref()
             .iter()
             .filter_map(|(path, symbols)| {
                 let rule = ctx.get_rule_for_file("feature_envy", path)?;
