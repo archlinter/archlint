@@ -132,11 +132,21 @@ impl AnalysisEngine {
         files_len: usize,
         presets: Vec<FrameworkPreset>,
     ) -> Result<AnalysisReport> {
+        let AnalysisContext {
+            graph,
+            file_symbols,
+            function_complexity,
+            file_metrics,
+            ignored_lines,
+            churn_map,
+            ..
+        } = ctx;
+
         let filtered_smells: Vec<_> = all_smells
             .into_iter()
             .filter(|smell| {
                 // Check if smell is ignored by inline comments
-                if self.is_smell_ignored_by_comments(smell, &ctx.ignored_lines) {
+                if self.is_smell_ignored_by_comments(smell, &ignored_lines) {
                     return false;
                 }
 
@@ -153,17 +163,15 @@ impl AnalysisEngine {
         let mut report = AnalysisReportBuilder::new()
             .with_smells(filtered_smells)
             .with_graph(Some(
-                Arc::try_unwrap(ctx.graph).unwrap_or_else(|arc| (*arc).clone()),
+                Arc::try_unwrap(graph).unwrap_or_else(|arc| (*arc).clone()),
             ))
-            .with_symbols(Arc::try_unwrap(ctx.file_symbols).unwrap_or_else(|arc| (*arc).clone()))
-            .with_metrics(Arc::try_unwrap(ctx.file_metrics).unwrap_or_else(|arc| (*arc).clone()))
+            .with_symbols(Arc::try_unwrap(file_symbols).unwrap_or_else(|arc| (*arc).clone()))
+            .with_metrics(Arc::try_unwrap(file_metrics).unwrap_or_else(|arc| (*arc).clone()))
             .with_complexity(
-                Arc::try_unwrap(ctx.function_complexity).unwrap_or_else(|arc| (*arc).clone()),
+                Arc::try_unwrap(function_complexity).unwrap_or_else(|arc| (*arc).clone()),
             )
-            .with_ignored_lines(
-                Arc::try_unwrap(ctx.ignored_lines).unwrap_or_else(|arc| (*arc).clone()),
-            )
-            .with_churn(ctx.churn_map)
+            .with_ignored_lines(Arc::try_unwrap(ignored_lines).unwrap_or_else(|arc| (*arc).clone()))
+            .with_churn(churn_map)
             .with_presets(presets)
             .with_config(self.config.clone())
             .with_files_analyzed(files_len)

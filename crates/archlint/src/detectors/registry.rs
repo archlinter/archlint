@@ -37,10 +37,10 @@ pub struct DetectorRegistry {
 
 impl DetectorRegistry {
     pub fn new() -> Self {
-        // Force initialization of all detector modules
-        crate::detectors::init();
-
         let factories = REGISTRY_FACTORIES.get_or_init(|| {
+            // Force initialization of all detector modules
+            crate::detectors::init();
+
             let mut m = HashMap::new();
             for factory in inventory::iter::<&'static dyn DetectorFactory> {
                 m.insert(factory.info().id, *factory);

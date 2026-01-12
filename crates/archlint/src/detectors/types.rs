@@ -439,7 +439,7 @@ impl std::str::FromStr for Severity {
     }
 }
 
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Explanation {
     pub problem: String,
     pub reason: String,

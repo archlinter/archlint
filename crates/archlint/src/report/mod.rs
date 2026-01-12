@@ -660,18 +660,11 @@ impl AnalysisReportBuilder {
 
     pub fn build(self) -> AnalysisReport {
         let config = self.config.unwrap_or_default();
-        let registry = crate::detectors::DetectorRegistry::new();
         let smells_with_explanations = self
             .smells
             .into_iter()
             .map(|smell| {
-                let detector_id = smell.smell_type.category().to_id();
-                let explanation =
-                    if let Some(detector) = registry.create_detector(detector_id, &config) {
-                        detector.explain(&smell)
-                    } else {
-                        ExplainEngine::explain(&smell, &config)
-                    };
+                let explanation = ExplainEngine::explain(&smell, &config);
                 (smell, explanation)
             })
             .collect();
