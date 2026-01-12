@@ -1,4 +1,4 @@
-use archlint::args::{Language, OutputFormat, ScanArgs};
+use archlint::args::{OutputFormat, ScanArgs};
 use archlint::{
     cache, cli, config, detectors, engine, glob_expand, report, watch, AnalysisError, Result,
 };
@@ -163,12 +163,7 @@ fn resolve_scan_args(args: ScanArgs) -> Result<ScanArgs> {
 
     // If it contains glob characters, expand it
     if path_str.contains('*') || path_str.contains('?') || path_str.contains('[') {
-        let extensions = match args.lang {
-            Language::TypeScript => vec!["ts", "tsx"],
-            Language::JavaScript => vec!["js", "jsx"],
-        };
-
-        let expansion = glob_expand::expand_glob(&path_str, &extensions)?;
+        let expansion = glob_expand::expand_glob(&path_str, archlint::args::SUPPORTED_EXTENSIONS)?;
 
         if expansion.files.is_empty() {
             return Err(AnalysisError::PathResolution(format!(
@@ -255,10 +250,10 @@ fn handle_watch_command(args: cli::WatchArgs) -> Result<()> {
     let mut ignore_patterns = config.watch.ignore.clone();
     ignore_patterns.extend(args.ignore.clone());
 
-    let extensions = match args.scan.lang {
-        Language::TypeScript => vec!["ts".to_string(), "tsx".to_string()],
-        Language::JavaScript => vec!["js".to_string(), "jsx".to_string()],
-    };
+    let extensions = archlint::args::SUPPORTED_EXTENSIONS
+        .iter()
+        .map(|&e| e.to_string())
+        .collect();
 
     let watch_config = watch::WatchConfig {
         debounce_ms,

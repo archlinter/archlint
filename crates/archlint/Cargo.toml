@@ -42,6 +42,7 @@ compact_str.workspace = true
 smallvec.workspace = true
 mimalloc.workspace = true
 memchr.workspace = true
+include_dir.workspace = true
 
 ignore.workspace = true
 glob.workspace = true

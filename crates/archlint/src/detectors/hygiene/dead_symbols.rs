@@ -222,6 +222,7 @@ impl DeadSymbolsDetector {
         ctx: &AnalysisContext,
     ) -> Vec<ArchSmell> {
         let ignored_methods = Self::build_ignored_methods_set(ctx);
+        let contract_methods = Self::build_contract_methods_map(ctx);
         let mut smells = Vec::new();
 
         for (file_path, symbols) in file_symbols {
@@ -235,11 +236,18 @@ impl DeadSymbolsDetector {
                     inheritance_ctx,
                     entry_points,
                     &ignored_methods,
+                    &contract_methods,
                 ));
             }
         }
 
         smells
+    }
+
+    fn build_contract_methods_map(ctx: &AnalysisContext) -> HashMap<String, Vec<String>> {
+        let rule = ctx.resolve_rule("dead_symbols", None);
+        rule.get_option::<HashMap<String, Vec<String>>>("contract_methods")
+            .unwrap_or_default()
     }
 
     fn build_ignored_methods_set(ctx: &AnalysisContext) -> HashSet<String> {
@@ -266,11 +274,12 @@ impl DeadSymbolsDetector {
         inheritance_ctx: &InheritanceContext,
         entry_points: &HashSet<PathBuf>,
         ignored_methods: &HashSet<String>,
+        contract_methods: &HashMap<String, Vec<String>>,
     ) -> Vec<ArchSmell> {
         let mut smells = Vec::new();
 
         for method in &class.methods {
-            if Self::should_skip_method(method, ignored_methods) {
+            if Self::should_skip_method(method, class, ignored_methods, contract_methods) {
                 continue;
             }
 
@@ -293,11 +302,32 @@ impl DeadSymbolsDetector {
 
     fn should_skip_method(
         method: &crate::parser::MethodSymbol,
+        class: &crate::parser::ClassSymbol,
         ignored_methods: &HashSet<String>,
+        contract_methods: &HashMap<String, Vec<String>>,
     ) -> bool {
-        ignored_methods.contains(method.name.as_str())
+        if ignored_methods.contains(method.name.as_str())
             || method.has_decorators
             || method.is_accessor
+        {
+            return true;
+        }
+
+        for interface in &class.implements {
+            let interface_name = if let Some(dot_pos) = interface.rfind('.') {
+                &interface[dot_pos + 1..]
+            } else {
+                interface.as_str()
+            };
+
+            if let Some(methods) = contract_methods.get(interface_name) {
+                if methods.iter().any(|m| m == method.name.as_str()) {
+                    return true;
+                }
+            }
+        }
+
+        false
     }
 
     #[allow(clippy::too_many_arguments)]
@@ -929,5 +959,72 @@ mod tests {
             }
         });
         assert!(child_unused_dead, "Child.unusedMethod should be dead");
+    }
+
+    #[test]
+    fn test_contract_methods_skip() {
+        let code = r#"
+            export class ThrottlerConfig implements ThrottlerOptionsFactory {
+                createThrottlerOptions() { return {}; }
+                unusedMethod() { return 1; }
+            }
+        "#;
+        let path = PathBuf::from("config.ts");
+        let parser = ImportParser::new().unwrap();
+        let parsed = parser.parse_code(code, &path).unwrap();
+
+        let mut file_symbols = HashMap::new();
+        file_symbols.insert(path.clone(), parsed.symbols);
+
+        let mut ctx = AnalysisContext::default_for_test();
+        ctx.file_symbols = Arc::new(file_symbols);
+
+        // Setup config with contract_methods
+        let mut options = serde_yaml::Mapping::new();
+        let mut contract_methods = serde_yaml::Mapping::new();
+        contract_methods.insert(
+            serde_yaml::Value::String("ThrottlerOptionsFactory".to_string()),
+            serde_yaml::Value::Sequence(vec![serde_yaml::Value::String(
+                "createThrottlerOptions".to_string(),
+            )]),
+        );
+        options.insert(
+            serde_yaml::Value::String("contract_methods".to_string()),
+            serde_yaml::Value::Mapping(contract_methods),
+        );
+
+        ctx.config.rules.insert(
+            "dead_symbols".to_string(),
+            crate::config::RuleConfig::Full(crate::config::RuleFullConfig {
+                enabled: Some(true),
+                severity: None,
+                exclude: vec![],
+                options: serde_yaml::Value::Mapping(options),
+            }),
+        );
+
+        let detector = DeadSymbolsDetector;
+        let smells = detector.detect(&ctx);
+
+        let contract_smell = smells.iter().find(|s| {
+            if let crate::detectors::SmellType::DeadSymbol { name, .. } = &s.smell_type {
+                name.contains("createThrottlerOptions")
+            } else {
+                false
+            }
+        });
+        assert!(contract_smell.is_none(), "Contract method should be alive");
+
+        let unused_smell = smells.iter().find(|s| {
+            if let crate::detectors::SmellType::DeadSymbol { name, .. } = &s.smell_type {
+                name.contains("unusedMethod")
+            } else {
+                false
+            }
+        });
+        assert!(
+            unused_smell.is_some(),
+            "Normal unused method should be dead"
+        );
     }
 }

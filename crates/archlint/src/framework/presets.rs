@@ -14,13 +14,18 @@ pub struct FrameworkPreset {
 pub fn get_presets(frameworks: &[Framework]) -> Vec<FrameworkPreset> {
     frameworks
         .iter()
-        .filter_map(|&f| {
+        .filter_map(|f| {
             let name = match f {
                 Framework::NestJS => "nestjs",
                 Framework::NextJS => "nextjs",
+                Framework::Express => "express",
                 Framework::React => "react",
+                Framework::Angular => "angular",
+                Framework::Vue => "vue",
+                Framework::TypeORM => "typeorm",
+                Framework::Prisma => "prisma",
                 Framework::Oclif => "oclif",
-                _ => return None,
+                Framework::Generic(name) => name.as_str(),
             };
             PresetLoader::load_builtin(name).ok()
         })

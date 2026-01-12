@@ -6,24 +6,25 @@ use std::path::Path;
 
 pub struct PresetLoader;
 
-const BUILTIN_PRESETS: &[(&str, &str)] = &[
-    ("nestjs", include_str!("../../../../presets/nestjs.yaml")),
-    ("nextjs", include_str!("../../../../presets/nextjs.yaml")),
-    ("react", include_str!("../../../../presets/react.yaml")),
-    ("oclif", include_str!("../../../../presets/oclif.yaml")),
-];
+use include_dir::{include_dir, Dir};
+
+static PRESETS_DIR: Dir<'_> = include_dir!("$CARGO_MANIFEST_DIR/../../presets");
 
 impl PresetLoader {
     pub fn load_builtin(name: &str) -> Result<FrameworkPreset> {
-        let content = BUILTIN_PRESETS
-            .iter()
-            .find(|(n, _)| *n == name)
-            .map(|(_, c)| *c)
+        let content = Self::get_builtin_content(name)
             .ok_or_else(|| anyhow!("Built-in preset not found: {}", name))?;
 
         let yaml: PresetYaml = serde_yaml::from_str(content)
             .map_err(|e| anyhow!("Failed to parse built-in preset '{}': {}", name, e))?;
         Ok(Self::convert(yaml))
+    }
+
+    fn get_builtin_content(name: &str) -> Option<&'static str> {
+        PRESETS_DIR
+            .get_file(format!("{}.yaml", name))
+            .or_else(|| PRESETS_DIR.get_file(format!("{}.yml", name)))
+            .and_then(|f| f.contents_utf8())
     }
 
     pub fn load_file<P: AsRef<Path>>(path: P) -> Result<FrameworkPreset> {
@@ -164,15 +165,23 @@ impl PresetLoader {
     }
 
     pub fn get_builtin_yaml(name: &str) -> Option<PresetYaml> {
-        let content = BUILTIN_PRESETS
-            .iter()
-            .find(|(n, _)| *n == name)
-            .map(|(_, c)| *c)?;
+        let content = Self::get_builtin_content(name)?;
         serde_yaml::from_str(content).ok()
     }
 
     pub fn get_all_builtin_names() -> Vec<&'static str> {
-        BUILTIN_PRESETS.iter().map(|(n, _)| *n).collect()
+        PRESETS_DIR
+            .files()
+            .filter_map(|f| {
+                let name = f.path().file_stem()?.to_str()?;
+                let ext = f.path().extension()?.to_str()?;
+                if ext == "yaml" || ext == "yml" {
+                    Some(name)
+                } else {
+                    None
+                }
+            })
+            .collect()
     }
 }
 

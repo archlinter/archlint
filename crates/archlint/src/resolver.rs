@@ -91,7 +91,7 @@ impl PathResolver {
             }
         }
 
-        let extensions = ["ts", "tsx", "js", "jsx", "mjs", "cjs"];
+        let extensions = ["ts", "tsx", "mts", "cts", "js", "jsx", "mjs", "cjs"];
 
         // Try adding extensions (don't use with_extension as it replaces existing ones like .service)
         for ext in &extensions {

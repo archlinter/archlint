@@ -111,9 +111,14 @@ impl FrameworkDetector {
         match name.to_lowercase().as_str() {
             "nestjs" => Some(Framework::NestJS),
             "nextjs" | "next.js" => Some(Framework::NextJS),
+            "express" => Some(Framework::Express),
             "react" => Some(Framework::React),
+            "angular" => Some(Framework::Angular),
+            "vue" => Some(Framework::Vue),
+            "typeorm" => Some(Framework::TypeORM),
+            "prisma" => Some(Framework::Prisma),
             "oclif" => Some(Framework::Oclif),
-            _ => None,
+            other => Some(Framework::Generic(other.to_string())),
         }
     }
 }

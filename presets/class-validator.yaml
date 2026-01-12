@@ -1,0 +1,11 @@
+name: class-validator
+version: 1
+detect:
+  packages:
+    any_of:
+      - 'class-validator'
+
+rules:
+  dead_symbols:
+    contract_methods:
+      ValidatorConstraintInterface: ['validate', 'defaultMessage']

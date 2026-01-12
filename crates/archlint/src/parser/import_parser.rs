@@ -51,7 +51,7 @@ impl ImportParser {
 
         if path
             .extension()
-            .is_some_and(|ext| ext == "ts" || ext == "tsx")
+            .is_some_and(|ext| ext == "ts" || ext == "tsx" || ext == "mts" || ext == "cts")
         {
             source_type = source_type.with_typescript(true);
         }

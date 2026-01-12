@@ -6,7 +6,7 @@ use std::collections::HashSet;
 use std::path::PathBuf;
 
 /// Detailed information about a specific location in a source file.
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord)]
 pub struct LocationDetail {
     /// Absolute path to the file.
     pub file: PathBuf,
@@ -42,7 +42,9 @@ impl LocationDetail {
 }
 
 /// A range of code in a source file.
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Hash, Copy, Default)]
+#[derive(
+    Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Hash, Copy, Default, PartialOrd, Ord,
+)]
 pub struct CodeRange {
     pub start_line: usize,
     pub start_column: usize,
@@ -51,7 +53,7 @@ pub struct CodeRange {
 }
 
 /// A group of interconnected cyclic dependencies.
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord)]
 pub struct CycleCluster {
     pub files: Vec<PathBuf>,
     pub hotspots: Vec<HotspotInfo>,
@@ -60,7 +62,7 @@ pub struct CycleCluster {
 }
 
 /// Information about a file that is a "hotspot" within a cycle cluster.
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord)]
 pub struct HotspotInfo {
     pub file: PathBuf,
     pub in_degree: usize,
@@ -68,7 +70,7 @@ pub struct HotspotInfo {
 }
 
 /// A dependency edge that is part of a cycle.
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord)]
 pub struct CriticalEdge {
     pub from: PathBuf,
     pub to: PathBuf,

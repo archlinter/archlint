@@ -1,7 +1,7 @@
-use crate::args::{Language, ScanArgs};
+use crate::args::ScanArgs;
 use crate::cache::hash::file_content_hash;
 use crate::cache::AnalysisCache;
-use crate::config::{Config, RuleConfig};
+use crate::config::{Config, RuleConfig, RuleSeverity};
 use crate::detectors::{self, Severity, SmellType};
 use crate::engine::builder::EngineBuilder;
 use crate::engine::detector_runner::{apply_arg_overrides, DetectorRunner};
@@ -238,7 +238,7 @@ impl AnalysisEngine {
             style(
                 detected
                     .iter()
-                    .map(|f| format!("{:?}", f))
+                    .map(|f| f.to_string())
                     .collect::<Vec<_>>()
                     .join(", ")
             )
@@ -251,6 +251,7 @@ impl AnalysisEngine {
                 Framework::NextJS => "nextjs",
                 Framework::React => "react",
                 Framework::Oclif => "oclif",
+                Framework::Generic(name) => name.as_str(),
                 _ => continue,
             };
             if !self.config.extends.contains(&name.to_string()) {
@@ -277,10 +278,10 @@ impl AnalysisEngine {
     }
 
     fn discover_files(&self) -> Result<Vec<PathBuf>> {
-        let extensions = match self.args.lang {
-            Language::TypeScript => vec!["ts".to_string(), "tsx".to_string()],
-            Language::JavaScript => vec!["js".to_string(), "jsx".to_string()],
-        };
+        let extensions = crate::args::SUPPORTED_EXTENSIONS
+            .iter()
+            .map(|&e| e.to_string())
+            .collect();
 
         let all_files = if let Some(ref explicit_files) = self.args.files {
             explicit_files.clone()
@@ -350,15 +351,27 @@ impl AnalysisEngine {
 
     fn merge_preset_into_config(&self, config: &mut Config, preset: &FrameworkPreset) {
         for (rule_name, preset_rule) in &preset.rules {
-            let user_rule = config
-                .rules
-                .entry(rule_name.clone())
-                .or_insert_with(|| preset_rule.clone());
+            if !config.rules.contains_key(rule_name) {
+                config.rules.insert(rule_name.clone(), preset_rule.clone());
+                continue;
+            }
 
-            if let (RuleConfig::Full(preset_full), RuleConfig::Full(user_rule_full)) =
-                (preset_rule, user_rule)
-            {
-                Self::merge_options(&mut user_rule_full.options, &preset_full.options);
+            let user_rule = config.rules.get_mut(rule_name).unwrap();
+
+            match (preset_rule, user_rule) {
+                (RuleConfig::Full(p_full), RuleConfig::Full(u_full)) => {
+                    Self::merge_options(&mut u_full.options, &p_full.options);
+                }
+                (RuleConfig::Full(p_full), RuleConfig::Short(u_sev)) => {
+                    // Convert user's short config to full config to keep preset's options
+                    let mut new_full = p_full.clone();
+                    new_full.severity = Some(*u_sev);
+                    if *u_sev == RuleSeverity::Off {
+                        new_full.enabled = Some(false);
+                    }
+                    *config.rules.get_mut(rule_name).unwrap() = RuleConfig::Full(new_full);
+                }
+                _ => {}
             }
         }
 
@@ -376,18 +389,25 @@ impl AnalysisEngine {
     }
 
     fn merge_options(user_options: &mut serde_yaml::Value, preset_options: &serde_yaml::Value) {
-        let (Some(user_map), Some(preset_map)) =
-            (user_options.as_mapping_mut(), preset_options.as_mapping())
-        else {
+        if user_options.is_null() {
+            *user_options = preset_options.clone();
             return;
-        };
+        }
 
-        for (key, preset_val) in preset_map {
-            if !user_map.contains_key(key) {
-                user_map.insert(key.clone(), preset_val.clone());
-            } else {
-                let user_val = user_map.get_mut(key).unwrap();
-                Self::merge_sequences(user_val, preset_val);
+        if let (Some(user_map), Some(preset_map)) =
+            (user_options.as_mapping_mut(), preset_options.as_mapping())
+        {
+            for (key, preset_val) in preset_map {
+                if !user_map.contains_key(key) {
+                    user_map.insert(key.clone(), preset_val.clone());
+                } else {
+                    let user_val = user_map.get_mut(key).unwrap();
+                    if user_val.is_mapping() && preset_val.is_mapping() {
+                        Self::merge_options(user_val, preset_val);
+                    } else {
+                        Self::merge_sequences(user_val, preset_val);
+                    }
+                }
             }
         }
     }
@@ -605,5 +625,120 @@ impl AnalysisEngine {
                 HashMap::new()
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::config::{RuleConfig, RuleFullConfig, RuleSeverity};
+    use crate::framework::presets::FrameworkPreset;
+    use serde_yaml::Value;
+    use std::collections::HashMap;
+
+    #[test]
+    fn test_merge_preset_into_config_short_to_full() {
+        let mut config = Config::default();
+        config.rules.insert(
+            "dead_symbols".to_string(),
+            RuleConfig::Short(RuleSeverity::High),
+        );
+
+        let mut preset_rules = HashMap::new();
+        let mut options = serde_yaml::Mapping::new();
+        options.insert(
+            Value::String("ignore_methods".to_string()),
+            Value::Sequence(vec![Value::String("intercept".to_string())]),
+        );
+        preset_rules.insert(
+            "dead_symbols".to_string(),
+            RuleConfig::Full(RuleFullConfig {
+                enabled: Some(true),
+                severity: Some(RuleSeverity::Low),
+                exclude: vec![],
+                options: Value::Mapping(options),
+            }),
+        );
+        let preset = FrameworkPreset {
+            name: "test".to_string(),
+            rules: preset_rules,
+            entry_points: vec![],
+            overrides: vec![],
+        };
+
+        let engine = AnalysisEngine {
+            args: crate::args::ScanArgs {
+                path: std::path::PathBuf::from("."),
+                config: None,
+                report: None,
+                format: crate::args::OutputFormat::Table,
+                json: false,
+                no_diagram: false,
+                all_detectors: false,
+                detectors: None,
+                exclude_detectors: None,
+                quiet: false,
+                verbose: false,
+                min_severity: None,
+                min_score: None,
+                severity: None,
+                no_cache: false,
+                no_git: false,
+                git_history_period: Some("all".to_string()),
+                max_file_size: None,
+                files: None,
+            },
+            config: config.clone(),
+            project_root: std::path::PathBuf::from("."),
+            target_path: std::path::PathBuf::from("."),
+        };
+        engine.merge_preset_into_config(&mut config, &preset);
+
+        if let Some(RuleConfig::Full(full)) = config.rules.get("dead_symbols") {
+            assert_eq!(full.severity, Some(RuleSeverity::High));
+            let ignore_methods = full
+                .options
+                .as_mapping()
+                .unwrap()
+                .get(Value::String("ignore_methods".to_string()))
+                .unwrap()
+                .as_sequence()
+                .unwrap();
+            assert!(ignore_methods.contains(&Value::String("intercept".to_string())));
+        } else {
+            panic!("Rule should be Full");
+        }
+    }
+
+    #[test]
+    fn test_merge_options_recursive() {
+        let mut user_options = serde_yaml::from_str::<serde_yaml::Value>(
+            r#"
+            contract_methods:
+              MyInterface: ["method1"]
+        "#,
+        )
+        .unwrap();
+
+        let preset_options = serde_yaml::from_str::<serde_yaml::Value>(
+            r#"
+            contract_methods:
+              OtherInterface: ["method2"]
+        "#,
+        )
+        .unwrap();
+
+        AnalysisEngine::merge_options(&mut user_options, &preset_options);
+
+        let merged = user_options
+            .as_mapping()
+            .unwrap()
+            .get(Value::String("contract_methods".to_string()))
+            .unwrap()
+            .as_mapping()
+            .unwrap();
+
+        assert!(merged.contains_key(Value::String("MyInterface".to_string())));
+        assert!(merged.contains_key(Value::String("OtherInterface".to_string())));
     }
 }
