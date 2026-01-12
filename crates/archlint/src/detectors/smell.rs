@@ -121,6 +121,8 @@ impl ArchSmell {
     impl_metric_accessor!(cbo, Cbo, usize);
     impl_metric_accessor!(depth, Depth, usize);
     impl_metric_accessor!(token_count, TokenCount, usize);
+    impl_metric_accessor!(parameter_count, ParameterCount, usize);
+    impl_metric_accessor!(primitive_count, PrimitiveCount, usize);
 
     /// Get the severity level of this smell.
     pub fn effective_severity(&self) -> Severity {
@@ -710,7 +712,7 @@ impl ArchSmell {
             },
             severity: Severity::Low,
             files: vec![path.clone()],
-            metrics: vec![SmellMetric::DependentCount(count)],
+            metrics: vec![SmellMetric::ParameterCount(count)],
             locations: vec![LocationDetail::new(
                 path,
                 line,
@@ -729,7 +731,7 @@ impl ArchSmell {
             },
             severity: Severity::Low,
             files: vec![path.clone()],
-            metrics: vec![SmellMetric::DependentCount(primitives)],
+            metrics: vec![SmellMetric::PrimitiveCount(primitives)],
             locations: vec![LocationDetail::new(
                 path,
                 0,

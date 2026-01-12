@@ -46,10 +46,10 @@ impl Detector for DeadCodeDetector {
             columns: ["File", "Directory", "pts"],
             row: DeadCode { } (smell, location, pts) => [
                 location,
-                {
-                    let file_path = smell.files.first().unwrap();
-                    file_path.parent().map(|p| p.to_string_lossy().to_string()).unwrap_or_else(|| ".".into())
-                },
+                smell.files.first()
+                    .and_then(|file_path| file_path.parent())
+                    .map(|p| p.to_string_lossy().to_string())
+                    .unwrap_or_else(|| ".".into()),
                 pts
             ]
         }

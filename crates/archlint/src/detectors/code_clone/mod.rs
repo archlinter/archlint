@@ -142,7 +142,7 @@ impl Detector for CodeCloneDetector {
             title: "Code Clones",
             columns: ["Clone Info", "pts"],
             row: CodeClone { clone_hash, token_count } (smell, location, pts) => [
-                format!("Clone `{}` ({} tokens)", &clone_hash[..8], token_count),
+                format!("Clone `{}` ({} tokens)", &clone_hash[..clone_hash.len().min(8)], token_count),
                 pts
             ]
         }

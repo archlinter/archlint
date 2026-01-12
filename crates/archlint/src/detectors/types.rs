@@ -342,4 +342,6 @@ pub enum SmellMetric {
     Distance(f64),
     TokenCount(usize),
     CloneInstances(usize),
+    ParameterCount(usize),
+    PrimitiveCount(usize),
 }

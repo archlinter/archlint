@@ -546,8 +546,8 @@ impl Detector for DeadSymbolsDetector {
         },
         table: {
             title: "Dead Symbols",
-            columns: ["Location", "Symbol", "Kind"],
-            row: DeadSymbol { name, kind } (smell, location, pts) => [location, name, kind]
+            columns: ["Location", "Symbol", "Kind", "pts"],
+            row: DeadSymbol { name, kind } (smell, location, pts) => [location, name, kind, pts]
         }
     );
 

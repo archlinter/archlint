@@ -23,17 +23,23 @@ impl VendorCouplingDetector {
     }
 
     fn collect_package_usage(&self, ctx: &AnalysisContext) -> HashMap<String, Vec<PathBuf>> {
-        let mut package_usage: HashMap<String, Vec<PathBuf>> = HashMap::new();
+        let mut package_usage: HashMap<String, HashSet<PathBuf>> = HashMap::new();
 
         for (path, symbols) in ctx.file_symbols.as_ref() {
             if let Some(packages) = self.get_file_external_packages(ctx, path, symbols) {
                 for package in packages {
-                    package_usage.entry(package).or_default().push(path.clone());
+                    package_usage
+                        .entry(package)
+                        .or_default()
+                        .insert(path.clone());
                 }
             }
         }
 
         package_usage
+            .into_iter()
+            .map(|(pkg, files)| (pkg, files.into_iter().collect()))
+            .collect()
     }
 
     fn get_file_external_packages(

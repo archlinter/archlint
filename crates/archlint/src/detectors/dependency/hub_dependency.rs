@@ -49,7 +49,7 @@ impl Detector for HubDependencyDetector {
     crate::impl_detector_report!(
         name: "HubDependency",
         explain: smell => {
-            let count = smell.files.len();
+            let count = smell.dependent_count().unwrap_or(0);
             let package = if let crate::detectors::SmellType::HubDependency { package } = &smell.smell_type {
                 package.as_str()
             } else {
@@ -75,7 +75,7 @@ impl Detector for HubDependencyDetector {
             columns: ["Package", "Dependants", "pts"],
             row: HubDependency { package } (smell, location, pts) => [
                 package,
-                format!("{} files", smell.files.len()),
+                format!("{} files", smell.dependent_count().unwrap_or(0)),
                 pts
             ]
         }
