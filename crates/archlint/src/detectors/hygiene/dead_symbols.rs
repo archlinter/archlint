@@ -47,6 +47,7 @@ impl DeadSymbolsDetector {
             file_symbols,
             &symbol_usages,
             &inheritance_ctx,
+            entry_points,
             ctx,
         ));
         all_smells.extend(Self::check_dead_exports(
@@ -153,6 +154,7 @@ impl DeadSymbolsDetector {
         for (importer_path, symbols) in file_symbols {
             for import in &symbols.imports {
                 let source_path = PathBuf::from(import.source.as_str());
+
                 symbol_usages
                     .entry((source_path, import.name.to_string()))
                     .or_default()
@@ -216,6 +218,7 @@ impl DeadSymbolsDetector {
         file_symbols: &HashMap<PathBuf, FileSymbols>,
         symbol_usages: &HashMap<(PathBuf, String), HashSet<PathBuf>>,
         inheritance_ctx: &InheritanceContext,
+        entry_points: &HashSet<PathBuf>,
         ctx: &AnalysisContext,
     ) -> Vec<ArchSmell> {
         let ignored_methods = Self::build_ignored_methods_set(ctx);
@@ -230,6 +233,7 @@ impl DeadSymbolsDetector {
                     file_symbols,
                     symbol_usages,
                     inheritance_ctx,
+                    entry_points,
                     &ignored_methods,
                 ));
             }
@@ -252,6 +256,7 @@ impl DeadSymbolsDetector {
         ignored_methods
     }
 
+    #[allow(clippy::too_many_arguments)]
     fn check_class_methods(
         file_path: &Path,
         class: &crate::parser::ClassSymbol,
@@ -259,6 +264,7 @@ impl DeadSymbolsDetector {
         file_symbols: &HashMap<PathBuf, FileSymbols>,
         symbol_usages: &HashMap<(PathBuf, String), HashSet<PathBuf>>,
         inheritance_ctx: &InheritanceContext,
+        entry_points: &HashSet<PathBuf>,
         ignored_methods: &HashSet<String>,
     ) -> Vec<ArchSmell> {
         let mut smells = Vec::new();
@@ -276,6 +282,7 @@ impl DeadSymbolsDetector {
                 file_symbols,
                 symbol_usages,
                 inheritance_ctx,
+                entry_points,
             ) {
                 smells.push(Self::create_dead_method_smell(file_path, class, method));
             }
@@ -293,6 +300,7 @@ impl DeadSymbolsDetector {
             || method.is_accessor
     }
 
+    #[allow(clippy::too_many_arguments)]
     fn is_method_used(
         method: &crate::parser::MethodSymbol,
         file_path: &Path,
@@ -301,8 +309,16 @@ impl DeadSymbolsDetector {
         file_symbols: &HashMap<PathBuf, FileSymbols>,
         symbol_usages: &HashMap<(PathBuf, String), HashSet<PathBuf>>,
         inheritance_ctx: &InheritanceContext,
+        entry_points: &HashSet<PathBuf>,
     ) -> bool {
         if symbols.local_usages.contains(method.name.as_str()) {
+            return true;
+        }
+
+        // If class itself is defined in entry point, all non-private methods are considered used
+        if method.accessibility != Some(MethodAccessibility::Private)
+            && entry_points.contains(file_path)
+        {
             return true;
         }
 
@@ -330,6 +346,7 @@ impl DeadSymbolsDetector {
                 file_symbols,
                 symbol_usages,
                 inheritance_ctx,
+                entry_points,
             )
         {
             return true;
@@ -345,11 +362,17 @@ impl DeadSymbolsDetector {
         file_symbols: &HashMap<PathBuf, FileSymbols>,
         symbol_usages: &HashMap<(PathBuf, String), HashSet<PathBuf>>,
         inheritance_ctx: &InheritanceContext,
+        entry_points: &HashSet<PathBuf>,
     ) -> bool {
         let all_importers =
             Self::collect_class_importers(file_path, class, symbol_usages, inheritance_ctx);
 
         for importer_path in all_importers {
+            // If importer is an entry point, we consider non-private methods as used (part of public API)
+            if entry_points.contains(&importer_path) {
+                return true;
+            }
+
             if let Some(importer_symbols) = file_symbols.get(&importer_path) {
                 if importer_symbols.local_usages.contains(method.name.as_str()) {
                     return true;

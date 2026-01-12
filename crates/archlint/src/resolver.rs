@@ -75,10 +75,25 @@ impl PathResolver {
             ));
         }
 
-        let extensions = ["ts", "tsx", "js", "jsx"];
+        let base_str = base.to_string_lossy();
+
+        // Special case for TS ESM: if importing .js but only .ts exists
+        if base_str.ends_with(".js") {
+            let ts_base = PathBuf::from(base_str.replace(".js", ".ts"));
+            if ts_base.exists() && ts_base.is_file() {
+                return Ok(Some(ts_base.canonicalize().unwrap_or(ts_base)));
+            }
+        }
+        if base_str.ends_with(".jsx") {
+            let tsx_base = PathBuf::from(base_str.replace(".jsx", ".tsx"));
+            if tsx_base.exists() && tsx_base.is_file() {
+                return Ok(Some(tsx_base.canonicalize().unwrap_or(tsx_base)));
+            }
+        }
+
+        let extensions = ["ts", "tsx", "js", "jsx", "mjs", "cjs"];
 
         // Try adding extensions (don't use with_extension as it replaces existing ones like .service)
-        let base_str = base.to_string_lossy();
         for ext in &extensions {
             let with_ext = PathBuf::from(format!("{}.{}", base_str, ext));
             if with_ext.exists() && with_ext.is_file() {
