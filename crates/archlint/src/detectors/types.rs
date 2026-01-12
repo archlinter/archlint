@@ -358,9 +358,7 @@ impl From<&SnapshotSmell> for SmellType {
             "ScatteredModule" => SmellType::ScatteredModule {
                 components: metric("components"),
             },
-            "HighCoupling" => SmellType::HighCoupling {
-                cbo: metric("cbo"),
-            },
+            "HighCoupling" => SmellType::HighCoupling { cbo: metric("cbo") },
             "PackageCycle" => SmellType::PackageCycle {
                 packages: d!(PackageCycle, packages),
             },
