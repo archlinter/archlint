@@ -28,6 +28,10 @@ import { usedHelper } from './utils';
 1. **Delete it**: If it's truly unused, the best action is removal.
 2. **Mark as Entry Point**: If it's part of a public API or a dynamic import, add it to `entry_points` in your config.
 
+::: tip
+**False Positives**: Architectural analysis can sometimes produce false positives, especially in projects with heavy dynamic loading, reflection, or complex Dependency Injection containers.
+:::
+
 ## Configuration
 
 ```yaml

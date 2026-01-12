@@ -12,6 +12,25 @@
 
 未使用のシンボルを削除してください。
 
+## 設定 (Configuration)
+
+```yaml
+rules:
+  dead_symbols:
+    severity: low
+    # 無視するメソッド名のリスト（フレームワークのライフサイクルメソッドなど）
+    ignore_methods:
+      - 'constructor'
+    # 実装時に無視するインターフェース/クラスメソッドのマップ
+    contract_methods:
+      MyInterface: ['method1', 'method2']
+      ValidatorConstraintInterface: ['validate', 'defaultMessage']
+```
+
+::: tip
+**誤検知**: アーキテクチャ分析は、特に動的読み込み、リフレクション、または複雑な依存関係注入（DI）コンテナを使用しているプロジェクトにおいて、誤検知が発生することがあります。
+:::
+
 ## ESLint ルール
 
 このディテクターは、エディター内でリアルタイムのフィードバックを提供する ESLint ルールとして利用可能です。

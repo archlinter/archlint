@@ -28,6 +28,10 @@ import { usedHelper } from './utils';
 1. **Delete-o**: Se estiver realmente sem uso, a melhor ação é a remoção.
 2. **Marcar como Ponto de Entrada (Entry Point)**: Se for parte de uma API pública ou um import dinâmico, adicione-o a `entry_points` na sua configuração.
 
+::: tip
+**Falsos Positivos**: A análise arquitetural pode, às vezes, produzir falsos positivos, especialmente em projetos com carregamento dinâmico pesado, reflexão ou contêineres complexos de Injeção de Dependência (DI).
+:::
+
 ## Configuração
 
 ```yaml
