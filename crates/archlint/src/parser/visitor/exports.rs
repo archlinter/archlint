@@ -1,4 +1,4 @@
-use crate::parser::types::{ExportedSymbol, SymbolKind, SymbolName, SymbolSet};
+use crate::parser::types::{ExportedSymbol, ImportedSymbol, SymbolKind, SymbolName, SymbolSet};
 use crate::parser::visitor::{interned, UnifiedVisitor};
 use oxc_ast::ast::{
     BindingPatternKind, Declaration, ExportAllDeclaration, ExportDefaultDeclaration,
@@ -52,7 +52,6 @@ impl<'a> UnifiedVisitor {
             is_mutable: false,
             is_default: false,
         });
-        use crate::parser::types::ImportedSymbol;
         self.imports.push(ImportedSymbol {
             name,
             alias: None,
@@ -230,10 +229,10 @@ impl<'a> UnifiedVisitor {
         &mut self,
         specifiers: &oxc_allocator::Vec<'_, oxc_ast::ast::ExportSpecifier<'_>>,
         source: Option<SymbolName>,
-        span: oxc_span::Span,
+        _span: oxc_span::Span,
     ) {
         for specifier in specifiers {
-            let range = self.get_range(span);
+            let range = self.get_range(specifier.span);
             let name = Self::export_name_to_compact(specifier.exported.name());
             let is_default = name == *interned::DEFAULT;
 

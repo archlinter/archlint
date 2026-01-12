@@ -554,10 +554,9 @@ impl Detector for DeadSymbolsDetector {
     );
 
     fn detect(&self, ctx: &AnalysisContext) -> Vec<ArchSmell> {
-        let _rule = match ctx.get_rule("dead_symbols") {
-            Some(r) => r,
-            None => return Vec::new(),
-        };
+        if ctx.get_rule("dead_symbols").is_none() {
+            return Vec::new();
+        }
 
         let smells = Self::detect_symbols(ctx.file_symbols.as_ref(), &ctx.script_entry_points, ctx);
 

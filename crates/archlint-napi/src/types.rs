@@ -233,6 +233,13 @@ impl ToJsU32 for Option<usize> {
     }
 }
 
+impl ToJsU32 for Option<u64> {
+    type Output = Option<u32>;
+    fn to_js_u32(self) -> Option<u32> {
+        self.map(|v| v.try_into().unwrap_or(u32::MAX))
+    }
+}
+
 impl From<JsScanOptions> for archlint::ScanOptions {
     fn from(opts: JsScanOptions) -> Self {
         archlint::ScanOptions {
