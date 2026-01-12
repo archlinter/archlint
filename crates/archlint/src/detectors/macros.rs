@@ -8,6 +8,111 @@ macro_rules! strings {
 
 #[macro_export]
 macro_rules! impl_detector_report {
+    // Shared logic for render_markdown to avoid duplication
+    (@render_markdown
+        $title:expr,
+        $smell_row:ident,
+        $loc_var:ident,
+        $pts_var:ident,
+        $variant:ident,
+        [ $($field:ident),* ],
+        $col:tt,
+        $val:tt
+    ) => {
+        fn render_markdown(
+            &self,
+            smells: &[&$crate::detectors::SmellWithExplanation],
+            severity_config: &$crate::config::SeverityConfig,
+            _graph: Option<&$crate::graph::DependencyGraph>,
+        ) -> String {
+            use $crate::detectors::SmellType;
+            use $crate::report::{format_location, format_location_detail};
+
+            $crate::impl_detector_report!(@expand_table $title, smells, severity_config, $smell_row, $loc_var, $pts_var, $variant, { $($field),* }, $col, $val)
+        }
+    };
+
+    (@render_markdown
+        $title:expr,
+        $smell_row:ident,
+        $loc_var:ident,
+        $pts_var:ident,
+        $variant:ident,
+        [],
+        $col:tt,
+        $val:tt
+    ) => {
+        fn render_markdown(
+            &self,
+            smells: &[&$crate::detectors::SmellWithExplanation],
+            severity_config: &$crate::config::SeverityConfig,
+            _graph: Option<&$crate::graph::DependencyGraph>,
+        ) -> String {
+            use $crate::detectors::SmellType;
+            use $crate::report::{format_location, format_location_detail};
+
+            $crate::impl_detector_report!(@expand_table $title, smells, severity_config, $smell_row, $loc_var, $pts_var, $variant, (), $col, $val)
+        }
+    };
+
+    (@expand_table $title:expr, $smells:ident, $severity_config:ident, $smell_row:ident, $loc_var:ident, $pts_var:ident, $variant:ident, { $($field:ident),* }, [ $($col:expr),* ], [ $($val:expr),* ]) => {
+        $crate::define_report_section!($title, $smells, {
+            $crate::render_table!(
+                vec![$($col),*],
+                $smells,
+                |&($smell_row, _): &&$crate::detectors::SmellWithExplanation| {
+                    if let SmellType::$variant { $($field,)* .. } = &$smell_row.smell_type {
+                        let $loc_var = {
+                            let file_path = $smell_row.files.first().unwrap();
+                            $smell_row.locations.first().map(format_location_detail).unwrap_or_else(|| {
+                                format_location(file_path, 0, None)
+                            })
+                        };
+                        let _ = &$loc_var;
+                        let $pts_var = format!("{} pts", $smell_row.score($severity_config));
+                        let _ = &$pts_var;
+
+                        $(let _ = &$field;)*
+
+                        vec![
+                            $($val.to_string()),*
+                        ]
+                    } else {
+                        vec!["-".into(); (vec![$($col),*]).len()]
+                    }
+                }
+            )
+        })
+    };
+
+    (@expand_table $title:expr, $smells:ident, $severity_config:ident, $smell_row:ident, $loc_var:ident, $pts_var:ident, $variant:ident, (), [ $($col:expr),* ], [ $($val:expr),* ]) => {
+        $crate::define_report_section!($title, $smells, {
+            $crate::render_table!(
+                vec![$($col),*],
+                $smells,
+                |&($smell_row, _): &&$crate::detectors::SmellWithExplanation| {
+                    if let SmellType::$variant = &$smell_row.smell_type {
+                        let $loc_var = {
+                            let file_path = $smell_row.files.first().unwrap();
+                            $smell_row.locations.first().map(format_location_detail).unwrap_or_else(|| {
+                                format_location(file_path, 0, None)
+                            })
+                        };
+                        let _ = &$loc_var;
+                        let $pts_var = format!("{} pts", $smell_row.score($severity_config));
+                        let _ = &$pts_var;
+
+                        vec![
+                            $($val.to_string()),*
+                        ]
+                    } else {
+                        vec!["-".into(); (vec![$($col),*]).len()]
+                    }
+                }
+            )
+        })
+    };
+
     // Pattern 1: Structured explain (problem/reason/risks/recommendations) - uses () delimiters
     (
         name: $name:expr,
@@ -29,7 +134,7 @@ macro_rules! impl_detector_report {
         }
 
         fn explain(&self, $smell_expl: &$crate::detectors::ArchSmell) -> $crate::detectors::Explanation {
-            let _ = $smell_expl; // avoid unused warning when smell is not used
+            let _ = $smell_expl;
             $crate::detectors::Explanation {
                 problem: String::from($problem),
                 reason: String::from($reason),
@@ -39,43 +144,7 @@ macro_rules! impl_detector_report {
         }
 
         $(
-        fn render_markdown(
-            &self,
-            smells: &[&$crate::detectors::SmellWithExplanation],
-            severity_config: &$crate::config::SeverityConfig,
-            _graph: Option<&$crate::graph::DependencyGraph>,
-        ) -> String {
-            use $crate::detectors::SmellType;
-            use $crate::report::{format_location, format_location_detail};
-
-            $crate::define_report_section!($title, smells, {
-                $crate::render_table!(
-                    vec![$($col),*],
-                    smells,
-                    |&($smell_row, _): &&$crate::detectors::SmellWithExplanation| {
-                        if let SmellType::$variant $( { $($field,)* .. } )? = &$smell_row.smell_type {
-                            let $loc_var = {
-                                let file_path = $smell_row.files.first().unwrap();
-                                $smell_row.locations.first().map(format_location_detail).unwrap_or_else(|| {
-                                    format_location(file_path, 0, None)
-                                })
-                            };
-                            let _ = &$loc_var;
-                            let $pts_var = format!("{} pts", $smell_row.score(severity_config));
-                            let _ = &$pts_var;
-
-                            $( $(let _ = &$field;)* )?
-
-                            vec![
-                                $($val.to_string()),*
-                            ]
-                        } else {
-                            vec!["-".into(); (vec![$($col),*]).len()]
-                        }
-                    }
-                )
-            })
-        }
+            $crate::impl_detector_report!(@render_markdown $title, $smell_row, $loc_var, $pts_var, $variant, [ $($($field),*)? ], [$($col),*], [$($val),*]);
         )?
     };
 
@@ -100,43 +169,7 @@ macro_rules! impl_detector_report {
         }
 
         $(
-        fn render_markdown(
-            &self,
-            smells: &[&$crate::detectors::SmellWithExplanation],
-            severity_config: &$crate::config::SeverityConfig,
-            _graph: Option<&$crate::graph::DependencyGraph>,
-        ) -> String {
-            use $crate::detectors::SmellType;
-            use $crate::report::{format_location, format_location_detail};
-
-            $crate::define_report_section!($title, smells, {
-                $crate::render_table!(
-                    vec![$($col),*],
-                    smells,
-                    |&($smell_row, _): &&$crate::detectors::SmellWithExplanation| {
-                        if let SmellType::$variant $( { $($field,)* .. } )? = &$smell_row.smell_type {
-                            let $loc_var = {
-                                let file_path = $smell_row.files.first().unwrap();
-                                $smell_row.locations.first().map(format_location_detail).unwrap_or_else(|| {
-                                    format_location(file_path, 0, None)
-                                })
-                            };
-                            let _ = &$loc_var;
-                            let $pts_var = format!("{} pts", $smell_row.score(severity_config));
-                            let _ = &$pts_var;
-
-                            $( $(let _ = &$field;)* )?
-
-                            vec![
-                                $($val.to_string()),*
-                            ]
-                        } else {
-                            vec!["-".into(); (vec![$($col),*]).len()]
-                        }
-                    }
-                )
-            })
-        }
+            $crate::impl_detector_report!(@render_markdown $title, $smell_row, $loc_var, $pts_var, $variant, [ $($($field),*)? ], [$($col),*], [$($val),*]);
         )?
     };
 }

@@ -173,7 +173,8 @@ impl FuzzyMatcher {
                 | SmellDetails::TestLeakage { .. }
                 | SmellDetails::VendorCoupling { .. }
                 | SmellDetails::PackageCycle { .. }
-                | SmellDetails::ScatteredConfiguration { .. } => None,
+                | SmellDetails::ScatteredConfiguration { .. }
+                | SmellDetails::HubDependency { .. } => None,
             };
 
             if name.is_some() {

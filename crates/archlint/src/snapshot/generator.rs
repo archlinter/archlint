@@ -261,6 +261,10 @@ impl SnapshotGenerator {
                 class_name: class_name.clone(),
             }),
 
+            SmellType::HubDependency { package } => Some(SmellDetails::HubDependency {
+                package: package.clone(),
+            }),
+
             _ => None,
         }
     }

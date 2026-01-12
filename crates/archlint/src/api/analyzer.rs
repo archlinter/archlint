@@ -290,7 +290,6 @@ impl Analyzer {
         })
     }
 
-    /// Invalidate files (e.g., deleted files)
     /// Invalidate internal state for the given files.
     ///
     /// This should be called when files are deleted or moved to ensure the
@@ -312,14 +311,12 @@ impl Analyzer {
         }
     }
 
-    /// Force full rescan
     /// Force a full project rescan by clearing the current state.
     pub fn rescan(&mut self) -> Result<ScanResult> {
         self.state.clear();
         self.scan()
     }
 
-    /// Get affected files without running detectors
     /// Get the list of files affected by changes in the given files.
     ///
     /// This uses the dependency graph to find all files that directly or
@@ -328,7 +325,6 @@ impl Analyzer {
         self.state.get_affected_files(changed).into_iter().collect()
     }
 
-    /// Get state statistics
     /// Get statistics about the current internal state of the analyzer.
     pub fn get_state_stats(&self) -> StateStats {
         StateStats {

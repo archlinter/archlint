@@ -335,7 +335,10 @@ impl From<&SnapshotSmell> for SmellType {
                 from_layer: d!(LayerViolation, from_layer),
                 to_layer: d!(LayerViolation, to_layer),
             },
-            "HubModule" | "HubDependency" => SmellType::HubModule,
+            "HubModule" => SmellType::HubModule,
+            "HubDependency" => SmellType::HubDependency {
+                package: d!(HubDependency, package),
+            },
             "LowCohesion" | "Lcom" => SmellType::LowCohesion {
                 lcom: metric("lcom"),
                 class_name: d!(LowCohesion, class_name, "unknown".to_string()),
@@ -393,7 +396,10 @@ impl From<&SnapshotSmell> for SmellType {
                 clone_hash: metric_str("cloneHash"),
                 token_count: metric("tokenCount"),
             },
-            _ => SmellType::GodModule, // Fallback
+            unknown => {
+                log::warn!("Unknown smell type encountered: {}", unknown);
+                SmellType::GodModule // Fallback
+            }
         }
     }
 }

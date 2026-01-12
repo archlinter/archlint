@@ -151,6 +151,9 @@ pub enum SmellDetails {
     LowCohesion {
         class_name: String,
     },
+    HubDependency {
+        package: String,
+    },
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]

@@ -102,18 +102,27 @@ impl Detector for VendorCouplingDetector {
 
     fn detect(&self, ctx: &AnalysisContext) -> Vec<ArchSmell> {
         let package_usage = self.collect_package_usage(ctx);
-        let rule = match ctx.get_rule("vendor_coupling") {
-            Some(r) => r,
-            None => return Vec::new(),
-        };
-        let max_files: usize = rule.get_option("max_files_per_package").unwrap_or(10);
+        if package_usage.is_empty() {
+            return Vec::new();
+        }
+
+        let rule = ctx.get_rule("vendor_coupling");
+        let max_files: usize = rule
+            .as_ref()
+            .and_then(|r| r.get_option("max_files_per_package"))
+            .unwrap_or(10);
+
+        let severity = rule
+            .as_ref()
+            .map(|r| r.severity)
+            .unwrap_or(crate::detectors::Severity::Medium);
 
         package_usage
             .into_iter()
             .filter(|(_, files)| files.len() > max_files)
             .map(|(package, files)| {
                 let mut smell = ArchSmell::new_vendor_coupling(package, files);
-                smell.severity = rule.severity;
+                smell.severity = severity;
                 smell
             })
             .collect()
