@@ -81,6 +81,7 @@ macro_rules! impl_detector_report {
                             $($val.to_string()),*
                         ]
                     } else {
+                        // Count columns at compile-time by creating an array of unit expressions
                         const COL_COUNT: usize = [$( {
                             let _ = &$col;
                         } ),*]
@@ -112,16 +113,17 @@ macro_rules! impl_detector_report {
                         let $pts_var = format!("{} pts", $smell_row.score($severity_config));
                         let _ = &$pts_var;
 
-                        vec![
-                            $($val.to_string()),*
-                        ]
-                    } else {
-                        const COL_COUNT: usize = [$( {
-                            let _ = &$col;
-                        } ),*]
-                        .len();
-                        vec!["-".into(); COL_COUNT]
-                    }
+                    vec![
+                        $($val.to_string()),*
+                    ]
+                } else {
+                    // Count columns at compile-time by creating an array of unit expressions
+                    const COL_COUNT: usize = [$( {
+                        let _ = &$col;
+                    } ),*]
+                    .len();
+                    vec!["-".into(); COL_COUNT]
+                }
                 }
             )
         })
@@ -209,6 +211,10 @@ macro_rules! define_report_section {
     }};
 }
 
+/// Helper macro to render a markdown table.
+///
+/// NOTE: The $row_gen closure MUST return a Vec<String> with the same
+/// length as the $headers vector.
 #[macro_export]
 macro_rules! render_table {
     ($headers:expr, $items:ident, $row_gen:expr) => {{

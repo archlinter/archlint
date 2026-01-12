@@ -25,8 +25,8 @@ impl Detector for PrimitiveObsessionDetector {
         name: "PrimitiveObsession",
         explain: smell => (
             problem: {
-                if let crate::detectors::SmellType::PrimitiveObsession { primitives, function } = &smell.smell_type {
-                    format!("Function `{}` has too many primitive parameters ({})", function, primitives)
+                if let crate::detectors::SmellType::PrimitiveObsession { primitives, name } = &smell.smell_type {
+                    format!("Function `{}` has too many primitive parameters ({})", name, primitives)
                 } else {
                     "Too many primitive parameters".into()
                 }
@@ -43,7 +43,7 @@ impl Detector for PrimitiveObsessionDetector {
         table: {
             title: "Primitive Obsession",
             columns: ["Location", "Function", "Primitives", "pts"],
-            row: PrimitiveObsession { function, primitives } (smell, location, pts) => [location, function, primitives, pts]
+            row: PrimitiveObsession { name, primitives } (smell, location, pts) => [location, name, primitives, pts]
         }
     );
 

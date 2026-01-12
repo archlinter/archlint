@@ -65,16 +65,16 @@ pub fn generate_smell_id(smell: &ArchSmell, project_root: &Path) -> String {
             id_for_symbol_smell("shared", &smell.files[0], symbol, line, project_root)
         }),
 
-        SmellType::DeepNesting { function, .. } => with_line_hash_fallback(smell, |line| {
-            id_for_symbol_smell("nest", &smell.files[0], function, line, project_root)
+        SmellType::DeepNesting { name, .. } => with_line_hash_fallback(smell, |line| {
+            id_for_symbol_smell("nest", &smell.files[0], name, line, project_root)
         }),
 
-        SmellType::LongParameterList { function, .. } => with_line_hash_fallback(smell, |line| {
-            id_for_symbol_smell("params", &smell.files[0], function, line, project_root)
+        SmellType::LongParameterList { name, .. } => with_line_hash_fallback(smell, |line| {
+            id_for_symbol_smell("params", &smell.files[0], name, line, project_root)
         }),
 
-        SmellType::PrimitiveObsession { function, .. } => with_line_hash_fallback(smell, |line| {
-            id_for_symbol_smell("prim", &smell.files[0], function, line, project_root)
+        SmellType::PrimitiveObsession { name, .. } => with_line_hash_fallback(smell, |line| {
+            id_for_symbol_smell("prim", &smell.files[0], name, line, project_root)
         }),
 
         SmellType::OrphanType { name } => with_line_hash_fallback(smell, |line| {

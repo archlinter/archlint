@@ -84,6 +84,9 @@ impl Analyzer {
         self.state.script_entry_points = pkg_config.entry_points;
         self.state.dynamic_load_patterns = pkg_config.dynamic_load_patterns;
 
+        // Synchronize config hash
+        self.state.config_hash = compute_config_hash(&self.config)?;
+
         // Build reverse deps
         self.state.reverse_deps.clear();
         for (from, to) in self.state.graph.edges() {

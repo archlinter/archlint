@@ -1,6 +1,6 @@
 use crate::config::SeverityConfig;
 use crate::detectors::types::{Severity, SmellMetric, SmellType};
-use crate::snapshot::SnapshotSmell;
+use crate::snapshot::{MetricValue, SnapshotSmell};
 use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
 use std::path::PathBuf;
@@ -682,14 +682,14 @@ impl ArchSmell {
 
     pub fn new_deep_nesting(
         path: PathBuf,
-        function: String,
+        name: String,
         depth: usize,
         line: usize,
         range: CodeRange,
     ) -> Self {
         Self {
             smell_type: SmellType::DeepNesting {
-                function: function.clone(),
+                name: name.clone(),
                 depth,
                 line,
             },
@@ -699,7 +699,7 @@ impl ArchSmell {
             locations: vec![LocationDetail::new(
                 path,
                 line,
-                format!("Function '{}' is too deeply nested", function),
+                format!("Function '{}' is too deeply nested", name),
             )
             .with_range(range)],
             cluster: None,
@@ -708,7 +708,7 @@ impl ArchSmell {
 
     pub fn new_long_params(
         path: PathBuf,
-        function: String,
+        name: String,
         count: usize,
         line: usize,
         range: CodeRange,
@@ -716,7 +716,7 @@ impl ArchSmell {
         Self {
             smell_type: SmellType::LongParameterList {
                 count,
-                function: function.clone(),
+                name: name.clone(),
             },
             severity: Severity::Low,
             files: vec![path.clone()],
@@ -724,18 +724,18 @@ impl ArchSmell {
             locations: vec![LocationDetail::new(
                 path,
                 line,
-                format!("Function '{}' has {} parameters", function, count),
+                format!("Function '{}' has {} parameters", name, count),
             )
             .with_range(range)],
             cluster: None,
         }
     }
 
-    pub fn new_primitive_obsession(path: PathBuf, function: String, primitives: usize) -> Self {
+    pub fn new_primitive_obsession(path: PathBuf, name: String, primitives: usize) -> Self {
         Self {
             smell_type: SmellType::PrimitiveObsession {
                 primitives,
-                function: function.clone(),
+                name: name.clone(),
             },
             severity: Severity::Low,
             files: vec![path.clone()],
@@ -745,7 +745,7 @@ impl ArchSmell {
                 0,
                 format!(
                     "Function '{}' has {} primitive parameters",
-                    function, primitives
+                    name, primitives
                 ),
             )],
             cluster: None,
@@ -839,36 +839,18 @@ impl From<&SnapshotSmell> for ArchSmell {
     fn from(smell: &SnapshotSmell) -> Self {
         let mut metrics = Vec::new();
         for (name, value) in &smell.metrics {
-            let val = value.as_f64();
-            let metric = match name.as_str() {
-                "fanIn" => SmellMetric::FanIn(val as usize),
-                "fanOut" => SmellMetric::FanOut(val as usize),
-                "complexity" => SmellMetric::Complexity(val as usize),
-                "lines" => SmellMetric::Lines(val as usize),
-                "lcom" => SmellMetric::Lcom(val as usize),
-                "cbo" => SmellMetric::Cbo(val as usize),
-                "depth" => SmellMetric::Depth(val as usize),
-                "distance" => SmellMetric::Distance(val),
-                "cycleLength" => SmellMetric::CycleLength(val as usize),
-                "instability" => SmellMetric::Instability(val),
-                "instabilityScore" => SmellMetric::InstabilityScore(val as usize),
-                "envyRatio" => SmellMetric::EnvyRatio(val),
-                "avgCoChanges" => SmellMetric::AvgCoChanges(val),
-                "dependentCount" => SmellMetric::DependentCount(val as usize),
-                "components" => SmellMetric::Components(val as usize),
-                "tokenCount" => SmellMetric::TokenCount(val as usize),
-                "cloneInstances" => SmellMetric::CloneInstances(val as usize),
-                "parameterCount" => SmellMetric::ParameterCount(val as usize),
-                "primitiveCount" => SmellMetric::PrimitiveCount(val as usize),
-                "methodCount" => SmellMetric::MethodCount(val as usize),
-                "fieldCount" => SmellMetric::FieldCount(val as usize),
-                "internalRefs" => SmellMetric::InternalRefs(val as usize),
-                "externalRefs" => SmellMetric::ExternalRefs(val as usize),
-                "instabilityDiff" => SmellMetric::InstabilityDiff(val),
-                "filesCount" => SmellMetric::DependentCount(val as usize), // ScatteredConfiguration uses filesCount key
-                _ => continue,
+            let json_val = match value {
+                MetricValue::Int(i) => serde_json::Value::Number((*i).into()),
+                MetricValue::Float(f) => {
+                    serde_json::Value::Number(serde_json::Number::from_f64(*f).unwrap())
+                }
+                MetricValue::String(s) => serde_json::Value::String(s.clone()),
             };
-            metrics.push(metric);
+
+            let obj = serde_json::json!({ name: json_val });
+            if let Ok(metric) = serde_json::from_value::<SmellMetric>(obj) {
+                metrics.push(metric);
+            }
         }
 
         let locations = smell

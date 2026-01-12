@@ -23,8 +23,8 @@ impl Detector for LongParameterListDetector {
     crate::impl_detector_report!(
         name: "LongParameterList",
         explain: smell => (
-            problem: if let crate::detectors::SmellType::LongParameterList { count, function } = &smell.smell_type {
-                format!("Function `{}` has too many parameters ({})", function, count)
+            problem: if let crate::detectors::SmellType::LongParameterList { count, name } = &smell.smell_type {
+                format!("Function `{}` has too many parameters ({})", name, count)
             } else {
                 "Too many parameters".into()
             },
@@ -35,7 +35,7 @@ impl Detector for LongParameterListDetector {
         table: {
             title: "Long Parameter Lists",
             columns: ["Location", "Function", "Params", "pts"],
-            row: LongParameterList { function, count } (smell, location, pts) => [location, function, count, pts]
+            row: LongParameterList { name, count } (smell, location, pts) => [location, name, count, pts]
         }
     );
 

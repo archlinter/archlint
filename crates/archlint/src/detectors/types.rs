@@ -1,4 +1,4 @@
-use crate::snapshot::types::{SmellDetails, SnapshotSmell};
+use crate::snapshot::types::SnapshotSmell;
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 
@@ -19,6 +19,7 @@ pub enum DetectorCategory {
 
 /// Defines the specific type of an architectural smell.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Hash)]
+#[serde(tag = "type", rename_all = "camelCase")]
 pub enum SmellType {
     /// Two or more files form a dependency cycle.
     CyclicDependency,
@@ -80,15 +81,24 @@ pub enum SmellType {
 
     /// A function with too many levels of nested control structures.
     DeepNesting {
-        function: String,
+        #[serde(alias = "function")]
+        name: String,
         depth: usize,
         line: usize,
     },
     /// A function with an excessively long list of parameters.
-    LongParameterList { count: usize, function: String },
+    LongParameterList {
+        count: usize,
+        #[serde(alias = "function")]
+        name: String,
+    },
 
     /// Excessive use of primitive types instead of domain-specific objects.
-    PrimitiveObsession { primitives: usize, function: String },
+    PrimitiveObsession {
+        primitives: usize,
+        #[serde(alias = "function")]
+        name: String,
+    },
     /// A type that is defined but never used.
     OrphanType { name: String },
     /// Circular dependency involving only types (type-only imports).
@@ -295,34 +305,8 @@ impl SmellType {
 
 impl From<&SnapshotSmell> for SmellType {
     fn from(smell: &SnapshotSmell) -> Self {
-        let details = smell.details.as_ref();
-        let metric = |name: &str| {
-            smell
-                .metrics
-                .get(name)
-                .and_then(|v| v.as_i64())
-                .map(|v| v as usize)
-                .unwrap_or(0)
-        };
-        let metric_str = |name: &str| {
-            smell
-                .metrics
-                .get(name)
-                .and_then(|v| v.as_str())
-                .unwrap_or_default()
-                .to_string()
-        };
-
-        macro_rules! d {
-            ($variant:ident, $field:ident, $default:expr) => {
-                match details {
-                    Some(SmellDetails::$variant { $field, .. }) => $field.clone(),
-                    _ => $default,
-                }
-            };
-            ($variant:ident, $field:ident) => {
-                d!($variant, $field, Default::default())
-            };
+        if let Some(details) = &smell.details {
+            return details.clone();
         }
 
         match smell.smell_type.as_str() {
@@ -330,82 +314,16 @@ impl From<&SnapshotSmell> for SmellType {
             "CyclicDependencyCluster" => SmellType::CyclicDependencyCluster,
             "GodModule" => SmellType::GodModule,
             "DeadCode" => SmellType::DeadCode,
-            "DeadSymbol" | "DeadSymbols" => SmellType::DeadSymbol {
-                name: d!(DeadSymbol, name),
-                kind: d!(DeadSymbol, kind, "Symbol".to_string()),
-            },
-            "HighComplexity" | "Complexity" => SmellType::HighComplexity {
-                name: d!(Complexity, function_name),
-                line: d!(Complexity, line),
-                complexity: metric("complexity"),
-            },
-            "LayerViolation" => SmellType::LayerViolation {
-                from_layer: d!(LayerViolation, from_layer),
-                to_layer: d!(LayerViolation, to_layer),
-            },
-            "HubModule" => SmellType::HubModule,
-            "HubDependency" => SmellType::HubDependency {
-                package: d!(HubDependency, package),
-            },
-            "LowCohesion" | "Lcom" => SmellType::LowCohesion {
-                lcom: metric("lcom"),
-                class_name: d!(LowCohesion, class_name, "unknown".to_string()),
-            },
             "SdpViolation" => SmellType::SdpViolation,
             "LargeFile" => SmellType::LargeFile,
             "UnstableInterface" => SmellType::UnstableInterface,
-            "FeatureEnvy" => SmellType::FeatureEnvy {
-                most_envied_module: PathBuf::from(d!(FeatureEnvy, most_envied_module)),
-            },
-            "ShotgunSurgery" => SmellType::ShotgunSurgery,
-            "TestLeakage" => SmellType::TestLeakage {
-                test_file: PathBuf::from(d!(TestLeakage, test_file)),
-            },
             "BarrelFileAbuse" => SmellType::BarrelFileAbuse,
-            "VendorCoupling" => SmellType::VendorCoupling {
-                package: d!(VendorCoupling, package),
-            },
             "SideEffectImport" => SmellType::SideEffectImport,
-            "ScatteredModule" => SmellType::ScatteredModule {
-                components: metric("components"),
-            },
-            "HighCoupling" => SmellType::HighCoupling { cbo: metric("cbo") },
-            "PackageCycle" => SmellType::PackageCycle {
-                packages: d!(PackageCycle, packages),
-            },
-            "SharedMutableState" => SmellType::SharedMutableState {
-                symbol: d!(SharedMutableState, symbol),
-            },
-            "DeepNesting" => SmellType::DeepNesting {
-                function: d!(Complexity, function_name),
-                depth: metric("depth"),
-                line: d!(Complexity, line),
-            },
-            "LongParameterList" => SmellType::LongParameterList {
-                count: metric("parameterCount"),
-                function: d!(LongParameterList, function),
-            },
-            "PrimitiveObsession" => SmellType::PrimitiveObsession {
-                primitives: metric("primitiveCount"),
-                function: d!(PrimitiveObsession, function),
-            },
-            "OrphanType" | "OrphanTypes" => SmellType::OrphanType {
-                name: d!(OrphanType, name),
-            },
-            "CircularTypeDependency" | "CircularTypeDependencies" => {
-                SmellType::CircularTypeDependency
-            }
+            "HubModule" => SmellType::HubModule,
+            "CircularTypeDependency" => SmellType::CircularTypeDependency,
             "AbstractnessViolation" => SmellType::AbstractnessViolation,
-            "ScatteredConfiguration" => SmellType::ScatteredConfiguration {
-                env_var: d!(ScatteredConfiguration, env_var),
-                files_count: metric("filesCount"),
-            },
-            "CodeClone" => SmellType::CodeClone {
-                clone_hash: metric_str("cloneHash"),
-                token_count: metric("tokenCount"),
-            },
             unknown => {
-                log::warn!("Unknown smell type encountered: {}", unknown);
+                log::warn!("Missing details for complex smell type: {}", unknown);
                 SmellType::Unknown {
                     raw_type: unknown.to_string(),
                 }
@@ -417,7 +335,7 @@ impl From<&SnapshotSmell> for SmellType {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::snapshot::types::{MetricValue, SmellDetails, SnapshotSmell};
+    use crate::snapshot::types::{MetricValue, SnapshotSmell};
     use std::collections::HashMap;
 
     #[test]
@@ -431,9 +349,10 @@ mod tests {
             severity: "High".to_string(),
             files: vec!["file.ts".to_string()],
             metrics,
-            details: Some(SmellDetails::Complexity {
-                function_name: "myFunc".to_string(),
+            details: Some(SmellType::HighComplexity {
+                name: "myFunc".to_string(),
                 line: 10,
+                complexity: 20,
             }),
             locations: vec![],
         };
@@ -461,7 +380,7 @@ mod tests {
             severity: "High".to_string(),
             files: vec![],
             metrics: HashMap::new(),
-            details: Some(SmellDetails::HubDependency {
+            details: Some(SmellType::HubDependency {
                 package: "axios".to_string(),
             }),
             locations: vec![],
@@ -531,7 +450,7 @@ pub struct Explanation {
 pub type SmellWithExplanation = (ArchSmell, Explanation);
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
-#[serde(tag = "type", content = "value")]
+#[serde(rename_all = "camelCase")]
 pub enum SmellMetric {
     FanIn(usize),
     FanOut(usize),
@@ -557,6 +476,7 @@ pub enum SmellMetric {
     CloneInstances(usize),
     ParameterCount(usize),
     PrimitiveCount(usize),
+    FilesCount(usize),
     InternalRefs(usize),
     ExternalRefs(usize),
 }

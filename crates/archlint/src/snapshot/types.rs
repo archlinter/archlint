@@ -1,4 +1,4 @@
-use crate::detectors::CodeRange;
+use crate::detectors::{CodeRange, SmellType};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
@@ -51,7 +51,7 @@ pub struct SnapshotSmell {
 
     /// Type-specific details (optional)
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub details: Option<SmellDetails>,
+    pub details: Option<SmellType>,
 
     /// Specific locations with line/column information
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
@@ -99,61 +99,6 @@ impl MetricValue {
             _ => None,
         }
     }
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
-#[serde(tag = "type", rename_all = "camelCase")]
-pub enum SmellDetails {
-    Cycle {
-        /// Files in cycle order
-        path: Vec<String>,
-    },
-    LayerViolation {
-        from_layer: String,
-        to_layer: String,
-        import_file: String,
-    },
-    DeadSymbol {
-        name: String,
-        kind: String, // "function", "class", "type", etc.
-    },
-    Complexity {
-        function_name: String,
-        line: usize,
-    },
-    FeatureEnvy {
-        most_envied_module: String,
-    },
-    TestLeakage {
-        test_file: String,
-    },
-    VendorCoupling {
-        package: String,
-    },
-    PackageCycle {
-        packages: Vec<String>,
-    },
-    SharedMutableState {
-        symbol: String,
-    },
-    LongParameterList {
-        function: String,
-    },
-    PrimitiveObsession {
-        function: String,
-    },
-    OrphanType {
-        name: String,
-    },
-    ScatteredConfiguration {
-        env_var: String,
-    },
-    LowCohesion {
-        class_name: String,
-    },
-    HubDependency {
-        package: String,
-    },
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]

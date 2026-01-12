@@ -1,10 +1,11 @@
 use archlint::{
     api::options::ScanOptions,
     api::Analyzer,
+    detectors::SmellType,
     diff::DiffEngine,
     snapshot::{
-        read_snapshot, write_snapshot, Location, SmellDetails, Snapshot, SnapshotGenerator,
-        SnapshotSmell, SnapshotSummary, SCHEMA_VERSION,
+        read_snapshot, write_snapshot, Location, Snapshot, SnapshotGenerator, SnapshotSmell,
+        SnapshotSummary, SCHEMA_VERSION,
     },
 };
 use std::collections::HashMap;
@@ -97,9 +98,10 @@ fn make_complexity_smell(id: &str, file: &str, func: &str, line: usize) -> Snaps
         severity: "Medium".to_string(),
         files: vec![file.to_string()],
         metrics: HashMap::new(),
-        details: Some(SmellDetails::Complexity {
-            function_name: func.to_string(),
+        details: Some(SmellType::HighComplexity {
+            name: func.to_string(),
             line,
+            complexity: 15,
         }),
         locations: vec![Location {
             file: file.to_string(),

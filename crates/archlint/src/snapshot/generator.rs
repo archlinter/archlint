@@ -1,8 +1,8 @@
 use crate::api::result::{ScanResult, SmellWithExplanation};
-use crate::detectors::{ArchSmell, SmellMetric, SmellType};
+use crate::detectors::{ArchSmell, SmellType};
 use crate::snapshot::id::generate_smell_id;
 use crate::snapshot::types::{
-    MetricValue, SmellDetails, Snapshot, SnapshotSmell, SnapshotSummary, SCHEMA_VERSION,
+    MetricValue, Snapshot, SnapshotSmell, SnapshotSummary, SCHEMA_VERSION,
 };
 use chrono::Utc;
 use std::collections::HashMap;
@@ -62,7 +62,6 @@ impl SnapshotGenerator {
             .collect();
 
         let metrics = self.extract_metrics(smell);
-        let details = self.extract_details(smell);
 
         SnapshotSmell {
             id,
@@ -70,7 +69,7 @@ impl SnapshotGenerator {
             severity: format!("{:?}", smell.severity),
             files,
             metrics,
-            details,
+            details: Some(smell.smell_type.clone()),
             locations: self.extract_locations(smell),
         }
     }
@@ -105,81 +104,20 @@ impl SnapshotGenerator {
         let mut metrics = HashMap::new();
 
         for metric in &smell.metrics {
-            match metric {
-                SmellMetric::FanIn(v) => {
-                    metrics.insert("fanIn".into(), MetricValue::Int(*v as i64));
-                }
-                SmellMetric::FanOut(v) => {
-                    metrics.insert("fanOut".into(), MetricValue::Int(*v as i64));
-                }
-                SmellMetric::CycleLength(v) => {
-                    metrics.insert("cycleLength".into(), MetricValue::Int(*v as i64));
-                }
-                SmellMetric::Complexity(v) => {
-                    metrics.insert("complexity".into(), MetricValue::Int(*v as i64));
-                }
-                SmellMetric::Lcom(v) => {
-                    metrics.insert("lcom".into(), MetricValue::Int(*v as i64));
-                }
-                SmellMetric::Cbo(v) => {
-                    metrics.insert("cbo".into(), MetricValue::Int(*v as i64));
-                }
-                SmellMetric::Instability(v) => {
-                    metrics.insert("instability".into(), MetricValue::Float(*v));
-                }
-                SmellMetric::Lines(v) => {
-                    metrics.insert("lines".into(), MetricValue::Int(*v as i64));
-                }
-                SmellMetric::InstabilityScore(v) => {
-                    metrics.insert("instabilityScore".into(), MetricValue::Int(*v as i64));
-                }
-                SmellMetric::EnvyRatio(v) => {
-                    metrics.insert("envyRatio".into(), MetricValue::Float(*v));
-                }
-                SmellMetric::AvgCoChanges(v) => {
-                    metrics.insert("avgCoChanges".into(), MetricValue::Float(*v));
-                }
-                SmellMetric::DependentCount(v) => {
-                    metrics.insert("dependentCount".into(), MetricValue::Int(*v as i64));
-                }
-                SmellMetric::Components(v) => {
-                    metrics.insert("components".into(), MetricValue::Int(*v as i64));
-                }
-                SmellMetric::Depth(v) => {
-                    metrics.insert("depth".into(), MetricValue::Int(*v as i64));
-                }
-                SmellMetric::TokenCount(v) => {
-                    metrics.insert("tokenCount".into(), MetricValue::Int(*v as i64));
-                }
-                SmellMetric::CloneInstances(v) => {
-                    metrics.insert("cloneInstances".into(), MetricValue::Int(*v as i64));
-                }
-                SmellMetric::ParameterCount(v) => {
-                    metrics.insert("parameterCount".into(), MetricValue::Int(*v as i64));
-                }
-                SmellMetric::PrimitiveCount(v) => {
-                    metrics.insert("primitiveCount".into(), MetricValue::Int(*v as i64));
-                }
-                SmellMetric::MethodCount(v) => {
-                    metrics.insert("methodCount".into(), MetricValue::Int(*v as i64));
-                }
-                SmellMetric::FieldCount(v) => {
-                    metrics.insert("fieldCount".into(), MetricValue::Int(*v as i64));
-                }
-                SmellMetric::InternalRefs(v) => {
-                    metrics.insert("internalRefs".into(), MetricValue::Int(*v as i64));
-                }
-                SmellMetric::ExternalRefs(v) => {
-                    metrics.insert("externalRefs".into(), MetricValue::Int(*v as i64));
-                }
-                SmellMetric::InstabilityDiff(v) => {
-                    metrics.insert("instabilityDiff".into(), MetricValue::Float(*v));
-                }
-                SmellMetric::Churn(v) => {
-                    metrics.insert("churn".into(), MetricValue::Int(*v as i64));
-                }
-                SmellMetric::Distance(v) => {
-                    metrics.insert("distance".into(), MetricValue::Float(*v));
+            if let Ok(serde_json::Value::Object(map)) = serde_json::to_value(metric) {
+                for (k, v) in map {
+                    let metric_val = match v {
+                        serde_json::Value::Number(n) => {
+                            if let Some(i) = n.as_i64() {
+                                MetricValue::Int(i)
+                            } else {
+                                MetricValue::Float(n.as_f64().unwrap_or(0.0))
+                            }
+                        }
+                        serde_json::Value::String(s) => MetricValue::String(s),
+                        _ => continue,
+                    };
+                    metrics.insert(k, metric_val);
                 }
             }
         }
@@ -198,104 +136,6 @@ impl SnapshotGenerator {
         }
 
         metrics
-    }
-
-    fn extract_details(&self, smell: &ArchSmell) -> Option<SmellDetails> {
-        match &smell.smell_type {
-            SmellType::CyclicDependency | SmellType::CyclicDependencyCluster => {
-                let path: Vec<String> = smell
-                    .files
-                    .iter()
-                    .filter_map(|f| f.strip_prefix(&self.project_root).ok())
-                    .map(|p| p.to_string_lossy().replace('\\', "/"))
-                    .collect();
-
-                Some(SmellDetails::Cycle { path })
-            }
-
-            SmellType::LayerViolation {
-                from_layer,
-                to_layer,
-            } => {
-                let import_file = smell
-                    .files
-                    .first()
-                    .and_then(|f| f.strip_prefix(&self.project_root).ok())
-                    .map(|p| p.to_string_lossy().replace('\\', "/"))
-                    .unwrap_or_default();
-
-                Some(SmellDetails::LayerViolation {
-                    from_layer: from_layer.clone(),
-                    to_layer: to_layer.clone(),
-                    import_file,
-                })
-            }
-
-            SmellType::DeadSymbol { name, kind } => Some(SmellDetails::DeadSymbol {
-                name: name.clone(),
-                kind: kind.clone(),
-            }),
-
-            SmellType::HighComplexity { name, line, .. } => Some(SmellDetails::Complexity {
-                function_name: name.clone(),
-                line: *line,
-            }),
-
-            SmellType::FeatureEnvy { most_envied_module } => Some(SmellDetails::FeatureEnvy {
-                most_envied_module: most_envied_module.to_string_lossy().to_string(),
-            }),
-
-            SmellType::TestLeakage { test_file } => Some(SmellDetails::TestLeakage {
-                test_file: test_file.to_string_lossy().to_string(),
-            }),
-
-            SmellType::VendorCoupling { package } => Some(SmellDetails::VendorCoupling {
-                package: package.clone(),
-            }),
-
-            SmellType::PackageCycle { packages } => Some(SmellDetails::PackageCycle {
-                packages: packages.clone(),
-            }),
-
-            SmellType::SharedMutableState { symbol } => Some(SmellDetails::SharedMutableState {
-                symbol: symbol.clone(),
-            }),
-
-            SmellType::DeepNesting { function, line, .. } => Some(SmellDetails::Complexity {
-                function_name: function.clone(),
-                line: *line,
-            }),
-
-            SmellType::LongParameterList { function, .. } => {
-                Some(SmellDetails::LongParameterList {
-                    function: function.clone(),
-                })
-            }
-
-            SmellType::PrimitiveObsession { function, .. } => {
-                Some(SmellDetails::PrimitiveObsession {
-                    function: function.clone(),
-                })
-            }
-
-            SmellType::OrphanType { name } => Some(SmellDetails::OrphanType { name: name.clone() }),
-
-            SmellType::ScatteredConfiguration { env_var, .. } => {
-                Some(SmellDetails::ScatteredConfiguration {
-                    env_var: env_var.clone(),
-                })
-            }
-
-            SmellType::LowCohesion { class_name, .. } => Some(SmellDetails::LowCohesion {
-                class_name: class_name.clone(),
-            }),
-
-            SmellType::HubDependency { package } => Some(SmellDetails::HubDependency {
-                package: package.clone(),
-            }),
-
-            _ => None,
-        }
     }
 
     fn build_summary(&self, scan_result: &ScanResult) -> SnapshotSummary {
@@ -355,6 +195,7 @@ fn get_git_commit(project_root: &Path) -> Option<String> {
 mod tests {
     use super::*;
     use crate::api::result::Summary;
+    use crate::detectors::SmellMetric;
     use crate::report::ArchitectureGrade;
 
     fn make_test_scan_result() -> ScanResult {
@@ -386,7 +227,7 @@ mod tests {
         let smell = ArchSmell {
             smell_type: SmellType::PrimitiveObsession {
                 primitives: 10,
-                function: "test".to_string(),
+                name: "test".to_string(),
             },
             severity: crate::detectors::Severity::High,
             files: vec![],

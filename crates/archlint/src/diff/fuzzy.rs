@@ -3,7 +3,8 @@
 //! When code is modified (lines added/removed above a smell), the line number in the ID changes.
 //! Fuzzy matching identifies these "shifted" smells to avoid false positives in diff.
 
-use crate::snapshot::{SmellDetails, SnapshotSmell};
+use crate::detectors::SmellType;
+use crate::snapshot::SnapshotSmell;
 use std::collections::{BTreeMap, HashSet};
 
 /// Smell type prefixes that support symbol-based fuzzy matching.
@@ -159,22 +160,39 @@ impl FuzzyMatcher {
         // First, try to get from details
         if let Some(ref details) = smell.details {
             let name = match details {
-                SmellDetails::Complexity { function_name, .. } => Some(function_name.clone()),
-                SmellDetails::DeadSymbol { name, .. } => Some(name.clone()),
-                SmellDetails::LongParameterList { function } => Some(function.clone()),
-                SmellDetails::PrimitiveObsession { function } => Some(function.clone()),
-                SmellDetails::SharedMutableState { symbol } => Some(symbol.clone()),
-                SmellDetails::OrphanType { name } => Some(name.clone()),
-                SmellDetails::LowCohesion { class_name } => Some(class_name.clone()),
+                SmellType::HighComplexity { name, .. } => Some(name.clone()),
+                SmellType::DeadSymbol { name, .. } => Some(name.clone()),
+                SmellType::LongParameterList { name, .. } => Some(name.clone()),
+                SmellType::PrimitiveObsession { name, .. } => Some(name.clone()),
+                SmellType::SharedMutableState { symbol } => Some(symbol.clone()),
+                SmellType::OrphanType { name } => Some(name.clone()),
+                SmellType::LowCohesion { class_name, .. } => Some(class_name.clone()),
+                SmellType::DeepNesting { name, .. } => Some(name.clone()),
                 // These don't have symbol names that would shift
-                SmellDetails::Cycle { .. }
-                | SmellDetails::LayerViolation { .. }
-                | SmellDetails::FeatureEnvy { .. }
-                | SmellDetails::TestLeakage { .. }
-                | SmellDetails::VendorCoupling { .. }
-                | SmellDetails::PackageCycle { .. }
-                | SmellDetails::ScatteredConfiguration { .. }
-                | SmellDetails::HubDependency { .. } => None,
+                SmellType::CyclicDependency
+                | SmellType::CyclicDependencyCluster
+                | SmellType::GodModule
+                | SmellType::DeadCode
+                | SmellType::LargeFile
+                | SmellType::UnstableInterface
+                | SmellType::FeatureEnvy { .. }
+                | SmellType::ShotgunSurgery
+                | SmellType::HubDependency { .. }
+                | SmellType::TestLeakage { .. }
+                | SmellType::LayerViolation { .. }
+                | SmellType::SdpViolation
+                | SmellType::BarrelFileAbuse
+                | SmellType::VendorCoupling { .. }
+                | SmellType::SideEffectImport
+                | SmellType::HubModule
+                | SmellType::ScatteredModule { .. }
+                | SmellType::HighCoupling { .. }
+                | SmellType::PackageCycle { .. }
+                | SmellType::CircularTypeDependency
+                | SmellType::AbstractnessViolation
+                | SmellType::ScatteredConfiguration { .. }
+                | SmellType::CodeClone { .. }
+                | SmellType::Unknown { .. } => None,
             };
 
             if name.is_some() {
@@ -216,8 +234,12 @@ impl FuzzyMatcher {
         }
 
         // Then, try details
-        if let Some(SmellDetails::Complexity { line, .. }) = &smell.details {
-            return Some(*line);
+        if let Some(ref details) = smell.details {
+            match details {
+                SmellType::HighComplexity { line, .. } => return Some(*line),
+                SmellType::DeepNesting { line, .. } => return Some(*line),
+                _ => {}
+            }
         }
 
         // Fallback: try to extract from ID
@@ -254,9 +276,10 @@ mod tests {
             severity: "Medium".to_string(),
             files: vec![file.to_string()],
             metrics: HashMap::new(),
-            details: Some(SmellDetails::Complexity {
-                function_name: "testFunc".to_string(),
+            details: Some(SmellType::HighComplexity {
+                name: "testFunc".to_string(),
                 line,
+                complexity: 0,
             }),
             locations: vec![crate::snapshot::Location {
                 file: file.to_string(),
@@ -299,9 +322,10 @@ mod tests {
             "src/foo.ts",
             10,
         );
-        baseline.details = Some(SmellDetails::Complexity {
-            function_name: "funcA".to_string(),
+        baseline.details = Some(SmellType::HighComplexity {
+            name: "funcA".to_string(),
             line: 10,
+            complexity: 0,
         });
 
         let mut current = make_smell(
@@ -310,9 +334,10 @@ mod tests {
             "src/foo.ts",
             15,
         );
-        current.details = Some(SmellDetails::Complexity {
-            function_name: "funcB".to_string(),
+        current.details = Some(SmellType::HighComplexity {
+            name: "funcB".to_string(),
             line: 15,
+            complexity: 0,
         });
 
         let matcher = FuzzyMatcher::new(10);
@@ -490,7 +515,8 @@ mod tests {
             severity: "Medium".to_string(),
             files: vec!["src/file.ts".to_string()],
             metrics: HashMap::new(),
-            details: Some(SmellDetails::LowCohesion {
+            details: Some(SmellType::LowCohesion {
+                lcom: 0,
                 class_name: "MyClass".to_string(),
             }),
             locations: vec![],
@@ -510,7 +536,7 @@ mod tests {
             severity: "High".to_string(),
             files: vec![], // HubDependency has no project files
             metrics: HashMap::new(),
-            details: Some(SmellDetails::HubDependency {
+            details: Some(SmellType::HubDependency {
                 package: "axios".to_string(),
             }),
             locations: vec![],

@@ -478,23 +478,17 @@ impl AnalysisReport {
                 format!("Shared Mutable State\n({})", symbol)
             }
             SmellType::DeepNesting {
-                function,
+                name,
                 depth,
                 line: _,
             } => {
-                format!("Deep Nesting\n({}: depth {})", function, depth)
+                format!("Deep Nesting\n({}: depth {})", name, depth)
             }
-            SmellType::LongParameterList { count, function } => {
-                format!("Long Parameter List\n({}: {} params)", function, count)
+            SmellType::LongParameterList { count, name } => {
+                format!("Long Parameter List\n({}: {} params)", name, count)
             }
-            SmellType::PrimitiveObsession {
-                primitives,
-                function,
-            } => {
-                format!(
-                    "Primitive Obsession\n({}: {} primitives)",
-                    function, primitives
-                )
+            SmellType::PrimitiveObsession { primitives, name } => {
+                format!("Primitive Obsession\n({}: {} primitives)", name, primitives)
             }
             SmellType::CircularTypeDependency => "Circular Type Dependency".to_string(),
             SmellType::AbstractnessViolation => "Abstractness Violation".to_string(),

@@ -24,8 +24,8 @@ impl Detector for DeepNestingDetector {
         name: "DeepNesting",
         explain: smell => (
             problem: {
-                if let crate::detectors::SmellType::DeepNesting { function, depth, .. } = &smell.smell_type {
-                    format!("Function `{}` is too deeply nested (depth: {})", function, depth)
+                if let crate::detectors::SmellType::DeepNesting { name, depth, .. } = &smell.smell_type {
+                    format!("Function `{}` is too deeply nested (depth: {})", name, depth)
                 } else {
                     "Too deeply nested".into()
                 }
@@ -42,7 +42,7 @@ impl Detector for DeepNestingDetector {
         table: {
             title: "Deep Nesting",
             columns: ["Location", "Function", "Depth", "pts"],
-            row: DeepNesting { function, depth } (smell, location, pts) => [location, function, depth, pts]
+            row: DeepNesting { name, depth } (smell, location, pts) => [location, name, depth, pts]
         }
     );
 
