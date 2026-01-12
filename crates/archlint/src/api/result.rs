@@ -83,6 +83,8 @@ pub struct Summary {
     pub shotgun_surgery: usize,
     /// Number of hub dependencies.
     pub hub_dependencies: usize,
+    /// Number of large files.
+    pub large_files: usize,
 }
 
 impl ScanResult {
@@ -114,6 +116,7 @@ impl ScanResult {
             feature_envy: report.feature_envy(),
             shotgun_surgery: report.shotgun_surgery(),
             hub_dependencies: report.hub_dependencies(),
+            large_files: report.large_files(),
         };
 
         Self {

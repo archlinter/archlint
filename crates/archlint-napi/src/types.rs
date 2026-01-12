@@ -106,6 +106,7 @@ pub struct JsSummary {
     pub feature_envy: u32,
     pub shotgun_surgery: u32,
     pub hub_dependencies: u32,
+    pub large_files: u32,
 }
 
 #[napi(object)]
@@ -328,6 +329,7 @@ impl From<archlint::Summary> for JsSummary {
             feature_envy: s.feature_envy as u32,
             shotgun_surgery: s.shotgun_surgery as u32,
             hub_dependencies: s.hub_dependencies as u32,
+            large_files: s.large_files as u32,
         }
     }
 }

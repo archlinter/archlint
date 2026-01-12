@@ -122,6 +122,7 @@ pub fn generate_json(
             "dead_code": report.dead_code(),
             "dead_symbols": report.dead_symbols(),
             "high_complexity_functions": report.high_complexity_functions(),
+            "large_files": report.large_files(),
             "unstable_interfaces": report.unstable_interfaces(),
             "feature_envy": report.feature_envy(),
             "shotgun_surgery": report.shotgun_surgery(),
