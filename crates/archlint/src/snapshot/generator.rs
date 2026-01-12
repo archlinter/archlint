@@ -106,33 +106,26 @@ impl SnapshotGenerator {
         for metric in &smell.metrics {
             if let Ok(serde_json::Value::Object(map)) = serde_json::to_value(metric) {
                 for (k, v) in map {
-                    let metric_val = match v {
-                        serde_json::Value::Number(n) => {
-                            if let Some(i) = n.as_i64() {
-                                MetricValue::Int(i)
-                            } else {
-                                MetricValue::Float(n.as_f64().unwrap_or(0.0))
-                            }
-                        }
-                        serde_json::Value::String(s) => MetricValue::String(s),
-                        _ => continue,
-                    };
-                    metrics.insert(k, metric_val);
+                    if let Ok(val) = serde_json::from_value(v) {
+                        metrics.insert(k, val);
+                    }
                 }
             }
         }
 
-        if let SmellType::CodeClone {
-            clone_hash,
-            token_count,
-        } = &smell.smell_type
-        {
-            metrics.insert("cloneHash".into(), MetricValue::String(clone_hash.clone()));
-            metrics.insert("tokenCount".into(), MetricValue::Int(*token_count as i64));
-        }
-
-        if let SmellType::ScatteredConfiguration { files_count, .. } = &smell.smell_type {
-            metrics.insert("filesCount".into(), MetricValue::Int(*files_count as i64));
+        // Add special fields from SmellType
+        match &smell.smell_type {
+            SmellType::CodeClone {
+                clone_hash,
+                token_count,
+            } => {
+                metrics.insert("cloneHash".into(), MetricValue::String(clone_hash.clone()));
+                metrics.insert("tokenCount".into(), MetricValue::Int(*token_count as i64));
+            }
+            SmellType::ScatteredConfiguration { files_count, .. } => {
+                metrics.insert("filesCount".into(), MetricValue::Int(*files_count as i64));
+            }
+            _ => {}
         }
 
         metrics
