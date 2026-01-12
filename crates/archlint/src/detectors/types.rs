@@ -205,6 +205,7 @@ impl std::str::FromStr for ConfigurableSmellType {
                 Ok(ConfigurableSmellType::ScatteredConfiguration)
             }
             "codeclone" | "code_clone" | "duplicates" => Ok(ConfigurableSmellType::CodeClone),
+            "unknown" => Ok(ConfigurableSmellType::Unknown),
 
             _ => Err(format!("Unknown smell type: {}", s)),
         }

@@ -27,6 +27,7 @@ use comfy_table::presets::UTF8_FULL;
 use comfy_table::{Attribute, Cell, Color, ContentArrangement, Table};
 #[cfg(feature = "cli")]
 use console::style;
+use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -156,15 +157,15 @@ pub struct AnalysisReport {
     /// The project's dependency graph.
     pub graph: Option<DependencyGraph>,
     /// Symbol information for each analyzed file.
-    pub file_symbols: std::collections::HashMap<PathBuf, FileSymbols>,
+    pub file_symbols: HashMap<PathBuf, FileSymbols>,
     /// Basic metrics for each file.
-    pub file_metrics: std::collections::HashMap<PathBuf, FileMetrics>,
+    pub file_metrics: HashMap<PathBuf, FileMetrics>,
     /// Complexity details for functions in each file.
-    pub function_complexity: std::collections::HashMap<PathBuf, Vec<FunctionComplexity>>,
+    pub function_complexity: HashMap<PathBuf, Vec<FunctionComplexity>>,
     /// Line-level ignore rules.
     pub ignored_lines: FileIgnoredLines,
     /// Git history metrics (churn).
-    pub churn_map: std::collections::HashMap<PathBuf, usize>,
+    pub churn_map: HashMap<PathBuf, usize>,
     /// Framework-specific presets applied.
     pub presets: Vec<FrameworkPreset>,
     /// Minimum severity filter applied to the report.
@@ -176,63 +177,6 @@ pub struct AnalysisReport {
 }
 
 impl AnalysisReport {
-    #[allow(clippy::too_many_arguments)]
-    pub fn new(
-        smells: Vec<ArchSmell>,
-        graph: Option<DependencyGraph>,
-        file_symbols: std::collections::HashMap<PathBuf, FileSymbols>,
-        file_metrics: std::collections::HashMap<PathBuf, FileMetrics>,
-        function_complexity: std::collections::HashMap<PathBuf, Vec<FunctionComplexity>>,
-        ignored_lines: FileIgnoredLines,
-        churn_map: std::collections::HashMap<PathBuf, usize>,
-        presets: Vec<FrameworkPreset>,
-        config: &crate::config::Config,
-    ) -> Self {
-        let registry = crate::detectors::DetectorRegistry::new();
-        let smells_with_explanations = smells
-            .into_iter()
-            .map(|smell| {
-                let detector_id = smell.smell_type.category().to_id();
-                let explanation =
-                    if let Some(detector) = registry.create_detector(detector_id, config) {
-                        detector.explain(&smell)
-                    } else {
-                        ExplainEngine::explain(&smell, config)
-                    };
-                (smell, explanation)
-            })
-            .collect();
-
-        let mut report = Self {
-            files_analyzed: 0,
-            cyclic_dependencies: 0,
-            god_modules: 0,
-            dead_code: 0,
-            dead_symbols: 0,
-            high_complexity_functions: 0,
-            large_files: 0,
-            unstable_interfaces: 0,
-            feature_envy: 0,
-            shotgun_surgery: 0,
-            hub_dependencies: 0,
-            code_clones: 0,
-            smells: smells_with_explanations,
-            graph,
-            file_symbols,
-            file_metrics,
-            function_complexity,
-            ignored_lines,
-            churn_map,
-            presets,
-            min_severity: None,
-            min_score: None,
-            config: config.clone(),
-        };
-
-        report.update_counts();
-        report
-    }
-
     pub fn set_min_severity(&mut self, severity: Severity) {
         self.min_severity = Some(severity);
     }
@@ -273,56 +217,36 @@ impl AnalysisReport {
     }
 
     fn update_counts(&mut self) {
-        let smells = &self.smells;
-        self.cyclic_dependencies = smells
-            .iter()
-            .filter(|(s, _)| {
-                matches!(
-                    s.smell_type,
-                    SmellType::CyclicDependency | SmellType::CyclicDependencyCluster
-                )
-            })
-            .count();
-        self.god_modules = smells
-            .iter()
-            .filter(|(s, _)| matches!(s.smell_type, SmellType::GodModule))
-            .count();
-        self.dead_code = smells
-            .iter()
-            .filter(|(s, _)| matches!(s.smell_type, SmellType::DeadCode))
-            .count();
-        self.dead_symbols = smells
-            .iter()
-            .filter(|(s, _)| matches!(s.smell_type, SmellType::DeadSymbol { .. }))
-            .count();
-        self.high_complexity_functions = smells
-            .iter()
-            .filter(|(s, _)| matches!(s.smell_type, SmellType::HighComplexity { .. }))
-            .count();
-        self.large_files = smells
-            .iter()
-            .filter(|(s, _)| matches!(s.smell_type, SmellType::LargeFile))
-            .count();
-        self.unstable_interfaces = smells
-            .iter()
-            .filter(|(s, _)| matches!(s.smell_type, SmellType::UnstableInterface))
-            .count();
-        self.feature_envy = smells
-            .iter()
-            .filter(|(s, _)| matches!(s.smell_type, SmellType::FeatureEnvy { .. }))
-            .count();
-        self.shotgun_surgery = smells
-            .iter()
-            .filter(|(s, _)| matches!(s.smell_type, SmellType::ShotgunSurgery))
-            .count();
-        self.hub_dependencies = smells
-            .iter()
-            .filter(|(s, _)| matches!(s.smell_type, SmellType::HubDependency { .. }))
-            .count();
-        self.code_clones = smells
-            .iter()
-            .filter(|(s, _)| matches!(s.smell_type, SmellType::CodeClone { .. }))
-            .count();
+        self.cyclic_dependencies = 0;
+        self.god_modules = 0;
+        self.dead_code = 0;
+        self.dead_symbols = 0;
+        self.high_complexity_functions = 0;
+        self.large_files = 0;
+        self.unstable_interfaces = 0;
+        self.feature_envy = 0;
+        self.shotgun_surgery = 0;
+        self.hub_dependencies = 0;
+        self.code_clones = 0;
+
+        for (smell, _) in &self.smells {
+            match &smell.smell_type {
+                SmellType::CyclicDependency | SmellType::CyclicDependencyCluster => {
+                    self.cyclic_dependencies += 1;
+                }
+                SmellType::GodModule => self.god_modules += 1,
+                SmellType::DeadCode => self.dead_code += 1,
+                SmellType::DeadSymbol { .. } => self.dead_symbols += 1,
+                SmellType::HighComplexity { .. } => self.high_complexity_functions += 1,
+                SmellType::LargeFile => self.large_files += 1,
+                SmellType::UnstableInterface => self.unstable_interfaces += 1,
+                SmellType::FeatureEnvy { .. } => self.feature_envy += 1,
+                SmellType::ShotgunSurgery => self.shotgun_surgery += 1,
+                SmellType::HubDependency { .. } => self.hub_dependencies += 1,
+                SmellType::CodeClone { .. } => self.code_clones += 1,
+                _ => {}
+            }
+        }
     }
 
     pub fn total_score(&self, config: &SeverityConfig) -> u32 {
@@ -664,5 +588,127 @@ impl AnalysisReport {
 
     pub fn write_json<P: AsRef<Path>>(&self, path: P, config: &SeverityConfig) -> Result<()> {
         json::write_report(self, path, config)
+    }
+}
+
+/// Builder for AnalysisReport to improve ergonomics
+#[derive(Default)]
+pub struct AnalysisReportBuilder {
+    smells: Vec<ArchSmell>,
+    graph: Option<DependencyGraph>,
+    file_symbols: HashMap<PathBuf, FileSymbols>,
+    file_metrics: HashMap<PathBuf, FileMetrics>,
+    function_complexity: HashMap<PathBuf, Vec<FunctionComplexity>>,
+    ignored_lines: FileIgnoredLines,
+    churn_map: HashMap<PathBuf, usize>,
+    presets: Vec<FrameworkPreset>,
+    config: Option<crate::config::Config>,
+    files_analyzed: usize,
+}
+
+impl AnalysisReportBuilder {
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    pub fn with_smells(mut self, smells: Vec<ArchSmell>) -> Self {
+        self.smells = smells;
+        self
+    }
+
+    pub fn with_graph(mut self, graph: Option<DependencyGraph>) -> Self {
+        self.graph = graph;
+        self
+    }
+
+    pub fn with_symbols(mut self, symbols: HashMap<PathBuf, FileSymbols>) -> Self {
+        self.file_symbols = symbols;
+        self
+    }
+
+    pub fn with_metrics(mut self, metrics: HashMap<PathBuf, FileMetrics>) -> Self {
+        self.file_metrics = metrics;
+        self
+    }
+
+    pub fn with_complexity(
+        mut self,
+        complexity: HashMap<PathBuf, Vec<FunctionComplexity>>,
+    ) -> Self {
+        self.function_complexity = complexity;
+        self
+    }
+
+    pub fn with_ignored_lines(mut self, ignored_lines: FileIgnoredLines) -> Self {
+        self.ignored_lines = ignored_lines;
+        self
+    }
+
+    pub fn with_churn(mut self, churn_map: HashMap<PathBuf, usize>) -> Self {
+        self.churn_map = churn_map;
+        self
+    }
+
+    pub fn with_presets(mut self, presets: Vec<FrameworkPreset>) -> Self {
+        self.presets = presets;
+        self
+    }
+
+    pub fn with_config(mut self, config: crate::config::Config) -> Self {
+        self.config = Some(config);
+        self
+    }
+
+    pub fn with_files_analyzed(mut self, count: usize) -> Self {
+        self.files_analyzed = count;
+        self
+    }
+
+    pub fn build(self) -> AnalysisReport {
+        let config = self.config.unwrap_or_default();
+        let registry = crate::detectors::DetectorRegistry::new();
+        let smells_with_explanations = self
+            .smells
+            .into_iter()
+            .map(|smell| {
+                let detector_id = smell.smell_type.category().to_id();
+                let explanation =
+                    if let Some(detector) = registry.create_detector(detector_id, &config) {
+                        detector.explain(&smell)
+                    } else {
+                        ExplainEngine::explain(&smell, &config)
+                    };
+                (smell, explanation)
+            })
+            .collect();
+
+        let mut report = AnalysisReport {
+            files_analyzed: self.files_analyzed,
+            cyclic_dependencies: 0,
+            god_modules: 0,
+            dead_code: 0,
+            dead_symbols: 0,
+            high_complexity_functions: 0,
+            large_files: 0,
+            unstable_interfaces: 0,
+            feature_envy: 0,
+            shotgun_surgery: 0,
+            hub_dependencies: 0,
+            code_clones: 0,
+            smells: smells_with_explanations,
+            graph: self.graph,
+            file_symbols: self.file_symbols,
+            file_metrics: self.file_metrics,
+            function_complexity: self.function_complexity,
+            ignored_lines: self.ignored_lines,
+            churn_map: self.churn_map,
+            presets: self.presets,
+            min_severity: None,
+            min_score: None,
+            config,
+        };
+
+        report.update_counts();
+        report
     }
 }

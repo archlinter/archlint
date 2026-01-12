@@ -19,7 +19,7 @@ use crate::no_cli_mocks::console::{style, Term};
 use crate::package_json;
 use crate::parser::{FileIgnoredLines, ImportParser, ParsedFile, ParserConfig};
 use crate::project_root::detect_project_root;
-use crate::report::AnalysisReport;
+use crate::report::{AnalysisReport, AnalysisReportBuilder};
 use crate::scanner::FileScanner;
 use crate::Result;
 #[cfg(feature = "cli")]
@@ -150,18 +150,24 @@ impl AnalysisEngine {
             })
             .collect();
 
-        let mut report = AnalysisReport::new(
-            filtered_smells,
-            Some(Arc::try_unwrap(ctx.graph).unwrap_or_else(|arc| (*arc).clone())),
-            Arc::try_unwrap(ctx.file_symbols).unwrap_or_else(|arc| (*arc).clone()),
-            Arc::try_unwrap(ctx.file_metrics).unwrap_or_else(|arc| (*arc).clone()),
-            Arc::try_unwrap(ctx.function_complexity).unwrap_or_else(|arc| (*arc).clone()),
-            Arc::try_unwrap(ctx.ignored_lines).unwrap_or_else(|arc| (*arc).clone()),
-            ctx.churn_map,
-            presets,
-            &self.config,
-        );
-        report.set_files_analyzed(files_len);
+        let mut report = AnalysisReportBuilder::new()
+            .with_smells(filtered_smells)
+            .with_graph(Some(
+                Arc::try_unwrap(ctx.graph).unwrap_or_else(|arc| (*arc).clone()),
+            ))
+            .with_symbols(Arc::try_unwrap(ctx.file_symbols).unwrap_or_else(|arc| (*arc).clone()))
+            .with_metrics(Arc::try_unwrap(ctx.file_metrics).unwrap_or_else(|arc| (*arc).clone()))
+            .with_complexity(
+                Arc::try_unwrap(ctx.function_complexity).unwrap_or_else(|arc| (*arc).clone()),
+            )
+            .with_ignored_lines(
+                Arc::try_unwrap(ctx.ignored_lines).unwrap_or_else(|arc| (*arc).clone()),
+            )
+            .with_churn(ctx.churn_map)
+            .with_presets(presets)
+            .with_config(self.config.clone())
+            .with_files_analyzed(files_len)
+            .build();
 
         if let Some(ref min_sev) = self.args.min_severity {
             use std::str::FromStr;
