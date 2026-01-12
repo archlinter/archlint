@@ -45,8 +45,6 @@ struct SmellKey {
     smell_type: String,
     /// The file path where the smell was detected.
     file: String,
-    /// The name of the symbol (function, class, variable) affected.
-    symbol_name: String,
 }
 
 impl FuzzyMatcher {
@@ -91,7 +89,7 @@ impl FuzzyMatcher {
     /// Find the best matching current smell for a given baseline smell from a list of candidates.
     ///
     /// Best match is defined as the one with the smallest line number difference
-    /// within the configured tolerance.
+    /// within the configured tolerance. Matching symbol names are preferred.
     fn find_best_match<'a>(
         &self,
         baseline: &SnapshotSmell,
@@ -99,6 +97,7 @@ impl FuzzyMatcher {
         used_ids: &HashSet<String>,
     ) -> Option<&'a SnapshotSmell> {
         let baseline_line = Self::extract_line(baseline)?;
+        let baseline_name = Self::extract_symbol_name(baseline);
 
         candidates
             .iter()
@@ -106,15 +105,23 @@ impl FuzzyMatcher {
             .filter_map(|current| {
                 let current_line = Self::extract_line(current)?;
                 let diff = baseline_line.abs_diff(current_line);
-                (diff <= self.line_tolerance).then_some((current, diff))
+                if diff <= self.line_tolerance {
+                    let current_name = Self::extract_symbol_name(current);
+                    let name_matches = baseline_name.is_some()
+                        && current_name.is_some()
+                        && baseline_name == current_name;
+                    Some((current, name_matches, diff))
+                } else {
+                    None
+                }
             })
-            .min_by_key(|(_, diff)| *diff)
-            .map(|(current, _)| *current)
+            .min_by_key(|(_, name_matches, diff)| (!name_matches, *diff))
+            .map(|(current, _, _)| *current)
     }
 
     /// Group smells by their matching key for efficient lookup.
     ///
-    /// Key format: (smell_type, first_file, symbol_name).
+    /// Key format: (smell_type, first_file).
     fn group_by_key<'a>(
         smells: &[&'a SnapshotSmell],
     ) -> BTreeMap<SmellKey, Vec<&'a SnapshotSmell>> {
@@ -129,7 +136,7 @@ impl FuzzyMatcher {
         groups
     }
 
-    /// Extract matching key from smell: (smell_type, file, symbol_name).
+    /// Extract matching key from smell: (smell_type, file).
     ///
     /// Fuzzy matching is only supported for "symbol-based" smells that affect a single file.
     /// Multi-file smells (like cyclic dependencies between multiple files) are excluded
@@ -146,13 +153,7 @@ impl FuzzyMatcher {
         let smell_type = smell.smell_type.clone();
         let file = smell.files[0].clone();
 
-        let symbol_name = Self::extract_symbol_name(smell)?;
-
-        Some(SmellKey {
-            smell_type,
-            file,
-            symbol_name,
-        })
+        Some(SmellKey { smell_type, file })
     }
 
     /// Extract symbol/function name from smell details or ID.
@@ -315,7 +316,7 @@ mod tests {
     }
 
     #[test]
-    fn test_different_functions_no_match() {
+    fn test_renamed_function_matches_by_proximity() {
         let mut baseline = make_smell(
             "cmplx:src/foo.ts:funcA:10",
             "HighComplexity",
@@ -329,21 +330,67 @@ mod tests {
         });
 
         let mut current = make_smell(
-            "cmplx:src/foo.ts:funcB:15",
+            "cmplx:src/foo.ts:funcX:12",
             "HighComplexity",
             "src/foo.ts",
-            15,
+            12,
         );
         current.details = Some(SmellType::HighComplexity {
-            name: "funcB".to_string(),
-            line: 15,
+            name: "funcX".to_string(),
+            line: 12,
             complexity: 0,
         });
 
         let matcher = FuzzyMatcher::new(10);
         let pairs = matcher.match_orphans(&[&baseline], &[&current]);
 
-        assert_eq!(pairs.len(), 0);
+        assert_eq!(
+            pairs.len(),
+            1,
+            "Renamed functions should match if close enough"
+        );
+        assert_eq!(pairs[0].baseline.id, baseline.id);
+        assert_eq!(pairs[0].current.id, current.id);
+    }
+
+    #[test]
+    fn test_prefer_matching_name_over_closer_proximity() {
+        let baseline = make_smell(
+            "cmplx:src/foo.ts:target:10",
+            "HighComplexity",
+            "src/foo.ts",
+            10,
+        );
+
+        // Candidate 1: matching name but further (diff 5)
+        let current1 = make_smell(
+            "cmplx:src/foo.ts:target:15",
+            "HighComplexity",
+            "src/foo.ts",
+            15,
+        );
+
+        // Candidate 2: different name but closer (diff 2)
+        let mut current2 = make_smell(
+            "cmplx:src/foo.ts:other:12",
+            "HighComplexity",
+            "src/foo.ts",
+            12,
+        );
+        current2.details = Some(SmellType::HighComplexity {
+            name: "other".to_string(),
+            line: 12,
+            complexity: 0,
+        });
+
+        let matcher = FuzzyMatcher::new(10);
+        let pairs = matcher.match_orphans(&[&baseline], &[&current1, &current2]);
+
+        assert_eq!(pairs.len(), 1);
+        assert_eq!(
+            pairs[0].current.id, current1.id,
+            "Should prefer matching name even if slightly further away"
+        );
     }
 
     #[test]
