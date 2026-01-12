@@ -27,10 +27,6 @@ rules:
       ValidatorConstraintInterface: ['validate', 'defaultMessage']
 ```
 
-::: tip
-**Falsos Positivos**: El análisis arquitectónico a veces puede producir falsos positivos, especialmente en proyectos con carga dinámica pesada, reflexión o contenedores complejos de Inyección de Dependencias (DI).
-:::
-
 ## Regla ESLint
 
 Este detector está disponible como una regla ESLint para recibir retroalimentación en tiempo real en tu editor.

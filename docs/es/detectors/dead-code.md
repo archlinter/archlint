@@ -28,10 +28,6 @@ import { usedHelper } from './utils';
 1. **Eliminarlo**: Si realmente no se usa, la mejor acción es su eliminación.
 2. **Marcar como Punto de Entrada (Entry Point)**: Si es parte de una API pública o una importación dinámica, añádelo a `entry_points` en tu configuración.
 
-::: tip
-**Falsos Positivos**: El análisis arquitectónico a veces puede producir falsos positivos, especialmente en proyectos con carga dinámica pesada, reflexión o contenedores complejos de Inyección de Dependencias (DI).
-:::
-
 ## Configuración
 
 ```yaml

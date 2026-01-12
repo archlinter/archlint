@@ -27,10 +27,6 @@ rules:
       ValidatorConstraintInterface: ['validate', 'defaultMessage']
 ```
 
-::: tip
-**False Positives**: Architectural analysis can sometimes produce false positives, especially in projects with heavy dynamic loading, reflection, or complex Dependency Injection containers.
-:::
-
 ## ESLint Rule
 
 This detector is available as an ESLint rule for real-time feedback in your editor.

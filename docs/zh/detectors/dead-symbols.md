@@ -27,10 +27,6 @@ rules:
       ValidatorConstraintInterface: ['validate', 'defaultMessage']
 ```
 
-::: tip
-**误报**：架构分析有时可能会产生误报，特别是在具有大量动态加载、反射或复杂依赖注入（DI）容器的项目中。
-:::
-
 ## ESLint 规则
 
 此检测器可作为 ESLint 规则使用，以便在编辑器中获得实时反馈。
