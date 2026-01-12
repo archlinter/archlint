@@ -1,5 +1,6 @@
 use crate::config::SeverityConfig;
 use crate::detectors::types::{Severity, SmellMetric, SmellType};
+use crate::snapshot::SnapshotSmell;
 use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
 use std::path::PathBuf;
@@ -828,6 +829,57 @@ impl ArchSmell {
                 SmellMetric::TokenCount(token_count),
                 SmellMetric::CloneInstances(locations.len()),
             ],
+            locations,
+            cluster: None,
+        }
+    }
+}
+
+impl From<&SnapshotSmell> for ArchSmell {
+    fn from(smell: &SnapshotSmell) -> Self {
+        let mut metrics = Vec::new();
+        for (name, value) in &smell.metrics {
+            let val = value.as_f64();
+            let metric = match name.as_str() {
+                "fanIn" => SmellMetric::FanIn(val as usize),
+                "fanOut" => SmellMetric::FanOut(val as usize),
+                "complexity" => SmellMetric::Complexity(val as usize),
+                "lines" => SmellMetric::Lines(val as usize),
+                "lcom" => SmellMetric::Lcom(val as usize),
+                "cbo" => SmellMetric::Cbo(val as usize),
+                "depth" => SmellMetric::Depth(val as usize),
+                "distance" => SmellMetric::Distance(val),
+                "cycleLength" => SmellMetric::CycleLength(val as usize),
+                "instability" => SmellMetric::Instability(val),
+                "instabilityScore" => SmellMetric::InstabilityScore(val as usize),
+                "envyRatio" => SmellMetric::EnvyRatio(val),
+                "avgCoChanges" => SmellMetric::AvgCoChanges(val),
+                "dependentCount" => SmellMetric::DependentCount(val as usize),
+                "components" => SmellMetric::Components(val as usize),
+                "tokenCount" => SmellMetric::TokenCount(val as usize),
+                "cloneInstances" => SmellMetric::CloneInstances(val as usize),
+                _ => continue,
+            };
+            metrics.push(metric);
+        }
+
+        let locations = smell
+            .locations
+            .iter()
+            .map(|loc| LocationDetail {
+                file: PathBuf::from(&loc.file),
+                line: loc.line,
+                column: loc.column,
+                range: loc.range,
+                description: loc.description.clone().unwrap_or_default(),
+            })
+            .collect();
+
+        Self {
+            smell_type: SmellType::from(smell),
+            severity: smell.severity.parse().unwrap_or(Severity::Medium),
+            files: smell.files.iter().map(PathBuf::from).collect(),
+            metrics,
             locations,
             cluster: None,
         }
