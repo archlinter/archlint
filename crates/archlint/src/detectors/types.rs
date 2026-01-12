@@ -381,11 +381,11 @@ impl From<&SnapshotSmell> for SmellType {
                 line: d!(Complexity, line),
             },
             "LongParameterList" => SmellType::LongParameterList {
-                count: metric("count"),
+                count: metric("parameterCount"),
                 function: d!(LongParameterList, function),
             },
             "PrimitiveObsession" => SmellType::PrimitiveObsession {
-                primitives: metric("primitives"),
+                primitives: metric("primitiveCount"),
                 function: d!(PrimitiveObsession, function),
             },
             "OrphanType" | "OrphanTypes" => SmellType::OrphanType {
@@ -409,6 +409,90 @@ impl From<&SnapshotSmell> for SmellType {
                     raw_type: unknown.to_string(),
                 }
             }
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::snapshot::types::{MetricValue, SmellDetails, SnapshotSmell};
+    use std::collections::HashMap;
+
+    #[test]
+    fn test_smell_type_from_snapshot_complex() {
+        let mut metrics = HashMap::new();
+        metrics.insert("complexity".to_string(), MetricValue::Int(20));
+
+        let snapshot = SnapshotSmell {
+            id: "test".to_string(),
+            smell_type: "HighComplexity".to_string(),
+            severity: "High".to_string(),
+            files: vec!["file.ts".to_string()],
+            metrics,
+            details: Some(SmellDetails::Complexity {
+                function_name: "myFunc".to_string(),
+                line: 10,
+            }),
+            locations: vec![],
+        };
+
+        let smell_type = SmellType::from(&snapshot);
+        match smell_type {
+            SmellType::HighComplexity {
+                name,
+                line,
+                complexity,
+            } => {
+                assert_eq!(name, "myFunc");
+                assert_eq!(line, 10);
+                assert_eq!(complexity, 20);
+            }
+            _ => panic!("Expected HighComplexity, got {:?}", smell_type),
+        }
+    }
+
+    #[test]
+    fn test_smell_type_from_snapshot_hub_dep() {
+        let snapshot = SnapshotSmell {
+            id: "test".to_string(),
+            smell_type: "HubDependency".to_string(),
+            severity: "High".to_string(),
+            files: vec![],
+            metrics: HashMap::new(),
+            details: Some(SmellDetails::HubDependency {
+                package: "axios".to_string(),
+            }),
+            locations: vec![],
+        };
+
+        let smell_type = SmellType::from(&snapshot);
+        match smell_type {
+            SmellType::HubDependency { package } => {
+                assert_eq!(package, "axios");
+            }
+            _ => panic!("Expected HubDependency, got {:?}", smell_type),
+        }
+    }
+
+    #[test]
+    fn test_smell_type_from_snapshot_unknown() {
+        let snapshot = SnapshotSmell {
+            id: "test".to_string(),
+            smell_type: "NewMagicSmell".to_string(),
+            severity: "Low".to_string(),
+            files: vec![],
+            metrics: HashMap::new(),
+            details: None,
+            locations: vec![],
+        };
+
+        let smell_type = SmellType::from(&snapshot);
+        match smell_type {
+            SmellType::Unknown { raw_type } => {
+                assert_eq!(raw_type, "NewMagicSmell");
+            }
+            _ => panic!("Expected Unknown, got {:?}", smell_type),
         }
     }
 }

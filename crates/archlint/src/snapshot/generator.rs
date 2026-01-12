@@ -154,11 +154,36 @@ impl SnapshotGenerator {
                 SmellMetric::CloneInstances(v) => {
                     metrics.insert("cloneInstances".into(), MetricValue::Int(*v as i64));
                 }
-                _ => {}
+                SmellMetric::ParameterCount(v) => {
+                    metrics.insert("parameterCount".into(), MetricValue::Int(*v as i64));
+                }
+                SmellMetric::PrimitiveCount(v) => {
+                    metrics.insert("primitiveCount".into(), MetricValue::Int(*v as i64));
+                }
+                SmellMetric::MethodCount(v) => {
+                    metrics.insert("methodCount".into(), MetricValue::Int(*v as i64));
+                }
+                SmellMetric::FieldCount(v) => {
+                    metrics.insert("fieldCount".into(), MetricValue::Int(*v as i64));
+                }
+                SmellMetric::InternalRefs(v) => {
+                    metrics.insert("internalRefs".into(), MetricValue::Int(*v as i64));
+                }
+                SmellMetric::ExternalRefs(v) => {
+                    metrics.insert("externalRefs".into(), MetricValue::Int(*v as i64));
+                }
+                SmellMetric::InstabilityDiff(v) => {
+                    metrics.insert("instabilityDiff".into(), MetricValue::Float(*v));
+                }
+                SmellMetric::Churn(v) => {
+                    metrics.insert("churn".into(), MetricValue::Int(*v as i64));
+                }
+                SmellMetric::Distance(v) => {
+                    metrics.insert("distance".into(), MetricValue::Float(*v));
+                }
             }
         }
 
-        // Special handling for CodeClone smell type to extract cloneHash and tokenCount
         if let SmellType::CodeClone {
             clone_hash,
             token_count,
@@ -166,6 +191,10 @@ impl SnapshotGenerator {
         {
             metrics.insert("cloneHash".into(), MetricValue::String(clone_hash.clone()));
             metrics.insert("tokenCount".into(), MetricValue::Int(*token_count as i64));
+        }
+
+        if let SmellType::ScatteredConfiguration { files_count, .. } = &smell.smell_type {
+            metrics.insert("filesCount".into(), MetricValue::Int(*files_count as i64));
         }
 
         metrics
@@ -352,17 +381,27 @@ mod tests {
     }
 
     #[test]
-    fn test_smell_type_to_string() {
-        assert_eq!(
-            smell_type_to_string(&SmellType::CyclicDependency),
-            "CyclicDependency"
-        );
-        assert_eq!(
-            smell_type_to_string(&SmellType::LayerViolation {
-                from_layer: "ui".into(),
-                to_layer: "domain".into(),
-            }),
-            "LayerViolation"
-        );
+    fn test_extract_metrics_comprehensive() {
+        let gen = SnapshotGenerator::new(PathBuf::from("/test"));
+        let smell = ArchSmell {
+            smell_type: SmellType::PrimitiveObsession {
+                primitives: 10,
+                function: "test".to_string(),
+            },
+            severity: crate::detectors::Severity::High,
+            files: vec![],
+            metrics: vec![
+                SmellMetric::PrimitiveCount(10),
+                SmellMetric::Churn(42),
+                SmellMetric::InstabilityDiff(0.5),
+            ],
+            locations: vec![],
+            cluster: None,
+        };
+
+        let metrics = gen.extract_metrics(&smell);
+        assert_eq!(metrics.get("primitiveCount").unwrap().as_i64(), Some(10));
+        assert_eq!(metrics.get("churn").unwrap().as_i64(), Some(42));
+        assert_eq!(metrics.get("instabilityDiff").unwrap().as_f64(), 0.5);
     }
 }

@@ -858,6 +858,14 @@ impl From<&SnapshotSmell> for ArchSmell {
                 "components" => SmellMetric::Components(val as usize),
                 "tokenCount" => SmellMetric::TokenCount(val as usize),
                 "cloneInstances" => SmellMetric::CloneInstances(val as usize),
+                "parameterCount" => SmellMetric::ParameterCount(val as usize),
+                "primitiveCount" => SmellMetric::PrimitiveCount(val as usize),
+                "methodCount" => SmellMetric::MethodCount(val as usize),
+                "fieldCount" => SmellMetric::FieldCount(val as usize),
+                "internalRefs" => SmellMetric::InternalRefs(val as usize),
+                "externalRefs" => SmellMetric::ExternalRefs(val as usize),
+                "instabilityDiff" => SmellMetric::InstabilityDiff(val),
+                "filesCount" => SmellMetric::DependentCount(val as usize), // ScatteredConfiguration uses filesCount key
                 _ => continue,
             };
             metrics.push(metric);
@@ -883,5 +891,35 @@ impl From<&SnapshotSmell> for ArchSmell {
             locations,
             cluster: None,
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::snapshot::types::{MetricValue, SnapshotSmell};
+    use std::collections::HashMap;
+
+    #[test]
+    fn test_arch_smell_from_snapshot() {
+        let mut metrics = HashMap::new();
+        metrics.insert("fanIn".to_string(), MetricValue::Int(5));
+        metrics.insert("parameterCount".to_string(), MetricValue::Int(8));
+
+        let snapshot = SnapshotSmell {
+            id: "test".to_string(),
+            smell_type: "GodModule".to_string(),
+            severity: "Critical".to_string(),
+            files: vec!["src/app.ts".to_string()],
+            metrics,
+            details: None,
+            locations: vec![],
+        };
+
+        let arch_smell = ArchSmell::from(&snapshot);
+        assert_eq!(arch_smell.severity, Severity::Critical);
+        assert_eq!(arch_smell.files[0], PathBuf::from("src/app.ts"));
+        assert_eq!(arch_smell.fan_in(), Some(5));
+        assert_eq!(arch_smell.parameter_count(), Some(8));
     }
 }
