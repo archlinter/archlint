@@ -322,6 +322,7 @@ impl From<&SnapshotSmell> for SmellType {
             "HubModule" => SmellType::HubModule,
             "CircularTypeDependency" => SmellType::CircularTypeDependency,
             "AbstractnessViolation" => SmellType::AbstractnessViolation,
+            "ShotgunSurgery" => SmellType::ShotgunSurgery,
             unknown => {
                 log::warn!("Missing details for complex smell type: {}", unknown);
                 SmellType::Unknown {
@@ -443,6 +444,20 @@ mod tests {
         assert_eq!(
             SmellType::from(&snapshot_cycles),
             SmellType::CyclicDependency
+        );
+
+        let snapshot_shotgun = SnapshotSmell {
+            id: "test".to_string(),
+            smell_type: "ShotgunSurgery".to_string(),
+            severity: "High".to_string(),
+            files: vec!["file.ts".to_string()],
+            metrics: HashMap::new(),
+            details: None,
+            locations: vec![],
+        };
+        assert_eq!(
+            SmellType::from(&snapshot_shotgun),
+            SmellType::ShotgunSurgery
         );
     }
 }
