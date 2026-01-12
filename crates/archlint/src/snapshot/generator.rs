@@ -257,6 +257,10 @@ impl SnapshotGenerator {
                 })
             }
 
+            SmellType::LowCohesion { class_name, .. } => Some(SmellDetails::LowCohesion {
+                class_name: class_name.clone(),
+            }),
+
             _ => None,
         }
     }

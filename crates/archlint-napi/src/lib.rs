@@ -43,7 +43,7 @@ pub fn run_diff(options: JsDiffOptions) -> Result<JsDiffResult> {
     let engine = archlint::diff::DiffEngine::new()
         .with_threshold(config.diff.metric_threshold_percent)
         .with_line_tolerance(config.diff.line_tolerance);
-    let result = engine.diff_with_explain(&baseline, &current);
+    let result = engine.diff_with_explain(&baseline, &current, &config);
 
     Ok(result.into())
 }

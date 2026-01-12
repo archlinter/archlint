@@ -165,6 +165,7 @@ impl FuzzyMatcher {
                 SmellDetails::PrimitiveObsession { function } => Some(function.clone()),
                 SmellDetails::SharedMutableState { symbol } => Some(symbol.clone()),
                 SmellDetails::OrphanType { name } => Some(name.clone()),
+                SmellDetails::LowCohesion { class_name } => Some(class_name.clone()),
                 // These don't have symbol names that would shift
                 SmellDetails::Cycle { .. }
                 | SmellDetails::LayerViolation { .. }

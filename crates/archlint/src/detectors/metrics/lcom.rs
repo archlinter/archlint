@@ -67,8 +67,8 @@ impl Detector for LcomDetector {
         table: {
             title: "Low Cohesion (LCOM)",
             columns: ["Class", "LCOM4 Score", "pts"],
-            row: LowCohesion { lcom } (smell, location, pts) => [
-                smell.files.first().map(|f| crate::explain::ExplainEngine::format_file_path(f)).unwrap_or_default(),
+            row: LowCohesion { lcom, class_name } (smell, location, pts) => [
+                class_name,
                 lcom,
                 pts
             ]

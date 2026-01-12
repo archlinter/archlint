@@ -2,11 +2,11 @@ use super::types::{ExplainBlock, Regression, RegressionType};
 use crate::explain::{ExplainEngine, Explanation};
 use crate::snapshot::SnapshotSmell;
 
-pub fn generate_explain(regression: &Regression) -> ExplainBlock {
+pub fn generate_explain(regression: &Regression, config: &crate::config::Config) -> ExplainBlock {
     match &regression.regression_type {
-        RegressionType::NewSmell => explain_for_smell_type(&regression.smell),
+        RegressionType::NewSmell => explain_for_smell_type(&regression.smell, config),
         RegressionType::SeverityIncrease { from, to } => {
-            explain_severity_increase(&regression.smell, from, to)
+            explain_severity_increase(&regression.smell, from, to, config)
         }
         RegressionType::MetricWorsening {
             metric,
@@ -17,13 +17,21 @@ pub fn generate_explain(regression: &Regression) -> ExplainBlock {
     }
 }
 
-pub fn explain_for_smell_type(smell: &SnapshotSmell) -> ExplainBlock {
-    let explanation = ExplainEngine::explain_snapshot_smell(smell);
+pub fn explain_for_smell_type(
+    smell: &SnapshotSmell,
+    config: &crate::config::Config,
+) -> ExplainBlock {
+    let explanation = ExplainEngine::explain_snapshot_smell(smell, config);
     ExplanationConverter::to_explain_block(explanation)
 }
 
-pub fn explain_severity_increase(smell: &SnapshotSmell, from: &str, to: &str) -> ExplainBlock {
-    let base = explain_for_smell_type(smell);
+pub fn explain_severity_increase(
+    smell: &SnapshotSmell,
+    from: &str,
+    to: &str,
+    config: &crate::config::Config,
+) -> ExplainBlock {
+    let base = explain_for_smell_type(smell, config);
 
     ExplainBlock {
         why_bad: format!(
@@ -108,7 +116,8 @@ mod tests {
     #[test]
     fn test_explain_cycle() {
         let smell = make_test_smell("CyclicDependency");
-        let explain = explain_for_smell_type(&smell);
+        let config = crate::config::Config::default();
+        let explain = explain_for_smell_type(&smell, &config);
 
         assert!(explain.why_bad.contains("Circular"));
         assert!(explain.how_to_fix.contains("Extract"));

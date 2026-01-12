@@ -6,7 +6,10 @@ use std::path::{Path, PathBuf};
 pub struct ExplainEngine;
 
 impl ExplainEngine {
-    pub fn explain_snapshot_smell(smell: &SnapshotSmell) -> Explanation {
+    pub fn explain_snapshot_smell(
+        smell: &SnapshotSmell,
+        config: &crate::config::Config,
+    ) -> Explanation {
         let smell_type = match smell.smell_type.as_str() {
             "CyclicDependency" | "Cycles" => SmellType::CyclicDependency,
             "CyclicDependencyCluster" => SmellType::CyclicDependencyCluster,
@@ -92,7 +95,17 @@ impl ExplainEngine {
                     .and_then(|v| v.as_i64())
                     .map(|v| v as usize)
                     .unwrap_or(0);
-                SmellType::LowCohesion { lcom }
+                let class_name = smell
+                    .details
+                    .as_ref()
+                    .and_then(|d| match d {
+                        crate::snapshot::SmellDetails::LowCohesion { class_name } => {
+                            Some(class_name.clone())
+                        }
+                        _ => None,
+                    })
+                    .unwrap_or_else(|| "unknown".to_string());
+                SmellType::LowCohesion { lcom, class_name }
             }
             "SdpViolation" => SmellType::SdpViolation,
             "LargeFile" => SmellType::LargeFile,
@@ -345,10 +358,13 @@ impl ExplainEngine {
             cluster: None,
         };
 
-        Self::explain(&arch_smell)
+        Self::explain(&arch_smell, config)
     }
 
-    pub fn explain(smell: &crate::detectors::ArchSmell) -> Explanation {
+    pub fn explain(
+        smell: &crate::detectors::ArchSmell,
+        config: &crate::config::Config,
+    ) -> Explanation {
         // Fallback for not yet migrated explanations
         match &smell.smell_type {
             SmellType::TestLeakage { .. } => Self::explain_test_leakage(smell),
@@ -358,9 +374,7 @@ impl ExplainEngine {
                 // Try dynamic explanation if available
                 let registry = crate::detectors::DetectorRegistry::new();
                 let detector_id = smell.smell_type.category().to_id();
-                if let Some(detector) =
-                    registry.create_detector(detector_id, &crate::config::Config::default())
-                {
+                if let Some(detector) = registry.create_detector(detector_id, config) {
                     detector.explain(smell)
                 } else {
                     Self::simple_explanation("Unknown Smell", "No detailed explanation available")

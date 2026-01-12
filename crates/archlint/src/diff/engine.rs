@@ -37,11 +37,16 @@ impl DiffEngine {
     }
 
     /// Add explanations to all regressions
-    pub fn diff_with_explain(&self, baseline: &Snapshot, current: &Snapshot) -> DiffResult {
+    pub fn diff_with_explain(
+        &self,
+        baseline: &Snapshot,
+        current: &Snapshot,
+        config: &crate::config::Config,
+    ) -> DiffResult {
         let mut result = self.diff(baseline, current);
 
         for regression in &mut result.regressions {
-            regression.explain = Some(super::explain::generate_explain(regression));
+            regression.explain = Some(super::explain::generate_explain(regression, config));
         }
 
         result

@@ -258,7 +258,7 @@ impl AnalysisReport {
                     if let Some(detector) = registry.create_detector(detector_id, config) {
                         detector.explain(&smell)
                     } else {
-                        ExplainEngine::explain(&smell)
+                        ExplainEngine::explain(&smell, config)
                     };
                 (smell, explanation)
             })
@@ -602,7 +602,7 @@ impl AnalysisReport {
             }
             SmellType::SideEffectImport => "Side-Effect Import".to_string(),
             SmellType::HubModule => "Hub Module".to_string(),
-            SmellType::LowCohesion { lcom } => {
+            SmellType::LowCohesion { lcom, .. } => {
                 format!("Low Cohesion\n(LCOM: {})", lcom)
             }
             SmellType::ScatteredModule { components } => {

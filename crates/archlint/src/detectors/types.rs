@@ -64,7 +64,7 @@ pub enum SmellType {
     HubModule,
 
     /// A class where methods don't operate on common fields (Lack of Cohesion of Methods).
-    LowCohesion { lcom: usize },
+    LowCohesion { lcom: usize, class_name: String },
     /// A module that consists of multiple unconnected components.
     ScatteredModule { components: usize },
     /// A module with high coupling to other modules (Coupling Between Objects).
@@ -209,7 +209,7 @@ impl ConfigurableSmellType {
     pub fn to_id(&self) -> &'static str {
         match self {
             ConfigurableSmellType::CyclicDependency => "cycles",
-            ConfigurableSmellType::CyclicDependencyCluster => "cycles_cluster",
+            ConfigurableSmellType::CyclicDependencyCluster => "cycles",
             ConfigurableSmellType::GodModule => "god_module",
             ConfigurableSmellType::DeadCode => "dead_code",
             ConfigurableSmellType::DeadSymbol => "dead_symbols",
@@ -344,4 +344,6 @@ pub enum SmellMetric {
     CloneInstances(usize),
     ParameterCount(usize),
     PrimitiveCount(usize),
+    InternalRefs(usize),
+    ExternalRefs(usize),
 }

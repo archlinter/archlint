@@ -148,6 +148,9 @@ pub enum SmellDetails {
     ScatteredConfiguration {
         env_var: String,
     },
+    LowCohesion {
+        class_name: String,
+    },
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]

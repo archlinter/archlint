@@ -195,7 +195,7 @@ impl Analyzer {
             // Filter to affected files
             for smell in smells {
                 if smell.files.iter().any(|f| affected.contains(f)) {
-                    let explanation = crate::explain::ExplainEngine::explain(&smell);
+                    let explanation = crate::explain::ExplainEngine::explain(&smell, &ctx.config);
                     all_smells.push(SmellWithExplanation { smell, explanation });
                 }
             }

@@ -55,7 +55,7 @@ impl Detector for ScatteredConfigDetector {
             None => return Vec::new(),
         };
 
-        let mut var_usage: HashMap<String, Vec<PathBuf>> = HashMap::new();
+        let mut var_usage: HashMap<String, std::collections::HashSet<PathBuf>> = HashMap::new();
         let max_files: usize = rule.get_option("max_files").unwrap_or(3);
 
         for (path, symbols) in ctx.file_symbols.as_ref() {
@@ -63,7 +63,7 @@ impl Detector for ScatteredConfigDetector {
                 var_usage
                     .entry(var.to_string())
                     .or_default()
-                    .push(path.clone());
+                    .insert(path.clone());
             }
         }
 
@@ -71,7 +71,8 @@ impl Detector for ScatteredConfigDetector {
             .into_iter()
             .filter(|(_, files)| files.len() > max_files)
             .map(|(env_var, files)| {
-                let mut smell = ArchSmell::new_scattered_configuration(env_var, files);
+                let files_vec = files.into_iter().collect();
+                let mut smell = ArchSmell::new_scattered_configuration(env_var, files_vec);
                 smell.severity = rule.severity;
                 smell
             })

@@ -48,7 +48,7 @@ impl Detector for UnstableInterfaceDetector {
         },
         table: {
             title: "Unstable Interfaces",
-            columns: ["File", "Churn", "Dependants", "Score", "pts"],
+            columns: ["File", "Churn", "Dependents", "Score", "pts"],
             row: UnstableInterface { } (smell, location, pts) => [
                 location,
                 smell.churn().unwrap_or(0),
@@ -72,14 +72,14 @@ impl Detector for UnstableInterfaceDetector {
                 let min_churn: usize = rule.get_option("min_churn").unwrap_or(10);
                 let min_dependents: usize = rule
                     .get_option("min_dependents")
-                    .or_else(|| rule.get_option("min_dependents"))
+                    .or_else(|| rule.get_option("min_dependants"))
                     .unwrap_or(5);
                 let score_threshold: usize = rule.get_option("score_threshold").unwrap_or(100);
 
                 let churn = ctx.churn_map.get(path).copied().unwrap_or(0);
                 let dependents = ctx.graph.fan_in(node);
 
-                let score = churn * dependents;
+                let score = churn.saturating_mul(dependents);
 
                 // If git is not available, we skip the churn and score threshold checks
                 let churn_ok = !git_available || churn >= min_churn;

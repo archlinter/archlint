@@ -123,6 +123,8 @@ impl ArchSmell {
     impl_metric_accessor!(token_count, TokenCount, usize);
     impl_metric_accessor!(parameter_count, ParameterCount, usize);
     impl_metric_accessor!(primitive_count, PrimitiveCount, usize);
+    impl_metric_accessor!(internal_refs, InternalRefs, usize);
+    impl_metric_accessor!(external_refs, ExternalRefs, usize);
 
     /// Get the severity level of this smell.
     pub fn effective_severity(&self) -> Severity {
@@ -370,8 +372,8 @@ impl ArchSmell {
             files: vec![file],
             metrics: vec![
                 SmellMetric::EnvyRatio(ratio),
-                SmellMetric::FanIn(external_refs),
-                SmellMetric::FanOut(internal_refs),
+                SmellMetric::InternalRefs(internal_refs),
+                SmellMetric::ExternalRefs(external_refs),
             ],
             locations: Vec::new(),
             cluster: None,
@@ -605,16 +607,19 @@ impl ArchSmell {
         }
     }
 
-    pub fn new_low_cohesion(path: PathBuf, name: String, lcom: usize) -> Self {
+    pub fn new_low_cohesion(path: PathBuf, class_name: String, lcom: usize) -> Self {
         Self {
-            smell_type: SmellType::LowCohesion { lcom },
+            smell_type: SmellType::LowCohesion {
+                lcom,
+                class_name: class_name.clone(),
+            },
             severity: Severity::Medium,
             files: vec![path.clone()],
             metrics: vec![SmellMetric::Lcom(lcom)],
             locations: vec![LocationDetail::new(
                 path,
                 0,
-                format!("Class '{}' has low cohesion", name),
+                format!("Class '{}' has low cohesion", class_name),
             )],
             cluster: None,
         }
