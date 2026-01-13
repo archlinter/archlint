@@ -1,4 +1,4 @@
-use crate::args::{Language, OutputFormat, ScanArgs};
+use crate::args::{OutputFormat, ScanArgs};
 use crate::config::Config;
 use crate::detectors::Severity;
 use serde::{Deserialize, Serialize};
@@ -51,7 +51,6 @@ impl ScanOptions {
     pub fn to_scan_args(&self, path: &Path) -> ScanArgs {
         ScanArgs {
             path: path.to_path_buf(),
-            lang: Language::TypeScript,
             config: self.config_path.clone(),
             report: None,
             format: OutputFormat::Table,

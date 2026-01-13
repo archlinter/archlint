@@ -1,4 +1,4 @@
-use crate::args::{Language, OutputFormat, ScanArgs};
+use crate::args::{validate_detector_ids, OutputFormat, ScanArgs};
 use clap::Parser;
 use std::path::PathBuf;
 
@@ -13,24 +13,20 @@ pub struct Cli {
     #[arg(value_name = "PATH", default_value = ".")]
     pub path: Option<PathBuf>,
 
-    /// Programming language
-    #[arg(long, default_value = "ts")]
-    pub lang: Option<Language>,
-
     /// Config file path
-    #[arg(long, value_name = "FILE")]
+    #[arg(short, long, value_name = "FILE")]
     pub config: Option<PathBuf>,
 
     /// Output report file (defaults to stdout if not specified)
-    #[arg(long, value_name = "FILE")]
+    #[arg(short, long, value_name = "FILE")]
     pub report: Option<PathBuf>,
 
     /// Output format
-    #[arg(long, default_value = "table")]
+    #[arg(short, long, default_value = "table")]
     pub format: Option<OutputFormat>,
 
     /// Output in JSON format (shortcut for --format json)
-    #[arg(long, action = clap::ArgAction::SetTrue)]
+    #[arg(short, long, action = clap::ArgAction::SetTrue)]
     pub json: bool,
 
     /// Disable dependency diagram in Markdown reports
@@ -38,15 +34,15 @@ pub struct Cli {
     pub no_diagram: bool,
 
     /// Run all available detectors (including those disabled by default)
-    #[arg(long = "all", action = clap::ArgAction::SetTrue)]
+    #[arg(short = 'A', long = "all", action = clap::ArgAction::SetTrue)]
     pub all_detectors: bool,
 
     /// Only run these detectors (comma-separated IDs)
-    #[arg(long, value_name = "IDS")]
+    #[arg(short, long, value_name = "IDS", value_parser = validate_detector_ids)]
     pub detectors: Option<String>,
 
     /// Exclude these detectors (comma-separated IDs)
-    #[arg(long, value_name = "IDS")]
+    #[arg(short, long, value_name = "IDS", value_parser = validate_detector_ids)]
     pub exclude_detectors: Option<String>,
 
     /// Quiet mode (CI-friendly, no progress bars)
@@ -58,11 +54,11 @@ pub struct Cli {
     pub verbose: bool,
 
     /// Minimum severity to include in report (low, medium, high, critical)
-    #[arg(long, value_name = "SEVERITY")]
+    #[arg(short = 's', long, value_name = "SEVERITY")]
     pub min_severity: Option<String>,
 
     /// Minimum score to include in report
-    #[arg(long, value_name = "SCORE")]
+    #[arg(short = 'S', long, value_name = "SCORE")]
     pub min_score: Option<u32>,
 
     /// Override severity for specific smell types (e.g. "DeadCode=low,GodModule=high")
@@ -98,7 +94,6 @@ impl Cli {
         let quiet = self.quiet || self.json;
         ScanArgs {
             path: self.path.clone().unwrap_or_else(|| PathBuf::from(".")),
-            lang: self.lang.unwrap_or(Language::TypeScript),
             config: self.config.clone(),
             report: self.report.clone(),
             format,
@@ -192,7 +187,7 @@ pub struct DiffArgs {
     pub explain: bool,
 
     /// Output as JSON
-    #[arg(long)]
+    #[arg(short, long)]
     pub json: bool,
 
     /// Minimum severity to fail on (low, medium, high, critical)

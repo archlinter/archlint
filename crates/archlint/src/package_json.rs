@@ -52,9 +52,22 @@ impl PackageJsonParser {
     ) -> Result<()> {
         let content = fs::read_to_string(path)?;
         let json: Value = serde_json::from_str(&content)?;
+        let package_dir = path.parent().unwrap_or(root);
 
+        // 1. Process main, module, and browser fields
+        for field in ["main", "module", "browser"] {
+            if let Some(val) = json.get(field).and_then(|v| v.as_str()) {
+                Self::find_entry_point_candidates(val, package_dir, &mut config.entry_points);
+            }
+        }
+
+        // 2. Process exports field
+        if let Some(exports) = json.get("exports") {
+            Self::process_exports_value(exports, package_dir, config);
+        }
+
+        // 3. Process scripts
         if let Some(scripts) = json.get("scripts").and_then(|s| s.as_object()) {
-            let package_dir = path.parent().unwrap_or(root);
             for value in scripts.values() {
                 if let Some(script_str) = value.as_str() {
                     Self::parse_script(script_str, package_dir, config, path_regex, glob_regex);
@@ -62,6 +75,25 @@ impl PackageJsonParser {
             }
         }
         Ok(())
+    }
+
+    fn process_exports_value(value: &Value, package_dir: &Path, config: &mut PackageConfig) {
+        match value {
+            Value::String(s) => {
+                Self::find_entry_point_candidates(s, package_dir, &mut config.entry_points);
+            }
+            Value::Object(map) => {
+                for v in map.values() {
+                    Self::process_exports_value(v, package_dir, config);
+                }
+            }
+            Value::Array(arr) => {
+                for v in arr {
+                    Self::process_exports_value(v, package_dir, config);
+                }
+            }
+            _ => {}
+        }
     }
 
     fn parse_script(
@@ -95,7 +127,7 @@ impl PackageJsonParser {
                 .replace("build/", "src/");
 
             if src_path.ends_with(".js") {
-                candidates.push(package_dir.join(src_path.replace(".js", ".ts")));
+                candidates.push(package_dir.join(PathBuf::from(&src_path).with_extension("ts")));
             } else {
                 candidates.push(package_dir.join(&src_path));
                 candidates.push(package_dir.join(format!("{}.ts", src_path)));

@@ -49,6 +49,7 @@ notify = "6.1"
 git2 = { version = "0.19", features = ["vendored-openssl"] }
 
 # Misc
+include_dir = "0.7"
 regex = "1.11"
 inventory = "0.3"
 sha2 = "0.10"

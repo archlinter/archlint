@@ -12,6 +12,21 @@ Identifica funções, variáveis ou classes que são definidas dentro de um arqu
 
 Delete os símbolos não utilizados.
 
+## Configuração
+
+```yaml
+rules:
+  dead_symbols:
+    severity: low
+    # Lista de nomes de métodos a ignorar (ex: métodos de ciclo de vida do framework)
+    ignore_methods:
+      - 'constructor'
+    # Mapa de métodos de interface/classe a ignorar quando implementados
+    contract_methods:
+      MyInterface: ['method1', 'method2']
+      ValidatorConstraintInterface: ['validate']
+```
+
 ## Regra ESLint
 
 Este detector está disponível como uma regra ESLint para feedback em tempo real no seu editor.

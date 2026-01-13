@@ -48,18 +48,25 @@ impl Config {
     }
 
     fn merge_options(user_options: &mut serde_yaml::Value, preset_options: &serde_yaml::Value) {
-        let (Some(user_map), Some(preset_map)) =
-            (user_options.as_mapping_mut(), preset_options.as_mapping())
-        else {
+        if user_options.is_null() {
+            *user_options = preset_options.clone();
             return;
-        };
+        }
 
-        for (key, preset_val) in preset_map {
-            if !user_map.contains_key(key) {
-                user_map.insert(key.clone(), preset_val.clone());
-            } else {
-                let user_val = user_map.get_mut(key).unwrap();
-                Self::merge_sequences(user_val, preset_val);
+        if let (Some(user_map), Some(preset_map)) =
+            (user_options.as_mapping_mut(), preset_options.as_mapping())
+        {
+            for (key, preset_val) in preset_map {
+                if !user_map.contains_key(key) {
+                    user_map.insert(key.clone(), preset_val.clone());
+                } else {
+                    let user_val = user_map.get_mut(key).unwrap();
+                    if user_val.is_mapping() && preset_val.is_mapping() {
+                        Self::merge_options(user_val, preset_val);
+                    } else {
+                        Self::merge_sequences(user_val, preset_val);
+                    }
+                }
             }
         }
     }

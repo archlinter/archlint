@@ -10,24 +10,20 @@ pub struct ScanArgs {
     #[cfg_attr(feature = "cli", arg(value_name = "PATH", default_value = "."))]
     pub path: PathBuf,
 
-    /// Programming language
-    #[cfg_attr(feature = "cli", arg(long, default_value = "ts"))]
-    pub lang: Language,
-
     /// Config file path
-    #[cfg_attr(feature = "cli", arg(long, value_name = "FILE"))]
+    #[cfg_attr(feature = "cli", arg(short, long, value_name = "FILE"))]
     pub config: Option<PathBuf>,
 
     /// Output report file (defaults to stdout if not specified)
-    #[cfg_attr(feature = "cli", arg(long, value_name = "FILE"))]
+    #[cfg_attr(feature = "cli", arg(short, long, value_name = "FILE"))]
     pub report: Option<PathBuf>,
 
     /// Output format
-    #[cfg_attr(feature = "cli", arg(long, default_value = "table"))]
+    #[cfg_attr(feature = "cli", arg(short, long, default_value = "table"))]
     pub format: OutputFormat,
 
     /// Output in JSON format (shortcut for --format json)
-    #[cfg_attr(feature = "cli", arg(long, action = clap::ArgAction::SetTrue))]
+    #[cfg_attr(feature = "cli", arg(short, long, action = clap::ArgAction::SetTrue))]
     pub json: bool,
 
     /// Disable dependency diagram in Markdown reports
@@ -35,15 +31,24 @@ pub struct ScanArgs {
     pub no_diagram: bool,
 
     /// Run all available detectors (including those disabled by default)
-    #[cfg_attr(feature = "cli", arg(long = "all", default_value = "false"))]
+    #[cfg_attr(
+        feature = "cli",
+        arg(short = 'A', long = "all", default_value = "false")
+    )]
     pub all_detectors: bool,
 
     /// Only run these detectors (comma-separated IDs)
-    #[cfg_attr(feature = "cli", arg(long, value_name = "IDS"))]
+    #[cfg_attr(
+        feature = "cli",
+        arg(short, long, value_name = "IDS", value_parser = validate_detector_ids)
+    )]
     pub detectors: Option<String>,
 
     /// Exclude these detectors (comma-separated IDs)
-    #[cfg_attr(feature = "cli", arg(long, value_name = "IDS"))]
+    #[cfg_attr(
+        feature = "cli",
+        arg(short, long, value_name = "IDS", value_parser = validate_detector_ids)
+    )]
     pub exclude_detectors: Option<String>,
 
     /// Quiet mode (CI-friendly, no progress bars)
@@ -55,11 +60,11 @@ pub struct ScanArgs {
     pub verbose: bool,
 
     /// Minimum severity to include in report (low, medium, high, critical)
-    #[cfg_attr(feature = "cli", arg(long, value_name = "SEVERITY"))]
+    #[cfg_attr(feature = "cli", arg(short = 's', long, value_name = "SEVERITY"))]
     pub min_severity: Option<String>,
 
     /// Minimum score to include in report
-    #[cfg_attr(feature = "cli", arg(long, value_name = "SCORE"))]
+    #[cfg_attr(feature = "cli", arg(short = 'S', long, value_name = "SCORE"))]
     pub min_score: Option<u32>,
 
     /// Override severity for specific smell types (e.g. "DeadCode=low,GodModule=high")
@@ -87,6 +92,21 @@ pub struct ScanArgs {
     pub files: Option<Vec<PathBuf>>,
 }
 
+#[cfg(feature = "cli")]
+pub fn validate_detector_ids(s: &str) -> Result<String, String> {
+    let all = crate::detectors::DetectorRegistry::new().list_all();
+    s.split(',')
+        .map(str::trim)
+        .filter(|s| !s.is_empty())
+        .try_for_each(|id| {
+            all.iter().any(|i| i.id == id).then_some(()).ok_or_else(|| {
+                let list = all.iter().map(|i| i.id).collect::<Vec<_>>().join(", ");
+                format!("Unknown detector ID: '{id}'. Available: {list}")
+            })
+        })?;
+    Ok(s.to_string())
+}
+
 impl ScanArgs {
     /// Get output format, taking into account the --json flag
     pub fn output_format(&self) -> OutputFormat {
@@ -103,14 +123,7 @@ impl ScanArgs {
     }
 }
 
-#[cfg_attr(feature = "cli", derive(ValueEnum))]
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum Language {
-    #[cfg_attr(feature = "cli", value(name = "ts"))]
-    TypeScript,
-    #[cfg_attr(feature = "cli", value(name = "js"))]
-    JavaScript,
-}
+pub const SUPPORTED_EXTENSIONS: &[&str] = &["ts", "tsx", "mts", "cts", "js", "jsx", "mjs", "cjs"];
 
 #[cfg_attr(feature = "cli", derive(ValueEnum))]
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]

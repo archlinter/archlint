@@ -12,7 +12,8 @@ archlint snapshot [options]
 
 | Option                | Default                  | Description                      |
 | --------------------- | ------------------------ | -------------------------------- |
-| `--output, -o <file>` | `archlint-snapshot.json` | The file to save the snapshot to |
+| `-o, --output <file>` | `archlint-snapshot.json` | The file to save the snapshot to |
+| `-p, --path <path>`   | `.`                      | Project path to analyze          |
 
 ## Examples
 

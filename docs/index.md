@@ -24,7 +24,7 @@ features:
   - title: Diff Mode
     details: Philosophy of "ratchet, don't renovate". Lock current state and only fail on new architectural regressions.
   - title: Framework-Aware
-    details: Built-in presets for NestJS, Next.js, React, and oclif. Knows about your framework's architectural patterns.
+    details: Built-in presets for NestJS, Next.js, Express, React, Vue, Angular, and more. Knows about your framework's architectural patterns.
   - title: Blazingly Fast
     details: Analyzes 200+ files in under 5 seconds. Parallel processing and smart content-based caching.
   - title: Actionable Insights

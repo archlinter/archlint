@@ -12,6 +12,21 @@
 
 未使用のシンボルを削除してください。
 
+## 設定 (Configuration)
+
+```yaml
+rules:
+  dead_symbols:
+    severity: low
+    # 無視するメソッド名のリスト（フレームワークのライフサイクルメソッドなど）
+    ignore_methods:
+      - 'constructor'
+    # 実装時に無視するインターフェース/クラスメソッドのマップ
+    contract_methods:
+      MyInterface: ['method1', 'method2']
+      ValidatorConstraintInterface: ['validate']
+```
+
 ## ESLint ルール
 
 このディテクターは、エディター内でリアルタイムのフィードバックを提供する ESLint ルールとして利用可能です。

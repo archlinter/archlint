@@ -18,7 +18,7 @@ pub enum DetectorCategory {
 }
 
 /// Defines the specific type of an architectural smell.
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Hash, PartialOrd, Ord)]
 #[serde(tag = "type", rename_all = "camelCase")]
 pub enum SmellType {
     /// Two or more files form a dependency cycle.

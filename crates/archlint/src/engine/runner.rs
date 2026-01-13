@@ -1,8 +1,8 @@
-use crate::args::{Language, ScanArgs};
+use crate::args::ScanArgs;
 use crate::cache::hash::file_content_hash;
 use crate::cache::AnalysisCache;
 use crate::config::Config;
-use crate::detectors::{self, Severity, SmellType};
+use crate::detectors::{self, Severity};
 use crate::engine::builder::EngineBuilder;
 use crate::engine::detector_runner::{apply_arg_overrides, DetectorRunner};
 use crate::engine::progress::{
@@ -150,11 +150,6 @@ impl AnalysisEngine {
                     return false;
                 }
 
-                // Clones are special: we want to see them even if they touch ignored files
-                if matches!(smell.smell_type, SmellType::CodeClone { .. }) {
-                    return true;
-                }
-
                 // Keep the smell if at least one of the files it's associated with is NOT ignored via config
                 smell.files.is_empty() || smell.files.iter().any(|f| !self.is_file_ignored(f))
             })
@@ -233,12 +228,12 @@ impl AnalysisEngine {
         }
 
         info!(
-            "{}  Detected frameworks: {}",
+            "{} Detected frameworks: {}",
             style("🛠️").magenta().bold(),
             style(
                 detected
                     .iter()
-                    .map(|f| format!("{:?}", f))
+                    .map(|f| f.to_string())
                     .collect::<Vec<_>>()
                     .join(", ")
             )
@@ -249,9 +244,14 @@ impl AnalysisEngine {
             let name = match fw {
                 Framework::NestJS => "nestjs",
                 Framework::NextJS => "nextjs",
+                Framework::Express => "express",
                 Framework::React => "react",
+                Framework::Angular => "angular",
+                Framework::Vue => "vue",
+                Framework::TypeORM => "typeorm",
+                Framework::Prisma => "prisma",
                 Framework::Oclif => "oclif",
-                _ => continue,
+                Framework::Generic(name) => name.as_str(),
             };
             if !self.config.extends.contains(&name.to_string()) {
                 if let Ok(p) = PresetLoader::load_builtin(name) {
@@ -277,10 +277,10 @@ impl AnalysisEngine {
     }
 
     fn discover_files(&self) -> Result<Vec<PathBuf>> {
-        let extensions = match self.args.lang {
-            Language::TypeScript => vec!["ts".to_string(), "tsx".to_string()],
-            Language::JavaScript => vec!["js".to_string(), "jsx".to_string()],
-        };
+        let extensions = crate::args::SUPPORTED_EXTENSIONS
+            .iter()
+            .map(|&e| e.to_string())
+            .collect();
 
         let all_files = if let Some(ref explicit_files) = self.args.files {
             explicit_files.clone()
@@ -340,7 +340,7 @@ impl AnalysisEngine {
         })
     }
 
-    fn apply_presets(&self, presets: &[FrameworkPreset]) -> Config {
+    pub fn apply_presets(&self, presets: &[FrameworkPreset]) -> Config {
         let mut final_config = self.config.clone();
         for preset in presets {
             final_config.merge_preset(preset);

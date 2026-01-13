@@ -22,10 +22,13 @@ archlint doesn't just count issues. It performs a **semantic diff** of the archi
 
 ## Options
 
-| Option                 | Default  | Description                                                          |
-| ---------------------- | -------- | -------------------------------------------------------------------- |
-| `--fail-on <severity>` | `medium` | Exit with code 1 if a regression of this severity or higher is found |
-| `--explain`            | `false`  | Provide a detailed explanation for each regression                   |
+| Option                 | Default | Description                                                          |
+| ---------------------- | ------- | -------------------------------------------------------------------- |
+| `-j, --json`           | `false` | Output report in JSON format                                         |
+| `-v, --verbose`        | `false` | Enable verbose output                                                |
+| `-p, --path <path>`    | `.`     | Project path                                                         |
+| `--fail-on <severity>` | `low`   | Exit with code 1 if a regression of this severity or higher is found |
+| `--explain`            | `false` | Provide a detailed explanation for each regression                   |
 
 ## Configuration
 
@@ -44,7 +47,7 @@ See [Configuration Guide](/configuration/index#diff-configuration) for details.
 ### Check against main branch in CI
 
 ```bash
-archlint diff origin/main --fail-on medium --explain
+archlint diff origin/main --fail-on low --explain
 ```
 
 ### Check against a local baseline

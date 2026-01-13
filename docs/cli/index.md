@@ -24,10 +24,10 @@ archlint [command] [options]
 
 ## Global Options
 
-| Option            | Description                         |
-| ----------------- | ----------------------------------- |
-| `--config <path>` | Path to the configuration file      |
-| `--verbose`       | Enable verbose logging              |
-| `--quiet`         | CI-friendly mode (no progress bars) |
-| `--version`       | Show version information            |
-| `--help`          | Show help for a command             |
+| Option                | Description                         |
+| --------------------- | ----------------------------------- |
+| `-c, --config <path>` | Path to the configuration file      |
+| `-v, --verbose`       | Enable verbose logging              |
+| `-q, --quiet`         | CI-friendly mode (no progress bars) |
+| `-V, --version`       | Show version information            |
+| `-h, --help`          | Show help for a command             |

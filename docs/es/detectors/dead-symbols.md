@@ -12,6 +12,21 @@ Es simplemente desorden. Hace que el archivo sea más difícil de leer y mantene
 
 Elimina los símbolos no utilizados.
 
+## Configuración
+
+```yaml
+rules:
+  dead_symbols:
+    severity: low
+    # Lista de nombres de métodos a ignorar (por ejemplo, métodos de ciclo de vida del framework)
+    ignore_methods:
+      - 'constructor'
+    # Mapa de métodos de interfaz/clase a ignorar cuando se implementan
+    contract_methods:
+      MyInterface: ['method1', 'method2']
+      ValidatorConstraintInterface: ['validate']
+```
+
 ## Regla ESLint
 
 Este detector está disponible como una regla ESLint para recibir retroalimentación en tiempo real en tu editor.

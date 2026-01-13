@@ -10,14 +10,18 @@ archlint scan [path] [options]
 
 ## オプション
 
-| オプション                  | デフォルト | 説明                                                        |
-| --------------------------- | ---------- | ----------------------------------------------------------- |
-| `--format <format>`         | `table`    | 出力形式: `table`, `json`, `markdown`                       |
-| `--report <file>`           | `stdout`   | レポートをファイルに保存します                              |
-| `--min-severity <sev>`      | `low`      | 重要度でフィルタリング: `low`, `medium`, `high`, `critical` |
-| `--detectors <ids>`         | `all`      | 実行する検出器（detectors）のカンマ区切りリスト             |
-| `--exclude-detectors <ids>` | `none`     | スキップする検出器                                          |
-| `--no-cache`                | `false`    | 分析キャッシュを無効にします                                |
+| オプション                      | デフォルト | 説明                                                        |
+| ------------------------------- | ---------- | ----------------------------------------------------------- |
+| `-f, --format <format>`         | `table`    | 出力形式: `table`, `json`, `markdown`                       |
+| `-j, --json`                    | `false`    | `--format json` のショートカット                            |
+| `-r, --report <file>`           | `stdout`   | レポートをファイルに保存します                              |
+| `-s, --min-severity <sev>`      | `low`      | 重要度でフィルタリング: `low`, `medium`, `high`, `critical` |
+| `-S, --min-score <score>`       | `none`     | 最小ヘルススコアでフィルタリング                            |
+| `-d, --detectors <ids>`         | `all`      | 実行する検出器（detectors）のカンマ区切りリスト             |
+| `-e, --exclude-detectors <ids>` | `none`     | スキップする検出器                                          |
+| `-A, --all`                     | `false`    | すべての検出器を実行（デフォルトで無効なものを含む）        |
+| `--no-cache`                    | `false`    | 分析キャッシュを無効にします                                |
+| `--no-git`                      | `false`    | git 統合を無効にする (churn 分析をスキップ)                 |
 
 ## 使用例
 
