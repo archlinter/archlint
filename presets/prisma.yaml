@@ -1,4 +1,5 @@
 name: prisma
+description: Prisma - Next-generation Node.js and TypeScript ORM
 version: 1
 detect:
   packages:

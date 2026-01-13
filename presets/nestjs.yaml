@@ -1,4 +1,5 @@
 name: nestjs
+description: NestJS - Progressive Node.js framework
 version: 1
 detect:
   packages:

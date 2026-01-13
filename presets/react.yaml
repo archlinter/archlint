@@ -1,4 +1,5 @@
 name: react
+description: React - A JavaScript library for building user interfaces
 version: 1
 detect:
   packages:

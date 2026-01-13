@@ -1,4 +1,5 @@
 name: angular
+description: Angular - Comprehensive web framework
 version: 1
 detect:
   packages:

@@ -497,39 +497,27 @@ fn handle_init_command(args: cli::InitArgs) -> Result<()> {
 fn prompt_framework_selection(detected: Vec<Framework>) -> Result<Vec<String>> {
     #[cfg(feature = "cli")]
     {
-        let detected_names: Vec<String> = detected
-            .iter()
-            .map(|f| f.as_preset_name().to_string())
-            .collect();
+        use archlint::framework::preset_loader::PresetLoader;
 
-        // List of framework options for the interactive prompt.
-        // IMPORTANT: Every ID here should have a corresponding built-in preset defined in
-        // `crates/archlint/src/framework/preset_loader.rs` (BUILTIN_PRESETS).
-        let options = [
-            ("nestjs", "NestJS - Progressive Node.js framework"),
-            ("nextjs", "Next.js - The React Framework for the Web"),
-            (
-                "react",
-                "React - A JavaScript library for building user interfaces",
-            ),
-            ("angular", "Angular - Comprehensive web framework"),
-            ("vue", "Vue.js - The Progressive JavaScript Framework"),
-            (
-                "express",
-                "Express - Fast, unopinionated, minimalist web framework",
-            ),
-            ("oclif", "oclif - Open CLI Framework for Node.js"),
-            ("typeorm", "TypeORM - Data-Mapper and Active-Record ORM"),
-            (
-                "prisma",
-                "Prisma - Next-generation Node.js and TypeScript ORM",
-            ),
-        ];
+        let detected_names: Vec<String> = detected.iter().map(|f| f.as_preset_name()).collect();
+
+        let mut options: Vec<(&str, String)> = Vec::new();
+        for name in PresetLoader::get_all_builtin_names() {
+            if let Some(yaml) = PresetLoader::get_builtin_yaml(name) {
+                let label = if let Some(desc) = yaml.description {
+                    desc
+                } else {
+                    yaml.name.clone()
+                };
+                options.push((name, label));
+            }
+        }
+        options.sort_by_key(|(name, _)| *name);
 
         let mut multiselect = cliclack::multiselect("Select framework presets to include:");
 
-        for (id, label) in options {
-            multiselect = multiselect.item(id, label, "");
+        for (id, label) in &options {
+            multiselect = multiselect.item(*id, label, "");
         }
 
         let selected: Vec<&str> = multiselect
@@ -542,9 +530,6 @@ fn prompt_framework_selection(detected: Vec<Framework>) -> Result<Vec<String>> {
     }
     #[cfg(not(feature = "cli"))]
     {
-        Ok(detected
-            .iter()
-            .map(|f| f.as_preset_name().to_string())
-            .collect())
+        Ok(detected.iter().map(|f| f.as_preset_name()).collect())
     }
 }

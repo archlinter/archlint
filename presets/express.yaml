@@ -1,4 +1,5 @@
 name: express
+description: Express - Fast, unopinionated, minimalist web framework
 version: 1
 detect:
   packages:

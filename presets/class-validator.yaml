@@ -1,4 +1,5 @@
 name: class-validator
+description: class-validator - Decorator-based property validation for classes
 version: 1
 detect:
   packages:

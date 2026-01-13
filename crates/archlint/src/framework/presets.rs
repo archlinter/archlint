@@ -14,21 +14,7 @@ pub struct FrameworkPreset {
 pub fn get_presets(frameworks: &[Framework]) -> Vec<FrameworkPreset> {
     frameworks
         .iter()
-        .filter_map(|f| {
-            let name = match f {
-                Framework::NestJS => "nestjs",
-                Framework::NextJS => "nextjs",
-                Framework::Express => "express",
-                Framework::React => "react",
-                Framework::Angular => "angular",
-                Framework::Vue => "vue",
-                Framework::TypeORM => "typeorm",
-                Framework::Prisma => "prisma",
-                Framework::Oclif => "oclif",
-                Framework::Generic(name) => name.as_str(),
-            };
-            PresetLoader::load_builtin(name).ok()
-        })
+        .filter_map(|f| PresetLoader::load_builtin(&f.0).ok())
         .collect()
 }
 
@@ -46,10 +32,10 @@ mod tests {
     #[test]
     fn test_get_presets_known_frameworks() {
         let frameworks = vec![
-            Framework::NestJS,
-            Framework::NextJS,
-            Framework::React,
-            Framework::Oclif,
+            Framework("nestjs".to_string()),
+            Framework("nextjs".to_string()),
+            Framework("react".to_string()),
+            Framework("oclif".to_string()),
         ];
         let presets = get_presets(&frameworks);
         assert_eq!(presets.len(), 4);

@@ -1,4 +1,5 @@
 name: vue
+description: Vue.js - The Progressive JavaScript Framework
 version: 1
 detect:
   packages:

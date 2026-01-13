@@ -1,4 +1,5 @@
 name: typeorm
+description: TypeORM - Data-Mapper and Active-Record ORM
 version: 1
 detect:
   packages:

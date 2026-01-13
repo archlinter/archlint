@@ -1,4 +1,5 @@
 name: nextjs
+description: Next.js - The React Framework for the Web
 version: 1
 detect:
   packages:

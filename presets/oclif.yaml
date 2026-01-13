@@ -1,4 +1,5 @@
 name: oclif
+description: oclif - Open CLI Framework for Node.js
 version: 1
 detect:
   packages:
