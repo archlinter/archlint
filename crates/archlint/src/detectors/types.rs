@@ -462,7 +462,9 @@ mod tests {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Copy)]
+#[derive(
+    Debug, Clone, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Copy, schemars::JsonSchema,
+)]
 pub enum Severity {
     Low,
     Medium,

@@ -1,3 +1,4 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/archlinter/archlint/main/resources/archlint.schema.json
 # Archlint Configuration Example
 
 # Files and directories to ignore globally

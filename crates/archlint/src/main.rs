@@ -483,7 +483,11 @@ fn handle_init_command(args: cli::InitArgs) -> Result<()> {
 
     // 3. Write config
     let yaml = serde_yaml::to_string(&config)?;
-    std::fs::write(config_path, yaml)?;
+    let yaml_with_schema = format!(
+        "# yaml-language-server: $schema=https://raw.githubusercontent.com/archlinter/archlint/main/resources/archlint.schema.json\n{}",
+        yaml
+    );
+    std::fs::write(config_path, yaml_with_schema)?;
 
     let success_msg = format!("Created {}", style(".archlint.yaml").bold());
     #[cfg(feature = "cli")]

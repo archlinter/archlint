@@ -32,7 +32,8 @@
     "prepare": "simple-git-hooks",
     "clean": "pnpm -r clean && cargo clean",
     "copy-bins": "node scripts/copy-binaries.cjs",
-    "sync-versions": "node scripts/sync-versions.cjs"
+    "sync-versions": "node scripts/sync-versions.cjs",
+    "schema:update": "UPDATE_SCHEMA=1 cargo test --lib config::tests::sync_config_schema"
   },
   "devDependencies": {
     "@commitlint/cli": "^19.6.1",
@@ -66,7 +67,8 @@
     "*.rs": [
       "bash -c 'pnpm clippy:fix'",
       "bash -c 'pnpm clippy:lib'",
-      "bash -c 'pnpm fmt'"
+      "bash -c 'pnpm fmt'",
+      "bash -c 'pnpm schema:update'"
     ]
   },
   "pnpm": {

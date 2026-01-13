@@ -197,3 +197,39 @@ fn test_enrich_from_tsconfig_real_project_structure() -> Result<()> {
 
     Ok(())
 }
+
+#[test]
+fn sync_config_schema() -> anyhow::Result<()> {
+    use schemars::gen::SchemaSettings;
+    use std::env;
+    use std::fs;
+    use std::path::PathBuf;
+
+    let settings = SchemaSettings::draft07().with(|s| {
+        s.option_add_null_type = false;
+    });
+    let gen = settings.into_generator();
+    let schema = gen.into_root_schema_for::<Config>();
+    let schema_json = serde_json::to_string_pretty(&schema)?;
+
+    let mut schema_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+    schema_path.push("../../resources/archlint.schema.json");
+
+    if env::var("UPDATE_SCHEMA").is_ok() {
+        if let Some(parent) = schema_path.parent() {
+            fs::create_dir_all(parent)?;
+        }
+        fs::write(&schema_path, schema_json)?;
+    } else {
+        let existing_schema = fs::read_to_string(&schema_path).unwrap_or_default();
+        if existing_schema != schema_json {
+            panic!(
+                "Config schema is out of sync! Run 'UPDATE_SCHEMA=1 cargo test config::tests::sync_config_schema' to update.\n\
+                 Path: {:?}",
+                schema_path
+            );
+        }
+    }
+
+    Ok(())
+}
