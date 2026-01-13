@@ -1,9 +1,8 @@
+use crate::args::SUPPORTED_EXTENSIONS;
 use crate::config::Config;
 use crate::{AnalysisError, Result};
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
-
-const EXTENSIONS: &[&str] = &["ts", "tsx", "mts", "cts", "js", "jsx", "mjs", "cjs"];
 
 #[derive(Clone)]
 pub struct PathResolver {
@@ -112,7 +111,7 @@ impl PathResolver {
     fn resolve_by_extensions(&self, base: &Path) -> Option<PathBuf> {
         let base_str = base.to_string_lossy();
         // Try adding extensions (don't use with_extension as it replaces existing ones like .service)
-        for ext in EXTENSIONS {
+        for ext in SUPPORTED_EXTENSIONS {
             let with_ext = PathBuf::from(format!("{}.{}", base_str, ext));
             if with_ext.is_file() {
                 return Some(self.canonicalize_path(with_ext));
@@ -123,7 +122,7 @@ impl PathResolver {
 
     fn resolve_index_file(&self, base: &Path) -> Option<PathBuf> {
         if base.is_dir() {
-            for ext in EXTENSIONS {
+            for ext in SUPPORTED_EXTENSIONS {
                 let index = base.join(format!("index.{}", ext));
                 if index.is_file() {
                     return Some(self.canonicalize_path(index));
