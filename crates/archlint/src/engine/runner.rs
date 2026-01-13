@@ -249,10 +249,14 @@ impl AnalysisEngine {
             let name = match fw {
                 Framework::NestJS => "nestjs",
                 Framework::NextJS => "nextjs",
+                Framework::Express => "express",
                 Framework::React => "react",
+                Framework::Angular => "angular",
+                Framework::Vue => "vue",
+                Framework::TypeORM => "typeorm",
+                Framework::Prisma => "prisma",
                 Framework::Oclif => "oclif",
                 Framework::Generic(name) => name.as_str(),
-                _ => continue,
             };
             if !self.config.extends.contains(&name.to_string()) {
                 if let Ok(p) = PresetLoader::load_builtin(name) {

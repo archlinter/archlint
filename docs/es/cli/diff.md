@@ -24,7 +24,7 @@ archlint no solo cuenta problemas. Realiza un **diff semántico** de los defecto
 
 | Opción                 | Por defecto | Descripción                                                                  |
 | ---------------------- | ----------- | ---------------------------------------------------------------------------- |
-| `--fail-on <severity>` | `medium`    | Sale con código 1 si se encuentra una regresión de esta severidad o superior |
+| `--fail-on <severity>` | `low`       | Sale con código 1 si se encuentra una regresión de esta severidad o superior |
 | `--explain`            | `false`     | Proporciona una explicación detallada para cada regresión                    |
 
 ## Configuración
@@ -44,7 +44,7 @@ Consulte la [Guía de configuración](/es/configuration/index#configuración-de-
 ### Comprobar contra la rama principal en CI
 
 ```bash
-archlint diff origin/main --fail-on medium --explain
+archlint diff origin/main --fail-on low --explain
 ```
 
 ### Comprobar contra una referencia local

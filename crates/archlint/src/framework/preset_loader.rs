@@ -3,12 +3,14 @@ use super::presets::FrameworkPreset;
 use anyhow::{anyhow, Result};
 use std::fs;
 use std::path::Path;
+use std::sync::OnceLock;
 
 pub struct PresetLoader;
 
 use include_dir::{include_dir, Dir};
 
 static PRESETS_DIR: Dir<'_> = include_dir!("$CARGO_MANIFEST_DIR/../../presets");
+static BUILTIN_NAMES: OnceLock<Vec<&'static str>> = OnceLock::new();
 
 impl PresetLoader {
     pub fn load_builtin(name: &str) -> Result<FrameworkPreset> {
@@ -169,19 +171,24 @@ impl PresetLoader {
         serde_yaml::from_str(content).ok()
     }
 
-    pub fn get_all_builtin_names() -> Vec<&'static str> {
-        PRESETS_DIR
-            .files()
-            .filter_map(|f| {
-                let name = f.path().file_stem()?.to_str()?;
-                let ext = f.path().extension()?.to_str()?;
-                if ext == "yaml" || ext == "yml" {
-                    Some(name)
-                } else {
-                    None
-                }
-            })
-            .collect()
+    pub fn get_all_builtin_names() -> &'static [&'static str] {
+        BUILTIN_NAMES.get_or_init(|| {
+            let mut names: Vec<&'static str> = PRESETS_DIR
+                .files()
+                .filter_map(|f| {
+                    let name = f.path().file_stem()?.to_str()?;
+                    let ext = f.path().extension()?.to_str()?;
+                    if ext == "yaml" || ext == "yml" {
+                        Some(name)
+                    } else {
+                        None
+                    }
+                })
+                .collect();
+            names.sort_unstable();
+            names.dedup();
+            names
+        })
     }
 }
 

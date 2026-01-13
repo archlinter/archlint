@@ -24,7 +24,7 @@ rules:
     # 实现时要忽略的接口/类方法映射
     contract_methods:
       MyInterface: ['method1', 'method2']
-      ValidatorConstraintInterface: ['validate', 'defaultMessage']
+      ValidatorConstraintInterface: ['validate']
 ```
 
 ## ESLint 规则

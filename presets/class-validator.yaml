@@ -8,4 +8,4 @@ detect:
 rules:
   dead_symbols:
     contract_methods:
-      ValidatorConstraintInterface: ['validate', 'defaultMessage']
+      ValidatorConstraintInterface: ['validate']

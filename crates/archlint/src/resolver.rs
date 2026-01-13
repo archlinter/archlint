@@ -79,13 +79,13 @@ impl PathResolver {
 
         // Special case for TS ESM: if importing .js but only .ts exists
         if base_str.ends_with(".js") {
-            let ts_base = PathBuf::from(base_str.replace(".js", ".ts"));
+            let ts_base = base.with_extension("ts");
             if ts_base.exists() && ts_base.is_file() {
                 return Ok(Some(ts_base.canonicalize().unwrap_or(ts_base)));
             }
         }
         if base_str.ends_with(".jsx") {
-            let tsx_base = PathBuf::from(base_str.replace(".jsx", ".tsx"));
+            let tsx_base = base.with_extension("tsx");
             if tsx_base.exists() && tsx_base.is_file() {
                 return Ok(Some(tsx_base.canonicalize().unwrap_or(tsx_base)));
             }
