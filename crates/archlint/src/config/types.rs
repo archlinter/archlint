@@ -6,47 +6,87 @@ use std::collections::HashMap;
 /// Defines project settings, rules, and framework extensions.
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct Config {
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub ignore: Vec<String>,
 
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "HashMap::is_empty")]
     pub aliases: HashMap<String, String>,
 
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub entry_points: Vec<String>,
 
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "HashMap::is_empty")]
     pub rules: HashMap<String, RuleConfig>,
 
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub overrides: Vec<Override>,
 
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "is_default_scoring")]
     pub scoring: SeverityConfig,
 
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "is_default_watch")]
     pub watch: WatchConfig,
 
-    #[serde(default, deserialize_with = "deserialize_extends")]
+    #[serde(
+        default,
+        deserialize_with = "deserialize_extends",
+        skip_serializing_if = "Vec::is_empty"
+    )]
     pub extends: Vec<String>,
 
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub framework: Option<String>,
 
-    #[serde(default = "default_true")]
+    #[serde(default = "default_true", skip_serializing_if = "is_true")]
     pub auto_detect_framework: bool,
 
-    #[serde(default = "default_tsconfig_config")]
+    #[serde(
+        default = "default_tsconfig_config",
+        skip_serializing_if = "is_default_tsconfig"
+    )]
     pub tsconfig: Option<TsConfigConfig>,
 
-    #[serde(default = "default_max_file_size")]
+    #[serde(
+        default = "default_max_file_size",
+        skip_serializing_if = "is_default_max_file_size"
+    )]
     pub max_file_size: u64,
 
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "is_default_git")]
     pub git: GitConfig,
 
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "is_default_diff")]
     pub diff: DiffConfig,
+}
+
+fn is_true(v: &bool) -> bool {
+    *v
+}
+
+fn is_default_scoring(v: &SeverityConfig) -> bool {
+    // Basic check for default values
+    v.minimum == Some(Severity::Low) && v.minimum_score.is_none()
+}
+
+fn is_default_watch(v: &WatchConfig) -> bool {
+    v.debounce_ms == default_debounce_ms() && !v.clear_screen && v.ignore.is_empty()
+}
+
+fn is_default_tsconfig(v: &Option<TsConfigConfig>) -> bool {
+    matches!(v, Some(TsConfigConfig::Boolean(true)))
+}
+
+fn is_default_max_file_size(v: &u64) -> bool {
+    *v == default_max_file_size()
+}
+
+fn is_default_git(v: &GitConfig) -> bool {
+    v.enabled && v.history_period == default_history_period()
+}
+
+fn is_default_diff(v: &DiffConfig) -> bool {
+    v.metric_threshold_percent == default_metric_threshold()
+        && v.line_tolerance == default_line_tolerance()
 }
 
 /// Configuration for diff command.
@@ -159,17 +199,26 @@ pub enum RuleConfig {
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
 pub struct RuleFullConfig {
     /// Override the default severity for this rule.
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub severity: Option<RuleSeverity>,
     /// Explicitly enable or disable this rule.
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub enabled: Option<bool>,
     /// Patterns to exclude from this specific rule.
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub exclude: Vec<String>,
     /// Additional detector-specific options.
-    #[serde(flatten)]
+    #[serde(flatten, skip_serializing_if = "is_empty_yaml_value")]
     pub options: serde_yaml::Value,
+}
+
+fn is_empty_yaml_value(v: &serde_yaml::Value) -> bool {
+    match v {
+        serde_yaml::Value::Null => true,
+        serde_yaml::Value::Mapping(m) => m.is_empty(),
+        serde_yaml::Value::Sequence(s) => s.is_empty(),
+        _ => false,
+    }
 }
 
 /// Configuration overrides for specific file patterns.

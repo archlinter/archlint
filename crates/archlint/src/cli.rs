@@ -143,6 +143,24 @@ pub enum Command {
 
     /// Compare two snapshots for regressions
     Diff(DiffArgs),
+
+    /// Initialize a new configuration file
+    Init(InitArgs),
+}
+
+#[derive(Parser, Debug, Clone)]
+pub struct InitArgs {
+    /// Overwrite existing config file
+    #[arg(short, long)]
+    pub force: bool,
+
+    /// Skip interactive framework selection
+    #[arg(long)]
+    pub no_interactive: bool,
+
+    /// Explicitly specify framework presets (comma-separated or multiple flags)
+    #[arg(long, value_delimiter = ',')]
+    pub presets: Vec<String>,
 }
 
 #[derive(Parser, Debug, Clone)]

@@ -1,4 +1,7 @@
 use archlint::args::{Language, OutputFormat, ScanArgs};
+use archlint::framework::detector::FrameworkDetector;
+use archlint::framework::preset_loader::PresetLoader;
+use archlint::framework::Framework;
 use archlint::{
     cache, cli, config, detectors, engine, glob_expand, report, watch, AnalysisError, Result,
 };
@@ -200,6 +203,7 @@ fn run(cli: cli::Cli) -> Result<()> {
         Some(cli::Command::Completions(args)) => handle_completions_command(args),
         Some(cli::Command::Snapshot(args)) => handle_snapshot_command(args),
         Some(cli::Command::Diff(args)) => handle_diff_command(args),
+        Some(cli::Command::Init(args)) => handle_init_command(args),
         None => handle_default_command(cli),
     }
 }
@@ -444,4 +448,111 @@ fn handle_completions_command(args: cli::CompletionsArgs) -> Result<()> {
     let mut cmd = cli::Cli::command();
     clap_complete::generate(args.shell, &mut cmd, "archlint", &mut std::io::stdout());
     Ok(())
+}
+
+fn handle_init_command(args: cli::InitArgs) -> Result<()> {
+    #[cfg(feature = "cli")]
+    cliclack::intro(style(" Archlint Initialization ").on_cyan().black().bold())
+        .map_err(|e| anyhow::anyhow!("UI error: {}", e))?;
+
+    let config_path = Path::new(".archlint.yaml");
+
+    if config_path.exists() && !args.force {
+        let msg = "Config already exists. Use --force to overwrite.";
+        #[cfg(feature = "cli")]
+        cliclack::outro_cancel(msg).map_err(|e| anyhow::anyhow!("UI error: {}", e))?;
+        return Err(anyhow::anyhow!(msg).into());
+    }
+
+    let cwd = std::env::current_dir()?;
+    let mut config = config::Config::default();
+
+    // 1. Determine frameworks
+    let selected_presets = if !args.presets.is_empty() {
+        args.presets.clone()
+    } else {
+        let detected = FrameworkDetector::detect(&cwd);
+        if args.no_interactive {
+            detected
+                .iter()
+                .map(|f| format!("{:?}", f).to_lowercase())
+                .collect()
+        } else {
+            prompt_framework_selection(detected)?
+        }
+    };
+
+    // 2. Apply presets
+    if !selected_presets.is_empty() {
+        config.extends = selected_presets.clone();
+        for fw in &selected_presets {
+            if let Ok(preset) = PresetLoader::load_any(fw) {
+                config.merge_preset(&preset);
+            }
+        }
+    }
+
+    // 3. Write config
+    let yaml = serde_yaml::to_string(&config)?;
+    std::fs::write(config_path, yaml)?;
+
+    let success_msg = format!("Created {}", style(".archlint.yaml").bold());
+    #[cfg(feature = "cli")]
+    cliclack::outro(style(&success_msg).green()).map_err(|e| anyhow::anyhow!("UI error: {}", e))?;
+    #[cfg(not(feature = "cli"))]
+    println!("✓ {}", success_msg);
+
+    Ok(())
+}
+
+fn prompt_framework_selection(detected: Vec<Framework>) -> Result<Vec<String>> {
+    #[cfg(feature = "cli")]
+    {
+        let detected_names: Vec<String> = detected
+            .iter()
+            .map(|f| format!("{:?}", f).to_lowercase())
+            .collect();
+
+        let options = [
+            ("nestjs", "NestJS - Progressive Node.js framework"),
+            ("nextjs", "Next.js - The React Framework for the Web"),
+            (
+                "react",
+                "React - A JavaScript library for building user interfaces",
+            ),
+            ("angular", "Angular - Comprehensive web framework"),
+            ("vue", "Vue.js - The Progressive JavaScript Framework"),
+            (
+                "express",
+                "Express - Fast, unopinionated, minimalist web framework",
+            ),
+            ("oclif", "oclif - Open CLI Framework for Node.js"),
+            ("typeorm", "TypeORM - Data-Mapper and Active-Record ORM"),
+            (
+                "prisma",
+                "Prisma - Next-generation Node.js and TypeScript ORM",
+            ),
+        ];
+
+        let mut multiselect = cliclack::multiselect("Select framework presets to include:");
+
+        for (id, label) in options {
+            multiselect = multiselect.item(id, label, "");
+        }
+
+        let selected: Vec<&str> = multiselect
+            .initial_values(detected_names.iter().map(|s| s.as_str()).collect())
+            .required(false)
+            .interact()
+            .map_err(|e| anyhow::anyhow!("Interaction error: {}", e))?;
+
+        Ok(selected.into_iter().map(|s| s.to_string()).collect())
+    }
+    #[cfg(not(feature = "cli"))]
+    {
+        Ok(detected
+            .iter()
+            .map(|f| format!("{:?}", f).to_lowercase())
+            .collect())
+    }
 }

@@ -1,7 +1,7 @@
 use crate::args::{Language, ScanArgs};
 use crate::cache::hash::file_content_hash;
 use crate::cache::AnalysisCache;
-use crate::config::{Config, RuleConfig};
+use crate::config::Config;
 use crate::detectors::{self, Severity, SmellType};
 use crate::engine::builder::EngineBuilder;
 use crate::engine::detector_runner::{apply_arg_overrides, DetectorRunner};
@@ -343,65 +343,9 @@ impl AnalysisEngine {
     fn apply_presets(&self, presets: &[FrameworkPreset]) -> Config {
         let mut final_config = self.config.clone();
         for preset in presets {
-            self.merge_preset_into_config(&mut final_config, preset);
+            final_config.merge_preset(preset);
         }
         final_config
-    }
-
-    fn merge_preset_into_config(&self, config: &mut Config, preset: &FrameworkPreset) {
-        for (rule_name, preset_rule) in &preset.rules {
-            let user_rule = config
-                .rules
-                .entry(rule_name.clone())
-                .or_insert_with(|| preset_rule.clone());
-
-            if let (RuleConfig::Full(preset_full), RuleConfig::Full(user_rule_full)) =
-                (preset_rule, user_rule)
-            {
-                Self::merge_options(&mut user_rule_full.options, &preset_full.options);
-            }
-        }
-
-        for pattern in &preset.entry_points {
-            if !config.entry_points.contains(pattern) {
-                config.entry_points.push(pattern.clone());
-            }
-        }
-
-        for ov in &preset.overrides {
-            if !config.overrides.contains(ov) {
-                config.overrides.push(ov.clone());
-            }
-        }
-    }
-
-    fn merge_options(user_options: &mut serde_yaml::Value, preset_options: &serde_yaml::Value) {
-        let (Some(user_map), Some(preset_map)) =
-            (user_options.as_mapping_mut(), preset_options.as_mapping())
-        else {
-            return;
-        };
-
-        for (key, preset_val) in preset_map {
-            if !user_map.contains_key(key) {
-                user_map.insert(key.clone(), preset_val.clone());
-            } else {
-                let user_val = user_map.get_mut(key).unwrap();
-                Self::merge_sequences(user_val, preset_val);
-            }
-        }
-    }
-
-    fn merge_sequences(user_val: &mut serde_yaml::Value, preset_val: &serde_yaml::Value) {
-        if let (Some(user_seq), Some(preset_seq)) =
-            (user_val.as_sequence_mut(), preset_val.as_sequence())
-        {
-            for item in preset_seq {
-                if !user_seq.contains(item) {
-                    user_seq.push(item.clone());
-                }
-            }
-        }
     }
 
     fn load_cache(&self) -> Result<Option<AnalysisCache>> {

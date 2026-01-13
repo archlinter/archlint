@@ -3,10 +3,9 @@ use std::collections::HashSet;
 use std::fs;
 use std::path::{Path, PathBuf};
 
-mod resolver;
+pub mod resolver;
 pub mod types;
 
-use resolver::TsConfigResolver;
 pub use types::*;
 
 impl TsConfig {
@@ -88,7 +87,32 @@ impl TsConfig {
     }
 
     fn resolve_node_modules_path(base_dir: &Path, specifier: &str) -> Option<PathBuf> {
-        let (package_name, subpath) = TsConfigResolver::parse_package_specifier(specifier);
+        let mut current = base_dir.to_path_buf();
+
+        // Split specifier into package name and subpath
+        let (package_name, subpath) = if specifier.starts_with('@') {
+            let parts: Vec<&str> = specifier.splitn(3, '/').collect();
+            if parts.len() >= 2 {
+                let pkg = format!("{}/{}", parts[0], parts[1]);
+                let sub = if parts.len() == 3 {
+                    Some(parts[2])
+                } else {
+                    None
+                };
+                (pkg, sub)
+            } else {
+                (specifier.to_string(), None)
+            }
+        } else {
+            let parts: Vec<&str> = specifier.splitn(2, '/').collect();
+            let pkg = parts[0].to_string();
+            let sub = if parts.len() == 2 {
+                Some(parts[1])
+            } else {
+                None
+            };
+            (pkg, sub)
+        };
 
         log::trace!(
             "Resolving tsconfig extends: {} (package: {}, subpath: {:?}) from {:?}",
@@ -98,40 +122,73 @@ impl TsConfig {
             base_dir
         );
 
-        base_dir.ancestors().find_map(|dir| {
-            let pkg_dir = dir.join("node_modules").join(&package_name);
-            if pkg_dir.is_dir() {
-                Self::resolve_in_package(&pkg_dir, subpath)
-            } else {
-                None
-            }
-        })
-    }
+        loop {
+            let node_modules = current.join("node_modules");
+            if node_modules.is_dir() {
+                let pkg_dir = node_modules.join(&package_name);
+                if pkg_dir.is_dir() {
+                    // 1. Try resolving through package.json's "tsconfig" field if it's a bare package import
+                    if subpath.is_none() {
+                        let pkg_json_path = pkg_dir.join("package.json");
+                        if let Ok(content) = fs::read_to_string(&pkg_json_path) {
+                            if let Ok(pkg_json) =
+                                serde_json::from_str::<serde_json::Value>(&content)
+                            {
+                                if let Some(tsconfig_field) =
+                                    pkg_json.get("tsconfig").and_then(|v| v.as_str())
+                                {
+                                    if let Some(resolved) = Self::resolve_path_with_fallbacks(
+                                        pkg_dir.join(tsconfig_field),
+                                    ) {
+                                        return Some(resolved);
+                                    }
+                                }
+                            }
+                        }
+                    }
 
-    fn resolve_in_package(pkg_dir: &Path, subpath: Option<&str>) -> Option<PathBuf> {
-        // 1. Try resolving through package.json's "tsconfig" field if it's a bare package import
-        if subpath.is_none() {
-            if let Some(path) = TsConfigResolver::resolve_via_package_json_field(pkg_dir) {
-                if let Some(resolved) = Self::resolve_path_with_fallbacks(path) {
-                    return Some(resolved);
+                    // 2. Try resolving through package.json's "exports" field if it's a subpath
+                    if let Some(sub) = subpath {
+                        let pkg_json_path = pkg_dir.join("package.json");
+                        if let Ok(content) = fs::read_to_string(&pkg_json_path) {
+                            if let Ok(pkg_json) =
+                                serde_json::from_str::<serde_json::Value>(&content)
+                            {
+                                if let Some(exports) =
+                                    pkg_json.get("exports").and_then(|v| v.as_object())
+                                {
+                                    let sub_with_dot = format!("./{}", sub);
+                                    if let Some(mapped) =
+                                        exports.get(&sub_with_dot).and_then(|v| v.as_str())
+                                    {
+                                        if let Some(resolved) =
+                                            Self::resolve_path_with_fallbacks(pkg_dir.join(mapped))
+                                        {
+                                            return Some(resolved);
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    // 3. Fallback to direct resolution or subpath resolution
+                    let target_path = if let Some(sub) = subpath {
+                        pkg_dir.join(sub)
+                    } else {
+                        pkg_dir.clone()
+                    };
+
+                    if let Some(resolved) = Self::resolve_path_with_fallbacks(target_path) {
+                        return Some(resolved);
+                    }
                 }
             }
-        }
-
-        // 2. Try resolving through package.json's "exports" field if it's a subpath
-        if let Some(sub) = subpath {
-            if let Some(path) = TsConfigResolver::resolve_via_exports(pkg_dir, sub) {
-                if let Some(resolved) = Self::resolve_path_with_fallbacks(path) {
-                    return Some(resolved);
-                }
+            if !current.pop() {
+                break;
             }
         }
-
-        // 3. Fallback to direct resolution or subpath resolution
-        let target_path = subpath
-            .map(|sub| pkg_dir.join(sub))
-            .unwrap_or_else(|| pkg_dir.to_path_buf());
-        Self::resolve_path_with_fallbacks(target_path)
+        None
     }
 
     /// Merges a parent `TsConfig` into this one (the child config).
@@ -143,10 +200,9 @@ impl TsConfig {
                 .merge(parent_opts);
         }
 
-        // Merge excludes while preserving order and avoiding duplicates.
-        // Child excludes come first, then parent excludes.
+        let mut seen: HashSet<_> = self.exclude.iter().cloned().collect();
         for ex in parent.exclude {
-            if !self.exclude.contains(&ex) {
+            if seen.insert(ex.clone()) {
                 self.exclude.push(ex);
             }
         }
