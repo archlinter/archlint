@@ -12,15 +12,25 @@ impl Config {
     /// Merges a framework preset into the current configuration.
     pub fn merge_preset(&mut self, preset: &FrameworkPreset) {
         for (rule_name, preset_rule) in &preset.rules {
-            let user_rule = self
-                .rules
-                .entry(rule_name.clone())
-                .or_insert_with(|| preset_rule.clone());
+            let user_rule = self.rules.entry(rule_name.clone()).or_insert_with(|| {
+                // If rule is not present, just use the preset rule
+                preset_rule.clone()
+            });
 
-            if let (RuleConfig::Full(preset_full), RuleConfig::Full(user_rule_full)) =
-                (preset_rule, user_rule)
-            {
-                Self::merge_options(&mut user_rule_full.options, &preset_full.options);
+            if let RuleConfig::Full(preset_full) = preset_rule {
+                match user_rule {
+                    RuleConfig::Full(user_full) => {
+                        Self::merge_options(&mut user_full.options, &preset_full.options);
+                    }
+                    RuleConfig::Short(severity) => {
+                        // Upgrade Short to Full, preserving user severity but applying preset options
+                        *user_rule = RuleConfig::Full(RuleFullConfig {
+                            severity: Some(*severity),
+                            options: preset_full.options.clone(),
+                            ..Default::default()
+                        });
+                    }
+                }
             }
         }
 

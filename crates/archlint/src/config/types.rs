@@ -64,12 +64,11 @@ fn is_true(v: &bool) -> bool {
 }
 
 fn is_default_scoring(v: &SeverityConfig) -> bool {
-    // Basic check for default values
-    v.minimum == Some(Severity::Low) && v.minimum_score.is_none()
+    *v == SeverityConfig::default()
 }
 
 fn is_default_watch(v: &WatchConfig) -> bool {
-    v.debounce_ms == default_debounce_ms() && !v.clear_screen && v.ignore.is_empty()
+    *v == WatchConfig::default()
 }
 
 fn is_default_tsconfig(v: &Option<TsConfigConfig>) -> bool {
@@ -81,16 +80,15 @@ fn is_default_max_file_size(v: &u64) -> bool {
 }
 
 fn is_default_git(v: &GitConfig) -> bool {
-    v.enabled && v.history_period == default_history_period()
+    *v == GitConfig::default()
 }
 
 fn is_default_diff(v: &DiffConfig) -> bool {
-    v.metric_threshold_percent == default_metric_threshold()
-        && v.line_tolerance == default_line_tolerance()
+    *v == DiffConfig::default()
 }
 
 /// Configuration for diff command.
-#[derive(Debug, Clone, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
 pub struct DiffConfig {
     /// Percentage threshold for metric changes to be considered significant.
     #[serde(default = "default_metric_threshold")]
@@ -138,7 +136,7 @@ pub(crate) fn default_tsconfig_config() -> Option<TsConfigConfig> {
 }
 
 /// Configuration for Git-based analysis features.
-#[derive(Debug, Clone, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
 pub struct GitConfig {
     /// Whether to enable Git analysis (e.g., for calculating churn).
     #[serde(default = "default_true")]
@@ -196,7 +194,7 @@ pub enum RuleConfig {
 }
 
 /// Detailed configuration for a single rule.
-#[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Default)]
 pub struct RuleFullConfig {
     /// Override the default severity for this rule.
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -253,7 +251,7 @@ where
 }
 
 /// Configuration for the file watcher (watch mode).
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct WatchConfig {
     /// Delay in milliseconds before triggering a re-scan after a change.
     #[serde(default = "default_debounce_ms")]
@@ -287,7 +285,7 @@ impl Default for WatchConfig {
 }
 
 /// Configuration for issue scoring and project grading.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct SeverityConfig {
     /// Weights for each severity level.
     #[serde(default = "default_weights")]
@@ -322,7 +320,7 @@ fn default_min_severity() -> Option<Severity> {
 }
 
 /// Weights assigned to each severity level for score calculation.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct SeverityWeights {
     /// Score weight for Critical issues.
     pub critical: u32,
@@ -335,7 +333,7 @@ pub struct SeverityWeights {
 }
 
 /// Thresholds for project grades based on smell density.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct GradeThresholds {
     /// Maximum density for 'Excellent' grade.
     pub excellent: f32,

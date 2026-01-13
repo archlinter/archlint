@@ -97,8 +97,10 @@ impl<'a> EngineBuilder<'a> {
         runtime_files: &HashSet<PathBuf>,
         file_symbols: &HashMap<PathBuf, FileSymbols>,
     ) -> Result<usize> {
-        let from_node = graph.get_node(file).unwrap();
-        let symbols = file_symbols.get(file).unwrap();
+        let from_node = graph.get_node(file).expect("file should exist in graph");
+        let symbols = file_symbols
+            .get(file)
+            .expect("file should have parsed symbols");
         let mut count = 0;
 
         for import in &symbols.imports {
@@ -159,18 +161,40 @@ impl<'a> EngineBuilder<'a> {
         resolver: &PathResolver,
     ) -> FileSymbols {
         for import in &mut symbols.imports {
-            if let Some(resolved) = resolver
-                .resolve(import.source.as_str(), &file)
-                .ok()
-                .flatten()
-            {
-                import.source = resolved.to_string_lossy().to_string().into();
+            match resolver.resolve(import.source.as_str(), &file) {
+                Ok(Some(resolved)) => {
+                    import.source = resolved.to_string_lossy().to_string().into();
+                }
+                Ok(None) => {
+                    log::trace!("Could not resolve import '{}' in {:?}", import.source, file);
+                }
+                Err(e) => {
+                    log::debug!(
+                        "Error resolving import '{}' in {:?}: {}",
+                        import.source,
+                        file,
+                        e
+                    );
+                }
             }
         }
         for export in &mut symbols.exports {
             if let Some(ref source) = export.source {
-                if let Some(resolved) = resolver.resolve(source.as_str(), &file).ok().flatten() {
-                    export.source = Some(resolved.to_string_lossy().to_string().into());
+                match resolver.resolve(source.as_str(), &file) {
+                    Ok(Some(resolved)) => {
+                        export.source = Some(resolved.to_string_lossy().to_string().into());
+                    }
+                    Ok(None) => {
+                        log::trace!("Could not resolve re-export '{}' in {:?}", source, file);
+                    }
+                    Err(e) => {
+                        log::debug!(
+                            "Error resolving re-export '{}' in {:?}: {}",
+                            source,
+                            file,
+                            e
+                        );
+                    }
                 }
             }
         }

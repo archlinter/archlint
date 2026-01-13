@@ -1,0 +1,23 @@
+name: typeorm
+version: 1
+detect:
+  packages:
+    any_of: ['typeorm']
+rules:
+  vendor_coupling:
+    ignore_packages:
+      - 'typeorm'
+overrides:
+  - files: ['**/*.entity.ts', '**/entities/**']
+    rules:
+      cycles: off
+      lcom: off
+      abstractness: off
+  - files: ['**/migrations/**']
+    rules:
+      dead_symbols: off
+      high_coupling: off
+  - files: ['**/*.repository.ts', '**/repositories/**']
+    rules:
+      lcom: off
+      high_coupling: off

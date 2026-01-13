@@ -1,6 +1,5 @@
 use archlint::args::{Language, OutputFormat, ScanArgs};
 use archlint::framework::detector::FrameworkDetector;
-use archlint::framework::preset_loader::PresetLoader;
 use archlint::framework::Framework;
 use archlint::{
     cache, cli, config, detectors, engine, glob_expand, report, watch, AnalysisError, Result,
@@ -475,21 +474,16 @@ fn handle_init_command(args: cli::InitArgs) -> Result<()> {
         if args.no_interactive {
             detected
                 .iter()
-                .map(|f| format!("{:?}", f).to_lowercase())
+                .map(|f| f.as_preset_name().to_string())
                 .collect()
         } else {
             prompt_framework_selection(detected)?
         }
     };
 
-    // 2. Apply presets
+    // 2. Apply presets (set extends only, merge happens at runtime)
     if !selected_presets.is_empty() {
         config.extends = selected_presets.clone();
-        for fw in &selected_presets {
-            if let Ok(preset) = PresetLoader::load_any(fw) {
-                config.merge_preset(&preset);
-            }
-        }
     }
 
     // 3. Write config
@@ -510,9 +504,12 @@ fn prompt_framework_selection(detected: Vec<Framework>) -> Result<Vec<String>> {
     {
         let detected_names: Vec<String> = detected
             .iter()
-            .map(|f| format!("{:?}", f).to_lowercase())
+            .map(|f| f.as_preset_name().to_string())
             .collect();
 
+        // List of framework options for the interactive prompt.
+        // IMPORTANT: Every ID here should have a corresponding built-in preset defined in
+        // `crates/archlint/src/framework/preset_loader.rs` (BUILTIN_PRESETS).
         let options = [
             ("nestjs", "NestJS - Progressive Node.js framework"),
             ("nextjs", "Next.js - The React Framework for the Web"),
@@ -552,7 +549,7 @@ fn prompt_framework_selection(detected: Vec<Framework>) -> Result<Vec<String>> {
     {
         Ok(detected
             .iter()
-            .map(|f| format!("{:?}", f).to_lowercase())
+            .map(|f| f.as_preset_name().to_string())
             .collect())
     }
 }

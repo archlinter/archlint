@@ -6,11 +6,19 @@ use std::path::Path;
 
 pub struct PresetLoader;
 
+/// List of built-in framework presets.
+/// IMPORTANT: Every key here must have a corresponding entry in the `options` array
+/// in `crates/archlint/src/main.rs` (prompt_framework_selection) to be visible in the CLI.
 const BUILTIN_PRESETS: &[(&str, &str)] = &[
     ("nestjs", include_str!("../../../../presets/nestjs.yaml")),
     ("nextjs", include_str!("../../../../presets/nextjs.yaml")),
     ("react", include_str!("../../../../presets/react.yaml")),
     ("oclif", include_str!("../../../../presets/oclif.yaml")),
+    ("express", include_str!("../../../../presets/express.yaml")),
+    ("angular", include_str!("../../../../presets/angular.yaml")),
+    ("vue", include_str!("../../../../presets/vue.yaml")),
+    ("typeorm", include_str!("../../../../presets/typeorm.yaml")),
+    ("prisma", include_str!("../../../../presets/prisma.yaml")),
 ];
 
 impl PresetLoader {

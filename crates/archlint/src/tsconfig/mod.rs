@@ -87,32 +87,8 @@ impl TsConfig {
     }
 
     fn resolve_node_modules_path(base_dir: &Path, specifier: &str) -> Option<PathBuf> {
-        let mut current = base_dir.to_path_buf();
-
-        // Split specifier into package name and subpath
-        let (package_name, subpath) = if specifier.starts_with('@') {
-            let parts: Vec<&str> = specifier.splitn(3, '/').collect();
-            if parts.len() >= 2 {
-                let pkg = format!("{}/{}", parts[0], parts[1]);
-                let sub = if parts.len() == 3 {
-                    Some(parts[2])
-                } else {
-                    None
-                };
-                (pkg, sub)
-            } else {
-                (specifier.to_string(), None)
-            }
-        } else {
-            let parts: Vec<&str> = specifier.splitn(2, '/').collect();
-            let pkg = parts[0].to_string();
-            let sub = if parts.len() == 2 {
-                Some(parts[1])
-            } else {
-                None
-            };
-            (pkg, sub)
-        };
+        let (package_name, subpath) =
+            resolver::TsConfigResolver::parse_package_specifier(specifier);
 
         log::trace!(
             "Resolving tsconfig extends: {} (package: {}, subpath: {:?}) from {:?}",
@@ -122,73 +98,41 @@ impl TsConfig {
             base_dir
         );
 
-        loop {
-            let node_modules = current.join("node_modules");
-            if node_modules.is_dir() {
-                let pkg_dir = node_modules.join(&package_name);
-                if pkg_dir.is_dir() {
-                    // 1. Try resolving through package.json's "tsconfig" field if it's a bare package import
-                    if subpath.is_none() {
-                        let pkg_json_path = pkg_dir.join("package.json");
-                        if let Ok(content) = fs::read_to_string(&pkg_json_path) {
-                            if let Ok(pkg_json) =
-                                serde_json::from_str::<serde_json::Value>(&content)
-                            {
-                                if let Some(tsconfig_field) =
-                                    pkg_json.get("tsconfig").and_then(|v| v.as_str())
-                                {
-                                    if let Some(resolved) = Self::resolve_path_with_fallbacks(
-                                        pkg_dir.join(tsconfig_field),
-                                    ) {
-                                        return Some(resolved);
-                                    }
-                                }
-                            }
+        base_dir.ancestors().find_map(|dir| {
+            let pkg_dir = dir.join("node_modules").join(&package_name);
+            if pkg_dir.is_dir() {
+                if let Some(sub) = subpath {
+                    // 1. Try resolving through package.json's "exports" field if it's a subpath
+                    if let Some(path) =
+                        resolver::TsConfigResolver::resolve_via_exports(&pkg_dir, sub)
+                    {
+                        if let Some(resolved) = Self::resolve_path_with_fallbacks(path) {
+                            return Some(resolved);
                         }
                     }
-
-                    // 2. Try resolving through package.json's "exports" field if it's a subpath
-                    if let Some(sub) = subpath {
-                        let pkg_json_path = pkg_dir.join("package.json");
-                        if let Ok(content) = fs::read_to_string(&pkg_json_path) {
-                            if let Ok(pkg_json) =
-                                serde_json::from_str::<serde_json::Value>(&content)
-                            {
-                                if let Some(exports) =
-                                    pkg_json.get("exports").and_then(|v| v.as_object())
-                                {
-                                    let sub_with_dot = format!("./{}", sub);
-                                    if let Some(mapped) =
-                                        exports.get(&sub_with_dot).and_then(|v| v.as_str())
-                                    {
-                                        if let Some(resolved) =
-                                            Self::resolve_path_with_fallbacks(pkg_dir.join(mapped))
-                                        {
-                                            return Some(resolved);
-                                        }
-                                    }
-                                }
-                            }
+                } else {
+                    // 2. Try resolving through package.json's "tsconfig" field if it's a bare package import
+                    if let Some(path) =
+                        resolver::TsConfigResolver::resolve_via_package_json_field(&pkg_dir)
+                    {
+                        if let Some(resolved) = Self::resolve_path_with_fallbacks(path) {
+                            return Some(resolved);
                         }
-                    }
-
-                    // 3. Fallback to direct resolution or subpath resolution
-                    let target_path = if let Some(sub) = subpath {
-                        pkg_dir.join(sub)
-                    } else {
-                        pkg_dir.clone()
-                    };
-
-                    if let Some(resolved) = Self::resolve_path_with_fallbacks(target_path) {
-                        return Some(resolved);
                     }
                 }
+
+                // 3. Fallback to direct resolution or subpath resolution
+                let target_path = if let Some(sub) = subpath {
+                    pkg_dir.join(sub)
+                } else {
+                    pkg_dir.clone()
+                };
+
+                Self::resolve_path_with_fallbacks(target_path)
+            } else {
+                None
             }
-            if !current.pop() {
-                break;
-            }
-        }
-        None
+        })
     }
 
     /// Merges a parent `TsConfig` into this one (the child config).

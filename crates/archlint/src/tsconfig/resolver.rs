@@ -51,9 +51,26 @@ impl TsConfigResolver {
         let exports = pkg_json.get("exports")?.as_object()?;
         let sub_with_dot = format!("./{}", subpath);
 
-        exports
-            .get(&sub_with_dot)?
-            .as_str()
-            .map(|s| pkg_dir.join(s))
+        let target = exports.get(&sub_with_dot)?;
+        Self::resolve_conditional_export(target).map(|s| pkg_dir.join(s))
+    }
+
+    fn resolve_conditional_export(value: &Value) -> Option<String> {
+        match value {
+            Value::String(s) => Some(s.clone()),
+            Value::Object(obj) => {
+                // Priority keys for TypeScript resolution
+                let priority_keys = ["types", "default", "import", "require"];
+                for key in priority_keys {
+                    if let Some(inner) = obj.get(key) {
+                        if let Some(resolved) = Self::resolve_conditional_export(inner) {
+                            return Some(resolved);
+                        }
+                    }
+                }
+                None
+            }
+            _ => None,
+        }
     }
 }
