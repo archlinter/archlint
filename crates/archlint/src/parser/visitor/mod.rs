@@ -169,6 +169,12 @@ impl<'a> Visit<'a> for UnifiedVisitor {
 
     fn visit_member_expression(&mut self, it: &oxc_ast::ast::MemberExpression<'a>) {
         self.handle_member_expression(it);
+        oxc_ast::visit::walk::walk_member_expression(self, it);
+    }
+
+    fn visit_private_field_expression(&mut self, it: &oxc_ast::ast::PrivateFieldExpression<'a>) {
+        self.handle_private_field(it);
+        oxc_ast::visit::walk::walk_private_field_expression(self, it);
     }
 
     fn visit_ts_type_name(&mut self, it: &oxc_ast::ast::TSTypeName<'a>) {

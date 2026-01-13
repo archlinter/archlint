@@ -246,8 +246,8 @@ impl DeadSymbolsDetector {
 
     fn build_contract_methods_map(ctx: &AnalysisContext) -> HashMap<String, Vec<String>> {
         let rule = ctx.resolve_rule("dead_symbols", None);
-        rule.get_option::<HashMap<String, Vec<String>>>("contract_methods")
-            .unwrap_or_default()
+        let options = rule.get_option::<HashMap<String, Vec<String>>>("contract_methods");
+        options.unwrap_or_default()
     }
 
     fn build_ignored_methods_set(ctx: &AnalysisContext) -> HashSet<String> {
@@ -1026,5 +1026,82 @@ mod tests {
             unused_smell.is_some(),
             "Normal unused method should be dead"
         );
+    }
+
+    #[test]
+    fn test_config_merging_contract_methods() {
+        use crate::config::{Config, RuleConfig, RuleFullConfig};
+        use serde_yaml::{Mapping, Value};
+
+        let mut user_config = Config::default();
+        let mut user_options = Mapping::new();
+        let mut user_contracts = Mapping::new();
+        user_contracts.insert(
+            Value::String("ThrottlerOptionsFactory".to_string()),
+            Value::Sequence(vec![Value::String("createThrottlerOptions".to_string())]),
+        );
+        user_options.insert(
+            Value::String("contract_methods".to_string()),
+            Value::Mapping(user_contracts),
+        );
+        user_config.rules.insert(
+            "dead_symbols".to_string(),
+            RuleConfig::Full(RuleFullConfig {
+                options: Value::Mapping(user_options),
+                ..Default::default()
+            }),
+        );
+
+        let mut preset_options = Mapping::new();
+        let mut preset_contracts = Mapping::new();
+        preset_contracts.insert(
+            Value::String("OnModuleInit".to_string()),
+            Value::Sequence(vec![Value::String("onModuleInit".to_string())]),
+        );
+        preset_options.insert(
+            Value::String("contract_methods".to_string()),
+            Value::Mapping(preset_contracts),
+        );
+        let preset_rules = vec![(
+            "dead_symbols".to_string(),
+            RuleConfig::Full(RuleFullConfig {
+                options: Value::Mapping(preset_options),
+                ..Default::default()
+            }),
+        )]
+        .into_iter()
+        .collect();
+
+        let preset = crate::framework::presets::FrameworkPreset {
+            name: "nestjs".to_string(),
+            rules: preset_rules,
+            entry_points: vec![],
+            overrides: vec![],
+        };
+
+        user_config.merge_preset(&preset);
+
+        // Check if merged correctly
+        let rule = user_config.rules.get("dead_symbols").unwrap();
+        if let RuleConfig::Full(full) = rule {
+            let contracts: HashMap<String, Vec<String>> = serde_yaml::from_value(
+                full.options
+                    .as_mapping()
+                    .unwrap()
+                    .get(Value::String("contract_methods".to_string()))
+                    .unwrap()
+                    .clone(),
+            )
+            .unwrap();
+
+            assert!(contracts.contains_key("ThrottlerOptionsFactory"));
+            assert!(contracts.contains_key("OnModuleInit"));
+            assert_eq!(
+                contracts.get("ThrottlerOptionsFactory").unwrap(),
+                &vec!["createThrottlerOptions".to_string()]
+            );
+        } else {
+            panic!("Expected Full config");
+        }
     }
 }

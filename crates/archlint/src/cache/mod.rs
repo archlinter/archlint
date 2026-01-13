@@ -44,7 +44,7 @@ pub struct AnalysisCache {
 impl AnalysisCache {
     const CACHE_DIR: &'static str = ".archlint-cache";
     const CACHE_FILE: &'static str = "cache.bin";
-    const VERSION: &'static str = "6"; // v6: Added accessibility to MethodSymbol
+    const VERSION: &'static str = "7"; // v7: Added support for private field/method tracking (#PrivateFieldExpression)
     const APP_VERSION: &'static str = env!("CARGO_PKG_VERSION");
 
     fn resolve_cache_dir(project_root: &Path) -> PathBuf {
