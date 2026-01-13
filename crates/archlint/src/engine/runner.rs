@@ -195,19 +195,31 @@ impl AnalysisEngine {
     }
 
     fn load_explicit_presets(&self, presets: &mut Vec<FrameworkPreset>) -> Result<()> {
-        for preset_name in &self.config.extends {
-            match PresetLoader::load_any(preset_name) {
-                Ok(p) => presets.push(p),
-                Err(e) => {
-                    return Err(
-                        anyhow::anyhow!("Failed to load preset '{}': {}", preset_name, e).into(),
-                    );
+        if let Some(ref extends) = self.config.extends {
+            for preset_name in extends {
+                match PresetLoader::load_any(preset_name) {
+                    Ok(p) => presets.push(p),
+                    Err(e) => {
+                        return Err(anyhow::anyhow!(
+                            "Failed to load preset '{}': {}",
+                            preset_name,
+                            e
+                        )
+                        .into());
+                    }
                 }
             }
         }
 
         if let Some(ref fw) = self.config.framework {
-            if !self.config.extends.contains(fw) {
+            let already_loaded = self
+                .config
+                .extends
+                .as_ref()
+                .map(|e| e.contains(fw))
+                .unwrap_or(false);
+
+            if !already_loaded {
                 if let Ok(p) = PresetLoader::load_any(fw) {
                     presets.push(p);
                 }
@@ -241,7 +253,14 @@ impl AnalysisEngine {
         );
 
         for fw in &detected {
-            if !self.config.extends.contains(&fw.0) {
+            let already_loaded = self
+                .config
+                .extends
+                .as_ref()
+                .map(|e| e.contains(&fw.0))
+                .unwrap_or(false);
+
+            if !already_loaded {
                 if let Ok(p) = PresetLoader::load_builtin(&fw.0) {
                     presets.push(p);
                 }

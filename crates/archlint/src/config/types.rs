@@ -31,9 +31,9 @@ pub struct Config {
     #[serde(
         default,
         deserialize_with = "deserialize_extends",
-        skip_serializing_if = "Vec::is_empty"
+        skip_serializing_if = "is_none_or_empty_vec"
     )]
-    pub extends: Vec<String>,
+    pub extends: Option<Vec<String>>,
 
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub framework: Option<String>,
@@ -241,7 +241,7 @@ pub struct Override {
 
 pub(crate) fn deserialize_extends<'de, D>(
     deserializer: D,
-) -> std::result::Result<Vec<String>, D::Error>
+) -> std::result::Result<Option<Vec<String>>, D::Error>
 where
     D: serde::Deserializer<'de>,
 {
@@ -255,9 +255,16 @@ where
 
     let parsed = Option::<StringOrVec>::deserialize(deserializer)?;
     match parsed {
-        Some(StringOrVec::String(s)) => Ok(vec![s]),
-        Some(StringOrVec::Vec(v)) => Ok(v),
-        None => Ok(Vec::new()),
+        Some(StringOrVec::String(s)) => Ok(Some(vec![s])),
+        Some(StringOrVec::Vec(v)) => Ok(Some(v)),
+        None => Ok(None),
+    }
+}
+
+fn is_none_or_empty_vec(opt: &Option<Vec<String>>) -> bool {
+    match opt {
+        None => true,
+        Some(v) => v.is_empty(),
     }
 }
 
@@ -435,7 +442,7 @@ impl Default for Config {
             overrides: Vec::new(),
             scoring: SeverityConfig::default(),
             watch: WatchConfig::default(),
-            extends: Vec::new(),
+            extends: None,
             framework: None,
             auto_detect_framework: true,
             tsconfig: Some(TsConfigConfig::default()),

@@ -149,14 +149,40 @@ pub fn apply_arg_overrides(args: &ScanArgs, config: &mut Config) {
         for id in detectors.split(',').map(|s| s.trim()) {
             config
                 .rules
-                .insert(id.to_string(), RuleConfig::Short(RuleSeverity::High));
+                .entry(id.to_string())
+                .and_modify(|rule| {
+                    // If rule exists, preserve its options but enable it
+                    match rule {
+                        RuleConfig::Full(ref mut full) => {
+                            full.severity = Some(RuleSeverity::High);
+                            full.enabled = Some(true);
+                        }
+                        RuleConfig::Short(_) => {
+                            *rule = RuleConfig::Short(RuleSeverity::High);
+                        }
+                    }
+                })
+                .or_insert(RuleConfig::Short(RuleSeverity::High));
         }
     }
     if let Some(ref exclude) = args.exclude_detectors {
         for id in exclude.split(',').map(|s| s.trim()) {
             config
                 .rules
-                .insert(id.to_string(), RuleConfig::Short(RuleSeverity::Off));
+                .entry(id.to_string())
+                .and_modify(|rule| {
+                    // If rule exists, preserve its options but disable it
+                    match rule {
+                        RuleConfig::Full(ref mut full) => {
+                            full.severity = Some(RuleSeverity::Off);
+                            full.enabled = Some(false);
+                        }
+                        RuleConfig::Short(_) => {
+                            *rule = RuleConfig::Short(RuleSeverity::Off);
+                        }
+                    }
+                })
+                .or_insert(RuleConfig::Short(RuleSeverity::Off));
         }
     }
 

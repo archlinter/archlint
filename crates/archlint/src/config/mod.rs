@@ -84,7 +84,13 @@ impl Config {
     }
     pub fn load<P: AsRef<Path>>(path: P) -> Result<Self> {
         let contents = fs::read_to_string(path)?;
-        let config: Config = serde_yaml::from_str(&contents)?;
+        let mut config: Config = serde_yaml::from_str(&contents)?;
+
+        // If extends is explicitly set (even as empty array), disable auto_detect_framework
+        if config.extends.is_some() {
+            config.auto_detect_framework = false;
+        }
+
         Ok(config)
     }
 

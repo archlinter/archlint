@@ -478,7 +478,7 @@ fn handle_init_command(args: cli::InitArgs) -> Result<()> {
 
     // 2. Apply presets (set extends only, merge happens at runtime)
     if !selected_presets.is_empty() {
-        config.extends = selected_presets.clone();
+        config.extends = Some(selected_presets.clone());
     }
 
     // 3. Write config
