@@ -10,11 +10,11 @@ archlint init [options]
 
 ## Options
 
-| Option             | Default | Description                                            |
-| ------------------ | ------- | ------------------------------------------------------ |
-| `-f, --force`      | `false` | Overwrite existing `.archlint.yaml` if it exists       |
-| `--no-interactive` | `false` | Skip interactive framework selection                   |
-| `--presets <list>` | `none`  | Explicitly specify framework presets (comma-separated) |
+| Option             | Default | Description                                                             |
+| ------------------ | ------- | ----------------------------------------------------------------------- |
+| `-f, --force`      | `false` | Overwrite existing `.archlint.yaml` if it exists                        |
+| `--no-interactive` | `false` | Skip interactive framework selection                                    |
+| `--presets <list>` | `none`  | Explicitly specify framework presets (comma-separated or repeated flag) |
 
 ## How it Works
 
@@ -33,7 +33,11 @@ archlint init
 ### Non-interactive with specific presets
 
 ```bash
+# Comma-separated
 archlint init --no-interactive --presets nestjs,prisma
+
+# Or repeated flag
+archlint init --no-interactive --presets nestjs --presets prisma
 ```
 
 ### Overwrite existing config

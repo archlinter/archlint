@@ -10,11 +10,11 @@ archlint init [options]
 
 ## Opciones
 
-| Opción             | Por defecto | Descripción                                                 |
-| ------------------ | ----------- | ----------------------------------------------------------- |
-| `-f, --force`      | `false`     | Sobrescribe el archivo `.archlint.yaml` si ya existe        |
-| `--no-interactive` | `false`     | Omite la selección interactiva de frameworks                |
-| `--presets <list>` | `none`      | Especifica explícitamente los presets (separados por comas) |
+| Opción             | Por defecto | Descripción                                                                      |
+| ------------------ | ----------- | -------------------------------------------------------------------------------- |
+| `-f, --force`      | `false`     | Sobrescribe el archivo `.archlint.yaml` si ya existe                             |
+| `--no-interactive` | `false`     | Omite la selección interactiva de frameworks                                     |
+| `--presets <list>` | `none`      | Especifica explícitamente los presets (separados por comas o repitiendo el flag) |
 
 ## Cómo funciona
 
@@ -33,7 +33,11 @@ archlint init
 ### Inicialización no interactiva con presets específicos
 
 ```bash
+# Separados por comas
 archlint init --no-interactive --presets nestjs,prisma
+
+# O repitiendo el flag
+archlint init --no-interactive --presets nestjs --presets prisma
 ```
 
 ### Sobrescribir configuración existente

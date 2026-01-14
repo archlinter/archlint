@@ -10,11 +10,11 @@ archlint init [options]
 
 ## 选项
 
-| 选项               | 默认值  | 描述                                  |
-| ------------------ | ------- | ------------------------------------- |
-| `-f, --force`      | `false` | 如果已存在 `.archlint.yaml`，则覆盖它 |
-| `--no-interactive` | `false` | 跳过交互式框架选择                    |
-| `--presets <list>` | `none`  | 显式指定框架预设（逗号分隔）          |
+| 选项               | 默认值  | 描述                                   |
+| ------------------ | ------- | -------------------------------------- |
+| `-f, --force`      | `false` | 如果已存在 `.archlint.yaml`，则覆盖它  |
+| `--no-interactive` | `false` | 跳过交互式框架选择                     |
+| `--presets <list>` | `none`  | 显式指定框架预设（逗号分隔或重复标志） |
 
 ## 工作原理
 
@@ -33,7 +33,11 @@ archlint init
 ### 使用特定预设的非交互式初始化
 
 ```bash
+# 逗号分隔
 archlint init --no-interactive --presets nestjs,prisma
+
+# 或重复标志
+archlint init --no-interactive --presets nestjs --presets prisma
 ```
 
 ### 覆盖现有配置
