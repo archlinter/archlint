@@ -15,7 +15,7 @@ use std::path::{Path, PathBuf};
 pub fn init() {}
 
 #[detector(
-    id = "cycles",
+    smell_type = SmellType::CyclicDependency,
     name = "Cycle Detector",
     description = "Detects circular dependencies between modules",
     category = DetectorCategory::GraphBased
@@ -349,28 +349,24 @@ impl CycleDetector {
 impl Detector for CycleDetector {
     crate::impl_detector_report!(
         name: "Cycles",
-        explain: smell => {
-            let cycle_length = smell.cycle_length().unwrap_or(0);
-
-            crate::detectors::Explanation {
-                problem: format!("Circular dependency detected between {} files", cycle_length),
-                reason: "Files form a dependency cycle where A depends on B, B depends on C, and C depends back on A (or similar pattern). This creates tight coupling between modules.".into(),
-                risks: crate::strings![
-                    "Difficult to reason about initialization order",
-                    "Changes in one module can cascade unpredictably to others",
-                    "Testing becomes difficult due to interdependencies",
-                    "Refactoring is risky and error-prone",
-                    "May cause compilation or runtime initialization issues"
-                ],
-                recommendations: crate::strings![
-                    "Extract shared logic into a separate, independent module",
-                    "Use dependency injection to break direct dependencies",
-                    "Introduce interfaces/abstractions to invert dependencies",
-                    "Apply the Dependency Inversion Principle (DIP)",
-                    "Consider using event-driven architecture for loose coupling"
-                ]
-            }
-        }
+        explain: smell => (
+            problem: format!("Circular dependency detected between {} files", smell.cycle_length().unwrap_or(0)),
+            reason: "Files form a dependency cycle where A depends on B, B depends on C, and C depends back on A (or similar pattern). This creates tight coupling between modules.",
+            risks: [
+                "Difficult to reason about initialization order",
+                "Changes in one module can cascade unpredictably to others",
+                "Testing becomes difficult due to interdependencies",
+                "Refactoring is risky and error-prone",
+                "May cause compilation or runtime initialization issues"
+            ],
+            recommendations: [
+                "Extract shared logic into a separate, independent module",
+                "Use dependency injection to break direct dependencies",
+                "Introduce interfaces/abstractions to invert dependencies",
+                "Apply the Dependency Inversion Principle (DIP)",
+                "Consider using event-driven architecture for loose coupling"
+            ]
+        )
     );
 
     fn render_markdown(
@@ -432,7 +428,7 @@ impl Detector for CycleDetector {
             .filter(|scc| {
                 !scc.iter().any(|&node| {
                     if let Some(path) = ctx.graph.get_file_path(node) {
-                        ctx.get_rule_for_file("cycles", path).is_none()
+                        ctx.get_rule_for_file("cyclic_dependency", path).is_none()
                     } else {
                         false
                     }
@@ -448,7 +444,7 @@ impl Detector for CycleDetector {
 
                 if let Some(node) = scc.first() {
                     if let Some(path) = ctx.graph.get_file_path(*node) {
-                        if let Some(rule) = ctx.get_rule_for_file("cycles", path) {
+                        if let Some(rule) = ctx.get_rule_for_file("cyclic_dependency", path) {
                             smell.severity = rule.severity;
                         }
                     }

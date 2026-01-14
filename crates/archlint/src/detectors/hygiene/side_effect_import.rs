@@ -6,7 +6,7 @@ use crate::engine::AnalysisContext;
 pub fn init() {}
 
 #[detector(
-    id = "side_effect_import",
+    smell_type = SmellType::SideEffectImport,
     name = "Side-Effect Import Detector",
     description = "Detects imports that execute code on load without binding any symbols",
     category = DetectorCategory::ImportBased
@@ -46,19 +46,17 @@ impl SideEffectImportDetector {
 impl Detector for SideEffectImportDetector {
     crate::impl_detector_report!(
         name: "SideEffectImport",
-        explain: _smell => {
-            crate::detectors::Explanation {
-                problem: "Side-Effect Import".into(),
-                reason: "Import that executes code on load without binding any symbols. This can make the code's behavior unpredictable and difficult to test.".into(),
-                risks: crate::strings![
-                    "Global state pollution",
-                    "Unpredictable execution order"
-                ],
-                recommendations: crate::strings![
-                    "Explicitly initialize the module or use named imports if possible"
-                ]
-            }
-        },
+        explain: _smell => (
+            problem: "Side-Effect Import",
+            reason: "Import that executes code on load without binding any symbols. This can make the code's behavior unpredictable and difficult to test.",
+            risks: [
+                "Global state pollution",
+                "Unpredictable execution order"
+            ],
+            recommendations: [
+                "Explicitly initialize the module or use named imports if possible"
+            ]
+        ),
         table: {
             title: "Side-Effect Imports",
             columns: ["Location", "Source", "pts"],

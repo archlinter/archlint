@@ -14,7 +14,7 @@ pub mod metrics;
 pub use registry::{DetectorFactory, DetectorInfo, DetectorRegistry};
 pub use smell::{ArchSmell, CodeRange, CriticalEdge, CycleCluster, HotspotInfo, LocationDetail};
 pub use types::{
-    ConfigurableSmellType, DetectorCategory, Explanation, Severity, SmellMetric, SmellType,
+    DetectorCategory, Explanation, Severity, SmellKind, SmellMetric, SmellType,
     SmellWithExplanation,
 };
 

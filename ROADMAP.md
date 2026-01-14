@@ -11,22 +11,24 @@ archlint focuses on **JavaScript/TypeScript (including JSX/TSX)** codebases. The
 - **Detectors**: 30+ architectural smell detectors (including layer violations, SDP, LCOM4)
 - **Parsing**: AST-based analysis using `oxc`
 - **Performance**: parallel analysis + content-based caching
-- **Reporting**: table / JSON / Markdown (with Mermaid diagrams)
-- **DX**: watch mode, YAML config, path alias resolution, framework presets
+- **Reporting**: table / JSON / Markdown (with Mermaid diagrams) / SARIF
+- **DX**: watch mode, YAML config with `extends`, path alias resolution, framework presets
 - **Distribution**: npm packages + platform-specific binaries
-- **Tooling**: diff mode, MCP server support
+- **Baseline & Diff**: snapshot command + diff against git refs or files
+- **Suppressions**: inline comments (`archlint-disable`, `archlint-disable-line`, etc.)
+- **CI Integration**: GitHub Action with PR comments, GitLab CI support
 
 ## Next (High ROI)
 
-- **SARIF output**: GitHub/GitLab code scanning compatibility
-- **Baseline mode**: ignore existing issues, catch only new ones
 - **Crates.io**: publish a Rust crate and enable `cargo install` for the CLI
+- **Monorepo Boundaries**: workspace-aware analysis for Nx, Turborepo, pnpm workspaces (package-level dependency rules)
+- **Plugin SDK (JS/TS)**: public API via `@archlinter/plugin-api` for custom detectors without Rust
 
 ## Maybe (Only If Needed)
 
-- **Interactive HTML report** (if Markdown/Mermaid is not enough)
-- **More shareable presets** (if ecosystem demand appears)
-- **VS Code integration** (only after output formats and rule stability are solid)
+- **LSP Server**: universal IDE support via Language Server Protocol (more flexible than editor-specific plugins)
+- **Metrics Dashboard**: interactive visualization of architectural trends over time
+- **Auto-fix**: automated refactoring for simple smells (barrel re-exports, import reorganization)
 
 ## Contributing
 

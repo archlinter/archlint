@@ -9,7 +9,7 @@ use std::path::Path;
 pub fn init() {}
 
 #[detector(
-    id = "package_cycles",
+    smell_type = SmellType::PackageCycle,
     name = "Package-level Cycle Detector",
     description = "Detects circular dependencies between logical folders (packages)",
     category = DetectorCategory::GraphBased,
@@ -128,19 +128,17 @@ impl PackageCycleDetector {
 impl Detector for PackageCycleDetector {
     crate::impl_detector_report!(
         name: "PackageCycle",
-        explain: _smell => {
-            crate::detectors::Explanation {
-                problem: "Package-level Cycle".into(),
-                reason: "Circular dependency detected between different packages/folders. This violates the goal of creating a hierarchical, directed dependency graph between logical components.".into(),
-                risks: crate::strings![
-                    "Packages cannot be developed or deployed in isolation",
-                    "Modular structure becomes a big ball of mud"
-                ],
-                recommendations: crate::strings![
-                    "Move shared code to a lower-level package or use abstractions to break the cycle"
-                ]
-            }
-        },
+        explain: _smell => (
+            problem: "Package-level Cycle",
+            reason: "Circular dependency detected between different packages/folders. This violates the goal of creating a hierarchical, directed dependency graph between logical components.",
+            risks: [
+                "Packages cannot be developed or deployed in isolation",
+                "Modular structure becomes a big ball of mud"
+            ],
+            recommendations: [
+                "Move shared code to a lower-level package or use abstractions to break the cycle"
+            ]
+        ),
         table: {
             title: "Package Cycles",
             columns: ["Cycle Path", "pts"],

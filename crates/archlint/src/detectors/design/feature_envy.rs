@@ -8,7 +8,7 @@ use std::path::{Path, PathBuf};
 pub fn init() {}
 
 #[detector(
-    id = "feature_envy",
+    smell_type = SmellType::FeatureEnvy,
     name = "Feature Envy Detector",
     description = "Detects modules that use more external symbols than internal ones",
     category = DetectorCategory::Global,
@@ -94,23 +94,20 @@ impl FeatureEnvyDetector {
 impl Detector for FeatureEnvyDetector {
     crate::impl_detector_report!(
         name: "FeatureEnvy",
-        explain: smell => {
-            let ratio = smell.envy_ratio().unwrap_or(0.0);
-            crate::detectors::Explanation {
-                problem: format!("Feature Envy (ratio: {:.1}x)", ratio),
-                reason: "This module uses more symbols from another module than its own. It seems more interested in the details of another module than its own functionality.".into(),
-                risks: crate::strings![
-                    "Violation of encapsulation and data hiding",
-                    "Tight coupling between the two modules",
-                    "Increased difficulty in testing and refactoring"
-                ],
-                recommendations: crate::strings![
-                    "Move the code that uses the external symbols into the envied module",
-                    "Extract a new module that contains the logic and data together",
-                    "Pass only necessary data as arguments instead of accessing many properties"
-                ]
-            }
-        },
+        explain: smell => (
+            problem: format!("Feature Envy (ratio: {:.1}x)", smell.envy_ratio().unwrap_or(0.0)),
+            reason: "This module uses more symbols from another module than its own. It seems more interested in the details of another module than its own functionality.",
+            risks: [
+                "Violation of encapsulation and data hiding",
+                "Tight coupling between the two modules",
+                "Increased difficulty in testing and refactoring"
+            ],
+            recommendations: [
+                "Move the code that uses the external symbols into the envied module",
+                "Extract a new module that contains the logic and data together",
+                "Pass only necessary data as arguments instead of accessing many properties"
+            ]
+        ),
         table: {
             title: "Feature Envy",
             columns: ["File", "Envied Module", "Ratio", "pts"],

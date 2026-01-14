@@ -7,7 +7,7 @@ use std::path::Path;
 pub fn init() {}
 
 #[detector(
-    id = "test_leakage",
+    smell_type = SmellType::TestLeakage,
     name = "Test to Production Leakage Detector",
     description = "Detects when production code imports test files, mocks, or test utilities",
     category = DetectorCategory::ImportBased,
@@ -141,21 +141,19 @@ impl TestLeakageDetector {
 impl Detector for TestLeakageDetector {
     crate::impl_detector_report!(
         name: "TestLeakage",
-        explain: _smell => {
-            crate::detectors::Explanation {
-                problem: "Test-to-Production Leakage".into(),
-                reason: "A production module imports a test file, mock, or test utility. This can lead to test code being included in production bundles.".into(),
-                risks: crate::strings![
-                    "Increased bundle size",
-                    "Potential security risks if mocks expose internal data",
-                    "Code fragility: production depends on test helpers"
-                ],
-                recommendations: crate::strings![
-                    "Move shared utilities to a separate non-test module",
-                    "Check if the import was accidental and remove it"
-                ]
-            }
-        },
+        explain: _smell => (
+            problem: "Test-to-Production Leakage",
+            reason: "A production module imports a test file, mock, or test utility. This can lead to test code being included in production bundles.",
+            risks: [
+                "Increased bundle size",
+                "Potential security risks if mocks expose internal data",
+                "Code fragility: production depends on test helpers"
+            ],
+            recommendations: [
+                "Move shared utilities to a separate non-test module",
+                "Check if the import was accidental and remove it"
+            ]
+        ),
         table: {
             title: "Test Leakage",
             columns: ["Location", "Imported Test File", "pts"],

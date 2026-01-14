@@ -20,6 +20,7 @@ serde_yaml = "0.9"
 schemars = { version = "0.8", features = ["derive", "preserve_order"] }
 thiserror = "1.0"
 anyhow = "1.0"
+strum = { version = "0.26", features = ["derive"] }
 log = "0.4"
 env_logger = "0.11"
 

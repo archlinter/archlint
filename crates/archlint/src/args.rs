@@ -119,7 +119,11 @@ impl ScanArgs {
 
     /// Get quiet flag, automatically enabled when JSON output is requested
     pub fn is_quiet(&self) -> bool {
-        self.quiet || self.json
+        self.quiet
+            || matches!(
+                self.output_format(),
+                OutputFormat::Json | OutputFormat::Sarif
+            )
     }
 }
 
@@ -135,4 +139,6 @@ pub enum OutputFormat {
     Markdown,
     #[cfg_attr(feature = "cli", value(name = "json"))]
     Json,
+    #[cfg_attr(feature = "cli", value(name = "sarif"))]
+    Sarif,
 }

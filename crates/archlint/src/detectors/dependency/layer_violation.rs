@@ -9,7 +9,7 @@ use std::path::{Path, PathBuf};
 pub fn init() {}
 
 #[detector(
-    id = "layer_violation",
+    smell_type = SmellType::LayerViolation,
     name = "Layer Architecture Violation Detector",
     description = "Detects violations of layered architecture rules",
     category = DetectorCategory::ImportBased,
@@ -128,27 +128,27 @@ impl LayerViolationDetector {
 impl Detector for LayerViolationDetector {
     crate::impl_detector_report!(
         name: "LayerViolation",
-        explain: smell => {
-            let (from, to) = if let crate::detectors::SmellType::LayerViolation { from_layer, to_layer } = &smell.smell_type {
-                (from_layer.as_str(), to_layer.as_str())
-            } else {
-                ("unknown", "unknown")
-            };
-            crate::detectors::Explanation {
-                problem: format!("Layer Architecture Violation: {} → {}", from, to),
-                reason: "A module in one layer imports a module from a layer it shouldn't know about (e.g., domain depending on infrastructure).".into(),
-                risks: crate::strings![
-                    "Circular dependencies between layers",
-                    "Difficult to test domain logic in isolation",
-                    "Leaking implementation details into business logic"
-                ],
-                recommendations: crate::strings![
-                    "Use Dependency Inversion Principle (DIP)",
-                    "Introduce interfaces in the stable layer",
-                    "Move the code to the appropriate layer"
-                ]
-            }
-        },
+        explain: smell => (
+            problem: {
+                let (from, to) = if let crate::detectors::SmellType::LayerViolation { from_layer, to_layer } = &smell.smell_type {
+                    (from_layer.as_str(), to_layer.as_str())
+                } else {
+                    ("unknown", "unknown")
+                };
+                format!("Layer Architecture Violation: {} → {}", from, to)
+            },
+            reason: "A module in one layer imports a module from a layer it shouldn't know about (e.g., domain depending on infrastructure).",
+            risks: [
+                "Circular dependencies between layers",
+                "Difficult to test domain logic in isolation",
+                "Leaking implementation details into business logic"
+            ],
+            recommendations: [
+                "Use Dependency Inversion Principle (DIP)",
+                "Introduce interfaces in the stable layer",
+                "Move the code to the appropriate layer"
+            ]
+        ),
         table: {
             title: "Layer Violations",
             columns: ["Location", "Violation", "pts"],

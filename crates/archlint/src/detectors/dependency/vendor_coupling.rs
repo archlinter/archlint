@@ -11,7 +11,7 @@ use crate::utils::package::PackageUtils;
 pub fn init() {}
 
 #[detector(
-    id = "vendor_coupling",
+    smell_type = SmellType::VendorCoupling,
     name = "Vendor Coupling Detector",
     description = "Detects excessive coupling to third-party packages",
     category = DetectorCategory::ImportBased,
@@ -71,24 +71,24 @@ impl VendorCouplingDetector {
 impl Detector for VendorCouplingDetector {
     crate::impl_detector_report!(
         name: "VendorCoupling",
-        explain: smell => {
-            let package = if let crate::detectors::SmellType::VendorCoupling { package } = &smell.smell_type {
-                package.as_str()
-            } else {
-                "unknown"
-            };
-            crate::detectors::Explanation {
-                problem: format!("Vendor Coupling: `{}`", package),
-                reason: "Direct usage of a third-party package in many files. This makes it difficult to replace the vendor library in the future.".into(),
-                risks: crate::strings![
-                    "Vendor lock-in",
-                    "Difficulty in upgrading or replacing the library"
-                ],
-                recommendations: crate::strings![
-                    "Create a wrapper or abstraction layer around the library"
-                ]
-            }
-        },
+        explain: smell => (
+            problem: {
+                let package = if let crate::detectors::SmellType::VendorCoupling { package } = &smell.smell_type {
+                    package.as_str()
+                } else {
+                    "unknown"
+                };
+                format!("Vendor Coupling: `{}`", package)
+            },
+            reason: "Direct usage of a third-party package in many files. This makes it difficult to replace the vendor library in the future.",
+            risks: [
+                "Vendor lock-in",
+                "Difficulty in upgrading or replacing the library"
+            ],
+            recommendations: [
+                "Create a wrapper or abstraction layer around the library"
+            ]
+        ),
         table: {
             title: "Vendor Coupling",
             columns: ["Package", "Files", "pts"],

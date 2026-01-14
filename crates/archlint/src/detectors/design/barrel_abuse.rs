@@ -7,7 +7,7 @@ use std::path::Path;
 pub fn init() {}
 
 #[detector(
-    id = "barrel_file",
+    smell_type = SmellType::BarrelFileAbuse,
     name = "Barrel File Abuse Detector",
     description = "Detects excessive use of barrel files (index.ts) that inflate the dependency graph",
     category = DetectorCategory::ImportBased
@@ -30,19 +30,17 @@ impl BarrelFileAbuseDetector {
 impl Detector for BarrelFileAbuseDetector {
     crate::impl_detector_report!(
         name: "BarrelFileAbuse",
-        explain: _smell => {
-            crate::detectors::Explanation {
-                problem: "Barrel File Abuse".into(),
-                reason: "Excessive re-exports in index file. Large barrel files can lead to unnecessary coupling and slower build times.".into(),
-                risks: crate::strings![
-                    "Increased build times",
-                    "Circular dependencies risk"
-                ],
-                recommendations: crate::strings![
-                    "Split the barrel file or import directly from sub-modules"
-                ]
-            }
-        },
+        explain: _smell => (
+            problem: "Barrel File Abuse",
+            reason: "Excessive re-exports in index file. Large barrel files can lead to unnecessary coupling and slower build times.",
+            risks: [
+                "Increased build times",
+                "Circular dependencies risk"
+            ],
+            recommendations: [
+                "Split the barrel file or import directly from sub-modules"
+            ]
+        ),
         table: {
             title: "Barrel Files",
             columns: ["File", "Re-exports", "pts"],

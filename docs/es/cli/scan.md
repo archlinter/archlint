@@ -12,7 +12,7 @@ archlint scan [path] [options]
 
 | Opción                          | Por defecto | Descripción                                               |
 | ------------------------------- | ----------- | --------------------------------------------------------- |
-| `-f, --format <format>`         | `table`     | Formato de salida: `table`, `json`, `markdown`            |
+| `-f, --format <format>`         | `table`     | Formato de salida: `table`, `json`, `markdown`, `sarif`   |
 | `-j, --json`                    | `false`     | Atajo para `--format json`                                |
 | `-r, --report <file>`           | `stdout`    | Guarda el informe en un archivo                           |
 | `-s, --min-severity <sev>`      | `low`       | Filtra por severidad: `low`, `medium`, `high`, `critical` |
@@ -29,6 +29,12 @@ archlint scan [path] [options]
 
 ```bash
 archlint scan --format markdown --report report.md
+```
+
+### Exportar a SARIF (para GitHub Code Scanning)
+
+```bash
+archlint scan --format sarif --report results.sarif
 ```
 
 ### Ejecutar solo detección de ciclos

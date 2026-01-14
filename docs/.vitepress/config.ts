@@ -30,63 +30,64 @@ const enSidebar: DefaultTheme.Sidebar = {
     {
       text: 'Dependency Issues',
       items: [
-        { text: 'Cyclic Dependencies', link: '/detectors/cycles' },
-        { text: 'Type Cycles', link: '/detectors/circular-type-deps' },
-        { text: 'Package Cycles', link: '/detectors/package-cycle' },
-        { text: 'Layer Violation', link: '/detectors/layer-violation' },
-        { text: 'SDP Violation', link: '/detectors/sdp-violation' },
+        { text: 'Cyclic Dependencies', link: '/detectors/cyclic_dependency' },
+        { text: 'Cycle Clusters', link: '/detectors/cycle_clusters' },
+        { text: 'Type Cycles', link: '/detectors/circular_type_deps' },
+        { text: 'Package Cycles', link: '/detectors/package_cycles' },
+        { text: 'Layer Violation', link: '/detectors/layer_violation' },
+        { text: 'SDP Violation', link: '/detectors/sdp_violation' },
       ]
     },
     {
       text: 'Module Design',
       items: [
-        { text: 'God Module', link: '/detectors/god-module' },
-        { text: 'Hub Module', link: '/detectors/hub-module' },
-        { text: 'High Coupling', link: '/detectors/high-coupling' },
-        { text: 'Scattered Module', link: '/detectors/scattered-module' },
-        { text: 'Feature Envy', link: '/detectors/feature-envy' },
+        { text: 'God Module', link: '/detectors/god_module' },
+        { text: 'Hub Module', link: '/detectors/hub_module' },
+        { text: 'High Coupling', link: '/detectors/high_coupling' },
+        { text: 'Scattered Module', link: '/detectors/module_cohesion' },
+        { text: 'Feature Envy', link: '/detectors/feature_envy' },
       ]
     },
     {
       text: 'Code Quality',
       items: [
-        { text: 'Dead Code', link: '/detectors/dead-code' },
-        { text: 'Dead Symbols', link: '/detectors/dead-symbols' },
-        { text: 'Orphan Types', link: '/detectors/orphan-types' },
-        { text: 'Barrel Abuse', link: '/detectors/barrel-abuse' },
-        { text: 'Primitive Obsession', link: '/detectors/primitive-obsession' },
+        { text: 'Dead Code', link: '/detectors/dead_code' },
+        { text: 'Dead Symbols', link: '/detectors/dead_symbols' },
+        { text: 'Orphan Types', link: '/detectors/orphan_types' },
+        { text: 'Barrel Abuse', link: '/detectors/barrel_file' },
+        { text: 'Primitive Obsession', link: '/detectors/primitive_obsession' },
       ]
     },
     {
       text: 'Complexity & Size',
       items: [
         { text: 'High Complexity', link: '/detectors/complexity' },
-        { text: 'Deep Nesting', link: '/detectors/deep-nesting' },
-        { text: 'Long Parameters', link: '/detectors/long-params' },
-        { text: 'Large File', link: '/detectors/large-file' },
+        { text: 'Deep Nesting', link: '/detectors/deep_nesting' },
+        { text: 'Long Parameters', link: '/detectors/long_params' },
+        { text: 'Large File', link: '/detectors/large_file' },
       ]
     },
     {
       text: 'Change Patterns',
       items: [
-        { text: 'Shotgun Surgery', link: '/detectors/shotgun-surgery' },
-        { text: 'Unstable Interface', link: '/detectors/unstable-interface' },
+        { text: 'Shotgun Surgery', link: '/detectors/shotgun_surgery' },
+        { text: 'Unstable Interface', link: '/detectors/unstable_interface' },
       ]
     },
     {
       text: 'Runtime & Safety',
       items: [
-        { text: 'Test Leakage', link: '/detectors/test-leakage' },
-        { text: 'Vendor Coupling', link: '/detectors/vendor-coupling' },
-        { text: 'Side Effect Import', link: '/detectors/side-effect-import' },
-        { text: 'Shared Mutable State', link: '/detectors/shared-mutable-state' },
+        { text: 'Test Leakage', link: '/detectors/test_leakage' },
+        { text: 'Vendor Coupling', link: '/detectors/vendor_coupling' },
+        { text: 'Side Effect Import', link: '/detectors/side_effect_import' },
+        { text: 'Shared Mutable State', link: '/detectors/shared_mutable_state' },
       ]
     },
     {
       text: 'Metrics',
       items: [
         { text: 'Abstractness Violation', link: '/detectors/abstractness' },
-        { text: 'Scattered Config', link: '/detectors/scattered-config' },
+        { text: 'Scattered Config', link: '/detectors/scattered_config' },
       ]
     }
   ],
@@ -216,63 +217,64 @@ export default defineConfig({
             {
               text: 'Проблемы зависимостей',
               items: [
-                { text: 'Циклические зависимости', link: '/ru/detectors/cycles' },
-                { text: 'Циклы типов', link: '/ru/detectors/circular-type-deps' },
-                { text: 'Циклы пакетов', link: '/ru/detectors/package-cycle' },
-                { text: 'Нарушение слоев', link: '/ru/detectors/layer-violation' },
-                { text: 'Нарушение SDP', link: '/ru/detectors/sdp-violation' },
+                { text: 'Циклические зависимости', link: '/ru/detectors/cyclic_dependency' },
+                { text: 'Кластеры циклов', link: '/ru/detectors/cycle_clusters' },
+                { text: 'Циклы типов', link: '/ru/detectors/circular_type_deps' },
+                { text: 'Циклы пакетов', link: '/ru/detectors/package_cycles' },
+                { text: 'Нарушение слоев', link: '/ru/detectors/layer_violation' },
+                { text: 'Нарушение SDP', link: '/ru/detectors/sdp_violation' },
               ]
             },
             {
               text: 'Дизайн модулей',
               items: [
-                { text: 'God Module', link: '/ru/detectors/god-module' },
-                { text: 'Hub Module', link: '/ru/detectors/hub-module' },
-                { text: 'Высокая связанность', link: '/ru/detectors/high-coupling' },
-                { text: 'Рассредоточенный модуль', link: '/ru/detectors/scattered-module' },
-                { text: 'Feature Envy', link: '/ru/detectors/feature-envy' },
+                { text: 'God Module', link: '/ru/detectors/god_module' },
+                { text: 'Hub Module', link: '/ru/detectors/hub_module' },
+                { text: 'Высокая связанность', link: '/ru/detectors/high_coupling' },
+                { text: 'Рассредоточенный модуль', link: '/ru/detectors/module_cohesion' },
+                { text: 'Feature Envy', link: '/ru/detectors/feature_envy' },
               ]
             },
             {
               text: 'Качество кода',
               items: [
-                { text: 'Мертвый код', link: '/ru/detectors/dead-code' },
-                { text: 'Мертвые символы', link: '/ru/detectors/dead-symbols' },
-                { text: 'Осиротевшие типы', link: '/ru/detectors/orphan-types' },
-                { text: 'Злоупотребление Barrel', link: '/ru/detectors/barrel-abuse' },
-                { text: 'Одержимость примитивами', link: '/ru/detectors/primitive-obsession' },
+                { text: 'Мертвый код', link: '/ru/detectors/dead_code' },
+                { text: 'Мертвые символы', link: '/ru/detectors/dead_symbols' },
+                { text: 'Осиротевшие типы', link: '/ru/detectors/orphan_types' },
+                { text: 'Злоупотребление Barrel', link: '/ru/detectors/barrel_file' },
+                { text: 'Одержимость примитивами', link: '/ru/detectors/primitive_obsession' },
               ]
             },
             {
               text: 'Сложность и размер',
               items: [
                 { text: 'Высокая сложность', link: '/ru/detectors/complexity' },
-                { text: 'Глубокая вложенность', link: '/ru/detectors/deep-nesting' },
-                { text: 'Много параметров', link: '/ru/detectors/long-params' },
-                { text: 'Большой файл', link: '/ru/detectors/large-file' },
+                { text: 'Глубокая вложенность', link: '/ru/detectors/deep_nesting' },
+                { text: 'Много параметров', link: '/ru/detectors/long_params' },
+                { text: 'Большой файл', link: '/ru/detectors/large_file' },
               ]
             },
             {
               text: 'Паттерны изменений',
               items: [
-                { text: 'Shotgun Surgery', link: '/ru/detectors/shotgun-surgery' },
-                { text: 'Нестабильный интерфейс', link: '/ru/detectors/unstable-interface' },
+                { text: 'Shotgun Surgery', link: '/ru/detectors/shotgun_surgery' },
+                { text: 'Нестабильный интерфейс', link: '/ru/detectors/unstable_interface' },
               ]
             },
             {
               text: 'Runtime и безопасность',
               items: [
-                { text: 'Утечка тестов', link: '/ru/detectors/test-leakage' },
-                { text: 'Связанность с вендором', link: '/ru/detectors/vendor-coupling' },
-                { text: 'Импорт с побочными эффектами', link: '/ru/detectors/side-effect-import' },
-                { text: 'Общее мутабельное состояние', link: '/ru/detectors/shared-mutable-state' },
+                { text: 'Утечка тестов', link: '/ru/detectors/test_leakage' },
+                { text: 'Связанность с вендором', link: '/ru/detectors/vendor_coupling' },
+                { text: 'Импорт с побочными эффектами', link: '/ru/detectors/side_effect_import' },
+                { text: 'Общее мутабельное состояние', link: '/ru/detectors/shared_mutable_state' },
               ]
             },
             {
               text: 'Метрики',
               items: [
                 { text: 'Нарушение абстрактности', link: '/ru/detectors/abstractness' },
-                { text: 'Рассредоточенная конфигурация', link: '/ru/detectors/scattered-config' },
+                { text: 'Рассредоточенная конфигурация', link: '/ru/detectors/scattered_config' },
               ]
             }
           ],
@@ -370,63 +372,64 @@ export default defineConfig({
             {
               text: '依赖问题',
               items: [
-                { text: '循环依赖', link: '/zh/detectors/cycles' },
-                { text: '类型循环', link: '/zh/detectors/circular-type-deps' },
-                { text: '包循环', link: '/zh/detectors/package-cycle' },
-                { text: '图层违规', link: '/zh/detectors/layer-violation' },
-                { text: 'SDP 违规', link: '/zh/detectors/sdp-violation' },
+                { text: '循环依赖', link: '/zh/detectors/cyclic_dependency' },
+                { text: '循环依赖集群', link: '/zh/detectors/cycle_clusters' },
+                { text: '类型循环', link: '/zh/detectors/circular_type_deps' },
+                { text: '包循环', link: '/zh/detectors/package_cycles' },
+                { text: '图层违规', link: '/zh/detectors/layer_violation' },
+                { text: 'SDP 违规', link: '/zh/detectors/sdp_violation' },
               ]
             },
             {
               text: '模块设计',
               items: [
-                { text: '上帝模块', link: '/zh/detectors/god-module' },
-                { text: '枢纽模块', link: '/zh/detectors/hub-module' },
-                { text: '高耦合', link: '/zh/detectors/high-coupling' },
-                { text: '分散模块', link: '/zh/detectors/scattered-module' },
-                { text: '特性嫉妒', link: '/zh/detectors/feature-envy' },
+                { text: '上帝模块', link: '/zh/detectors/god_module' },
+                { text: '枢纽模块', link: '/zh/detectors/hub_module' },
+                { text: '高耦合', link: '/zh/detectors/high_coupling' },
+                { text: '分散模块', link: '/zh/detectors/module_cohesion' },
+                { text: '特性嫉妒', link: '/zh/detectors/feature_envy' },
               ]
             },
             {
               text: '代码质量',
               items: [
-                { text: '死代码', link: '/zh/detectors/dead-code' },
-                { text: '死符号', link: '/zh/detectors/dead-symbols' },
-                { text: '孤立类型', link: '/zh/detectors/orphan-types' },
-                { text: 'Barrel 滥用', link: '/zh/detectors/barrel-abuse' },
-                { text: '原始类型偏执', link: '/zh/detectors/primitive-obsession' },
+                { text: '死代码', link: '/zh/detectors/dead_code' },
+                { text: '死符号', link: '/zh/detectors/dead_symbols' },
+                { text: '孤立类型', link: '/zh/detectors/orphan_types' },
+                { text: 'Barrel 滥用', link: '/zh/detectors/barrel_file' },
+                { text: '原始类型偏执', link: '/zh/detectors/primitive_obsession' },
               ]
             },
             {
               text: '复杂度与大小',
               items: [
                 { text: '高复杂度', link: '/zh/detectors/complexity' },
-                { text: '深层嵌套', link: '/zh/detectors/deep-nesting' },
-                { text: '参数过多', link: '/zh/detectors/long-params' },
-                { text: '大文件', link: '/zh/detectors/large-file' },
+                { text: '深层嵌套', link: '/zh/detectors/deep_nesting' },
+                { text: '参数过多', link: '/zh/detectors/long_params' },
+                { text: '大文件', link: '/zh/detectors/large_file' },
               ]
             },
             {
               text: '变更模式',
               items: [
-                { text: '霰弹式修改', link: '/zh/detectors/shotgun-surgery' },
-                { text: '不稳定接口', link: '/zh/detectors/unstable-interface' },
+                { text: '霰弹式修改', link: '/zh/detectors/shotgun_surgery' },
+                { text: '不稳定接口', link: '/zh/detectors/unstable_interface' },
               ]
             },
             {
               text: '运行时与安全',
               items: [
-                { text: '测试泄漏', link: '/zh/detectors/test-leakage' },
-                { text: '供应商耦合', link: '/zh/detectors/vendor-coupling' },
-                { text: '副作用导入', link: '/zh/detectors/side-effect-import' },
-                { text: '共享可变状态', link: '/zh/detectors/shared-mutable-state' },
+                { text: '测试泄漏', link: '/zh/detectors/test_leakage' },
+                { text: '供应商耦合', link: '/zh/detectors/vendor_coupling' },
+                { text: '副作用导入', link: '/zh/detectors/side_effect_import' },
+                { text: '共享可变状态', link: '/zh/detectors/shared_mutable_state' },
               ]
             },
             {
               text: '指标',
               items: [
                 { text: '抽象性违规', link: '/zh/detectors/abstractness' },
-                { text: '分散配置', link: '/zh/detectors/scattered-config' },
+                { text: '分散配置', link: '/zh/detectors/scattered_config' },
               ]
             }
           ],
@@ -524,63 +527,64 @@ export default defineConfig({
             {
               text: 'Problemas de Dependência',
               items: [
-                { text: 'Dependências Cíclicas', link: '/pt/detectors/cycles' },
-                { text: 'Ciclos de Tipos', link: '/pt/detectors/circular-type-deps' },
-                { text: 'Ciclos de Pacotes', link: '/pt/detectors/package-cycle' },
-                { text: 'Violação de Camadas', link: '/pt/detectors/layer-violation' },
-                { text: 'Violação de SDP', link: '/pt/detectors/sdp-violation' },
+                { text: 'Dependências Cíclicas', link: '/pt/detectors/cyclic_dependency' },
+                { text: 'Clusters de Ciclos', link: '/pt/detectors/cycle_clusters' },
+                { text: 'Ciclos de Tipos', link: '/pt/detectors/circular_type_deps' },
+                { text: 'Ciclos de Pacotes', link: '/pt/detectors/package_cycles' },
+                { text: 'Violação de Camadas', link: '/pt/detectors/layer_violation' },
+                { text: 'Violação de SDP', link: '/pt/detectors/sdp_violation' },
               ]
             },
             {
               text: 'Design de Módulo',
               items: [
-                { text: 'Módulo Deus', link: '/pt/detectors/god-module' },
-                { text: 'Módulo Hub', link: '/pt/detectors/hub-module' },
-                { text: 'Alto Acoplamento', link: '/pt/detectors/high-coupling' },
-                { text: 'Módulo Disperso', link: '/pt/detectors/scattered-module' },
-                { text: 'Inveja de Recursos', link: '/pt/detectors/feature-envy' },
+                { text: 'Módulo Deus', link: '/pt/detectors/god_module' },
+                { text: 'Módulo Hub', link: '/pt/detectors/hub_module' },
+                { text: 'Alto Acoplamento', link: '/pt/detectors/high_coupling' },
+                { text: 'Módulo Disperso', link: '/pt/detectors/module_cohesion' },
+                { text: 'Inveja de Recursos', link: '/pt/detectors/feature_envy' },
               ]
             },
             {
               text: 'Qualidade do Código',
               items: [
-                { text: 'Código Morto', link: '/pt/detectors/dead-code' },
-                { text: 'Símbolos Mortos', link: '/pt/detectors/dead-symbols' },
-                { text: 'Tipos Órfãos', link: '/pt/detectors/orphan-types' },
-                { text: 'Abuso de Barrel', link: '/pt/detectors/barrel-abuse' },
-                { text: 'Obsessão por Primitivos', link: '/pt/detectors/primitive-obsession' },
+                { text: 'Código Morto', link: '/pt/detectors/dead_code' },
+                { text: 'Símbolos Mortos', link: '/pt/detectors/dead_symbols' },
+                { text: 'Tipos Órfãos', link: '/pt/detectors/orphan_types' },
+                { text: 'Abuso de Barrel', link: '/pt/detectors/barrel_file' },
+                { text: 'Obsessão por Primitivos', link: '/pt/detectors/primitive_obsession' },
               ]
             },
             {
               text: 'Complexidade e Tamanho',
               items: [
                 { text: 'Alta Complexidade', link: '/pt/detectors/complexity' },
-                { text: 'Aninhamento Profundo', link: '/pt/detectors/deep-nesting' },
-                { text: 'Muitos Parâmetros', link: '/pt/detectors/long-params' },
-                { text: 'Arquivo Grande', link: '/pt/detectors/large-file' },
+                { text: 'Aninhamento Profundo', link: '/pt/detectors/deep_nesting' },
+                { text: 'Muitos Parâmetros', link: '/pt/detectors/long_params' },
+                { text: 'Arquivo Grande', link: '/pt/detectors/large_file' },
               ]
             },
             {
               text: 'Padrões de Mudança',
               items: [
-                { text: 'Cirurgia por Perdigotos', link: '/pt/detectors/shotgun-surgery' },
-                { text: 'Interface Instável', link: '/pt/detectors/unstable-interface' },
+                { text: 'Cirurgia por Perdigotos', link: '/pt/detectors/shotgun_surgery' },
+                { text: 'Interface Instável', link: '/pt/detectors/unstable_interface' },
               ]
             },
             {
               text: 'Execução e Segurança',
               items: [
-                { text: 'Vazamento de Testes', link: '/pt/detectors/test-leakage' },
-                { text: 'Acoplamento com Fornecedor', link: '/pt/detectors/vendor-coupling' },
-                { text: 'Importação com Efeito Colateral', link: '/pt/detectors/side-effect-import' },
-                { text: 'Estado Mutável Compartilhado', link: '/pt/detectors/shared-mutable-state' },
+                { text: 'Vazamento de Testes', link: '/pt/detectors/test_leakage' },
+                { text: 'Acoplamento com Fornecedor', link: '/pt/detectors/vendor_coupling' },
+                { text: 'Importação com Efeito Colateral', link: '/pt/detectors/side_effect_import' },
+                { text: 'Estado Mutável Compartilhado', link: '/pt/detectors/shared_mutable_state' },
               ]
             },
             {
               text: 'Métricas',
               items: [
                 { text: 'Violação de Abstratividade', link: '/pt/detectors/abstractness' },
-                { text: 'Configuração Dispersa', link: '/pt/detectors/scattered-config' },
+                { text: 'Configuração Dispersa', link: '/pt/detectors/scattered_config' },
               ]
             }
           ],
@@ -678,63 +682,64 @@ export default defineConfig({
             {
               text: 'Problemas de Dependencia',
               items: [
-                { text: 'Dependencias Cíclicas', link: '/es/detectors/cycles' },
-                { text: 'Ciclos de Tipos', link: '/es/detectors/circular-type-deps' },
-                { text: 'Ciclos de Paquetes', link: '/es/detectors/package-cycle' },
-                { text: 'Violación de Capas', link: '/es/detectors/layer-violation' },
-                { text: 'Violación de SDP', link: '/es/detectors/sdp-violation' },
+                { text: 'Dependencias Cíclicas', link: '/es/detectors/cyclic_dependency' },
+                { text: 'Clústeres de Ciclos', link: '/es/detectors/cycle_clusters' },
+                { text: 'Ciclos de Tipos', link: '/es/detectors/circular_type_deps' },
+                { text: 'Ciclos de Paquetes', link: '/es/detectors/package_cycles' },
+                { text: 'Violación de Capas', link: '/es/detectors/layer_violation' },
+                { text: 'Violación de SDP', link: '/es/detectors/sdp_violation' },
               ]
             },
             {
               text: 'Diseño de Módulos',
               items: [
-                { text: 'Módulo Dios', link: '/es/detectors/god-module' },
-                { text: 'Módulo Hub', link: '/es/detectors/hub-module' },
-                { text: 'Alto Acoplamiento', link: '/es/detectors/high-coupling' },
-                { text: 'Módulo Disperso', link: '/es/detectors/scattered-module' },
-                { text: 'Envidia de Funcionalidad', link: '/es/detectors/feature-envy' },
+                { text: 'Módulo Dios', link: '/es/detectors/god_module' },
+                { text: 'Módulo Hub', link: '/es/detectors/hub_module' },
+                { text: 'Alto Acoplamiento', link: '/es/detectors/high_coupling' },
+                { text: 'Módulo Disperso', link: '/es/detectors/module_cohesion' },
+                { text: 'Envidia de Funcionalidad', link: '/es/detectors/feature_envy' },
               ]
             },
             {
               text: 'Calidad del Código',
               items: [
-                { text: 'Código Muerto', link: '/es/detectors/dead-code' },
-                { text: 'Símbolos Muertos', link: '/es/detectors/dead-symbols' },
-                { text: 'Tipos Huérfanos', link: '/es/detectors/orphan-types' },
-                { text: 'Abuso de Barrel', link: '/es/detectors/barrel-abuse' },
-                { text: 'Obsesión por Primitivos', link: '/es/detectors/primitive-obsession' },
+                { text: 'Código Muerto', link: '/es/detectors/dead_code' },
+                { text: 'Símbolos Muertos', link: '/es/detectors/dead_symbols' },
+                { text: 'Tipos Huérfanos', link: '/es/detectors/orphan_types' },
+                { text: 'Abuso de Barrel', link: '/es/detectors/barrel_file' },
+                { text: 'Obsesión por Primitivos', link: '/es/detectors/primitive_obsession' },
               ]
             },
             {
               text: 'Complejidad y Tamaño',
               items: [
                 { text: 'Alta Complejidad', link: '/es/detectors/complexity' },
-                { text: 'Anidamiento Profundo', link: '/es/detectors/deep-nesting' },
-                { text: 'Demasiados Parámetros', link: '/es/detectors/long-params' },
-                { text: 'Archivo Grande', link: '/es/detectors/large-file' },
+                { text: 'Anidamiento Profundo', link: '/es/detectors/deep_nesting' },
+                { text: 'Demasiados Parámetros', link: '/es/detectors/long_params' },
+                { text: 'Archivo Grande', link: '/es/detectors/large_file' },
               ]
             },
             {
               text: 'Patrones de Cambio',
               items: [
-                { text: 'Cirugía de Escopeta', link: '/es/detectors/shotgun-surgery' },
-                { text: 'Interfaz Inestable', link: '/es/detectors/unstable-interface' },
+                { text: 'Cirugía de Escopeta', link: '/es/detectors/shotgun_surgery' },
+                { text: 'Interfaz Inestable', link: '/es/detectors/unstable_interface' },
               ]
             },
             {
               text: 'Ejecución y Seguridad',
               items: [
-                { text: 'Fuga de Pruebas', link: '/es/detectors/test-leakage' },
-                { text: 'Acoplamiento con Proveedor', link: '/es/detectors/vendor-coupling' },
-                { text: 'Importación con Efecto Secundario', link: '/es/detectors/side-effect-import' },
-                { text: 'Estado Mutable Compartido', link: '/es/detectors/shared-mutable-state' },
+                { text: 'Fuga de Pruebas', link: '/es/detectors/test_leakage' },
+                { text: 'Acoplamiento con Proveedor', link: '/es/detectors/vendor_coupling' },
+                { text: 'Importación con Efecto Secundario', link: '/es/detectors/side_effect_import' },
+                { text: 'Estado Mutable Compartido', link: '/es/detectors/shared_mutable_state' },
               ]
             },
             {
               text: 'Métricas',
               items: [
                 { text: 'Violación de Abstractez', link: '/es/detectors/abstractness' },
-                { text: 'Configuración Dispersa', link: '/es/detectors/scattered-config' },
+                { text: 'Configuración Dispersa', link: '/es/detectors/scattered_config' },
               ]
             }
           ],
@@ -832,63 +837,64 @@ export default defineConfig({
             {
               text: '依存関係の問題',
               items: [
-                { text: '循環依存', link: '/ja/detectors/cycles' },
-                { text: '型の循環', link: '/ja/detectors/circular-type-deps' },
-                { text: 'パッケージの循環', link: '/ja/detectors/package-cycle' },
-                { text: 'レイヤー違反', link: '/ja/detectors/layer-violation' },
-                { text: 'SDP違反', link: '/ja/detectors/sdp-violation' },
+                { text: '循環依存', link: '/ja/detectors/cyclic_dependency' },
+                { text: '循環依存クラスター', link: '/ja/detectors/cycle_clusters' },
+                { text: '型の循環', link: '/ja/detectors/circular_type_deps' },
+                { text: 'パッケージの循環', link: '/ja/detectors/package_cycles' },
+                { text: 'レイヤー違反', link: '/ja/detectors/layer_violation' },
+                { text: 'SDP違反', link: '/ja/detectors/sdp_violation' },
               ]
             },
             {
               text: 'モジュール設計',
               items: [
-                { text: 'ゴッドモジュール', link: '/ja/detectors/god-module' },
-                { text: 'ハブモジュール', link: '/ja/detectors/hub-module' },
-                { text: '高い結合度', link: '/ja/detectors/high-coupling' },
-                { text: '分散モジュール', link: '/ja/detectors/scattered-module' },
-                { text: '機能への執着', link: '/ja/detectors/feature-envy' },
+                { text: 'ゴッドモジュール', link: '/ja/detectors/god_module' },
+                { text: 'ハブモジュール', link: '/ja/detectors/hub_module' },
+                { text: '高い結合度', link: '/ja/detectors/high_coupling' },
+                { text: '分散モジュール', link: '/ja/detectors/module_cohesion' },
+                { text: '機能への執着', link: '/ja/detectors/feature_envy' },
               ]
             },
             {
               text: 'コード品質',
               items: [
-                { text: 'デッドコード', link: '/ja/detectors/dead-code' },
-                { text: 'デッドシンボル', link: '/ja/detectors/dead-symbols' },
-                { text: '孤立した型', link: '/ja/detectors/orphan-types' },
-                { text: 'バレル濫用', link: '/ja/detectors/barrel-abuse' },
-                { text: '基本データ型への執着', link: '/ja/detectors/primitive-obsession' },
+                { text: 'デッドコード', link: '/ja/detectors/dead_code' },
+                { text: 'デッドシンボル', link: '/ja/detectors/dead_symbols' },
+                { text: '孤立した型', link: '/ja/detectors/orphan_types' },
+                { text: 'バレル濫用', link: '/ja/detectors/barrel_file' },
+                { text: '基本データ型への執着', link: '/ja/detectors/primitive_obsession' },
               ]
             },
             {
               text: '複雑度とサイズ',
               items: [
                 { text: '高い複雑度', link: '/ja/detectors/complexity' },
-                { text: '深いネスト', link: '/ja/detectors/deep-nesting' },
-                { text: '多すぎる引数', link: '/ja/detectors/long-params' },
-                { text: '巨大なファイル', link: '/ja/detectors/large-file' },
+                { text: '深いネスト', link: '/ja/detectors/deep_nesting' },
+                { text: '多すぎる引数', link: '/ja/detectors/long_params' },
+                { text: '巨大なファイル', link: '/ja/detectors/large_file' },
               ]
             },
             {
               text: '変更パターン',
               items: [
-                { text: '散弾銃の手術', link: '/ja/detectors/shotgun-surgery' },
-                { text: '不安定なインターフェース', link: '/ja/detectors/unstable-interface' },
+                { text: '散弾銃の手術', link: '/ja/detectors/shotgun_surgery' },
+                { text: '不安定なインターフェース', link: '/ja/detectors/unstable_interface' },
               ]
             },
             {
               text: '実行時と安全性',
               items: [
-                { text: 'テストの漏洩', link: '/ja/detectors/test-leakage' },
-                { text: 'ベンダー結合', link: '/ja/detectors/vendor-coupling' },
-                { text: '副作用のあるインポート', link: '/ja/detectors/side-effect-import' },
-                { text: '共有された可変状態', link: '/ja/detectors/shared-mutable-state' },
+                { text: 'テストの漏洩', link: '/ja/detectors/test_leakage' },
+                { text: 'ベンダー結合', link: '/ja/detectors/vendor_coupling' },
+                { text: '副作用のあるインポート', link: '/ja/detectors/side_effect_import' },
+                { text: '共有された可変状態', link: '/ja/detectors/shared_mutable_state' },
               ]
             },
             {
               text: 'メトリクス',
               items: [
                 { text: '抽象性違反', link: '/ja/detectors/abstractness' },
-                { text: '分散した設定', link: '/ja/detectors/scattered-config' },
+                { text: '分散した設定', link: '/ja/detectors/scattered_config' },
               ]
             }
           ],
@@ -976,7 +982,7 @@ export default defineConfig({
     ],
     footer: {
       message: 'Released under the MIT License.',
-      copyright: 'Copyright © 2024-present'
+      copyright: 'Copyright © 2026-present'
     }
   }
 })

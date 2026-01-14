@@ -168,9 +168,24 @@ pub(crate) fn default_max_file_size() -> u64 {
     1024 * 1024 // 1MB
 }
 
+use strum::{Display, EnumString, IntoStaticStr};
+
 /// Severity levels for architectural rules.
-#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, JsonSchema)]
+#[derive(
+    Debug,
+    Clone,
+    Copy,
+    Serialize,
+    Deserialize,
+    PartialEq,
+    Eq,
+    JsonSchema,
+    Display,
+    EnumString,
+    IntoStaticStr,
+)]
 #[serde(rename_all = "lowercase")]
+#[strum(serialize_all = "lowercase", ascii_case_insensitive)]
 pub enum RuleSeverity {
     /// Low severity issue.
     Low,

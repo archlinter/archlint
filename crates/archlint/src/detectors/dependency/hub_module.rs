@@ -7,7 +7,7 @@ use std::path::PathBuf;
 pub fn init() {}
 
 #[detector(
-    id = "hub_module",
+    smell_type = SmellType::HubModule,
     name = "Hub Module Detector",
     description = "Detects modules that act as highly connected hubs with low internal logic",
     category = DetectorCategory::GraphBased,
@@ -69,19 +69,17 @@ impl HubModuleDetector {
 impl Detector for HubModuleDetector {
     crate::impl_detector_report!(
         name: "HubModule",
-        explain: _smell => {
-            crate::detectors::Explanation {
-                problem: "Hub Module".into(),
-                reason: "Module acting as a pass-through hub with many incoming and outgoing connections but little internal logic.".into(),
-                risks: crate::strings![
-                    "Fragile bridge",
-                    "Unnecessary abstraction layer"
-                ],
-                recommendations: crate::strings![
-                    "Consolidate the hub or direct dependents to the target modules"
-                ]
-            }
-        },
+        explain: _smell => (
+            problem: "Hub Module",
+            reason: "Module acting as a pass-through hub with many incoming and outgoing connections but little internal logic.",
+            risks: [
+                "Fragile bridge",
+                "Unnecessary abstraction layer"
+            ],
+            recommendations: [
+                "Consolidate the hub or direct dependents to the target modules"
+            ]
+        ),
         table: {
             title: "Hub Modules",
             columns: ["File", "Fan-In", "Fan-Out", "pts"],

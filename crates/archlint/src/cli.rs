@@ -91,7 +91,7 @@ impl Cli {
             self.format.unwrap_or(OutputFormat::Table)
         };
         // Automatically enable quiet mode when JSON output is requested
-        let quiet = self.quiet || self.json;
+        let quiet = self.quiet || self.json || self.format == Some(OutputFormat::Sarif);
         ScanArgs {
             path: self.path.clone().unwrap_or_else(|| PathBuf::from(".")),
             config: self.config.clone(),

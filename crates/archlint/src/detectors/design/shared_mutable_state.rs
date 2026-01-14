@@ -7,7 +7,7 @@ use crate::parser::SymbolKind;
 pub fn init() {}
 
 #[detector(
-    id = "shared_mutable_state",
+    smell_type = SmellType::SharedMutableState,
     name = "Shared Mutable State Detector",
     description = "Detects exported mutable state (let/var) that can be modified from multiple places",
     category = DetectorCategory::FileLocal,

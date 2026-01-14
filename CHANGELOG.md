@@ -4,7 +4,6 @@
 
 - **cli:** add init command, dynamic presets architecture and enhanced TS resolution ([#26](https://github.com/archlinter/archlint/issues/26)) ([e0df14b](https://github.com/archlinter/archlint/commit/e0df14b723e1263275b1c1b51f016d6978fd9e1f))
 
-
 ### ⚠️ Breaking Changes
 
 - Snapshot format has been changed

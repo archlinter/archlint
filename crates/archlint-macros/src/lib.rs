@@ -5,7 +5,8 @@ use syn::{parse_macro_input, DeriveInput};
 
 #[derive(Debug, FromMeta)]
 struct DetectorArgs {
-    id: String,
+    #[darling(default)]
+    id: Option<String>,
     name: String,
     description: String,
     category: syn::Path,
@@ -13,6 +14,8 @@ struct DetectorArgs {
     default_enabled: Option<bool>,
     #[darling(default)]
     is_deep: Option<bool>,
+    #[darling(default)]
+    smell_type: Option<syn::Path>,
 }
 
 #[proc_macro_attribute]
@@ -44,12 +47,19 @@ pub fn detector(args: TokenStream, input: TokenStream) -> TokenStream {
     let struct_name = &input_struct.ident;
     let factory_name = quote::format_ident!("{}Factory", struct_name);
 
-    let id = args.id;
     let name = args.name;
     let description = args.description;
     let category = args.category;
     let default_enabled = args.default_enabled.unwrap_or(true);
     let is_deep = args.is_deep.unwrap_or(false);
+
+    let id_tokens = if let Some(smell_type) = args.smell_type {
+        let variant = &smell_type.segments.last().unwrap().ident;
+        quote! { crate::detectors::SmellKind::#variant.to_id() }
+    } else {
+        let id = args.id;
+        quote! { #id }
+    };
 
     let expanded = quote! {
         #input_struct
@@ -59,7 +69,7 @@ pub fn detector(args: TokenStream, input: TokenStream) -> TokenStream {
         impl crate::detectors::DetectorFactory for #factory_name {
             fn info(&self) -> crate::detectors::DetectorInfo {
                 crate::detectors::DetectorInfo {
-                    id: #id,
+                    id: #id_tokens,
                     name: #name,
                     description: #description,
                     default_enabled: #default_enabled,
