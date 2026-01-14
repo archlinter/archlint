@@ -220,7 +220,8 @@ fn sync_config_schema() -> anyhow::Result<()> {
     });
     let gen = settings.into_generator();
     let schema = gen.into_root_schema_for::<Config>();
-    let schema_json = serde_json::to_string_pretty(&schema)?;
+    let mut schema_json = serde_json::to_string_pretty(&schema)?;
+    schema_json.push('\n');
 
     let mut schema_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
     schema_path.push("../../resources/archlint.schema.json");

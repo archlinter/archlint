@@ -4,6 +4,7 @@ node_modules
 pnpm-lock.yaml
 target
 packages/core/index*
+resources/archlint.schema.json
 *.ts
 *.js
 *.cjs

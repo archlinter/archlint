@@ -32,9 +32,7 @@ impl<'a> UnifiedVisitor {
             oxc_ast::ast::MemberExpression::ComputedMemberExpression(c) => {
                 self.handle_computed_member(c)
             }
-            oxc_ast::ast::MemberExpression::PrivateFieldExpression(p) => {
-                self.handle_private_field(p)
-            }
+            oxc_ast::ast::MemberExpression::PrivateFieldExpression(_) => {}
         }
     }
 

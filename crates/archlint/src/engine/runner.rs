@@ -220,8 +220,11 @@ impl AnalysisEngine {
                 .unwrap_or(false);
 
             if !already_loaded {
-                if let Ok(p) = PresetLoader::load_any(fw) {
-                    presets.push(p);
+                match PresetLoader::load_any(fw) {
+                    Ok(p) => presets.push(p),
+                    Err(e) => {
+                        log::warn!("Failed to load framework preset '{}': {}", fw, e);
+                    }
                 }
             }
         }

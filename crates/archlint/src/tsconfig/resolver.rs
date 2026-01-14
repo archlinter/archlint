@@ -60,7 +60,7 @@ impl TsConfigResolver {
             Value::String(s) => Some(s.clone()),
             Value::Object(obj) => {
                 // Priority keys for TypeScript resolution
-                let priority_keys = ["types", "default", "import", "require"];
+                let priority_keys = ["types", "import", "require", "default"];
                 for key in priority_keys {
                     if let Some(inner) = obj.get(key) {
                         if let Some(resolved) = Self::resolve_conditional_export(inner) {

@@ -21,7 +21,7 @@ cli = ["dep:clap", "dep:clap_complete", "dep:indicatif", "dep:console", "dep:com
 [dependencies]
 clap = { workspace = true, optional = true }
 clap_complete = { workspace = true, optional = true }
-cliclack = { version = "0.3.6", optional = true }
+cliclack = { version = "0.3.7", optional = true }
 serde.workspace = true
 serde_json.workspace = true
 serde_yaml.workspace = true
