@@ -1,4 +1,4 @@
-use crate::detectors::{detector, ArchSmell, Detector, DetectorCategory};
+use crate::detectors::{detector, ArchSmell, Detector};
 use crate::engine::AnalysisContext;
 use crate::parser::{FileSymbols, MethodAccessibility, SymbolKind};
 use std::collections::{HashMap, HashSet};
@@ -8,13 +8,7 @@ use std::path::{Path, PathBuf};
 /// This function is used for module registration side-effects.
 pub fn init() {}
 
-#[detector(
-    smell_type = SmellType::DeadSymbol,
-    name = "Dead Symbols Detector",
-    description = "Detects unused functions, classes, and variables within files",
-    category = DetectorCategory::Global,
-    is_deep = true
-)]
+#[detector(SmellType::DeadSymbol, is_deep = true)]
 pub struct DeadSymbolsDetector;
 
 #[derive(Default)]
@@ -574,7 +568,6 @@ impl DeadSymbolsDetector {
 
 impl Detector for DeadSymbolsDetector {
     crate::impl_detector_report!(
-        name: "DeadSymbols",
         explain: smell => (
             problem: {
                 let kind = if let crate::detectors::SmellType::DeadSymbol { kind, .. } = &smell.smell_type {

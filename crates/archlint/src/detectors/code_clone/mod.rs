@@ -2,9 +2,7 @@ pub mod engine;
 pub mod tokenizer;
 pub mod types;
 
-use crate::detectors::{
-    detector, ArchSmell, CodeRange, Detector, DetectorCategory, LocationDetail,
-};
+use crate::detectors::{detector, ArchSmell, CodeRange, Detector, LocationDetail};
 use crate::engine::AnalysisContext;
 use rustc_hash::FxHashSet;
 
@@ -12,13 +10,7 @@ use self::engine::{build_window_map, detect_clusters, merge_overlapping_occurren
 use self::tokenizer::tokenize_files;
 
 /// Main detector for code clones (duplicated code blocks).
-#[detector(
-    smell_type = SmellType::CodeClone,
-    name = "Code Clone Detector",
-    description = "Detects duplicated code blocks across the project (Type-1 clones)",
-    category = DetectorCategory::Global,
-    is_deep = true
-)]
+#[detector(SmellType::CodeClone, is_deep = true)]
 pub struct CodeCloneDetector;
 
 impl CodeCloneDetector {
@@ -124,7 +116,6 @@ impl CodeCloneDetector {
 
 impl Detector for CodeCloneDetector {
     crate::impl_detector_report!(
-        name: "Code Clone",
         explain: _smell => (
             problem: "Code Clone",
             reason: "Identical or near-identical code blocks found in multiple locations. This violates the DRY (Don't Repeat Yourself) principle.",

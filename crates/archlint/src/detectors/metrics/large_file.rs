@@ -1,16 +1,11 @@
-use crate::detectors::{detector, ArchSmell, Detector, DetectorCategory};
+use crate::detectors::{detector, ArchSmell, Detector};
 use crate::engine::AnalysisContext;
 
 /// Initializes the detector module.
 /// This function is used for module registration side-effects.
 pub fn init() {}
 
-#[detector(
-    smell_type = SmellType::LargeFile,
-    name = "Large File Detector",
-    description = "Detects files that exceed the recommended line count",
-    category = DetectorCategory::FileLocal
-)]
+#[detector(SmellType::LargeFile)]
 pub struct LargeFileDetector;
 
 impl LargeFileDetector {
@@ -21,7 +16,6 @@ impl LargeFileDetector {
 
 impl Detector for LargeFileDetector {
     crate::impl_detector_report!(
-        name: "LargeFile",
         explain: smell => (
             problem: format!("File has {} lines, exceeding the recommended limit", smell.lines().unwrap_or(0)),
             reason: "Large files are difficult to understand, navigate, and maintain. They often indicate a violation of the Single Responsibility Principle.",

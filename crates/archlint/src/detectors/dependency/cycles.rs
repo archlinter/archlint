@@ -1,6 +1,6 @@
 use crate::detectors::{
-    detector, ArchSmell, CriticalEdge, CycleCluster, Detector, DetectorCategory, HotspotInfo,
-    LocationDetail, SmellWithExplanation,
+    detector, ArchSmell, CriticalEdge, CycleCluster, Detector, HotspotInfo, LocationDetail,
+    SmellWithExplanation,
 };
 use crate::engine::AnalysisContext;
 use crate::explain::ExplainEngine;
@@ -14,12 +14,7 @@ use std::path::{Path, PathBuf};
 /// This function is used for module registration side-effects.
 pub fn init() {}
 
-#[detector(
-    smell_type = SmellType::CyclicDependency,
-    name = "Cycle Detector",
-    description = "Detects circular dependencies between modules",
-    category = DetectorCategory::GraphBased
-)]
+#[detector(SmellType::CyclicDependency)]
 pub struct CycleDetector;
 
 impl CycleDetector {
@@ -348,7 +343,6 @@ impl CycleDetector {
 
 impl Detector for CycleDetector {
     crate::impl_detector_report!(
-        name: "Cycles",
         explain: smell => (
             problem: format!("Circular dependency detected between {} files", smell.cycle_length().unwrap_or(0)),
             reason: "Files form a dependency cycle where A depends on B, B depends on C, and C depends back on A (or similar pattern). This creates tight coupling between modules.",

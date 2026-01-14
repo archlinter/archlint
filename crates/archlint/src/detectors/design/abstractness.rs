@@ -1,4 +1,4 @@
-use crate::detectors::{detector, ArchSmell, Detector, DetectorCategory};
+use crate::detectors::{detector, ArchSmell, Detector};
 use crate::engine::AnalysisContext;
 use crate::parser::SymbolKind;
 use petgraph::graph::NodeIndex;
@@ -7,13 +7,7 @@ use petgraph::graph::NodeIndex;
 /// This function is used for module registration side-effects.
 pub fn init() {}
 
-#[detector(
-    smell_type = SmellType::AbstractnessViolation,
-    name = "Abstractness vs Instability Violation Detector",
-    description = "Detects modules that are far from the Main Sequence (Zone of Pain or Uselessness)",
-    category = DetectorCategory::Global,
-    default_enabled = false
-)]
+#[detector(SmellType::AbstractnessViolation, default_enabled = false)]
 pub struct AbstractnessViolationDetector;
 
 impl AbstractnessViolationDetector {
@@ -48,7 +42,6 @@ impl AbstractnessViolationDetector {
 
 impl Detector for AbstractnessViolationDetector {
     crate::impl_detector_report!(
-        name: "AbstractnessViolation",
         explain: _smell => (
             problem: "Abstractness Violation",
             reason: "Module distance from the 'Main Sequence' is too high. This means it's either too stable and concrete (Zone of Pain) or too unstable and abstract (Zone of Uselessness).",

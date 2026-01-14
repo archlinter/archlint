@@ -1,4 +1,4 @@
-use crate::detectors::{detector, ArchSmell, Detector, DetectorCategory};
+use crate::detectors::{detector, ArchSmell, Detector};
 use crate::engine::AnalysisContext;
 use std::path::Path;
 
@@ -6,12 +6,7 @@ use std::path::Path;
 /// This function is used for module registration side-effects.
 pub fn init() {}
 
-#[detector(
-    smell_type = SmellType::BarrelFileAbuse,
-    name = "Barrel File Abuse Detector",
-    description = "Detects excessive use of barrel files (index.ts) that inflate the dependency graph",
-    category = DetectorCategory::ImportBased
-)]
+#[detector(SmellType::BarrelFileAbuse)]
 pub struct BarrelFileAbuseDetector;
 
 impl BarrelFileAbuseDetector {
@@ -29,7 +24,6 @@ impl BarrelFileAbuseDetector {
 
 impl Detector for BarrelFileAbuseDetector {
     crate::impl_detector_report!(
-        name: "BarrelFileAbuse",
         explain: _smell => (
             problem: "Barrel File Abuse",
             reason: "Excessive re-exports in index file. Large barrel files can lead to unnecessary coupling and slower build times.",

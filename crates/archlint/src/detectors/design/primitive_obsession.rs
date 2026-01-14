@@ -1,17 +1,11 @@
-use crate::detectors::{detector, ArchSmell, Detector, DetectorCategory};
+use crate::detectors::{detector, ArchSmell, Detector};
 use crate::engine::AnalysisContext;
 
 /// Initializes the detector module.
 /// This function is used for module registration side-effects.
 pub fn init() {}
 
-#[detector(
-    smell_type = SmellType::PrimitiveObsession,
-    name = "Primitive Obsession Detector",
-    description = "Detects functions with too many primitive parameters",
-    category = DetectorCategory::FileLocal,
-    default_enabled = false
-)]
+#[detector(SmellType::PrimitiveObsession, default_enabled = false)]
 pub struct PrimitiveObsessionDetector;
 
 impl PrimitiveObsessionDetector {
@@ -22,7 +16,6 @@ impl PrimitiveObsessionDetector {
 
 impl Detector for PrimitiveObsessionDetector {
     crate::impl_detector_report!(
-        name: "PrimitiveObsession",
         explain: smell => (
             problem: {
                 if let crate::detectors::SmellType::PrimitiveObsession { primitives, name } = &smell.smell_type {

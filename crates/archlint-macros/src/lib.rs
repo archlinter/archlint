@@ -7,9 +7,12 @@ use syn::{parse_macro_input, DeriveInput};
 struct DetectorArgs {
     #[darling(default)]
     id: Option<String>,
-    name: String,
-    description: String,
-    category: syn::Path,
+    #[darling(default)]
+    name: Option<String>,
+    #[darling(default)]
+    description: Option<String>,
+    #[darling(default)]
+    category: Option<syn::Path>,
     #[darling(default)]
     default_enabled: Option<bool>,
     #[darling(default)]
@@ -20,17 +23,65 @@ struct DetectorArgs {
 
 #[proc_macro_attribute]
 pub fn detector(args: TokenStream, input: TokenStream) -> TokenStream {
-    let attr_args = match syn::parse::Parser::parse2(
+    let args_cloned = proc_macro2::TokenStream::from(args.clone());
+    let mut attr_args_list = Vec::new();
+
+    // Try to parse as meta list first
+    match syn::parse::Parser::parse2(
         syn::punctuated::Punctuated::<syn::Meta, syn::Token![,]>::parse_terminated,
-        proc_macro2::TokenStream::from(args),
+        args_cloned.clone(),
     ) {
-        Ok(v) => v,
-        Err(e) => return TokenStream::from(e.to_compile_error()),
-    };
+        Ok(meta_list) => {
+            // Check if first item is a path (positional argument like SmellType::Variant)
+            if let Some(first) = meta_list.first() {
+                if let syn::Meta::Path(path) = first {
+                    // First argument is a path, treat it as smell_type
+                    attr_args_list.push(syn::Meta::NameValue(syn::MetaNameValue {
+                        path: syn::parse_quote!(smell_type),
+                        value: syn::Expr::Path(syn::ExprPath {
+                            attrs: Vec::new(),
+                            qself: None,
+                            path: path.clone(),
+                        }),
+                        eq_token: syn::token::Eq::default(),
+                    }));
+                    // Add remaining arguments
+                    for meta in meta_list.iter().skip(1) {
+                        attr_args_list.push(meta.clone());
+                    }
+                } else {
+                    // Regular named arguments
+                    attr_args_list.extend(meta_list);
+                }
+            }
+        }
+        Err(_) => {
+            // Try to parse as a single path (e.g., #[detector(SmellType::Variant)])
+            if let Ok(path) = syn::parse2::<syn::Path>(args_cloned) {
+                attr_args_list.push(syn::Meta::NameValue(syn::MetaNameValue {
+                    path: syn::parse_quote!(smell_type),
+                    value: syn::Expr::Path(syn::ExprPath {
+                        attrs: Vec::new(),
+                        qself: None,
+                        path,
+                    }),
+                    eq_token: syn::token::Eq::default(),
+                }));
+            } else {
+                return TokenStream::from(
+                    syn::Error::new_spanned(
+                        proc_macro2::TokenStream::from(args),
+                        "Invalid detector attribute arguments",
+                    )
+                    .to_compile_error(),
+                );
+            }
+        }
+    }
 
     let input_struct = parse_macro_input!(input as DeriveInput);
 
-    let nested_meta: Vec<syn::Meta> = attr_args.into_iter().collect();
+    let nested_meta: Vec<syn::Meta> = attr_args_list.into_iter().collect();
 
     let args = match DetectorArgs::from_list(
         &nested_meta
@@ -47,35 +98,67 @@ pub fn detector(args: TokenStream, input: TokenStream) -> TokenStream {
     let struct_name = &input_struct.ident;
     let factory_name = quote::format_ident!("{}Factory", struct_name);
 
-    let name = args.name;
-    let description = args.description;
-    let category = args.category;
     let default_enabled = args.default_enabled.unwrap_or(true);
     let is_deep = args.is_deep.unwrap_or(false);
 
-    let id_tokens = if let Some(smell_type) = args.smell_type {
+    let (id_tokens, name_tokens, description_tokens, category_tokens) = if let Some(smell_type) =
+        args.smell_type
+    {
         let variant = &smell_type.segments.last().unwrap().ident;
-        quote! { crate::detectors::SmellKind::#variant.to_id() }
+        let id = quote! { crate::detectors::SmellKind::#variant.to_id() };
+        let name = if let Some(n) = args.name {
+            quote! { #n }
+        } else {
+            quote! { crate::detectors::SmellKind::#variant.display_name() }
+        };
+        let description = if let Some(d) = args.description {
+            quote! { #d }
+        } else {
+            quote! { {
+                use strum::EnumProperty;
+                crate::detectors::SmellKind::#variant.get_str("description").unwrap_or_else(|| crate::detectors::SmellKind::#variant.display_name())
+            } }
+        };
+        let category = if let Some(c) = args.category {
+            quote! { #c }
+        } else {
+            quote! { crate::detectors::SmellKind::#variant.default_category() }
+        };
+        (id, name, description, category)
     } else {
         let id = args.id;
-        quote! { #id }
+        let name = args.name;
+        let description = args.description;
+        let category = args.category;
+        (
+            quote! { #id },
+            quote! { #name },
+            quote! { #description },
+            quote! { #category },
+        )
     };
 
     let expanded = quote! {
         #input_struct
 
+        impl #struct_name {
+            pub fn metadata() -> crate::detectors::DetectorInfo {
+                crate::detectors::DetectorInfo {
+                    id: #id_tokens,
+                    name: #name_tokens,
+                    description: #description_tokens,
+                    default_enabled: #default_enabled,
+                    is_deep: #is_deep,
+                    category: #category_tokens,
+                }
+            }
+        }
+
         pub struct #factory_name;
 
         impl crate::detectors::DetectorFactory for #factory_name {
             fn info(&self) -> crate::detectors::DetectorInfo {
-                crate::detectors::DetectorInfo {
-                    id: #id_tokens,
-                    name: #name,
-                    description: #description,
-                    default_enabled: #default_enabled,
-                    is_deep: #is_deep,
-                    category: #category,
-                }
+                #struct_name::metadata()
             }
 
             fn create(&self, config: &crate::config::Config) -> Box<dyn crate::detectors::Detector> {

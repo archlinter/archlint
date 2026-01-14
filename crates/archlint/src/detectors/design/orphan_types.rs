@@ -1,4 +1,4 @@
-use crate::detectors::{detector, ArchSmell, Detector, DetectorCategory};
+use crate::detectors::{detector, ArchSmell, Detector};
 use crate::engine::AnalysisContext;
 use crate::parser::{SymbolKind, SymbolName};
 use std::collections::HashSet;
@@ -8,12 +8,7 @@ use std::path::PathBuf;
 /// This function is used for module registration side-effects.
 pub fn init() {}
 
-#[detector(
-    smell_type = SmellType::OrphanType,
-    name = "Orphan Types Detector",
-    description = "Detects exported types or interfaces that are never used",
-    category = DetectorCategory::Global
-)]
+#[detector(SmellType::OrphanType)]
 pub struct OrphanTypesDetector;
 
 impl OrphanTypesDetector {
@@ -56,7 +51,6 @@ impl OrphanTypesDetector {
 
 impl Detector for OrphanTypesDetector {
     crate::impl_detector_report!(
-        name: "OrphanTypes",
         explain: smell => (
             problem: {
                 let name = match &smell.smell_type {

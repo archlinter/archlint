@@ -1,16 +1,11 @@
-use crate::detectors::{detector, ArchSmell, Detector, DetectorCategory};
+use crate::detectors::{detector, ArchSmell, Detector};
 use crate::engine::AnalysisContext;
 
 /// Initializes the detector module.
 /// This function is used for module registration side-effects.
 pub fn init() {}
 
-#[detector(
-    smell_type = SmellType::HighComplexity,
-    name = "Complexity Detector",
-    description = "Detects functions and files with high cyclomatic complexity",
-    category = DetectorCategory::FileLocal
-)]
+#[detector(SmellType::HighComplexity)]
 pub struct ComplexityDetector;
 
 impl ComplexityDetector {
@@ -45,7 +40,6 @@ impl ComplexityDetector {
 
 impl Detector for ComplexityDetector {
     crate::impl_detector_report!(
-        name: "Complexity",
         explain: smell => (
             problem: {
                 if let crate::detectors::SmellType::HighComplexity { name, complexity, .. } = &smell.smell_type {

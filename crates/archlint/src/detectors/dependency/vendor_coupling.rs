@@ -1,7 +1,7 @@
 use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
 
-use crate::detectors::{detector, ArchSmell, Detector, DetectorCategory};
+use crate::detectors::{detector, ArchSmell, Detector};
 use crate::engine::AnalysisContext;
 use crate::parser::FileSymbols;
 use crate::utils::package::PackageUtils;
@@ -10,13 +10,7 @@ use crate::utils::package::PackageUtils;
 /// This function is used for module registration side-effects.
 pub fn init() {}
 
-#[detector(
-    smell_type = SmellType::VendorCoupling,
-    name = "Vendor Coupling Detector",
-    description = "Detects excessive coupling to third-party packages",
-    category = DetectorCategory::ImportBased,
-    default_enabled = false
-)]
+#[detector(SmellType::VendorCoupling, default_enabled = false)]
 pub struct VendorCouplingDetector;
 
 impl VendorCouplingDetector {
@@ -70,7 +64,6 @@ impl VendorCouplingDetector {
 
 impl Detector for VendorCouplingDetector {
     crate::impl_detector_report!(
-        name: "VendorCoupling",
         explain: smell => (
             problem: {
                 let package = if let crate::detectors::SmellType::VendorCoupling { package } = &smell.smell_type {

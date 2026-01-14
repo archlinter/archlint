@@ -1,4 +1,4 @@
-use crate::detectors::{detector, ArchSmell, Detector, DetectorCategory};
+use crate::detectors::{detector, ArchSmell, Detector};
 use crate::engine::AnalysisContext;
 use crate::utils::package::PackageUtils;
 use std::collections::{HashMap, HashSet};
@@ -8,13 +8,7 @@ use std::path::PathBuf;
 /// This function is used for module registration side-effects.
 pub fn init() {}
 
-#[detector(
-    smell_type = SmellType::HubDependency,
-    name = "Hub Dependency Detector",
-    description = "Detects over-reliance on external packages",
-    category = DetectorCategory::GraphBased,
-    default_enabled = false
-)]
+#[detector(SmellType::HubDependency, default_enabled = false)]
 pub struct HubDependencyDetector;
 
 impl HubDependencyDetector {
@@ -49,7 +43,6 @@ impl HubDependencyDetector {
 
 impl Detector for HubDependencyDetector {
     crate::impl_detector_report!(
-        name: "HubDependency",
         explain: smell => (
             problem: {
                 let count = smell.dependent_count().unwrap_or(0);

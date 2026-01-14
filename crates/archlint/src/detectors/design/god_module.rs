@@ -1,4 +1,3 @@
-use crate::detectors::DetectorCategory;
 use crate::detectors::{detector, ArchSmell, Detector};
 use crate::engine::AnalysisContext;
 
@@ -6,12 +5,7 @@ use crate::engine::AnalysisContext;
 /// This function is used for module registration side-effects.
 pub fn init() {}
 
-#[detector(
-    smell_type = SmellType::GodModule,
-    name = "God Module Detector",
-    description = "Detects large modules with many incoming and outgoing dependencies",
-    category = DetectorCategory::Global
-)]
+#[detector(SmellType::GodModule)]
 pub struct GodModuleDetector;
 
 impl GodModuleDetector {
@@ -86,7 +80,6 @@ impl GodModuleDetector {
 
 impl Detector for GodModuleDetector {
     crate::impl_detector_report!(
-        name: "GodModule",
         explain: smell => (
             problem: format!(
                 "Module has excessive responsibilities (fan-in: {}, fan-out: {}, churn: {})",

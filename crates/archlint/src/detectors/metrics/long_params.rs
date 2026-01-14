@@ -1,16 +1,11 @@
-use crate::detectors::{detector, ArchSmell, Detector, DetectorCategory};
+use crate::detectors::{detector, ArchSmell, Detector};
 use crate::engine::AnalysisContext;
 
 /// Initializes the detector module.
 /// This function is used for module registration side-effects.
 pub fn init() {}
 
-#[detector(
-    smell_type = SmellType::LongParameterList,
-    name = "Long Parameter List Detector",
-    description = "Detects functions with too many parameters",
-    category = DetectorCategory::FileLocal
-)]
+#[detector(SmellType::LongParameterList)]
 pub struct LongParameterListDetector;
 
 impl LongParameterListDetector {
@@ -21,7 +16,6 @@ impl LongParameterListDetector {
 
 impl Detector for LongParameterListDetector {
     crate::impl_detector_report!(
-        name: "LongParameterList",
         explain: smell => (
             problem: if let crate::detectors::SmellType::LongParameterList { count, name } = &smell.smell_type {
                 format!("Function `{}` has too many parameters ({})", name, count)

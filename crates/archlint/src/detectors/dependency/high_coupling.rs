@@ -1,17 +1,11 @@
-use crate::detectors::{detector, ArchSmell, Detector, DetectorCategory};
+use crate::detectors::{detector, ArchSmell, Detector};
 use crate::engine::AnalysisContext;
 
 /// Initializes the detector module.
 /// This function is used for module registration side-effects.
 pub fn init() {}
 
-#[detector(
-    smell_type = SmellType::HighCoupling,
-    name = "High Coupling Detector (CBO)",
-    description = "Detects modules with too many incoming and outgoing dependencies",
-    category = DetectorCategory::GraphBased,
-    default_enabled = false
-)]
+#[detector(SmellType::HighCoupling, default_enabled = false)]
 pub struct HighCouplingDetector;
 
 impl HighCouplingDetector {
@@ -22,7 +16,6 @@ impl HighCouplingDetector {
 
 impl Detector for HighCouplingDetector {
     crate::impl_detector_report!(
-        name: "HighCoupling",
         explain: smell => (
             problem: {
                 let cbo = if let crate::detectors::SmellType::HighCoupling { cbo } = &smell.smell_type {

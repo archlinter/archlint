@@ -1,4 +1,4 @@
-use crate::detectors::{detector, ArchSmell, Detector, DetectorCategory};
+use crate::detectors::{detector, ArchSmell, Detector};
 use crate::engine::AnalysisContext;
 use git2::{Commit, Repository};
 use std::collections::{HashMap, HashSet};
@@ -8,14 +8,7 @@ use std::path::{Path, PathBuf};
 /// This function is used for module registration side-effects.
 pub fn init() {}
 
-#[detector(
-    smell_type = SmellType::ShotgunSurgery,
-    name = "Shotgun Surgery Detector",
-    description = "Detects files that frequently change together",
-    category = DetectorCategory::Global,
-    default_enabled = false,
-    is_deep = true
-)]
+#[detector(SmellType::ShotgunSurgery, default_enabled = false, is_deep = true)]
 pub struct ShotgunSurgeryDetector;
 
 struct CoChangeStats {
@@ -146,7 +139,6 @@ impl ShotgunSurgeryDetector {
 
 impl Detector for ShotgunSurgeryDetector {
     crate::impl_detector_report!(
-        name: "ShotgunSurgery",
         explain: smell => (
             problem: {
                 let avg_co_changes = smell.avg_co_changes().unwrap_or(0.0);

@@ -1,4 +1,4 @@
-use crate::detectors::{detector, ArchSmell, Detector, DetectorCategory};
+use crate::detectors::{detector, ArchSmell, Detector};
 use crate::engine::AnalysisContext;
 use crate::parser::SymbolKind;
 
@@ -6,13 +6,7 @@ use crate::parser::SymbolKind;
 /// This function is used for module registration side-effects.
 pub fn init() {}
 
-#[detector(
-    smell_type = SmellType::SharedMutableState,
-    name = "Shared Mutable State Detector",
-    description = "Detects exported mutable state (let/var) that can be modified from multiple places",
-    category = DetectorCategory::FileLocal,
-    default_enabled = false
-)]
+#[detector(SmellType::SharedMutableState, default_enabled = false)]
 pub struct SharedMutableStateDetector;
 
 impl SharedMutableStateDetector {
@@ -23,7 +17,6 @@ impl SharedMutableStateDetector {
 
 impl Detector for SharedMutableStateDetector {
     crate::impl_detector_report!(
-        name: "SharedMutableState",
         explain: smell => (
             problem: {
                 if let crate::detectors::SmellType::SharedMutableState { symbol } = &smell.smell_type {

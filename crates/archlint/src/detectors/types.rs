@@ -1,7 +1,7 @@
 use crate::snapshot::types::SnapshotSmell;
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
-use strum::{Display, EnumMessage, EnumString, IntoStaticStr};
+use strum::{Display, EnumMessage, EnumProperty, EnumString, IntoStaticStr};
 
 use crate::detectors::ArchSmell;
 
@@ -37,6 +37,7 @@ pub enum DetectorCategory {
     EnumString,
     IntoStaticStr,
     EnumMessage,
+    EnumProperty,
     Hash,
     PartialOrd,
     Ord,
@@ -52,7 +53,11 @@ pub enum SmellType {
         message = "Cyclic Dependency",
         serialize = "cyclic_dependency",
         serialize = "cyclicdependency",
-        serialize = "cycles"
+        serialize = "cycles",
+        props(
+            category = "GraphBased",
+            description = "Detects circular dependencies between modules"
+        )
     ))]
     CyclicDependency,
 
@@ -61,7 +66,11 @@ pub enum SmellType {
         to_string = "cycle_clusters",
         message = "Cyclic Dependency Cluster",
         serialize = "cyclic_dependency_cluster",
-        serialize = "cyclicdependencycluster"
+        serialize = "cyclicdependencycluster",
+        props(
+            category = "GraphBased",
+            description = "A large group of interconnected dependency cycles"
+        )
     ))]
     CyclicDependencyCluster,
 
@@ -69,7 +78,11 @@ pub enum SmellType {
     #[strum_discriminants(strum(
         to_string = "god_module",
         message = "God Module",
-        serialize = "godmodule"
+        serialize = "godmodule",
+        props(
+            category = "Global",
+            description = "A module with excessive incoming and outgoing dependencies"
+        )
     ))]
     GodModule,
 
@@ -77,7 +90,11 @@ pub enum SmellType {
     #[strum_discriminants(strum(
         to_string = "dead_code",
         message = "Dead Code",
-        serialize = "deadcode"
+        serialize = "deadcode",
+        props(
+            category = "Global",
+            description = "Code that is never imported or executed"
+        )
     ))]
     DeadCode,
 
@@ -86,7 +103,11 @@ pub enum SmellType {
         to_string = "dead_symbols",
         message = "Dead Symbol",
         serialize = "dead_symbol",
-        serialize = "deadsymbol"
+        serialize = "deadsymbol",
+        props(
+            category = "Global",
+            description = "An exported symbol that is never used"
+        )
     ))]
     DeadSymbol { name: String, kind: String },
 
@@ -95,7 +116,11 @@ pub enum SmellType {
         to_string = "complexity",
         message = "High Complexity",
         serialize = "high_complexity",
-        serialize = "highcomplexity"
+        serialize = "highcomplexity",
+        props(
+            category = "FileLocal",
+            description = "A function with high cyclomatic complexity"
+        )
     ))]
     HighComplexity {
         name: String,
@@ -107,7 +132,11 @@ pub enum SmellType {
     #[strum_discriminants(strum(
         to_string = "large_file",
         message = "Large File",
-        serialize = "largefile"
+        serialize = "largefile",
+        props(
+            category = "FileLocal",
+            description = "A file with too many lines of code"
+        )
     ))]
     LargeFile,
 
@@ -115,7 +144,11 @@ pub enum SmellType {
     #[strum_discriminants(strum(
         to_string = "unstable_interface",
         message = "Unstable Interface",
-        serialize = "unstableinterface"
+        serialize = "unstableinterface",
+        props(
+            category = "Global",
+            description = "An interface that changes frequently despite having many dependents"
+        )
     ))]
     UnstableInterface,
 
@@ -123,7 +156,11 @@ pub enum SmellType {
     #[strum_discriminants(strum(
         to_string = "feature_envy",
         message = "Feature Envy",
-        serialize = "featureenvy"
+        serialize = "featureenvy",
+        props(
+            category = "GraphBased",
+            description = "A module that accesses more data from another module than its own"
+        )
     ))]
     FeatureEnvy { most_envied_module: PathBuf },
 
@@ -131,7 +168,11 @@ pub enum SmellType {
     #[strum_discriminants(strum(
         to_string = "shotgun_surgery",
         message = "Shotgun Surgery",
-        serialize = "shotgunsurgery"
+        serialize = "shotgunsurgery",
+        props(
+            category = "Global",
+            description = "A change in one module requires many small changes in other modules"
+        )
     ))]
     ShotgunSurgery,
 
@@ -139,7 +180,11 @@ pub enum SmellType {
     #[strum_discriminants(strum(
         to_string = "hub_dependency",
         message = "Hub Dependency",
-        serialize = "hubdependency"
+        serialize = "hubdependency",
+        props(
+            category = "GraphBased",
+            description = "A package that is a central dependency for many parts of the project"
+        )
     ))]
     HubDependency { package: String },
 
@@ -147,7 +192,11 @@ pub enum SmellType {
     #[strum_discriminants(strum(
         to_string = "test_leakage",
         message = "Test Leakage",
-        serialize = "testleakage"
+        serialize = "testleakage",
+        props(
+            category = "ImportBased",
+            description = "A test file that is imported by non-test code"
+        )
     ))]
     TestLeakage { test_file: PathBuf },
 
@@ -155,7 +204,11 @@ pub enum SmellType {
     #[strum_discriminants(strum(
         to_string = "layer_violation",
         message = "Layer Violation",
-        serialize = "layerviolation"
+        serialize = "layerviolation",
+        props(
+            category = "ImportBased",
+            description = "A dependency that violates defined architectural layers"
+        )
     ))]
     LayerViolation {
         from_layer: String,
@@ -166,7 +219,11 @@ pub enum SmellType {
     #[strum_discriminants(strum(
         to_string = "sdp_violation",
         message = "SDP Violation",
-        serialize = "sdpviolation"
+        serialize = "sdpviolation",
+        props(
+            category = "Global",
+            description = "A stable module depending on a less stable module (Stable Dependencies Principle)"
+        )
     ))]
     SdpViolation,
 
@@ -175,7 +232,11 @@ pub enum SmellType {
         to_string = "barrel_file",
         message = "Barrel File Abuse",
         serialize = "barrel_file_abuse",
-        serialize = "barrelfileabuse"
+        serialize = "barrelfileabuse",
+        props(
+            category = "ImportBased",
+            description = "Detects excessive use of barrel files (index.ts) that inflate the dependency graph"
+        )
     ))]
     BarrelFileAbuse,
 
@@ -183,7 +244,11 @@ pub enum SmellType {
     #[strum_discriminants(strum(
         to_string = "vendor_coupling",
         message = "Vendor Coupling",
-        serialize = "vendorcoupling"
+        serialize = "vendorcoupling",
+        props(
+            category = "ImportBased",
+            description = "Excessive reliance on a specific third-party package"
+        )
     ))]
     VendorCoupling { package: String },
 
@@ -191,7 +256,11 @@ pub enum SmellType {
     #[strum_discriminants(strum(
         to_string = "side_effect_import",
         message = "Side-effect Import",
-        serialize = "sideeffectimport"
+        serialize = "sideeffectimport",
+        props(
+            category = "ImportBased",
+            description = "An import that is only executed for its side effects"
+        )
     ))]
     SideEffectImport,
 
@@ -199,7 +268,11 @@ pub enum SmellType {
     #[strum_discriminants(strum(
         to_string = "hub_module",
         message = "Hub Module",
-        serialize = "hubmodule"
+        serialize = "hubmodule",
+        props(
+            category = "GraphBased",
+            description = "A module that acts as a central hub for many other modules"
+        )
     ))]
     HubModule,
 
@@ -208,7 +281,11 @@ pub enum SmellType {
         to_string = "lcom",
         message = "Low Cohesion (LCOM)",
         serialize = "low_cohesion",
-        serialize = "lowcohesion"
+        serialize = "lowcohesion",
+        props(
+            category = "FileLocal",
+            description = "Detects classes with low cohesion where methods don't share common fields"
+        )
     ))]
     LowCohesion { lcom: usize, class_name: String },
 
@@ -217,7 +294,11 @@ pub enum SmellType {
         to_string = "module_cohesion",
         message = "Scattered Module",
         serialize = "scattered_module",
-        serialize = "scatteredmodule"
+        serialize = "scatteredmodule",
+        props(
+            category = "Global",
+            description = "A module that consists of multiple unconnected components"
+        )
     ))]
     ScatteredModule { components: usize },
 
@@ -225,7 +306,11 @@ pub enum SmellType {
     #[strum_discriminants(strum(
         to_string = "high_coupling",
         message = "High Coupling",
-        serialize = "highcoupling"
+        serialize = "highcoupling",
+        props(
+            category = "FileLocal",
+            description = "A module with high coupling to other modules (Coupling Between Objects)"
+        )
     ))]
     HighCoupling { cbo: usize },
 
@@ -234,7 +319,11 @@ pub enum SmellType {
         to_string = "package_cycles",
         message = "Package Cycle",
         serialize = "package_cycle",
-        serialize = "packagecycle"
+        serialize = "packagecycle",
+        props(
+            category = "GraphBased",
+            description = "A dependency cycle between different packages"
+        )
     ))]
     PackageCycle { packages: Vec<String> },
 
@@ -242,7 +331,11 @@ pub enum SmellType {
     #[strum_discriminants(strum(
         to_string = "shared_mutable_state",
         message = "Shared Mutable State",
-        serialize = "sharedmutablestate"
+        serialize = "sharedmutablestate",
+        props(
+            category = "Global",
+            description = "A shared global state that is modified from multiple locations"
+        )
     ))]
     SharedMutableState { symbol: String },
 
@@ -250,7 +343,11 @@ pub enum SmellType {
     #[strum_discriminants(strum(
         to_string = "deep_nesting",
         message = "Deep Nesting",
-        serialize = "deepnesting"
+        serialize = "deepnesting",
+        props(
+            category = "FileLocal",
+            description = "A function with too many levels of nested control structures"
+        )
     ))]
     DeepNesting {
         #[serde(alias = "function")]
@@ -264,7 +361,11 @@ pub enum SmellType {
         to_string = "long_params",
         message = "Long Parameter List",
         serialize = "long_parameter_list",
-        serialize = "longparameterlist"
+        serialize = "longparameterlist",
+        props(
+            category = "FileLocal",
+            description = "A function with an excessively long list of parameters"
+        )
     ))]
     LongParameterList {
         count: usize,
@@ -276,7 +377,11 @@ pub enum SmellType {
     #[strum_discriminants(strum(
         to_string = "primitive_obsession",
         message = "Primitive Obsession",
-        serialize = "primitiveobsession"
+        serialize = "primitiveobsession",
+        props(
+            category = "FileLocal",
+            description = "Excessive use of primitive types instead of domain-specific objects"
+        )
     ))]
     PrimitiveObsession {
         primitives: usize,
@@ -289,7 +394,11 @@ pub enum SmellType {
         to_string = "orphan_types",
         message = "Orphan Type",
         serialize = "orphan_type",
-        serialize = "orphantype"
+        serialize = "orphantype",
+        props(
+            category = "Global",
+            description = "A type that is defined but never used"
+        )
     ))]
     OrphanType { name: String },
 
@@ -298,7 +407,11 @@ pub enum SmellType {
         to_string = "circular_type_deps",
         message = "Circular Type Dependency",
         serialize = "circular_type_dependency",
-        serialize = "circulartypedependency"
+        serialize = "circulartypedependency",
+        props(
+            category = "GraphBased",
+            description = "Circular dependency involving only types (type-only imports)"
+        )
     ))]
     CircularTypeDependency,
 
@@ -307,7 +420,11 @@ pub enum SmellType {
         to_string = "abstractness",
         message = "Abstractness Violation",
         serialize = "abstractness_violation",
-        serialize = "abstractnessviolation"
+        serialize = "abstractnessviolation",
+        props(
+            category = "Global",
+            description = "A module that is neither stable nor abstract enough (Abstractness violation)"
+        )
     ))]
     AbstractnessViolation,
 
@@ -316,7 +433,11 @@ pub enum SmellType {
         to_string = "scattered_config",
         message = "Scattered Configuration",
         serialize = "scattered_configuration",
-        serialize = "scatteredconfiguration"
+        serialize = "scatteredconfiguration",
+        props(
+            category = "Global",
+            description = "Environment variables accessed from many different files"
+        )
     ))]
     ScatteredConfiguration { env_var: String, files_count: usize },
 
@@ -325,7 +446,11 @@ pub enum SmellType {
         to_string = "code_clone",
         message = "Code Clone",
         serialize = "codeclone",
-        serialize = "duplicates"
+        serialize = "duplicates",
+        props(
+            category = "Global",
+            description = "Identical or near-identical code blocks in multiple locations"
+        )
     ))]
     CodeClone {
         clone_hash: String,
@@ -344,6 +469,17 @@ impl SmellKind {
 
     pub fn display_name(&self) -> &'static str {
         self.get_message().unwrap_or_default()
+    }
+
+    pub fn default_category(&self) -> DetectorCategory {
+        use EnumProperty;
+        match self.get_str("category") {
+            Some("FileLocal") => DetectorCategory::FileLocal,
+            Some("ImportBased") => DetectorCategory::ImportBased,
+            Some("GraphBased") => DetectorCategory::GraphBased,
+            Some("Global") => DetectorCategory::Global,
+            _ => DetectorCategory::Global,
+        }
     }
 }
 

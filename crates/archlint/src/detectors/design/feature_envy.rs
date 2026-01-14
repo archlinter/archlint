@@ -1,4 +1,4 @@
-use crate::detectors::{detector, ArchSmell, Detector, DetectorCategory};
+use crate::detectors::{detector, ArchSmell, Detector};
 use crate::engine::AnalysisContext;
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
@@ -7,13 +7,7 @@ use std::path::{Path, PathBuf};
 /// This function is used for module registration side-effects.
 pub fn init() {}
 
-#[detector(
-    smell_type = SmellType::FeatureEnvy,
-    name = "Feature Envy Detector",
-    description = "Detects modules that use more external symbols than internal ones",
-    category = DetectorCategory::Global,
-    default_enabled = false
-)]
+#[detector(SmellType::FeatureEnvy, default_enabled = false)]
 pub struct FeatureEnvyDetector;
 
 impl FeatureEnvyDetector {
@@ -93,7 +87,6 @@ impl FeatureEnvyDetector {
 
 impl Detector for FeatureEnvyDetector {
     crate::impl_detector_report!(
-        name: "FeatureEnvy",
         explain: smell => (
             problem: format!("Feature Envy (ratio: {:.1}x)", smell.envy_ratio().unwrap_or(0.0)),
             reason: "This module uses more symbols from another module than its own. It seems more interested in the details of another module than its own functionality.",
