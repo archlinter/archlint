@@ -1,56 +1,95 @@
 use crate::detectors::Severity;
+use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
 /// Main configuration structure for archlint.
 /// Defines project settings, rules, and framework extensions.
-#[derive(Debug, Clone, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize, JsonSchema)]
 pub struct Config {
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub ignore: Vec<String>,
 
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "HashMap::is_empty")]
     pub aliases: HashMap<String, String>,
 
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub entry_points: Vec<String>,
 
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "HashMap::is_empty")]
     pub rules: HashMap<String, RuleConfig>,
 
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub overrides: Vec<Override>,
 
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "is_default_scoring")]
     pub scoring: SeverityConfig,
 
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "is_default_watch")]
     pub watch: WatchConfig,
 
-    #[serde(default, deserialize_with = "deserialize_extends")]
-    pub extends: Vec<String>,
+    #[serde(
+        default,
+        deserialize_with = "deserialize_extends",
+        skip_serializing_if = "is_none_or_empty_vec"
+    )]
+    pub extends: Option<Vec<String>>,
 
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub framework: Option<String>,
 
-    #[serde(default = "default_true")]
+    #[serde(default = "default_true", skip_serializing_if = "is_true")]
     pub auto_detect_framework: bool,
 
-    #[serde(default = "default_tsconfig_config")]
+    #[serde(
+        default = "default_tsconfig_config",
+        skip_serializing_if = "is_default_tsconfig"
+    )]
     pub tsconfig: Option<TsConfigConfig>,
 
-    #[serde(default = "default_max_file_size")]
+    #[serde(
+        default = "default_max_file_size",
+        skip_serializing_if = "is_default_max_file_size"
+    )]
     pub max_file_size: u64,
 
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "is_default_git")]
     pub git: GitConfig,
 
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "is_default_diff")]
     pub diff: DiffConfig,
 }
 
+fn is_true(v: &bool) -> bool {
+    *v
+}
+
+fn is_default_scoring(v: &SeverityConfig) -> bool {
+    *v == SeverityConfig::default()
+}
+
+fn is_default_watch(v: &WatchConfig) -> bool {
+    *v == WatchConfig::default()
+}
+
+fn is_default_tsconfig(v: &Option<TsConfigConfig>) -> bool {
+    matches!(v, Some(TsConfigConfig::Boolean(true)))
+}
+
+fn is_default_max_file_size(v: &u64) -> bool {
+    *v == default_max_file_size()
+}
+
+fn is_default_git(v: &GitConfig) -> bool {
+    *v == GitConfig::default()
+}
+
+fn is_default_diff(v: &DiffConfig) -> bool {
+    *v == DiffConfig::default()
+}
+
 /// Configuration for diff command.
-#[derive(Debug, Clone, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, JsonSchema)]
 pub struct DiffConfig {
     /// Percentage threshold for metric changes to be considered significant.
     #[serde(default = "default_metric_threshold")]
@@ -78,7 +117,7 @@ fn default_line_tolerance() -> usize {
 }
 
 /// Configuration options for TypeScript integration.
-#[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, JsonSchema)]
 #[serde(untagged)]
 pub enum TsConfigConfig {
     /// Enable or disable automatic tsconfig discovery.
@@ -98,7 +137,7 @@ pub(crate) fn default_tsconfig_config() -> Option<TsConfigConfig> {
 }
 
 /// Configuration for Git-based analysis features.
-#[derive(Debug, Clone, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, JsonSchema)]
 pub struct GitConfig {
     /// Whether to enable Git analysis (e.g., for calculating churn).
     #[serde(default = "default_true")]
@@ -130,7 +169,7 @@ pub(crate) fn default_max_file_size() -> u64 {
 }
 
 /// Severity levels for architectural rules.
-#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, JsonSchema)]
 #[serde(rename_all = "lowercase")]
 pub enum RuleSeverity {
     /// Low severity issue.
@@ -146,7 +185,7 @@ pub enum RuleSeverity {
 }
 
 /// Flexible configuration for a single rule.
-#[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, JsonSchema)]
 #[serde(untagged)]
 pub enum RuleConfig {
     /// Short form: just the severity level.
@@ -156,24 +195,43 @@ pub enum RuleConfig {
 }
 
 /// Detailed configuration for a single rule.
-#[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Default, JsonSchema)]
 pub struct RuleFullConfig {
     /// Override the default severity for this rule.
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub severity: Option<RuleSeverity>,
     /// Explicitly enable or disable this rule.
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub enabled: Option<bool>,
     /// Patterns to exclude from this specific rule.
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub exclude: Vec<String>,
     /// Additional detector-specific options.
-    #[serde(flatten)]
+    #[serde(flatten, skip_serializing_if = "is_empty_yaml_value")]
+    #[schemars(schema_with = "yaml_value_schema")]
     pub options: serde_yaml::Value,
 }
 
+fn yaml_value_schema(_: &mut schemars::gen::SchemaGenerator) -> schemars::schema::Schema {
+    schemars::schema::Schema::Object(schemars::schema::SchemaObject {
+        instance_type: Some(schemars::schema::SingleOrVec::Single(Box::new(
+            schemars::schema::InstanceType::Object,
+        ))),
+        ..Default::default()
+    })
+}
+
+fn is_empty_yaml_value(v: &serde_yaml::Value) -> bool {
+    match v {
+        serde_yaml::Value::Null => true,
+        serde_yaml::Value::Mapping(m) => m.is_empty(),
+        serde_yaml::Value::Sequence(s) => s.is_empty(),
+        _ => false,
+    }
+}
+
 /// Configuration overrides for specific file patterns.
-#[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, JsonSchema)]
 pub struct Override {
     /// Files or directories to apply these overrides to (glob patterns).
     pub files: Vec<String>,
@@ -183,7 +241,7 @@ pub struct Override {
 
 pub(crate) fn deserialize_extends<'de, D>(
     deserializer: D,
-) -> std::result::Result<Vec<String>, D::Error>
+) -> std::result::Result<Option<Vec<String>>, D::Error>
 where
     D: serde::Deserializer<'de>,
 {
@@ -197,14 +255,21 @@ where
 
     let parsed = Option::<StringOrVec>::deserialize(deserializer)?;
     match parsed {
-        Some(StringOrVec::String(s)) => Ok(vec![s]),
-        Some(StringOrVec::Vec(v)) => Ok(v),
-        None => Ok(Vec::new()),
+        Some(StringOrVec::String(s)) => Ok(Some(vec![s])),
+        Some(StringOrVec::Vec(v)) => Ok(Some(v)),
+        None => Ok(None),
+    }
+}
+
+fn is_none_or_empty_vec(opt: &Option<Vec<String>>) -> bool {
+    match opt {
+        None => true,
+        Some(v) => v.is_empty(),
     }
 }
 
 /// Configuration for the file watcher (watch mode).
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, JsonSchema)]
 pub struct WatchConfig {
     /// Delay in milliseconds before triggering a re-scan after a change.
     #[serde(default = "default_debounce_ms")]
@@ -238,7 +303,7 @@ impl Default for WatchConfig {
 }
 
 /// Configuration for issue scoring and project grading.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, JsonSchema)]
 pub struct SeverityConfig {
     /// Weights for each severity level.
     #[serde(default = "default_weights")]
@@ -273,7 +338,7 @@ fn default_min_severity() -> Option<Severity> {
 }
 
 /// Weights assigned to each severity level for score calculation.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, JsonSchema)]
 pub struct SeverityWeights {
     /// Score weight for Critical issues.
     pub critical: u32,
@@ -286,7 +351,7 @@ pub struct SeverityWeights {
 }
 
 /// Thresholds for project grades based on smell density.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, JsonSchema)]
 pub struct GradeThresholds {
     /// Maximum density for 'Excellent' grade.
     pub excellent: f32,
@@ -338,7 +403,7 @@ impl Default for SeverityWeights {
     }
 }
 
-#[derive(Debug, Clone, Deserialize, Serialize, Default)]
+#[derive(Debug, Clone, Deserialize, Serialize, Default, JsonSchema)]
 pub struct DetectorConfig {
     #[serde(default)]
     pub enabled: Option<Vec<String>>,
@@ -346,7 +411,7 @@ pub struct DetectorConfig {
     pub disabled: Vec<String>,
 }
 
-#[derive(Debug, Clone, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize, JsonSchema)]
 pub struct LayerConfig {
     pub name: String,
     #[serde(alias = "paths")]
@@ -377,7 +442,7 @@ impl Default for Config {
             overrides: Vec::new(),
             scoring: SeverityConfig::default(),
             watch: WatchConfig::default(),
-            extends: Vec::new(),
+            extends: None,
             framework: None,
             auto_detect_framework: true,
             tsconfig: Some(TsConfigConfig::default()),

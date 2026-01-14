@@ -1,3 +1,4 @@
+use crate::args::SUPPORTED_EXTENSIONS;
 use crate::config::Config;
 use crate::{AnalysisError, Result};
 use std::collections::HashMap;
@@ -69,33 +70,69 @@ impl PathResolver {
 
     fn try_resolve_with_extensions(&self, base: &Path) -> Result<Option<PathBuf>> {
         // Try exact path first
-        if base.exists() && base.is_file() {
-            return Ok(Some(
-                base.canonicalize().unwrap_or_else(|_| base.to_path_buf()),
-            ));
+        if base.is_file() {
+            return Ok(Some(self.canonicalize_path(base.to_path_buf())));
         }
 
-        let extensions = ["ts", "tsx", "js", "jsx"];
-
-        // Try adding extensions (don't use with_extension as it replaces existing ones like .service)
-        let base_str = base.to_string_lossy();
-        for ext in &extensions {
-            let with_ext = PathBuf::from(format!("{}.{}", base_str, ext));
-            if with_ext.exists() && with_ext.is_file() {
-                return Ok(Some(with_ext.canonicalize().unwrap_or(with_ext)));
-            }
+        if let Some(resolved) = self.resolve_esm_extension(base) {
+            return Ok(Some(resolved));
         }
 
-        // Try index files
-        if base.is_dir() {
-            for ext in &extensions {
-                let index = base.join(format!("index.{}", ext));
-                if index.exists() && index.is_file() {
-                    return Ok(Some(index.canonicalize().unwrap_or(index)));
-                }
-            }
+        if let Some(resolved) = self.resolve_by_extensions(base) {
+            return Ok(Some(resolved));
+        }
+
+        if let Some(resolved) = self.resolve_index_file(base) {
+            return Ok(Some(resolved));
         }
 
         Ok(None)
+    }
+
+    fn resolve_esm_extension(&self, base: &Path) -> Option<PathBuf> {
+        let base_str = base.to_string_lossy();
+
+        // Special case for TS ESM: if importing .js but only .ts exists
+        if base_str.ends_with(".js") {
+            let ts_base = base.with_extension("ts");
+            if ts_base.is_file() {
+                return Some(self.canonicalize_path(ts_base));
+            }
+        }
+        if base_str.ends_with(".jsx") {
+            let tsx_base = base.with_extension("tsx");
+            if tsx_base.is_file() {
+                return Some(self.canonicalize_path(tsx_base));
+            }
+        }
+        None
+    }
+
+    fn resolve_by_extensions(&self, base: &Path) -> Option<PathBuf> {
+        let base_str = base.to_string_lossy();
+        // Try adding extensions (don't use with_extension as it replaces existing ones like .service)
+        for ext in SUPPORTED_EXTENSIONS {
+            let with_ext = PathBuf::from(format!("{}.{}", base_str, ext));
+            if with_ext.is_file() {
+                return Some(self.canonicalize_path(with_ext));
+            }
+        }
+        None
+    }
+
+    fn resolve_index_file(&self, base: &Path) -> Option<PathBuf> {
+        if base.is_dir() {
+            for ext in SUPPORTED_EXTENSIONS {
+                let index = base.join(format!("index.{}", ext));
+                if index.is_file() {
+                    return Some(self.canonicalize_path(index));
+                }
+            }
+        }
+        None
+    }
+
+    fn canonicalize_path(&self, path: PathBuf) -> PathBuf {
+        path.canonicalize().unwrap_or(path)
     }
 }

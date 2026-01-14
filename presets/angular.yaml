@@ -1,0 +1,46 @@
+name: angular
+description: Angular - Comprehensive web framework
+version: 1
+detect:
+  packages:
+    any_of: ['@angular/core']
+rules:
+  layer_violation: high
+  dead_symbols:
+    ignore_methods:
+      - 'ngOnInit'
+      - 'ngOnChanges'
+      - 'ngOnDestroy'
+      - 'ngAfterViewInit'
+      - 'ngAfterContentInit'
+      - 'ngAfterViewChecked'
+      - 'ngAfterContentChecked'
+      - 'ngDoCheck'
+      - 'resolve'
+      - 'canActivate'
+      - 'canDeactivate'
+      - 'canLoad'
+      - 'intercept'
+  vendor_coupling:
+    ignore_packages:
+      - '@angular/*'
+      - 'rxjs'
+      - 'zone.js'
+entry_points:
+  - '**/*.module.ts'
+  - '**/*.component.ts'
+  - '**/*.service.ts'
+  - '**/*.guard.ts'
+  - '**/*.pipe.ts'
+  - '**/*.directive.ts'
+overrides:
+  - files: ['**/*.component.ts']
+    rules:
+      lcom: off
+  - files: ['**/*.module.ts']
+    rules:
+      high_coupling: off
+      lcom: off
+  - files: ['**/*.service.ts']
+    rules:
+      lcom: off

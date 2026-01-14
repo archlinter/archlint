@@ -16,8 +16,14 @@ extends:
 
 - **nestjs**: Для приложений NestJS.
 - **nextjs**: Для проектов Next.js.
+- **express**: Для приложений Express.js.
 - **react**: Для библиотек и приложений React.
+- **angular**: Для приложений Angular.
+- **vue**: Для приложений Vue.js.
+- **typeorm**: Для проектов на базе TypeORM.
+- **prisma**: Для проектов на базе Prisma.
 - **oclif**: Для CLI инструментов, созданных с помощью oclif.
+- **class-validator**: Для проектов, использующих class-validator.
 
 ## Кастомные пресеты
 

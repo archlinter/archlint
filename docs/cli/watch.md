@@ -14,6 +14,11 @@ archlint watch [options]
 | ----------------- | ------- | ----------------------------------------- |
 | `--debounce <ms>` | `300`   | Wait for more changes before re-running   |
 | `--clear`         | `false` | Clear the terminal screen before each run |
+| `-c, --config`    | `none`  | Path to configuration file                |
+
+::: tip
+The `watch` command also supports all options from the [`scan`](/cli/scan) command.
+:::
 
 ## Examples
 

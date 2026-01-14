@@ -1,4 +1,5 @@
 name: nestjs
+description: NestJS - Progressive Node.js framework
 version: 1
 detect:
   packages:
@@ -10,18 +11,18 @@ rules:
   layer_violation: high
   module_cohesion: off
   dead_symbols:
-    ignore_methods:
-      - 'onModuleInit'
-      - 'onApplicationBootstrap'
-      - 'onModuleDestroy'
-      - 'beforeApplicationShutdown'
-      - 'onApplicationShutdown'
-      - 'intercept'
-      - 'transform'
-      - 'canActivate'
-      - 'resolve'
-      - 'validate'
+    contract_methods:
+      OnModuleInit: ['onModuleInit']
+      OnApplicationBootstrap: ['onApplicationBootstrap']
+      OnModuleDestroy: ['onModuleDestroy']
+      BeforeApplicationShutdown: ['beforeApplicationShutdown']
+      OnApplicationShutdown: ['onApplicationShutdown']
+      NestInterceptor: ['intercept']
+      PipeTransform: ['transform']
+      CanActivate: ['canActivate']
+      ExceptionFilter: ['catch']
   vendor_coupling:
+    enabled: false
     ignore_packages:
       - '@nestjs/*'
       - 'class-validator'
@@ -29,6 +30,7 @@ rules:
       - 'rxjs'
       - 'reflect-metadata'
   hub_dependency:
+    enabled: false
     ignore_packages:
       - '@nestjs/*'
       - 'rxjs'

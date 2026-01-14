@@ -49,6 +49,13 @@ rules:
     fan_out: 15
     churn: 20
 
+  dead_symbols:
+    severity: high
+    # インターフェースメソッドの設定（未使用の実装による誤検知を回避）
+    contract_methods:
+      MyInterface: ['method1', 'method2']
+      ValidatorConstraintInterface: ['validate', 'defaultMessage']
+
   vendor_coupling:
     severity: medium
     ignore_packages: ['lodash', 'rxjs']
@@ -98,7 +105,7 @@ git:
 
 `extends` フィールドを使用すると、異なるソースからプリセットを読み込むことができます：
 
-- **組み込みプリセット**: `nestjs`、`nextjs`、`react`、`oclif`。
+- **組み込みプリセット**: `nestjs`、`nextjs`、`express`、`react`、`angular`、`vue`、`typeorm`、`prisma`、`oclif`、`class-validator`。
 - **ローカルファイル**: YAMLファイルへの相対パス（例：`./archlint-shared.yaml`）。
 - **URL**: YAMLファイルへの直接URL（例：`https://example.com/preset.yaml`）。
 

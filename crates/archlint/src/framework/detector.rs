@@ -46,9 +46,7 @@ impl FrameworkDetector {
             if let Some(preset) = PresetLoader::get_builtin_yaml(name) {
                 if let Some(files_rules) = preset.detect.files {
                     if Self::matches_rules(&files_rules, |p| root.join(p).exists()) {
-                        if let Some(fw) = Self::map_name_to_framework(&preset.name) {
-                            frameworks.insert(fw);
-                        }
+                        frameworks.insert(Framework(preset.name.clone()));
                     }
                 }
             }
@@ -64,9 +62,7 @@ impl FrameworkDetector {
                     if Self::matches_rules(&pkg_rules, |p| {
                         Self::has_package(json, p, &dependencies)
                     }) {
-                        if let Some(fw) = Self::map_name_to_framework(&preset.name) {
-                            frameworks.insert(fw);
-                        }
+                        frameworks.insert(Framework(preset.name.clone()));
                     }
                 }
             }
@@ -106,16 +102,6 @@ impl FrameworkDetector {
         }
         false
     }
-
-    fn map_name_to_framework(name: &str) -> Option<Framework> {
-        match name.to_lowercase().as_str() {
-            "nestjs" => Some(Framework::NestJS),
-            "nextjs" | "next.js" => Some(Framework::NextJS),
-            "react" => Some(Framework::React),
-            "oclif" => Some(Framework::Oclif),
-            _ => None,
-        }
-    }
 }
 
 #[cfg(test)]
@@ -132,7 +118,7 @@ mod tests {
         });
         let mut frameworks = HashSet::new();
         FrameworkDetector::detect_from_json(&json, &mut frameworks);
-        assert!(frameworks.contains(&Framework::NestJS));
+        assert!(frameworks.contains(&Framework("nestjs".to_string())));
     }
 
     #[test]
@@ -144,7 +130,7 @@ mod tests {
         });
         let mut frameworks = HashSet::new();
         FrameworkDetector::detect_from_json(&json, &mut frameworks);
-        assert!(frameworks.contains(&Framework::NextJS));
+        assert!(frameworks.contains(&Framework("nextjs".to_string())));
     }
 
     #[test]
@@ -157,8 +143,8 @@ mod tests {
         });
         let mut frameworks = HashSet::new();
         FrameworkDetector::detect_from_json(&json, &mut frameworks);
-        assert!(frameworks.contains(&Framework::NextJS));
-        assert!(frameworks.contains(&Framework::NestJS));
+        assert!(frameworks.contains(&Framework("nextjs".to_string())));
+        assert!(frameworks.contains(&Framework("nestjs".to_string())));
     }
 
     #[test]
@@ -170,7 +156,7 @@ mod tests {
         });
         let mut frameworks = HashSet::new();
         FrameworkDetector::detect_from_json(&json, &mut frameworks);
-        assert!(frameworks.contains(&Framework::React));
+        assert!(frameworks.contains(&Framework("react".to_string())));
     }
 
     #[test]
@@ -182,7 +168,7 @@ mod tests {
         });
         let mut frameworks = HashSet::new();
         FrameworkDetector::detect_from_json(&json, &mut frameworks);
-        assert!(frameworks.contains(&Framework::NestJS));
+        assert!(frameworks.contains(&Framework("nestjs".to_string())));
     }
 
     #[test]

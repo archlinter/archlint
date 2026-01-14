@@ -45,7 +45,7 @@ pub use api::{
 };
 pub use api::{ExportInfo, ExportKind, FileInfo, FileMetrics, ImportInfo};
 
-pub use args::{Language, OutputFormat, ScanArgs};
+pub use args::{OutputFormat, ScanArgs};
 pub use config::Config;
 pub use detectors::registry::DetectorInfo;
 pub use detectors::{ArchSmell, CodeRange, CycleCluster, LocationDetail, Severity, SmellType};

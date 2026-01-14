@@ -17,6 +17,7 @@ archlint [command] [options]
 
 | Comando                        | Descrição                                         |
 | ------------------------------ | ------------------------------------------------- |
+| [`init`](/pt/cli/init)         | Inicializa um novo arquivo de configuração        |
 | [`scan`](/pt/cli/scan)         | Executa uma análise arquitetural única            |
 | [`diff`](/pt/cli/diff)         | Compara o estado atual com uma linha de base      |
 | [`snapshot`](/pt/cli/snapshot) | Salva o estado atual em um arquivo JSON           |
@@ -24,10 +25,10 @@ archlint [command] [options]
 
 ## Opções Globais
 
-| Opção             | Descrição                                          |
-| ----------------- | -------------------------------------------------- |
-| `--config <path>` | Caminho para o arquivo de configuração             |
-| `--verbose`       | Habilita o log detalhado                           |
-| `--quiet`         | Modo amigável para CI/CD (sem barras de progresso) |
-| `--version`       | Mostra informações da versão                       |
-| `--help`          | Mostra ajuda para um comando                       |
+| Opção                 | Descrição                                          |
+| --------------------- | -------------------------------------------------- |
+| `-c, --config <path>` | Caminho para o arquivo de configuração             |
+| `-v, --verbose`       | Habilita o log detalhado                           |
+| `-q, --quiet`         | Modo amigável para CI/CD (sem barras de progresso) |
+| `-V, --version`       | Mostra informações da versão                       |
+| `-h, --help`          | Mostra ajuda para um comando                       |

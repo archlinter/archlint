@@ -12,6 +12,21 @@
 
 删除未使用的符号。
 
+## 配置
+
+```yaml
+rules:
+  dead_symbols:
+    severity: low
+    # 要忽略的方法名称列表（例如框架生命周期方法）
+    ignore_methods:
+      - 'constructor'
+    # 实现时要忽略的接口/类方法映射
+    contract_methods:
+      MyInterface: ['method1', 'method2']
+      ValidatorConstraintInterface: ['validate', 'defaultMessage']
+```
+
 ## ESLint 规则
 
 此检测器可作为 ESLint 规则使用，以便在编辑器中获得实时反馈。

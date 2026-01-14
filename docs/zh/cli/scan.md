@@ -10,14 +10,18 @@ archlint scan [path] [options]
 
 ## 选项
 
-| 选项                        | 默认值   | 描述                                                |
-| --------------------------- | -------- | --------------------------------------------------- |
-| `--format <format>`         | `table`  | 输出格式：`table`, `json`, `markdown`               |
-| `--report <file>`           | `stdout` | 将报告保存到文件                                    |
-| `--min-severity <sev>`      | `low`    | 按严重程度过滤：`low`, `medium`, `high`, `critical` |
-| `--detectors <ids>`         | `all`    | 要运行的探测器 ID 列表（以逗号分隔）                |
-| `--exclude-detectors <ids>` | `none`   | 要跳过的探测器                                      |
-| `--no-cache`                | `false`  | 禁用分析缓存                                        |
+| 选项                            | 默认值   | 描述                                                |
+| ------------------------------- | -------- | --------------------------------------------------- |
+| `-f, --format <format>`         | `table`  | 输出格式：`table`, `json`, `markdown`               |
+| `-j, --json`                    | `false`  | `--format json` 的快捷方式                          |
+| `-r, --report <file>`           | `stdout` | 将报告保存到文件                                    |
+| `-s, --min-severity <sev>`      | `low`    | 按严重程度过滤：`low`, `medium`, `high`, `critical` |
+| `-S, --min-score <score>`       | `none`   | 按最低健康分过滤                                    |
+| `-d, --detectors <ids>`         | `all`    | 要运行的探测器 ID 列表（以逗号分隔）                |
+| `-e, --exclude-detectors <ids>` | `none`   | 要跳过的探测器                                      |
+| `-A, --all`                     | `false`  | 运行所有探测器（包括默认禁用的探测器）              |
+| `--no-cache`                    | `false`  | 禁用分析缓存                                        |
+| `--no-git`                      | `false`  | 禁用 git 集成 (跳过 churn 分析)                     |
 
 ## 示例
 

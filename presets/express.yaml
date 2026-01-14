@@ -1,0 +1,31 @@
+name: express
+description: Express - Fast, unopinionated, minimalist web framework
+version: 1
+detect:
+  packages:
+    any_of: ['express']
+rules:
+  layer_violation: high
+  vendor_coupling:
+    ignore_packages:
+      - 'express'
+      - 'body-parser'
+      - 'cors'
+      - 'helmet'
+      - 'morgan'
+entry_points:
+  - '**/routes/**'
+  - '**/*.route.ts'
+  - '**/*.router.ts'
+  - '**/*.controller.ts'
+overrides:
+  - files: ['**/routes/**', '**/*.route.ts', '**/*.router.ts']
+    rules:
+      high_coupling: off
+      lcom: off
+  - files: ['**/middlewares/**', '**/*.middleware.ts']
+    rules:
+      lcom: off
+  - files: ['**/controllers/**', '**/*.controller.ts']
+    rules:
+      lcom: off

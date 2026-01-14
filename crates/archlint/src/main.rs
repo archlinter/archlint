@@ -1,4 +1,6 @@
-use archlint::args::{Language, OutputFormat, ScanArgs};
+use archlint::args::{OutputFormat, ScanArgs};
+use archlint::framework::detector::FrameworkDetector;
+use archlint::framework::Framework;
 use archlint::{
     cache, cli, config, detectors, engine, glob_expand, report, watch, AnalysisError, Result,
 };
@@ -163,12 +165,7 @@ fn resolve_scan_args(args: ScanArgs) -> Result<ScanArgs> {
 
     // If it contains glob characters, expand it
     if path_str.contains('*') || path_str.contains('?') || path_str.contains('[') {
-        let extensions = match args.lang {
-            Language::TypeScript => vec!["ts", "tsx"],
-            Language::JavaScript => vec!["js", "jsx"],
-        };
-
-        let expansion = glob_expand::expand_glob(&path_str, &extensions)?;
+        let expansion = glob_expand::expand_glob(&path_str, archlint::args::SUPPORTED_EXTENSIONS)?;
 
         if expansion.files.is_empty() {
             return Err(AnalysisError::PathResolution(format!(
@@ -200,6 +197,7 @@ fn run(cli: cli::Cli) -> Result<()> {
         Some(cli::Command::Completions(args)) => handle_completions_command(args),
         Some(cli::Command::Snapshot(args)) => handle_snapshot_command(args),
         Some(cli::Command::Diff(args)) => handle_diff_command(args),
+        Some(cli::Command::Init(args)) => handle_init_command(args),
         None => handle_default_command(cli),
     }
 }
@@ -255,10 +253,10 @@ fn handle_watch_command(args: cli::WatchArgs) -> Result<()> {
     let mut ignore_patterns = config.watch.ignore.clone();
     ignore_patterns.extend(args.ignore.clone());
 
-    let extensions = match args.scan.lang {
-        Language::TypeScript => vec!["ts".to_string(), "tsx".to_string()],
-        Language::JavaScript => vec!["js".to_string(), "jsx".to_string()],
-    };
+    let extensions = archlint::args::SUPPORTED_EXTENSIONS
+        .iter()
+        .map(|&e| e.to_string())
+        .collect();
 
     let watch_config = watch::WatchConfig {
         debounce_ms,
@@ -444,4 +442,98 @@ fn handle_completions_command(args: cli::CompletionsArgs) -> Result<()> {
     let mut cmd = cli::Cli::command();
     clap_complete::generate(args.shell, &mut cmd, "archlint", &mut std::io::stdout());
     Ok(())
+}
+
+fn handle_init_command(args: cli::InitArgs) -> Result<()> {
+    #[cfg(feature = "cli")]
+    cliclack::intro(style(" Archlint Initialization ").on_cyan().black().bold())
+        .map_err(|e| anyhow::anyhow!("UI error: {}", e))?;
+
+    let config_path = Path::new(".archlint.yaml");
+
+    if config_path.exists() && !args.force {
+        let msg = "Config already exists. Use --force to overwrite.";
+        #[cfg(feature = "cli")]
+        cliclack::outro_cancel(msg).map_err(|e| anyhow::anyhow!("UI error: {}", e))?;
+        return Err(anyhow::anyhow!(msg).into());
+    }
+
+    let cwd = std::env::current_dir()?;
+    let mut config = config::Config::default();
+
+    // 1. Determine frameworks
+    let selected_presets = if !args.presets.is_empty() {
+        args.presets.clone()
+    } else {
+        let detected = FrameworkDetector::detect(&cwd);
+        if args.no_interactive {
+            detected
+                .iter()
+                .map(|f| f.as_preset_name().to_string())
+                .collect()
+        } else {
+            prompt_framework_selection(detected)?
+        }
+    };
+
+    // 2. Apply presets (set extends only, merge happens at runtime)
+    if !selected_presets.is_empty() {
+        config.extends = Some(selected_presets.clone());
+    }
+
+    // 3. Write config
+    let yaml = serde_yaml::to_string(&config)?;
+    let yaml_with_schema = format!(
+        "# yaml-language-server: $schema=https://raw.githubusercontent.com/archlinter/archlint/main/resources/archlint.schema.json\n{}",
+        yaml
+    );
+    std::fs::write(config_path, yaml_with_schema)?;
+
+    let success_msg = format!("Created {}", style(".archlint.yaml").bold());
+    #[cfg(feature = "cli")]
+    cliclack::outro(style(&success_msg).green()).map_err(|e| anyhow::anyhow!("UI error: {}", e))?;
+    #[cfg(not(feature = "cli"))]
+    println!("✓ {}", success_msg);
+
+    Ok(())
+}
+
+fn prompt_framework_selection(detected: Vec<Framework>) -> Result<Vec<String>> {
+    #[cfg(feature = "cli")]
+    {
+        use archlint::framework::preset_loader::PresetLoader;
+
+        let detected_names: Vec<String> = detected.iter().map(|f| f.as_preset_name()).collect();
+
+        let mut options: Vec<(&str, String)> = Vec::new();
+        for name in PresetLoader::get_all_builtin_names() {
+            if let Some(yaml) = PresetLoader::get_builtin_yaml(name) {
+                let label = if let Some(desc) = yaml.description {
+                    desc
+                } else {
+                    yaml.name.clone()
+                };
+                options.push((name, label));
+            }
+        }
+        options.sort_by_key(|(name, _)| *name);
+
+        let mut multiselect = cliclack::multiselect("Select framework presets to include:");
+
+        for (id, label) in &options {
+            multiselect = multiselect.item(*id, label, "");
+        }
+
+        let selected: Vec<&str> = multiselect
+            .initial_values(detected_names.iter().map(|s| s.as_str()).collect())
+            .required(false)
+            .interact()
+            .map_err(|e| anyhow::anyhow!("Interaction error: {}", e))?;
+
+        Ok(selected.into_iter().map(|s| s.to_string()).collect())
+    }
+    #[cfg(not(feature = "cli"))]
+    {
+        Ok(detected.iter().map(|f| f.as_preset_name()).collect())
+    }
 }

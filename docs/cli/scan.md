@@ -10,14 +10,18 @@ archlint scan [path] [options]
 
 ## Options
 
-| Option                      | Default  | Description                                             |
-| --------------------------- | -------- | ------------------------------------------------------- |
-| `--format <format>`         | `table`  | Output format: `table`, `json`, `markdown`              |
-| `--report <file>`           | `stdout` | Save the report to a file                               |
-| `--min-severity <sev>`      | `low`    | Filter by severity: `low`, `medium`, `high`, `critical` |
-| `--detectors <ids>`         | `all`    | Comma-separated list of detectors to run                |
-| `--exclude-detectors <ids>` | `none`   | Detectors to skip                                       |
-| `--no-cache`                | `false`  | Disable analysis caching                                |
+| Option                          | Default  | Description                                             |
+| ------------------------------- | -------- | ------------------------------------------------------- |
+| `-f, --format <format>`         | `table`  | Output format: `table`, `json`, `markdown`              |
+| `-j, --json`                    | `false`  | Shortcut for `--format json`                            |
+| `-r, --report <file>`           | `stdout` | Save the report to a file                               |
+| `-s, --min-severity <sev>`      | `low`    | Filter by severity: `low`, `medium`, `high`, `critical` |
+| `-S, --min-score <score>`       | `none`   | Filter by minimum health score                          |
+| `-d, --detectors <ids>`         | `all`    | Comma-separated list of detectors to run                |
+| `-e, --exclude-detectors <ids>` | `none`   | Detectors to skip                                       |
+| `-A, --all`                     | `false`  | Run all detectors (including disabled by default)       |
+| `--no-cache`                    | `false`  | Disable analysis caching                                |
+| `--no-git`                      | `false`  | Disable git integration (skip churn analysis)           |
 
 ## Examples
 

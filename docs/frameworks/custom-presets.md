@@ -16,8 +16,14 @@ extends:
 
 - **nestjs**: For NestJS applications.
 - **nextjs**: For Next.js projects.
+- **express**: For Express.js applications.
 - **react**: For React libraries and applications.
+- **angular**: For Angular applications.
+- **vue**: For Vue.js applications.
+- **typeorm**: For TypeORM-based projects.
+- **prisma**: For Prisma-based projects.
 - **oclif**: For CLI tools built with oclif.
+- **class-validator**: For projects using class-validator.
 
 ## Custom Presets
 

@@ -32,9 +32,8 @@ impl<'a> UnifiedVisitor {
             oxc_ast::ast::MemberExpression::ComputedMemberExpression(c) => {
                 self.handle_computed_member(c)
             }
-            _ => {}
+            oxc_ast::ast::MemberExpression::PrivateFieldExpression(_) => {}
         }
-        oxc_ast::visit::walk::walk_member_expression(self, it);
     }
 
     pub(crate) fn handle_ts_type_name(&mut self, it: &oxc_ast::ast::TSTypeName<'a>) {
@@ -120,6 +119,25 @@ impl<'a> UnifiedVisitor {
 
             if self.config.collect_env_vars && Self::is_env_object(&c.object) {
                 self.env_vars.insert(name);
+            }
+        }
+    }
+
+    pub(crate) fn handle_private_field(&mut self, p: &oxc_ast::ast::PrivateFieldExpression<'_>) {
+        // Private fields/methods (e.g., this.#calculateIndexScore)
+        // The field.name contains the name without #
+        let name = Self::atom_to_compact(&p.field.name);
+        self.local_usages.insert(name.clone());
+
+        if self.config.collect_used_symbols {
+            if let Expression::ThisExpression(_) = &p.object {
+                if let Some(method) = &mut self.current_method {
+                    method.used_fields.insert(name.clone());
+                    method.used_methods.insert(name.clone());
+                }
+            }
+            if let Some(idx) = self.current_top_level_export {
+                self.exports[idx].used_symbols.insert(name.clone());
             }
         }
     }

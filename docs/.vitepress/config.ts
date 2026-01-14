@@ -95,6 +95,7 @@ const enSidebar: DefaultTheme.Sidebar = {
       text: 'CLI Reference',
       items: [
         { text: 'Overview', link: '/cli/' },
+        { text: 'init', link: '/cli/init' },
         { text: 'scan', link: '/cli/scan' },
         { text: 'diff', link: '/cli/diff' },
         { text: 'snapshot', link: '/cli/snapshot' },
@@ -280,6 +281,7 @@ export default defineConfig({
               text: 'Справочник CLI',
               items: [
                 { text: 'Обзор', link: '/ru/cli/' },
+                { text: 'init', link: '/ru/cli/init' },
                 { text: 'scan', link: '/ru/cli/scan' },
                 { text: 'diff', link: '/ru/cli/diff' },
                 { text: 'snapshot', link: '/ru/cli/snapshot' },
@@ -433,6 +435,7 @@ export default defineConfig({
               text: 'CLI 参考',
               items: [
                 { text: '概述', link: '/zh/cli/' },
+                { text: 'init', link: '/zh/cli/init' },
                 { text: 'scan', link: '/zh/cli/scan' },
                 { text: 'diff', link: '/zh/cli/diff' },
                 { text: 'snapshot', link: '/zh/cli/snapshot' },
@@ -586,6 +589,7 @@ export default defineConfig({
               text: 'Referência CLI',
               items: [
                 { text: 'Visão Geral', link: '/pt/cli/' },
+                { text: 'init', link: '/pt/cli/init' },
                 { text: 'scan', link: '/pt/cli/scan' },
                 { text: 'diff', link: '/pt/cli/diff' },
                 { text: 'snapshot', link: '/pt/cli/snapshot' },
@@ -739,6 +743,7 @@ export default defineConfig({
               text: 'Referencia CLI',
               items: [
                 { text: 'Resumen', link: '/es/cli/' },
+                { text: 'init', link: '/es/cli/init' },
                 { text: 'scan', link: '/es/cli/scan' },
                 { text: 'diff', link: '/es/cli/diff' },
                 { text: 'snapshot', link: '/es/cli/snapshot' },
@@ -892,6 +897,7 @@ export default defineConfig({
               text: 'CLIリファレンス',
               items: [
                 { text: '概要', link: '/ja/cli/' },
+                { text: 'init', link: '/ja/cli/init' },
                 { text: 'scan', link: '/ja/cli/scan' },
                 { text: 'diff', link: '/ja/cli/diff' },
                 { text: 'snapshot', link: '/ja/cli/snapshot' },

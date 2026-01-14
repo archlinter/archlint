@@ -22,10 +22,13 @@ O archlint não apenas conta problemas. Ele realiza um **diff semântico** dos d
 
 ## Opções
 
-| Opção                  | Padrão   | Descrição                                                                     |
-| ---------------------- | -------- | ----------------------------------------------------------------------------- |
-| `--fail-on <severity>` | `medium` | Sai com código 1 se uma regressão desta severidade ou superior for encontrada |
-| `--explain`            | `false`  | Fornece uma explicação detalhada para cada regressão                          |
+| Opção                  | Padrão  | Descrição                                                                     |
+| ---------------------- | ------- | ----------------------------------------------------------------------------- |
+| `-j, --json`           | `false` | Saída do relatório em formato JSON                                            |
+| `-v, --verbose`        | `false` | Habilitar saída detalhada (verbose)                                           |
+| `-p, --path <path>`    | `.`     | Caminho do projeto                                                            |
+| `--fail-on <severity>` | `low`   | Sai com código 1 se uma regressão desta severidade ou superior for encontrada |
+| `--explain`            | `false` | Fornece uma explicação detalhada para cada regressão                          |
 
 ## Configuração
 
@@ -44,7 +47,7 @@ Consulte o [Guia de Configuração](/pt/configuration/index#configuração-de-di
 ### Verificar contra o branch main no CI/CD
 
 ```bash
-archlint diff origin/main --fail-on medium --explain
+archlint diff origin/main --fail-on low --explain
 ```
 
 ### Verificar contra uma linha de base local

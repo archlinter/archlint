@@ -1,0 +1,390 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Config",
+  "description": "Main configuration structure for archlint. Defines project settings, rules, and framework extensions.",
+  "type": "object",
+  "properties": {
+    "ignore": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "aliases": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "string"
+      }
+    },
+    "entry_points": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "rules": {
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "#/definitions/RuleConfig"
+      }
+    },
+    "overrides": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/Override"
+      }
+    },
+    "scoring": {
+      "$ref": "#/definitions/SeverityConfig"
+    },
+    "watch": {
+      "$ref": "#/definitions/WatchConfig"
+    },
+    "extends": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "framework": {
+      "type": "string"
+    },
+    "auto_detect_framework": {
+      "type": "boolean"
+    },
+    "tsconfig": {
+      "$ref": "#/definitions/TsConfigConfig"
+    },
+    "max_file_size": {
+      "type": "integer",
+      "format": "uint64",
+      "minimum": 0.0
+    },
+    "git": {
+      "$ref": "#/definitions/GitConfig"
+    },
+    "diff": {
+      "$ref": "#/definitions/DiffConfig"
+    }
+  },
+  "definitions": {
+    "RuleConfig": {
+      "description": "Flexible configuration for a single rule.",
+      "anyOf": [
+        {
+          "description": "Short form: just the severity level.",
+          "allOf": [
+            {
+              "$ref": "#/definitions/RuleSeverity"
+            }
+          ]
+        },
+        {
+          "description": "Full form: includes severity, enabled flag, and custom options.",
+          "allOf": [
+            {
+              "$ref": "#/definitions/RuleFullConfig"
+            }
+          ]
+        }
+      ]
+    },
+    "RuleSeverity": {
+      "description": "Severity levels for architectural rules.",
+      "oneOf": [
+        {
+          "description": "Low severity issue.",
+          "type": "string",
+          "enum": [
+            "low"
+          ]
+        },
+        {
+          "description": "Medium severity issue.",
+          "type": "string",
+          "enum": [
+            "medium"
+          ]
+        },
+        {
+          "description": "High severity issue.",
+          "type": "string",
+          "enum": [
+            "high"
+          ]
+        },
+        {
+          "description": "Critical architectural violation.",
+          "type": "string",
+          "enum": [
+            "critical"
+          ]
+        },
+        {
+          "description": "Rule is disabled.",
+          "type": "string",
+          "enum": [
+            "off"
+          ]
+        }
+      ]
+    },
+    "RuleFullConfig": {
+      "description": "Detailed configuration for a single rule.",
+      "type": "object",
+      "properties": {
+        "severity": {
+          "description": "Override the default severity for this rule.",
+          "allOf": [
+            {
+              "$ref": "#/definitions/RuleSeverity"
+            }
+          ]
+        },
+        "enabled": {
+          "description": "Explicitly enable or disable this rule.",
+          "type": "boolean"
+        },
+        "exclude": {
+          "description": "Patterns to exclude from this specific rule.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "Override": {
+      "description": "Configuration overrides for specific file patterns.",
+      "type": "object",
+      "required": [
+        "files",
+        "rules"
+      ],
+      "properties": {
+        "files": {
+          "description": "Files or directories to apply these overrides to (glob patterns).",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "rules": {
+          "description": "Rule configurations to apply as overrides.",
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/definitions/RuleConfig"
+          }
+        }
+      }
+    },
+    "SeverityConfig": {
+      "description": "Configuration for issue scoring and project grading.",
+      "type": "object",
+      "properties": {
+        "weights": {
+          "description": "Weights for each severity level.",
+          "default": {
+            "critical": 100,
+            "high": 50,
+            "low": 5,
+            "medium": 20
+          },
+          "allOf": [
+            {
+              "$ref": "#/definitions/SeverityWeights"
+            }
+          ]
+        },
+        "grade_thresholds": {
+          "description": "Thresholds for calculating the final project grade.",
+          "default": {
+            "excellent": 1.0,
+            "fair": 7.0,
+            "good": 3.0,
+            "moderate": 15.0,
+            "poor": 30.0
+          },
+          "allOf": [
+            {
+              "$ref": "#/definitions/GradeThresholds"
+            }
+          ]
+        },
+        "minimum": {
+          "description": "Minimum severity level to report.",
+          "default": "Low",
+          "allOf": [
+            {
+              "$ref": "#/definitions/Severity"
+            }
+          ]
+        },
+        "minimum_score": {
+          "description": "Minimum score required to report a smell.",
+          "default": null,
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0.0
+        }
+      }
+    },
+    "SeverityWeights": {
+      "description": "Weights assigned to each severity level for score calculation.",
+      "type": "object",
+      "required": [
+        "critical",
+        "high",
+        "low",
+        "medium"
+      ],
+      "properties": {
+        "critical": {
+          "description": "Score weight for Critical issues.",
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0.0
+        },
+        "high": {
+          "description": "Score weight for High issues.",
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0.0
+        },
+        "medium": {
+          "description": "Score weight for Medium issues.",
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0.0
+        },
+        "low": {
+          "description": "Score weight for Low issues.",
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0.0
+        }
+      }
+    },
+    "GradeThresholds": {
+      "description": "Thresholds for project grades based on smell density.",
+      "type": "object",
+      "required": [
+        "excellent",
+        "fair",
+        "good",
+        "moderate",
+        "poor"
+      ],
+      "properties": {
+        "excellent": {
+          "description": "Maximum density for 'Excellent' grade.",
+          "type": "number",
+          "format": "float"
+        },
+        "good": {
+          "description": "Maximum density for 'Good' grade.",
+          "type": "number",
+          "format": "float"
+        },
+        "fair": {
+          "description": "Maximum density for 'Fair' grade.",
+          "type": "number",
+          "format": "float"
+        },
+        "moderate": {
+          "description": "Maximum density for 'Moderate' grade.",
+          "type": "number",
+          "format": "float"
+        },
+        "poor": {
+          "description": "Maximum density for 'Poor' grade.",
+          "type": "number",
+          "format": "float"
+        }
+      }
+    },
+    "Severity": {
+      "type": "string",
+      "enum": [
+        "Low",
+        "Medium",
+        "High",
+        "Critical"
+      ]
+    },
+    "WatchConfig": {
+      "description": "Configuration for the file watcher (watch mode).",
+      "type": "object",
+      "properties": {
+        "debounce_ms": {
+          "description": "Delay in milliseconds before triggering a re-scan after a change.",
+          "default": 300,
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0.0
+        },
+        "clear_screen": {
+          "description": "Whether to clear the terminal screen before each re-scan.",
+          "default": false,
+          "type": "boolean"
+        },
+        "ignore": {
+          "description": "Patterns to ignore during watch mode.",
+          "default": [],
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "TsConfigConfig": {
+      "description": "Configuration options for TypeScript integration.",
+      "anyOf": [
+        {
+          "description": "Enable or disable automatic tsconfig discovery.",
+          "type": "boolean"
+        },
+        {
+          "description": "Use a specific tsconfig file path.",
+          "type": "string"
+        }
+      ]
+    },
+    "GitConfig": {
+      "description": "Configuration for Git-based analysis features.",
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "description": "Whether to enable Git analysis (e.g., for calculating churn).",
+          "default": true,
+          "type": "boolean"
+        },
+        "history_period": {
+          "description": "Time period to look back in Git history (e.g., \"1y\", \"6m\").",
+          "default": "1y",
+          "type": "string"
+        }
+      }
+    },
+    "DiffConfig": {
+      "description": "Configuration for diff command.",
+      "type": "object",
+      "properties": {
+        "metric_threshold_percent": {
+          "description": "Percentage threshold for metric changes to be considered significant.",
+          "default": 5.0,
+          "type": "number",
+          "format": "double"
+        },
+        "line_tolerance": {
+          "description": "Number of lines of tolerance when matching smells by location.",
+          "default": 3,
+          "type": "integer",
+          "format": "uint",
+          "minimum": 0.0
+        }
+      }
+    }
+  }
+}

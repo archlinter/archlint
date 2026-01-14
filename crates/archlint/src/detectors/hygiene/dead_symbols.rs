@@ -47,6 +47,7 @@ impl DeadSymbolsDetector {
             file_symbols,
             &symbol_usages,
             &inheritance_ctx,
+            entry_points,
             ctx,
         ));
         all_smells.extend(Self::check_dead_exports(
@@ -153,6 +154,7 @@ impl DeadSymbolsDetector {
         for (importer_path, symbols) in file_symbols {
             for import in &symbols.imports {
                 let source_path = PathBuf::from(import.source.as_str());
+
                 symbol_usages
                     .entry((source_path, import.name.to_string()))
                     .or_default()
@@ -216,9 +218,11 @@ impl DeadSymbolsDetector {
         file_symbols: &HashMap<PathBuf, FileSymbols>,
         symbol_usages: &HashMap<(PathBuf, String), HashSet<PathBuf>>,
         inheritance_ctx: &InheritanceContext,
+        entry_points: &HashSet<PathBuf>,
         ctx: &AnalysisContext,
     ) -> Vec<ArchSmell> {
         let ignored_methods = Self::build_ignored_methods_set(ctx);
+        let contract_methods = Self::build_contract_methods_map(ctx);
         let mut smells = Vec::new();
 
         for (file_path, symbols) in file_symbols {
@@ -230,12 +234,20 @@ impl DeadSymbolsDetector {
                     file_symbols,
                     symbol_usages,
                     inheritance_ctx,
+                    entry_points,
                     &ignored_methods,
+                    &contract_methods,
                 ));
             }
         }
 
         smells
+    }
+
+    fn build_contract_methods_map(ctx: &AnalysisContext) -> HashMap<String, Vec<String>> {
+        let rule = ctx.resolve_rule("dead_symbols", None);
+        let options = rule.get_option::<HashMap<String, Vec<String>>>("contract_methods");
+        options.unwrap_or_default()
     }
 
     fn build_ignored_methods_set(ctx: &AnalysisContext) -> HashSet<String> {
@@ -252,6 +264,7 @@ impl DeadSymbolsDetector {
         ignored_methods
     }
 
+    #[allow(clippy::too_many_arguments)]
     fn check_class_methods(
         file_path: &Path,
         class: &crate::parser::ClassSymbol,
@@ -259,12 +272,14 @@ impl DeadSymbolsDetector {
         file_symbols: &HashMap<PathBuf, FileSymbols>,
         symbol_usages: &HashMap<(PathBuf, String), HashSet<PathBuf>>,
         inheritance_ctx: &InheritanceContext,
+        entry_points: &HashSet<PathBuf>,
         ignored_methods: &HashSet<String>,
+        contract_methods: &HashMap<String, Vec<String>>,
     ) -> Vec<ArchSmell> {
         let mut smells = Vec::new();
 
         for method in &class.methods {
-            if Self::should_skip_method(method, ignored_methods) {
+            if Self::should_skip_method(method, class, ignored_methods, contract_methods) {
                 continue;
             }
 
@@ -276,6 +291,7 @@ impl DeadSymbolsDetector {
                 file_symbols,
                 symbol_usages,
                 inheritance_ctx,
+                entry_points,
             ) {
                 smells.push(Self::create_dead_method_smell(file_path, class, method));
             }
@@ -286,13 +302,35 @@ impl DeadSymbolsDetector {
 
     fn should_skip_method(
         method: &crate::parser::MethodSymbol,
+        class: &crate::parser::ClassSymbol,
         ignored_methods: &HashSet<String>,
+        contract_methods: &HashMap<String, Vec<String>>,
     ) -> bool {
-        ignored_methods.contains(method.name.as_str())
+        if ignored_methods.contains(method.name.as_str())
             || method.has_decorators
             || method.is_accessor
+        {
+            return true;
+        }
+
+        for interface in &class.implements {
+            let interface_name = if let Some(dot_pos) = interface.rfind('.') {
+                &interface[dot_pos + 1..]
+            } else {
+                interface.as_str()
+            };
+
+            if let Some(methods) = contract_methods.get(interface_name) {
+                if methods.iter().any(|m| m == method.name.as_str()) {
+                    return true;
+                }
+            }
+        }
+
+        false
     }
 
+    #[allow(clippy::too_many_arguments)]
     fn is_method_used(
         method: &crate::parser::MethodSymbol,
         file_path: &Path,
@@ -301,8 +339,16 @@ impl DeadSymbolsDetector {
         file_symbols: &HashMap<PathBuf, FileSymbols>,
         symbol_usages: &HashMap<(PathBuf, String), HashSet<PathBuf>>,
         inheritance_ctx: &InheritanceContext,
+        entry_points: &HashSet<PathBuf>,
     ) -> bool {
         if symbols.local_usages.contains(method.name.as_str()) {
+            return true;
+        }
+
+        // If class itself is defined in entry point, all non-private methods are considered used
+        if method.accessibility != Some(MethodAccessibility::Private)
+            && entry_points.contains(file_path)
+        {
             return true;
         }
 
@@ -330,6 +376,7 @@ impl DeadSymbolsDetector {
                 file_symbols,
                 symbol_usages,
                 inheritance_ctx,
+                entry_points,
             )
         {
             return true;
@@ -345,11 +392,17 @@ impl DeadSymbolsDetector {
         file_symbols: &HashMap<PathBuf, FileSymbols>,
         symbol_usages: &HashMap<(PathBuf, String), HashSet<PathBuf>>,
         inheritance_ctx: &InheritanceContext,
+        entry_points: &HashSet<PathBuf>,
     ) -> bool {
         let all_importers =
             Self::collect_class_importers(file_path, class, symbol_usages, inheritance_ctx);
 
         for importer_path in all_importers {
+            // If importer is an entry point, we consider non-private methods as used (part of public API)
+            if entry_points.contains(&importer_path) {
+                return true;
+            }
+
             if let Some(importer_symbols) = file_symbols.get(&importer_path) {
                 if importer_symbols.local_usages.contains(method.name.as_str()) {
                     return true;
@@ -906,5 +959,149 @@ mod tests {
             }
         });
         assert!(child_unused_dead, "Child.unusedMethod should be dead");
+    }
+
+    #[test]
+    fn test_contract_methods_skip() {
+        let code = r#"
+            export class ThrottlerConfig implements ThrottlerOptionsFactory {
+                createThrottlerOptions() { return {}; }
+                unusedMethod() { return 1; }
+            }
+        "#;
+        let path = PathBuf::from("config.ts");
+        let parser = ImportParser::new().unwrap();
+        let parsed = parser.parse_code(code, &path).unwrap();
+
+        let mut file_symbols = HashMap::new();
+        file_symbols.insert(path.clone(), parsed.symbols);
+
+        let mut ctx = AnalysisContext::default_for_test();
+        ctx.file_symbols = Arc::new(file_symbols);
+
+        // Setup config with contract_methods
+        let mut options = serde_yaml::Mapping::new();
+        let mut contract_methods = serde_yaml::Mapping::new();
+        contract_methods.insert(
+            serde_yaml::Value::String("ThrottlerOptionsFactory".to_string()),
+            serde_yaml::Value::Sequence(vec![serde_yaml::Value::String(
+                "createThrottlerOptions".to_string(),
+            )]),
+        );
+        options.insert(
+            serde_yaml::Value::String("contract_methods".to_string()),
+            serde_yaml::Value::Mapping(contract_methods),
+        );
+
+        ctx.config.rules.insert(
+            "dead_symbols".to_string(),
+            crate::config::RuleConfig::Full(crate::config::RuleFullConfig {
+                enabled: Some(true),
+                severity: None,
+                exclude: vec![],
+                options: serde_yaml::Value::Mapping(options),
+            }),
+        );
+
+        let detector = DeadSymbolsDetector;
+        let smells = detector.detect(&ctx);
+
+        let contract_smell = smells.iter().find(|s| {
+            if let crate::detectors::SmellType::DeadSymbol { name, .. } = &s.smell_type {
+                name.contains("createThrottlerOptions")
+            } else {
+                false
+            }
+        });
+        assert!(contract_smell.is_none(), "Contract method should be alive");
+
+        let unused_smell = smells.iter().find(|s| {
+            if let crate::detectors::SmellType::DeadSymbol { name, .. } = &s.smell_type {
+                name.contains("unusedMethod")
+            } else {
+                false
+            }
+        });
+        assert!(
+            unused_smell.is_some(),
+            "Normal unused method should be dead"
+        );
+    }
+
+    #[test]
+    fn test_config_merging_contract_methods() {
+        use crate::config::{Config, RuleConfig, RuleFullConfig};
+        use serde_yaml::{Mapping, Value};
+
+        let mut user_config = Config::default();
+        let mut user_options = Mapping::new();
+        let mut user_contracts = Mapping::new();
+        user_contracts.insert(
+            Value::String("ThrottlerOptionsFactory".to_string()),
+            Value::Sequence(vec![Value::String("createThrottlerOptions".to_string())]),
+        );
+        user_options.insert(
+            Value::String("contract_methods".to_string()),
+            Value::Mapping(user_contracts),
+        );
+        user_config.rules.insert(
+            "dead_symbols".to_string(),
+            RuleConfig::Full(RuleFullConfig {
+                options: Value::Mapping(user_options),
+                ..Default::default()
+            }),
+        );
+
+        let mut preset_options = Mapping::new();
+        let mut preset_contracts = Mapping::new();
+        preset_contracts.insert(
+            Value::String("OnModuleInit".to_string()),
+            Value::Sequence(vec![Value::String("onModuleInit".to_string())]),
+        );
+        preset_options.insert(
+            Value::String("contract_methods".to_string()),
+            Value::Mapping(preset_contracts),
+        );
+        let preset_rules = vec![(
+            "dead_symbols".to_string(),
+            RuleConfig::Full(RuleFullConfig {
+                options: Value::Mapping(preset_options),
+                ..Default::default()
+            }),
+        )]
+        .into_iter()
+        .collect();
+
+        let preset = crate::framework::presets::FrameworkPreset {
+            name: "nestjs".to_string(),
+            rules: preset_rules,
+            entry_points: vec![],
+            overrides: vec![],
+        };
+
+        user_config.merge_preset(&preset);
+
+        // Check if merged correctly
+        let rule = user_config.rules.get("dead_symbols").unwrap();
+        if let RuleConfig::Full(full) = rule {
+            let contracts: HashMap<String, Vec<String>> = serde_yaml::from_value(
+                full.options
+                    .as_mapping()
+                    .unwrap()
+                    .get(Value::String("contract_methods".to_string()))
+                    .unwrap()
+                    .clone(),
+            )
+            .unwrap();
+
+            assert!(contracts.contains_key("ThrottlerOptionsFactory"));
+            assert!(contracts.contains_key("OnModuleInit"));
+            assert_eq!(
+                contracts.get("ThrottlerOptionsFactory").unwrap(),
+                &vec!["createThrottlerOptions".to_string()]
+            );
+        } else {
+            panic!("Expected Full config");
+        }
     }
 }

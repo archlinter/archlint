@@ -1,3 +1,4 @@
+use crate::framework::presets::FrameworkPreset;
 use crate::tsconfig::{CompilerOptions, TsConfig};
 use crate::Result;
 use std::collections::hash_map::Entry;
@@ -8,9 +9,88 @@ pub mod types;
 pub use types::*;
 
 impl Config {
+    /// Merges a framework preset into the current configuration.
+    pub fn merge_preset(&mut self, preset: &FrameworkPreset) {
+        for (rule_name, preset_rule) in &preset.rules {
+            let user_rule = self.rules.entry(rule_name.clone()).or_insert_with(|| {
+                // If rule is not present, just use the preset rule
+                preset_rule.clone()
+            });
+
+            if let RuleConfig::Full(preset_full) = preset_rule {
+                match user_rule {
+                    RuleConfig::Full(user_full) => {
+                        Self::merge_options(&mut user_full.options, &preset_full.options);
+                    }
+                    RuleConfig::Short(severity) => {
+                        // Upgrade Short to Full, preserving user severity but applying preset options
+                        *user_rule = RuleConfig::Full(RuleFullConfig {
+                            severity: Some(*severity),
+                            options: preset_full.options.clone(),
+                            ..Default::default()
+                        });
+                    }
+                }
+            }
+        }
+
+        for pattern in &preset.entry_points {
+            if !self.entry_points.contains(pattern) {
+                self.entry_points.push(pattern.clone());
+            }
+        }
+
+        for ov in &preset.overrides {
+            if !self.overrides.contains(ov) {
+                self.overrides.push(ov.clone());
+            }
+        }
+    }
+
+    fn merge_options(user_options: &mut serde_yaml::Value, preset_options: &serde_yaml::Value) {
+        if user_options.is_null() {
+            *user_options = preset_options.clone();
+            return;
+        }
+
+        if let (Some(user_map), Some(preset_map)) =
+            (user_options.as_mapping_mut(), preset_options.as_mapping())
+        {
+            for (key, preset_val) in preset_map {
+                if !user_map.contains_key(key) {
+                    user_map.insert(key.clone(), preset_val.clone());
+                } else {
+                    let user_val = user_map.get_mut(key).unwrap();
+                    if user_val.is_mapping() && preset_val.is_mapping() {
+                        Self::merge_options(user_val, preset_val);
+                    } else {
+                        Self::merge_sequences(user_val, preset_val);
+                    }
+                }
+            }
+        }
+    }
+
+    fn merge_sequences(user_val: &mut serde_yaml::Value, preset_val: &serde_yaml::Value) {
+        if let (Some(user_seq), Some(preset_seq)) =
+            (user_val.as_sequence_mut(), preset_val.as_sequence())
+        {
+            for item in preset_seq {
+                if !user_seq.contains(item) {
+                    user_seq.push(item.clone());
+                }
+            }
+        }
+    }
     pub fn load<P: AsRef<Path>>(path: P) -> Result<Self> {
         let contents = fs::read_to_string(path)?;
-        let config: Config = serde_yaml::from_str(&contents)?;
+        let mut config: Config = serde_yaml::from_str(&contents)?;
+
+        // If extends is explicitly set (even as empty array), disable auto_detect_framework
+        if config.extends.is_some() {
+            config.auto_detect_framework = false;
+        }
+
         Ok(config)
     }
 

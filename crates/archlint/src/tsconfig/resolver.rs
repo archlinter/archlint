@@ -6,9 +6,6 @@ pub struct TsConfigResolver;
 
 impl TsConfigResolver {
     /// Parses a package specifier into a package name and an optional subpath.
-    ///
-    /// Handles scoped packages (e.g., `@scope/pkg/path`) and regular packages.
-    /// If a specifier starts with `@` but is malformed, it falls back to regular parsing.
     pub fn parse_package_specifier(specifier: &str) -> (String, Option<&str>) {
         if specifier.starts_with('@') {
             let parts: Vec<&str> = specifier.splitn(3, '/').collect();
@@ -55,21 +52,25 @@ impl TsConfigResolver {
         let sub_with_dot = format!("./{}", subpath);
 
         let target = exports.get(&sub_with_dot)?;
+        Self::resolve_conditional_export(target).map(|s| pkg_dir.join(s))
+    }
 
-        // Handle both string and conditional export objects
-        let target_str = if let Some(s) = target.as_str() {
-            Some(s)
-        } else if let Some(obj) = target.as_object() {
-            // Try common conditions: types, default, require, import
-            obj.get("types")
-                .or_else(|| obj.get("default"))
-                .or_else(|| obj.get("require"))
-                .or_else(|| obj.get("import"))
-                .and_then(|v| v.as_str())
-        } else {
-            None
-        }?;
-
-        Some(pkg_dir.join(target_str))
+    fn resolve_conditional_export(value: &Value) -> Option<String> {
+        match value {
+            Value::String(s) => Some(s.clone()),
+            Value::Object(obj) => {
+                // Priority keys for TypeScript resolution
+                let priority_keys = ["types", "import", "require", "default"];
+                for key in priority_keys {
+                    if let Some(inner) = obj.get(key) {
+                        if let Some(resolved) = Self::resolve_conditional_export(inner) {
+                            return Some(resolved);
+                        }
+                    }
+                }
+                None
+            }
+            _ => None,
+        }
     }
 }

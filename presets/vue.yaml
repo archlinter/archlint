@@ -1,0 +1,28 @@
+name: vue
+description: Vue.js - The Progressive JavaScript Framework
+version: 1
+detect:
+  packages:
+    any_of: ['vue', 'nuxt']
+rules:
+  layer_violation: high
+  vendor_coupling:
+    ignore_packages:
+      - 'vue'
+      - 'vuex'
+      - 'pinia'
+      - 'vue-router'
+entry_points:
+  - '**/*.vue'
+  - '**/store/**'
+  - '**/router/**'
+  - '**/*.store.ts'
+  - '**/*.router.ts'
+overrides:
+  - files: ['**/store/**', '**/*.store.ts']
+    rules:
+      high_coupling: off
+      lcom: off
+  - files: ['**/router/**', '**/*.router.ts']
+    rules:
+      lcom: off

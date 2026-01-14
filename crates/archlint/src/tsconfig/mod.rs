@@ -3,10 +3,9 @@ use std::collections::HashSet;
 use std::fs;
 use std::path::{Path, PathBuf};
 
-mod resolver;
+pub mod resolver;
 pub mod types;
 
-use resolver::TsConfigResolver;
 pub use types::*;
 
 impl TsConfig {
@@ -88,7 +87,8 @@ impl TsConfig {
     }
 
     fn resolve_node_modules_path(base_dir: &Path, specifier: &str) -> Option<PathBuf> {
-        let (package_name, subpath) = TsConfigResolver::parse_package_specifier(specifier);
+        let (package_name, subpath) =
+            resolver::TsConfigResolver::parse_package_specifier(specifier);
 
         log::trace!(
             "Resolving tsconfig extends: {} (package: {}, subpath: {:?}) from {:?}",
@@ -101,26 +101,25 @@ impl TsConfig {
         base_dir.ancestors().find_map(|dir| {
             let pkg_dir = dir.join("node_modules").join(&package_name);
             if pkg_dir.is_dir() {
-                Self::resolve_in_package(&pkg_dir, subpath)
+                Self::resolve_in_pkg_dir(&pkg_dir, subpath)
             } else {
                 None
             }
         })
     }
 
-    fn resolve_in_package(pkg_dir: &Path, subpath: Option<&str>) -> Option<PathBuf> {
-        // 1. Try resolving through package.json's "tsconfig" field if it's a bare package import
-        if subpath.is_none() {
-            if let Some(path) = TsConfigResolver::resolve_via_package_json_field(pkg_dir) {
+    fn resolve_in_pkg_dir(pkg_dir: &Path, subpath: Option<&str>) -> Option<PathBuf> {
+        if let Some(sub) = subpath {
+            // 1. Try resolving through package.json's "exports" field if it's a subpath
+            if let Some(path) = resolver::TsConfigResolver::resolve_via_exports(pkg_dir, sub) {
                 if let Some(resolved) = Self::resolve_path_with_fallbacks(path) {
                     return Some(resolved);
                 }
             }
-        }
-
-        // 2. Try resolving through package.json's "exports" field if it's a subpath
-        if let Some(sub) = subpath {
-            if let Some(path) = TsConfigResolver::resolve_via_exports(pkg_dir, sub) {
+        } else {
+            // 2. Try resolving through package.json's "tsconfig" field if it's a bare package import
+            if let Some(path) = resolver::TsConfigResolver::resolve_via_package_json_field(pkg_dir)
+            {
                 if let Some(resolved) = Self::resolve_path_with_fallbacks(path) {
                     return Some(resolved);
                 }
@@ -128,9 +127,11 @@ impl TsConfig {
         }
 
         // 3. Fallback to direct resolution or subpath resolution
-        let target_path = subpath
-            .map(|sub| pkg_dir.join(sub))
-            .unwrap_or_else(|| pkg_dir.to_path_buf());
+        let target_path = match subpath {
+            Some(sub) => pkg_dir.join(sub),
+            None => pkg_dir.to_path_buf(),
+        };
+
         Self::resolve_path_with_fallbacks(target_path)
     }
 
@@ -143,10 +144,9 @@ impl TsConfig {
                 .merge(parent_opts);
         }
 
-        // Merge excludes while preserving order and avoiding duplicates.
-        // Child excludes come first, then parent excludes.
+        let mut seen: HashSet<_> = self.exclude.iter().cloned().collect();
         for ex in parent.exclude {
-            if !self.exclude.contains(&ex) {
+            if seen.insert(ex.clone()) {
                 self.exclude.push(ex);
             }
         }

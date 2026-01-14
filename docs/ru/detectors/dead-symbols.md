@@ -12,6 +12,21 @@
 
 Удалите неиспользуемые символы.
 
+## Конфигурация
+
+```yaml
+rules:
+  dead_symbols:
+    severity: low
+    # Список имен методов, которые следует игнорировать (например, методы жизненного цикла)
+    ignore_methods:
+      - 'constructor'
+    # Карта методов интерфейсов/классов, которые следует игнорировать при реализации
+    contract_methods:
+      MyInterface: ['method1', 'method2']
+      ValidatorConstraintInterface: ['validate', 'defaultMessage']
+```
+
 ## ESLint правило
 
 Этот детектор доступен как правило ESLint для получения обратной связи в реальном времени.
@@ -28,17 +43,3 @@ export default [
 ```
 
 Смотрите [Интеграция с ESLint](/ru/integrations/eslint) для инструкций по настройке.
-
-## Конфигурация
-
-```yaml
-rules:
-  dead_symbols:
-    severity: low
-    ignore_methods: []
-    exclude: []
-```
-
-### Параметры по умолчанию
-
-- `ignore_methods`: `[]` - список имен методов, которые следует игнорировать при проверке (например, методы жизненного цикла React)

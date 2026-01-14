@@ -421,7 +421,22 @@ impl AnalysisReport {
     ) -> Result<()> {
         let mut table = Self::create_table_header();
         let mut sorted_smells = self.smells.clone();
-        sorted_smells.sort_by(|(a, _), (b, _)| b.severity.cmp(&a.severity));
+        sorted_smells.sort_by(|(a, _), (b, _)| {
+            // First, sort by severity (descending)
+            match b.severity.cmp(&a.severity) {
+                std::cmp::Ordering::Equal => {
+                    // For equal severity, sort by smell_type, then files, then locations
+                    match a.smell_type.cmp(&b.smell_type) {
+                        std::cmp::Ordering::Equal => match a.files.cmp(&b.files) {
+                            std::cmp::Ordering::Equal => a.locations.cmp(&b.locations),
+                            ord => ord,
+                        },
+                        ord => ord,
+                    }
+                }
+                ord => ord,
+            }
+        });
 
         let canonical_scan_root = Self::get_canonical_scan_root(scan_root);
 

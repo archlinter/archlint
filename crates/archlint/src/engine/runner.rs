@@ -1,8 +1,8 @@
-use crate::args::{Language, ScanArgs};
+use crate::args::ScanArgs;
 use crate::cache::hash::file_content_hash;
 use crate::cache::AnalysisCache;
-use crate::config::{Config, RuleConfig};
-use crate::detectors::{self, Severity, SmellType};
+use crate::config::Config;
+use crate::detectors::{self, Severity};
 use crate::engine::builder::EngineBuilder;
 use crate::engine::detector_runner::{apply_arg_overrides, DetectorRunner};
 use crate::engine::progress::{
@@ -150,11 +150,6 @@ impl AnalysisEngine {
                     return false;
                 }
 
-                // Clones are special: we want to see them even if they touch ignored files
-                if matches!(smell.smell_type, SmellType::CodeClone { .. }) {
-                    return true;
-                }
-
                 // Keep the smell if at least one of the files it's associated with is NOT ignored via config
                 smell.files.is_empty() || smell.files.iter().any(|f| !self.is_file_ignored(f))
             })
@@ -200,21 +195,36 @@ impl AnalysisEngine {
     }
 
     fn load_explicit_presets(&self, presets: &mut Vec<FrameworkPreset>) -> Result<()> {
-        for preset_name in &self.config.extends {
-            match PresetLoader::load_any(preset_name) {
-                Ok(p) => presets.push(p),
-                Err(e) => {
-                    return Err(
-                        anyhow::anyhow!("Failed to load preset '{}': {}", preset_name, e).into(),
-                    );
+        if let Some(ref extends) = self.config.extends {
+            for preset_name in extends {
+                match PresetLoader::load_any(preset_name) {
+                    Ok(p) => presets.push(p),
+                    Err(e) => {
+                        return Err(anyhow::anyhow!(
+                            "Failed to load preset '{}': {}",
+                            preset_name,
+                            e
+                        )
+                        .into());
+                    }
                 }
             }
         }
 
         if let Some(ref fw) = self.config.framework {
-            if !self.config.extends.contains(fw) {
-                if let Ok(p) = PresetLoader::load_any(fw) {
-                    presets.push(p);
+            let already_loaded = self
+                .config
+                .extends
+                .as_ref()
+                .map(|e| e.contains(fw))
+                .unwrap_or(false);
+
+            if !already_loaded {
+                match PresetLoader::load_any(fw) {
+                    Ok(p) => presets.push(p),
+                    Err(e) => {
+                        log::warn!("Failed to load framework preset '{}': {}", fw, e);
+                    }
                 }
             }
         }
@@ -233,12 +243,12 @@ impl AnalysisEngine {
         }
 
         info!(
-            "{}  Detected frameworks: {}",
+            "{} Detected frameworks: {}",
             style("🛠️").magenta().bold(),
             style(
                 detected
                     .iter()
-                    .map(|f| format!("{:?}", f))
+                    .map(|f| f.to_string())
                     .collect::<Vec<_>>()
                     .join(", ")
             )
@@ -246,15 +256,15 @@ impl AnalysisEngine {
         );
 
         for fw in &detected {
-            let name = match fw {
-                Framework::NestJS => "nestjs",
-                Framework::NextJS => "nextjs",
-                Framework::React => "react",
-                Framework::Oclif => "oclif",
-                _ => continue,
-            };
-            if !self.config.extends.contains(&name.to_string()) {
-                if let Ok(p) = PresetLoader::load_builtin(name) {
+            let already_loaded = self
+                .config
+                .extends
+                .as_ref()
+                .map(|e| e.contains(&fw.0))
+                .unwrap_or(false);
+
+            if !already_loaded {
+                if let Ok(p) = PresetLoader::load_builtin(&fw.0) {
                     presets.push(p);
                 }
             }
@@ -277,10 +287,10 @@ impl AnalysisEngine {
     }
 
     fn discover_files(&self) -> Result<Vec<PathBuf>> {
-        let extensions = match self.args.lang {
-            Language::TypeScript => vec!["ts".to_string(), "tsx".to_string()],
-            Language::JavaScript => vec!["js".to_string(), "jsx".to_string()],
-        };
+        let extensions = crate::args::SUPPORTED_EXTENSIONS
+            .iter()
+            .map(|&e| e.to_string())
+            .collect();
 
         let all_files = if let Some(ref explicit_files) = self.args.files {
             explicit_files.clone()
@@ -340,68 +350,12 @@ impl AnalysisEngine {
         })
     }
 
-    fn apply_presets(&self, presets: &[FrameworkPreset]) -> Config {
+    pub fn apply_presets(&self, presets: &[FrameworkPreset]) -> Config {
         let mut final_config = self.config.clone();
         for preset in presets {
-            self.merge_preset_into_config(&mut final_config, preset);
+            final_config.merge_preset(preset);
         }
         final_config
-    }
-
-    fn merge_preset_into_config(&self, config: &mut Config, preset: &FrameworkPreset) {
-        for (rule_name, preset_rule) in &preset.rules {
-            let user_rule = config
-                .rules
-                .entry(rule_name.clone())
-                .or_insert_with(|| preset_rule.clone());
-
-            if let (RuleConfig::Full(preset_full), RuleConfig::Full(user_rule_full)) =
-                (preset_rule, user_rule)
-            {
-                Self::merge_options(&mut user_rule_full.options, &preset_full.options);
-            }
-        }
-
-        for pattern in &preset.entry_points {
-            if !config.entry_points.contains(pattern) {
-                config.entry_points.push(pattern.clone());
-            }
-        }
-
-        for ov in &preset.overrides {
-            if !config.overrides.contains(ov) {
-                config.overrides.push(ov.clone());
-            }
-        }
-    }
-
-    fn merge_options(user_options: &mut serde_yaml::Value, preset_options: &serde_yaml::Value) {
-        let (Some(user_map), Some(preset_map)) =
-            (user_options.as_mapping_mut(), preset_options.as_mapping())
-        else {
-            return;
-        };
-
-        for (key, preset_val) in preset_map {
-            if !user_map.contains_key(key) {
-                user_map.insert(key.clone(), preset_val.clone());
-            } else {
-                let user_val = user_map.get_mut(key).unwrap();
-                Self::merge_sequences(user_val, preset_val);
-            }
-        }
-    }
-
-    fn merge_sequences(user_val: &mut serde_yaml::Value, preset_val: &serde_yaml::Value) {
-        if let (Some(user_seq), Some(preset_seq)) =
-            (user_val.as_sequence_mut(), preset_val.as_sequence())
-        {
-            for item in preset_seq {
-                if !user_seq.contains(item) {
-                    user_seq.push(item.clone());
-                }
-            }
-        }
     }
 
     fn load_cache(&self) -> Result<Option<AnalysisCache>> {

@@ -24,7 +24,7 @@ archlintは単に問題をカウントするだけではありません。アー
 
 | オプション             | デフォルト | 説明                                                                        |
 | ---------------------- | ---------- | --------------------------------------------------------------------------- |
-| `--fail-on <severity>` | `medium`   | この重要度以上の回帰（regression）が見つかった場合、終了コード1で終了します |
+| `--fail-on <severity>` | `low`      | この重要度以上の回帰（regression）が見つかった場合、終了コード1で終了します |
 | `--explain`            | `false`    | 各回帰について詳細な説明を提供します                                        |
 
 ## 設定
@@ -44,7 +44,7 @@ diff:
 ### CIでmainブランチに対してチェックする
 
 ```bash
-archlint diff origin/main --fail-on medium --explain
+archlint diff origin/main --fail-on low --explain
 ```
 
 ### ローカルのベースラインに対してチェックする

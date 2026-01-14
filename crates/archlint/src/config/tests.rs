@@ -5,28 +5,38 @@ use tempfile::tempdir;
 fn test_deserialize_extends_single_string() {
     let yaml = "extends: nestjs";
     let config: Config = serde_yaml::from_str(yaml).unwrap();
-    assert_eq!(config.extends, vec!["nestjs"]);
+    assert_eq!(config.extends, Some(vec!["nestjs".to_string()]));
 }
 
 #[test]
 fn test_deserialize_extends_list() {
     let yaml = "extends:\n  - nestjs\n  - react";
     let config: Config = serde_yaml::from_str(yaml).unwrap();
-    assert_eq!(config.extends, vec!["nestjs", "react"]);
+    assert_eq!(
+        config.extends,
+        Some(vec!["nestjs".to_string(), "react".to_string()])
+    );
 }
 
 #[test]
 fn test_deserialize_extends_missing() {
     let yaml = "{}";
     let config: Config = serde_yaml::from_str(yaml).unwrap();
-    assert!(config.extends.is_empty());
+    assert!(config.extends.is_none());
 }
 
 #[test]
 fn test_deserialize_extends_null() {
     let yaml = "extends: null";
     let config: Config = serde_yaml::from_str(yaml).unwrap();
-    assert!(config.extends.is_empty());
+    assert!(config.extends.is_none());
+}
+
+#[test]
+fn test_deserialize_extends_empty_array() {
+    let yaml = "extends: []";
+    let config: Config = serde_yaml::from_str(yaml).unwrap();
+    assert_eq!(config.extends, Some(Vec::new()));
 }
 
 #[test]
@@ -196,4 +206,80 @@ fn test_enrich_from_tsconfig_real_project_structure() -> Result<()> {
     assert!(config.ignore.contains(&"**/dist/**".to_string()));
 
     Ok(())
+}
+
+#[test]
+fn sync_config_schema() -> anyhow::Result<()> {
+    use schemars::gen::SchemaSettings;
+    use std::env;
+    use std::fs;
+    use std::path::PathBuf;
+
+    let settings = SchemaSettings::draft07().with(|s| {
+        s.option_add_null_type = false;
+    });
+    let gen = settings.into_generator();
+    let schema = gen.into_root_schema_for::<Config>();
+    let mut schema_json = serde_json::to_string_pretty(&schema)?;
+    schema_json.push('\n');
+
+    let mut schema_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+    schema_path.push("../../resources/archlint.schema.json");
+
+    if env::var("UPDATE_SCHEMA").is_ok() {
+        if let Some(parent) = schema_path.parent() {
+            fs::create_dir_all(parent)?;
+        }
+        fs::write(&schema_path, schema_json)?;
+    } else {
+        let existing_schema = fs::read_to_string(&schema_path).unwrap_or_default();
+        if existing_schema != schema_json {
+            panic!(
+                "Config schema is out of sync! Run 'UPDATE_SCHEMA=1 cargo test config::tests::sync_config_schema' to update.\n\
+                 Path: {:?}",
+                schema_path
+            );
+        }
+    }
+
+    Ok(())
+}
+
+#[test]
+fn test_auto_detect_framework_disabled_when_extends_present() {
+    use std::fs;
+    let dir = tempdir().unwrap();
+    let config_path = dir.path().join(".archlint.yaml");
+
+    // Config with extends should auto-disable auto_detect_framework
+    fs::write(&config_path, "extends:\n  - nestjs\n  - class-validator\n").unwrap();
+
+    let config = Config::load(&config_path).unwrap();
+    assert!(!config.auto_detect_framework);
+}
+
+#[test]
+fn test_auto_detect_framework_disabled_when_extends_empty() {
+    use std::fs;
+    let dir = tempdir().unwrap();
+    let config_path = dir.path().join(".archlint.yaml");
+
+    // Config with empty extends should also disable auto_detect_framework
+    fs::write(&config_path, "extends: []\n").unwrap();
+
+    let config = Config::load(&config_path).unwrap();
+    assert!(!config.auto_detect_framework);
+}
+
+#[test]
+fn test_auto_detect_framework_enabled_when_extends_absent() {
+    use std::fs;
+    let dir = tempdir().unwrap();
+    let config_path = dir.path().join(".archlint.yaml");
+
+    // Config without extends should keep auto_detect_framework = true (default)
+    fs::write(&config_path, "rules:\n  dead_symbols: high\n").unwrap();
+
+    let config = Config::load(&config_path).unwrap();
+    assert!(config.auto_detect_framework);
 }

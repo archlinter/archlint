@@ -7,6 +7,10 @@ description: Explore 28+ architecture smell detectors in archlint, including cyc
 
 archlint comes with 28+ built-in detectors categorized by the type of architectural or code quality issue they identify.
 
+::: tip
+**False Positives**: Architectural analysis can sometimes produce false positives, especially in projects with heavy dynamic loading, reflection, or complex Dependency Injection containers.
+:::
+
 ## Dependency Issues
 
 | Detector                                      | ID                   | Description                                | Default |

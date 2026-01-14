@@ -16,14 +16,16 @@ path = "src/lib.rs"
 
 [features]
 default = ["cli"]
-cli = ["dep:clap", "dep:clap_complete", "dep:indicatif", "dep:console", "dep:comfy-table"]
+cli = ["dep:clap", "dep:clap_complete", "dep:indicatif", "dep:console", "dep:comfy-table", "dep:cliclack"]
 
 [dependencies]
 clap = { workspace = true, optional = true }
 clap_complete = { workspace = true, optional = true }
+cliclack = { workspace = true, optional = true }
 serde.workspace = true
 serde_json.workspace = true
 serde_yaml.workspace = true
+schemars.workspace = true
 thiserror.workspace = true
 anyhow.workspace = true
 log.workspace = true
@@ -42,6 +44,7 @@ compact_str.workspace = true
 smallvec.workspace = true
 mimalloc.workspace = true
 memchr.workspace = true
+include_dir.workspace = true
 
 ignore.workspace = true
 glob.workspace = true

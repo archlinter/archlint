@@ -147,16 +147,12 @@ impl<'a> DetectorRunner<'a> {
 pub fn apply_arg_overrides(args: &ScanArgs, config: &mut Config) {
     if let Some(ref detectors) = args.detectors {
         for id in detectors.split(',').map(|s| s.trim()) {
-            config
-                .rules
-                .insert(id.to_string(), RuleConfig::Short(RuleSeverity::High));
+            override_rule(config, id, RuleSeverity::High, true);
         }
     }
     if let Some(ref exclude) = args.exclude_detectors {
         for id in exclude.split(',').map(|s| s.trim()) {
-            config
-                .rules
-                .insert(id.to_string(), RuleConfig::Short(RuleSeverity::Off));
+            override_rule(config, id, RuleSeverity::Off, false);
         }
     }
 
@@ -170,4 +166,20 @@ pub fn apply_arg_overrides(args: &ScanArgs, config: &mut Config) {
     if let Some(max_size) = args.max_file_size {
         config.max_file_size = max_size;
     }
+}
+
+fn override_rule(config: &mut Config, id: &str, severity: RuleSeverity, enabled: bool) {
+    config
+        .rules
+        .entry(id.to_string())
+        .and_modify(|rule| match rule {
+            RuleConfig::Full(ref mut full) => {
+                full.severity = Some(severity);
+                full.enabled = Some(enabled);
+            }
+            RuleConfig::Short(_) => {
+                *rule = RuleConfig::Short(severity);
+            }
+        })
+        .or_insert(RuleConfig::Short(severity));
 }

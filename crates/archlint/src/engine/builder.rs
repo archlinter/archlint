@@ -97,12 +97,10 @@ impl<'a> EngineBuilder<'a> {
         runtime_files: &HashSet<PathBuf>,
         file_symbols: &HashMap<PathBuf, FileSymbols>,
     ) -> Result<usize> {
-        let Some(from_node) = graph.get_node(file) else {
-            return Ok(0);
-        };
-        let Some(symbols) = file_symbols.get(file) else {
-            return Ok(0);
-        };
+        let from_node = graph.get_node(file).expect("file should exist in graph");
+        let symbols = file_symbols
+            .get(file)
+            .expect("file should have parsed symbols");
         let mut count = 0;
 
         for import in &symbols.imports {
@@ -168,7 +166,7 @@ impl<'a> EngineBuilder<'a> {
                     import.source = resolved.to_string_lossy().to_string().into();
                 }
                 Ok(None) => {
-                    log::debug!("Could not resolve import '{}' in {:?}", import.source, file);
+                    log::trace!("Could not resolve import '{}' in {:?}", import.source, file);
                 }
                 Err(e) => {
                     log::debug!(
@@ -187,11 +185,11 @@ impl<'a> EngineBuilder<'a> {
                         export.source = Some(resolved.to_string_lossy().to_string().into());
                     }
                     Ok(None) => {
-                        log::debug!("Could not resolve export source '{}' in {:?}", source, file);
+                        log::trace!("Could not resolve re-export '{}' in {:?}", source, file);
                     }
                     Err(e) => {
                         log::debug!(
-                            "Error resolving export source '{}' in {:?}: {}",
+                            "Error resolving re-export '{}' in {:?}: {}",
                             source,
                             file,
                             e

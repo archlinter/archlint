@@ -5,6 +5,7 @@ use std::collections::HashMap;
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PresetYaml {
     pub name: String,
+    pub description: Option<String>,
     pub version: u32,
     #[serde(default)]
     pub detect: DetectRules,

@@ -7,6 +7,10 @@ description: Explore mais de 28 detectores de code smells de arquitetura no `arc
 
 O `archlint` vem com mais de 28 detectores integrados categorizados pelo tipo de problema arquitetural ou de qualidade de código que identificam.
 
+::: tip
+**Falsos Positivos**: A análise arquitetural pode, às vezes, produzir falsos positivos, especialmente em projetos com carregamento dinâmico pesado, reflexão ou contêineres complexos de Injeção de Dependência (DI).
+:::
+
 ## Problemas de Dependência
 
 | Detector                                             | ID                   | Descrição                                       | Padrão |
