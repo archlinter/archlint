@@ -9,7 +9,7 @@ use std::path::PathBuf;
 pub fn init() {}
 
 #[detector(
-    id = "orphan_types",
+    smell_type = OrphanType,
     name = "Orphan Types Detector",
     description = "Detects exported types or interfaces that are never used",
     category = DetectorCategory::Global
@@ -57,23 +57,23 @@ impl OrphanTypesDetector {
 impl Detector for OrphanTypesDetector {
     crate::impl_detector_report!(
         name: "OrphanTypes",
-        explain: smell => {
-            let name = match &smell.smell_type {
-                crate::detectors::SmellType::OrphanType { name } => name.clone(),
-                _ => "unknown".to_string(),
-            };
-            crate::detectors::Explanation {
-                problem: format!("Orphan Type `{}` detected", name),
-                reason: "The type or interface is exported but never used by any other module in the codebase.".into(),
-                risks: crate::strings![
-                    "Increased maintenance cost",
-                    "Confusion about the public API"
-                ],
-                recommendations: crate::strings![
-                    "Remove the unused type or interface"
-                ]
-            }
-        },
+        explain: smell => (
+            problem: {
+                let name = match &smell.smell_type {
+                    crate::detectors::SmellType::OrphanType { name } => name.clone(),
+                    _ => "unknown".to_string(),
+                };
+                format!("Orphan Type `{}` detected", name)
+            },
+            reason: "The type or interface is exported but never used by any other module in the codebase.",
+            risks: [
+                "Increased maintenance cost",
+                "Confusion about the public API"
+            ],
+            recommendations: [
+                "Remove the unused type or interface"
+            ]
+        ),
         table: {
             title: "Orphan Types",
             columns: ["File", "Type Name", "pts"],

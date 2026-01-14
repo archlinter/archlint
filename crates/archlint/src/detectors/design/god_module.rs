@@ -7,7 +7,7 @@ use crate::engine::AnalysisContext;
 pub fn init() {}
 
 #[detector(
-    id = "god_module",
+    smell_type = GodModule,
     name = "God Module Detector",
     description = "Detects large modules with many incoming and outgoing dependencies",
     category = DetectorCategory::Global
@@ -87,35 +87,31 @@ impl GodModuleDetector {
 impl Detector for GodModuleDetector {
     crate::impl_detector_report!(
         name: "GodModule",
-        explain: smell => {
-            let fan_in = smell.fan_in().unwrap_or(0);
-            let fan_out = smell.fan_out().unwrap_or(0);
-            let churn = smell.churn().unwrap_or(0);
-
-            crate::detectors::Explanation {
-                problem: format!(
-                    "Module has excessive responsibilities (fan-in: {}, fan-out: {}, churn: {})",
-                    fan_in, fan_out, churn
-                ),
-                reason: "This module is imported by many files (high fan-in), imports many files (high fan-out), and changes frequently (high churn). This indicates it's doing too much and violates the Single Responsibility Principle.".to_string(),
-                risks: crate::strings![
-                    "Single point of failure in the system",
-                    "Difficult to understand and maintain",
-                    "High risk of merge conflicts",
-                    "Changes affect many parts of the system",
-                    "Hard to test in isolation",
-                    "Performance bottleneck potential"
-                ],
-                recommendations: crate::strings![
-                    "Split the module by domain or functionality",
-                    "Apply Single Responsibility Principle (SRP)",
-                    "Extract utility functions into focused, single-purpose modules",
-                    "Use facade pattern if the module serves as an integration point",
-                    "Identify cohesive groups of functions and separate them",
-                    "Consider creating a layered architecture to reduce coupling"
-                ]
-            }
-        }
+        explain: smell => (
+            problem: format!(
+                "Module has excessive responsibilities (fan-in: {}, fan-out: {}, churn: {})",
+                smell.fan_in().unwrap_or(0),
+                smell.fan_out().unwrap_or(0),
+                smell.churn().unwrap_or(0)
+            ),
+            reason: "This module is imported by many files (high fan-in), imports many files (high fan-out), and changes frequently (high churn). This indicates it's doing too much and violates the Single Responsibility Principle.",
+            risks: [
+                "Single point of failure in the system",
+                "Difficult to understand and maintain",
+                "High risk of merge conflicts",
+                "Changes affect many parts of the system",
+                "Hard to test in isolation",
+                "Performance bottleneck potential"
+            ],
+            recommendations: [
+                "Split the module by domain or functionality",
+                "Apply Single Responsibility Principle (SRP)",
+                "Extract utility functions into focused, single-purpose modules",
+                "Use facade pattern if the module serves as an integration point",
+                "Identify cohesive groups of functions and separate them",
+                "Consider creating a layered architecture to reduce coupling"
+            ]
+        )
     );
 
     fn render_markdown(

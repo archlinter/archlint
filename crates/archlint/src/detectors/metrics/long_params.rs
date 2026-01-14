@@ -6,7 +6,7 @@ use crate::engine::AnalysisContext;
 pub fn init() {}
 
 #[detector(
-    id = "long_params",
+    smell_type = LongParameterList,
     name = "Long Parameter List Detector",
     description = "Detects functions with too many parameters",
     category = DetectorCategory::FileLocal

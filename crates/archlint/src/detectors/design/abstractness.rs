@@ -8,7 +8,7 @@ use petgraph::graph::NodeIndex;
 pub fn init() {}
 
 #[detector(
-    id = "abstractness",
+    smell_type = AbstractnessViolation,
     name = "Abstractness vs Instability Violation Detector",
     description = "Detects modules that are far from the Main Sequence (Zone of Pain or Uselessness)",
     category = DetectorCategory::Global,
@@ -49,19 +49,17 @@ impl AbstractnessViolationDetector {
 impl Detector for AbstractnessViolationDetector {
     crate::impl_detector_report!(
         name: "AbstractnessViolation",
-        explain: _smell => {
-            crate::detectors::Explanation {
-                problem: "Abstractness Violation".into(),
-                reason: "Module distance from the 'Main Sequence' is too high. This means it's either too stable and concrete (Zone of Pain) or too unstable and abstract (Zone of Uselessness).".into(),
-                risks: crate::strings![
-                    "Rigid code that is hard to change",
-                    "Unused abstractions that add complexity"
-                ],
-                recommendations: crate::strings![
-                    "Balance stability with abstractness by introducing interfaces or refactoring implementation details"
-                ]
-            }
-        },
+        explain: _smell => (
+            problem: "Abstractness Violation",
+            reason: "Module distance from the 'Main Sequence' is too high. This means it's either too stable and concrete (Zone of Pain) or too unstable and abstract (Zone of Uselessness).",
+            risks: [
+                "Rigid code that is hard to change",
+                "Unused abstractions that add complexity"
+            ],
+            recommendations: [
+                "Balance stability with abstractness by introducing interfaces or refactoring implementation details"
+            ]
+        ),
         table: {
             title: "Abstractness Violations",
             columns: ["File", "Distance", "pts"],

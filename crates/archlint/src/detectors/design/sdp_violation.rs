@@ -7,7 +7,7 @@ use petgraph::graph::NodeIndex;
 pub fn init() {}
 
 #[detector(
-    id = "sdp_violation",
+    smell_type = SdpViolation,
     name = "Stable Dependency Principle Violation Detector",
     description = "Detects when stable modules depend on unstable ones",
     category = DetectorCategory::GraphBased,
@@ -80,21 +80,19 @@ impl SdpViolationDetector {
 impl Detector for SdpViolationDetector {
     crate::impl_detector_report!(
         name: "SdpViolation",
-        explain: _smell => {
-            crate::detectors::Explanation {
-                problem: "Stable Dependency Principle (SDP) Violation".into(),
-                reason: "A stable module (rarely changing, many dependents) depends on an unstable module (frequently changing).".into(),
-                risks: crate::strings![
-                    "Stable modules become unstable due to their dependencies",
-                    "Fragile architecture: changes in unstable parts break the core"
-                ],
-                recommendations: crate::strings![
-                    "Identify stable interfaces and depend on them",
-                    "Refactor the unstable dependency to be more stable",
-                    "Invert the dependency using abstractions"
-                ]
-            }
-        },
+        explain: _smell => (
+            problem: "Stable Dependency Principle (SDP) Violation",
+            reason: "A stable module (rarely changing, many dependents) depends on an unstable module (frequently changing).",
+            risks: [
+                "Stable modules become unstable due to their dependencies",
+                "Fragile architecture: changes in unstable parts break the core"
+            ],
+            recommendations: [
+                "Identify stable interfaces and depend on them",
+                "Refactor the unstable dependency to be more stable",
+                "Invert the dependency using abstractions"
+            ]
+        ),
         table: {
             title: "SDP Violations",
             columns: ["Location", "Stability Gap", "pts"],

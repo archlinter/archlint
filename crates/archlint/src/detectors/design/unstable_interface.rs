@@ -6,7 +6,7 @@ use crate::engine::AnalysisContext;
 pub fn init() {}
 
 #[detector(
-    id = "unstable_interface",
+    smell_type = UnstableInterface,
     name = "Unstable Interface Detector",
     description = "Detects modules with high churn and many dependents",
     category = DetectorCategory::Global,
@@ -23,29 +23,25 @@ impl UnstableInterfaceDetector {
 impl Detector for UnstableInterfaceDetector {
     crate::impl_detector_report!(
         name: "UnstableInterface",
-        explain: smell => {
-            let churn = smell.churn().unwrap_or(0);
-            let dependents = smell.fan_in().unwrap_or(0);
-            let score = smell.instability_score().unwrap_or(0);
-
-            crate::detectors::Explanation {
-                problem: format!(
-                    "Unstable interface detected (churn: {}, dependents: {}, score: {})",
-                    churn, dependents, score
-                ),
-                reason: "This module changes frequently and is used by many other modules. This means changes here have a high probability of breaking other parts of the system.".into(),
-                risks: crate::strings![
-                    "Frequent regressions in dependent modules",
-                    "High cost of maintenance due to cascading changes",
-                    "Difficult to stabilize the overall architecture"
-                ],
-                recommendations: crate::strings![
-                    "Identify why the module changes so frequently and extract stable parts",
-                    "Introduce a stable interface (API) and keep implementation details hidden",
-                    "Reduce the number of dependents by using events or a message bus"
-                ]
-            }
-        },
+        explain: smell => (
+            problem: format!(
+                "Unstable interface detected (churn: {}, dependents: {}, score: {})",
+                smell.churn().unwrap_or(0),
+                smell.fan_in().unwrap_or(0),
+                smell.instability_score().unwrap_or(0)
+            ),
+            reason: "This module changes frequently and is used by many other modules. This means changes here have a high probability of breaking other parts of the system.",
+            risks: [
+                "Frequent regressions in dependent modules",
+                "High cost of maintenance due to cascading changes",
+                "Difficult to stabilize the overall architecture"
+            ],
+            recommendations: [
+                "Identify why the module changes so frequently and extract stable parts",
+                "Introduce a stable interface (API) and keep implementation details hidden",
+                "Reduce the number of dependents by using events or a message bus"
+            ]
+        ),
         table: {
             title: "Unstable Interfaces",
             columns: ["File", "Churn", "Dependents", "Score", "pts"],

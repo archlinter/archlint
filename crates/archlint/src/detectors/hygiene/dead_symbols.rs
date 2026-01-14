@@ -9,7 +9,7 @@ use std::path::{Path, PathBuf};
 pub fn init() {}
 
 #[detector(
-    id = "dead_symbols",
+    smell_type = DeadSymbol,
     name = "Dead Symbols Detector",
     description = "Detects unused functions, classes, and variables within files",
     category = DetectorCategory::Global,
@@ -575,26 +575,26 @@ impl DeadSymbolsDetector {
 impl Detector for DeadSymbolsDetector {
     crate::impl_detector_report!(
         name: "DeadSymbols",
-        explain: smell => {
-            let kind = if let crate::detectors::SmellType::DeadSymbol { kind, .. } = &smell.smell_type {
-                kind.as_str()
-            } else {
-                "symbol"
-            };
-            crate::detectors::Explanation {
-                problem: format!("Unused {} detected", kind),
-                reason: "The symbol is defined but not imported by any other file or used locally.".into(),
-                risks: crate::strings![
-                    "Increases cognitive load when reading the file",
-                    "Dead code can hide bugs and complicate refactoring",
-                    "May lead to confusion about the intended API of the module"
-                ],
-                recommendations: crate::strings![
-                    "Remove the unused symbol if it is truly no longer needed",
-                    "Check if it should be an internal helper or if it was meant to be exported and used"
-                ]
-            }
-        },
+        explain: smell => (
+            problem: {
+                let kind = if let crate::detectors::SmellType::DeadSymbol { kind, .. } = &smell.smell_type {
+                    kind.as_str()
+                } else {
+                    "symbol"
+                };
+                format!("Unused {} detected", kind)
+            },
+            reason: "The symbol is defined but not imported by any other file or used locally.",
+            risks: [
+                "Increases cognitive load when reading the file",
+                "Dead code can hide bugs and complicate refactoring",
+                "May lead to confusion about the intended API of the module"
+            ],
+            recommendations: [
+                "Remove the unused symbol if it is truly no longer needed",
+                "Check if it should be an internal helper or if it was meant to be exported and used"
+            ]
+        ),
         table: {
             title: "Dead Symbols",
             columns: ["Location", "Symbol", "Kind", "pts"],

@@ -6,7 +6,7 @@ use crate::engine::AnalysisContext;
 pub fn init() {}
 
 #[detector(
-    id = "high_coupling",
+    smell_type = HighCoupling,
     name = "High Coupling Detector (CBO)",
     description = "Detects modules with too many incoming and outgoing dependencies",
     category = DetectorCategory::GraphBased,
@@ -23,24 +23,24 @@ impl HighCouplingDetector {
 impl Detector for HighCouplingDetector {
     crate::impl_detector_report!(
         name: "HighCoupling",
-        explain: smell => {
-            let cbo = if let crate::detectors::SmellType::HighCoupling { cbo } = &smell.smell_type {
-                *cbo
-            } else {
-                0
-            };
-            crate::detectors::Explanation {
-                problem: format!("High Coupling (CBO): {}", cbo),
-                reason: "Module has too many incoming and outgoing dependencies (Coupling Between Objects). High coupling makes code difficult to change and test in isolation.".into(),
-                risks: crate::strings![
-                    "Fragile system: changes ripple through many modules",
-                    "Difficult to mock dependencies for testing"
-                ],
-                recommendations: crate::strings![
-                    "Refactor to reduce dependencies or move functionality to a more appropriate place"
-                ]
-            }
-        },
+        explain: smell => (
+            problem: {
+                let cbo = if let crate::detectors::SmellType::HighCoupling { cbo } = &smell.smell_type {
+                    *cbo
+                } else {
+                    0
+                };
+                format!("High Coupling (CBO): {}", cbo)
+            },
+            reason: "Module has too many incoming and outgoing dependencies (Coupling Between Objects). High coupling makes code difficult to change and test in isolation.",
+            risks: [
+                "Fragile system: changes ripple through many modules",
+                "Difficult to mock dependencies for testing"
+            ],
+            recommendations: [
+                "Refactor to reduce dependencies or move functionality to a more appropriate place"
+            ]
+        ),
         table: {
             title: "High Coupling",
             columns: ["File", "CBO Score", "pts"],

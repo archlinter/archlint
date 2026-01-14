@@ -13,7 +13,7 @@ use self::tokenizer::tokenize_files;
 
 /// Main detector for code clones (duplicated code blocks).
 #[detector(
-    id = "code_clone",
+    smell_type = CodeClone,
     name = "Code Clone Detector",
     description = "Detects duplicated code blocks across the project (Type-1 clones)",
     category = DetectorCategory::Global,
@@ -125,19 +125,17 @@ impl CodeCloneDetector {
 impl Detector for CodeCloneDetector {
     crate::impl_detector_report!(
         name: "Code Clone",
-        explain: _smell => {
-            crate::detectors::Explanation {
-                problem: "Code Clone".into(),
-                reason: "Identical or near-identical code blocks found in multiple locations. This violates the DRY (Don't Repeat Yourself) principle.".into(),
-                risks: crate::strings![
-                    "Increased maintenance effort",
-                    "Bugs must be fixed in multiple places"
-                ],
-                recommendations: crate::strings![
-                    "Extract the duplicated code into a shared function, class, or module"
-                ]
-            }
-        },
+        explain: _smell => (
+            problem: "Code Clone",
+            reason: "Identical or near-identical code blocks found in multiple locations. This violates the DRY (Don't Repeat Yourself) principle.",
+            risks: [
+                "Increased maintenance effort",
+                "Bugs must be fixed in multiple places"
+            ],
+            recommendations: [
+                "Extract the duplicated code into a shared function, class, or module"
+            ]
+        ),
         table: {
             title: "Code Clones",
             columns: ["Clone Info", "pts"],

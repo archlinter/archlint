@@ -9,7 +9,7 @@ use std::path::{Path, PathBuf};
 pub fn init() {}
 
 #[detector(
-    id = "shotgun_surgery",
+    smell_type = ShotgunSurgery,
     name = "Shotgun Surgery Detector",
     description = "Detects files that frequently change together",
     category = DetectorCategory::Global,
@@ -147,37 +147,52 @@ impl ShotgunSurgeryDetector {
 impl Detector for ShotgunSurgeryDetector {
     crate::impl_detector_report!(
         name: "ShotgunSurgery",
-        explain: smell => {
-            let avg_co_changes = smell.avg_co_changes().unwrap_or(0.0);
-            let dependent_count = smell.dependent_count().unwrap_or(0);
-            let primary_file = smell
-                .files
-                .first()
-                .and_then(|f| f.file_name())
-                .and_then(|n| n.to_str())
-                .unwrap_or("this file");
-
-            crate::detectors::Explanation {
-                problem: format!(
+        explain: smell => (
+            problem: {
+                let avg_co_changes = smell.avg_co_changes().unwrap_or(0.0);
+                let dependent_count = smell.dependent_count().unwrap_or(0);
+                let primary_file = smell
+                    .files
+                    .first()
+                    .and_then(|f| f.file_name())
+                    .and_then(|n| n.to_str())
+                    .unwrap_or("this file");
+                format!(
                     "Shotgun Surgery: {} is highly coupled with {} other files (avg: {:.1} files per change)",
                     primary_file, dependent_count, avg_co_changes
-                ),
-                reason: format!(
+                )
+            },
+            reason: {
+                let primary_file = smell
+                    .files
+                    .first()
+                    .and_then(|f| f.file_name())
+                    .and_then(|n| n.to_str())
+                    .unwrap_or("this file");
+                format!(
                     "When {} is modified, it usually requires simultaneous changes in many other files. This 'shotgun' effect suggests that a single logical responsibility is fragmented across the codebase.",
                     primary_file
-                ),
-                risks: crate::strings![
-                    "High maintenance effort: one logical change requires many physical edits",
-                    "Partial updates: forgetting to update one of the related files leads to inconsistent state",
-                    "Knowledge fragmentation: the full logic is not visible in a single place"
-                ],
-                recommendations: crate::strings![
-                    format!("Consolidate the related logic from coupled files into {} or a new shared module", primary_file),
-                    "Apply the 'Move Method' or 'Move Field' refactoring to bring related parts together",
-                    "Consider if the coupling is due to shared data structures that could be abstracted"
-                ]
-            }
-        },
+                )
+            },
+            risks: [
+                "High maintenance effort: one logical change requires many physical edits",
+                "Partial updates: forgetting to update one of the related files leads to inconsistent state",
+                "Knowledge fragmentation: the full logic is not visible in a single place"
+            ],
+            recommendations: [
+                {
+                    let primary_file = smell
+                        .files
+                        .first()
+                        .and_then(|f| f.file_name())
+                        .and_then(|n| n.to_str())
+                        .unwrap_or("this file");
+                    format!("Consolidate the related logic from coupled files into {} or a new shared module", primary_file)
+                },
+                "Apply the 'Move Method' or 'Move Field' refactoring to bring related parts together",
+                "Consider if the coupling is due to shared data structures that could be abstracted"
+            ]
+        ),
         table: {
             title: "Shotgun Surgery",
             columns: ["File", "Avg Co-changes", "Related Files (Top 5)", "pts"],

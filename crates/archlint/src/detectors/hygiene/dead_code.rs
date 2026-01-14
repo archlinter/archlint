@@ -9,7 +9,7 @@ use std::path::{Path, PathBuf};
 pub fn init() {}
 
 #[detector(
-    id = "dead_code",
+    smell_type = DeadCode,
     name = "Dead Code Detector",
     description = "Detects unused files and modules",
     category = DetectorCategory::Global
@@ -23,26 +23,24 @@ pub struct DeadCodeDetector {
 impl Detector for DeadCodeDetector {
     crate::impl_detector_report!(
         name: "DeadCode",
-        explain: _smell => {
-            crate::detectors::Explanation {
-                problem: "Unused file detected".into(),
-                reason: "This file is not imported by any other module in the codebase. It may be leftover code from refactoring, experimental code that was never integrated, or a genuinely unused module.".into(),
-                risks: crate::strings![
-                    "Increases codebase size and maintenance burden",
-                    "Causes confusion about what code is actually in use",
-                    "May contain outdated patterns or security vulnerabilities",
-                    "Wastes developer time when searching or refactoring",
-                    "Can lead to accidental usage of outdated code"
-                ],
-                recommendations: crate::strings![
-                    "Verify the file is truly unused (check dynamic imports, tests, configs)",
-                    "Remove the file if confirmed as dead code",
-                    "If keeping for reference, move to an archive or documentation",
-                    "Add the file to entry_points config if it's an intentional entry point",
-                    "Review recent refactorings to understand why it became unused"
-                ]
-            }
-        },
+        explain: _smell => (
+            problem: "Unused file detected",
+            reason: "This file is not imported by any other module in the codebase. It may be leftover code from refactoring, experimental code that was never integrated, or a genuinely unused module.",
+            risks: [
+                "Increases codebase size and maintenance burden",
+                "Causes confusion about what code is actually in use",
+                "May contain outdated patterns or security vulnerabilities",
+                "Wastes developer time when searching or refactoring",
+                "Can lead to accidental usage of outdated code"
+            ],
+            recommendations: [
+                "Verify the file is truly unused (check dynamic imports, tests, configs)",
+                "Remove the file if confirmed as dead code",
+                "If keeping for reference, move to an archive or documentation",
+                "Add the file to entry_points config if it's an intentional entry point",
+                "Review recent refactorings to understand why it became unused"
+            ]
+        ),
         table: {
             title: "Dead Code",
             columns: ["File", "Directory", "pts"],

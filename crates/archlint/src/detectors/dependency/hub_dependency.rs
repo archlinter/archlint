@@ -9,7 +9,7 @@ use std::path::PathBuf;
 pub fn init() {}
 
 #[detector(
-    id = "hub_dependency",
+    smell_type = HubDependency,
     name = "Hub Dependency Detector",
     description = "Detects over-reliance on external packages",
     category = DetectorCategory::GraphBased,
@@ -50,28 +50,28 @@ impl HubDependencyDetector {
 impl Detector for HubDependencyDetector {
     crate::impl_detector_report!(
         name: "HubDependency",
-        explain: smell => {
-            let count = smell.dependent_count().unwrap_or(0);
-            let package = if let crate::detectors::SmellType::HubDependency { package } = &smell.smell_type {
-                package.as_str()
-            } else {
-                "unknown"
-            };
-            crate::detectors::Explanation {
-                problem: format!("Hub Dependency: Too many files ({}) depend on package `{}`", count, package),
-                reason: "The package is used by many different files in the project. This makes it a critical dependency that is hard to replace or update.".into(),
-                risks: crate::strings![
-                    "Difficulty in upgrading the package due to widespread usage",
-                    "High impact if the package becomes deprecated or has security issues",
-                    "Tightly coupled to a specific external library's API"
-                ],
-                recommendations: crate::strings![
-                    "Create a wrapper/abstraction around the package to isolate its usage",
-                    "Evaluate if the dependency is truly necessary in all those files",
-                    "Use dependency injection to provide the functionality if possible"
-                ]
-            }
-        },
+        explain: smell => (
+            problem: {
+                let count = smell.dependent_count().unwrap_or(0);
+                let package = if let crate::detectors::SmellType::HubDependency { package } = &smell.smell_type {
+                    package.as_str()
+                } else {
+                    "unknown"
+                };
+                format!("Hub Dependency: Too many files ({}) depend on package `{}`", count, package)
+            },
+            reason: "The package is used by many different files in the project. This makes it a critical dependency that is hard to replace or update.",
+            risks: [
+                "Difficulty in upgrading the package due to widespread usage",
+                "High impact if the package becomes deprecated or has security issues",
+                "Tightly coupled to a specific external library's API"
+            ],
+            recommendations: [
+                "Create a wrapper/abstraction around the package to isolate its usage",
+                "Evaluate if the dependency is truly necessary in all those files",
+                "Use dependency injection to provide the functionality if possible"
+            ]
+        ),
         table: {
             title: "Hub Dependencies",
             columns: ["Package", "Dependents", "pts"],

@@ -10,7 +10,7 @@ use std::path::{Path, PathBuf};
 pub fn init() {}
 
 #[detector(
-    id = "circular_type_deps",
+    smell_type = CircularTypeDependency,
     name = "Circular Type Dependencies Detector",
     description = "Detects circular dependencies between modules that only involve types",
     category = DetectorCategory::GraphBased,
@@ -140,19 +140,17 @@ impl CircularTypeDepsDetector {
 impl Detector for CircularTypeDepsDetector {
     crate::impl_detector_report!(
         name: "CircularTypeDependencies",
-        explain: smell => {
-            crate::detectors::Explanation {
-                problem: "Circular Type Dependency".into(),
-                reason: "Two or more modules have a circular dependency that only involves types (type-only imports). While allowed by some compilers, it often indicates a flaw in module design.".into(),
-                risks: crate::strings![
-                    "Difficult to reason about data structures",
-                    "Tight coupling between types"
-                ],
-                recommendations: crate::strings![
-                    "Refactor shared types into a dedicated common module"
-                ]
-            }
-        },
+        explain: smell => (
+            problem: "Circular Type Dependency",
+            reason: "Two or more modules have a circular dependency that only involves types (type-only imports). While allowed by some compilers, it often indicates a flaw in module design.",
+            risks: [
+                "Difficult to reason about data structures",
+                "Tight coupling between types"
+            ],
+            recommendations: [
+                "Refactor shared types into a dedicated common module"
+            ]
+        ),
         table: {
             title: "Circular Type Dependencies",
             columns: ["Cycle Path", "pts"],
