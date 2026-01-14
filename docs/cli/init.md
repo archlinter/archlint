@@ -13,7 +13,7 @@ archlint init [options]
 | Option             | Default | Description                                                             |
 | ------------------ | ------- | ----------------------------------------------------------------------- |
 | `-f, --force`      | `false` | Overwrite existing `.archlint.yaml` if it exists                        |
-| `--no-interactive` | `false` | Skip interactive framework selection                                    |
+| `--no-interactive` | `false` | Skip interactive preset selection (step 2)                              |
 | `--presets <list>` | `none`  | Explicitly specify framework presets (comma-separated or repeated flag) |
 
 ## How it Works

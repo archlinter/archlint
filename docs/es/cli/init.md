@@ -13,7 +13,7 @@ archlint init [options]
 | Opción             | Por defecto | Descripción                                                                      |
 | ------------------ | ----------- | -------------------------------------------------------------------------------- |
 | `-f, --force`      | `false`     | Sobrescribe el archivo `.archlint.yaml` si ya existe                             |
-| `--no-interactive` | `false`     | Omite la selección interactiva de frameworks                                     |
+| `--no-interactive` | `false`     | Omite la selección interactiva de presets (paso 2)                               |
 | `--presets <list>` | `none`      | Especifica explícitamente los presets (separados por comas o repitiendo el flag) |
 
 ## Cómo funciona

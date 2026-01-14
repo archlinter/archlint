@@ -13,7 +13,7 @@ archlint init [options]
 | 选项               | 默认值  | 描述                                   |
 | ------------------ | ------- | -------------------------------------- |
 | `-f, --force`      | `false` | 如果已存在 `.archlint.yaml`，则覆盖它  |
-| `--no-interactive` | `false` | 跳过交互式框架选择                     |
+| `--no-interactive` | `false` | 跳过交互式预设选择（步骤 2）           |
 | `--presets <list>` | `none`  | 显式指定框架预设（逗号分隔或重复标志） |
 
 ## 工作原理
