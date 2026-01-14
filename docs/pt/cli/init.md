@@ -19,7 +19,7 @@ archlint init [options]
 ## Como Funciona
 
 1. **Detecção de Frameworks**: o archlint analisa o seu `package.json` e a estrutura do projeto para detectar os frameworks usados.
-2. **Seleção Interactiva**: A menos que `--no-interactive` seja usado, ele solicitará que você confirme ou selecione presets adicionais.
+2. **Seleção Interativa**: A menos que `--no-interactive` seja usado, ele solicitará que você confirme ou selecione presets adicionais.
 3. **Geração de Configuração**: Cria um arquivo `.archlint.yaml` com os presets selecionados e uma referência ao esquema JSON para suporte no IDE.
 
 ## Exemplos
