@@ -1,4 +1,4 @@
-use crate::detectors::{detector, ArchSmell, Detector, DetectorCategory, Severity, SmellType};
+use crate::detectors::{detector, ArchSmell, Detector, Severity, SmellType};
 use crate::engine::AnalysisContext;
 use crate::parser::ImportedSymbol;
 use petgraph::graph::DiGraph;
@@ -9,13 +9,7 @@ use std::path::{Path, PathBuf};
 /// This function is used for module registration side-effects.
 pub fn init() {}
 
-#[detector(
-    smell_type = SmellType::CircularTypeDependency,
-    name = "Circular Type Dependencies Detector",
-    description = "Detects circular dependencies between modules that only involve types",
-    category = DetectorCategory::GraphBased,
-    default_enabled = false
-)]
+#[detector(SmellType::CircularTypeDependency, default_enabled = false)]
 pub struct CircularTypeDepsDetector;
 
 impl CircularTypeDepsDetector {
@@ -139,7 +133,6 @@ impl CircularTypeDepsDetector {
 
 impl Detector for CircularTypeDepsDetector {
     crate::impl_detector_report!(
-        name: "CircularTypeDependencies",
         explain: smell => (
             problem: "Circular Type Dependency",
             reason: "Two or more modules have a circular dependency that only involves types (type-only imports). While allowed by some compilers, it often indicates a flaw in module design.",

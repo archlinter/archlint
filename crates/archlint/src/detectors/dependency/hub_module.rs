@@ -1,4 +1,4 @@
-use crate::detectors::{detector, ArchSmell, Detector, DetectorCategory};
+use crate::detectors::{detector, ArchSmell, Detector};
 use crate::engine::AnalysisContext;
 use std::path::PathBuf;
 
@@ -6,13 +6,7 @@ use std::path::PathBuf;
 /// This function is used for module registration side-effects.
 pub fn init() {}
 
-#[detector(
-    smell_type = SmellType::HubModule,
-    name = "Hub Module Detector",
-    description = "Detects modules that act as highly connected hubs with low internal logic",
-    category = DetectorCategory::GraphBased,
-    default_enabled = false
-)]
+#[detector(SmellType::HubModule, default_enabled = false)]
 pub struct HubModuleDetector;
 
 impl HubModuleDetector {
@@ -68,7 +62,6 @@ impl HubModuleDetector {
 
 impl Detector for HubModuleDetector {
     crate::impl_detector_report!(
-        name: "HubModule",
         explain: _smell => (
             problem: "Hub Module",
             reason: "Module acting as a pass-through hub with many incoming and outgoing connections but little internal logic.",

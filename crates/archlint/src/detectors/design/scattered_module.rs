@@ -1,4 +1,4 @@
-use crate::detectors::{detector, ArchSmell, Detector, DetectorCategory};
+use crate::detectors::{detector, ArchSmell, Detector};
 use crate::engine::AnalysisContext;
 use petgraph::graph::UnGraph;
 use std::collections::HashSet;
@@ -8,13 +8,7 @@ use std::path::Path;
 /// This function is used for module registration side-effects.
 pub fn init() {}
 
-#[detector(
-    smell_type = SmellType::ScatteredModule,
-    name = "Scattered Module Detector",
-    description = "Detects modules where exports are unrelated to each other",
-    category = DetectorCategory::Global,
-    default_enabled = false
-)]
+#[detector(SmellType::ScatteredModule, default_enabled = false)]
 pub struct ScatteredModuleDetector;
 
 impl ScatteredModuleDetector {
@@ -66,7 +60,6 @@ impl ScatteredModuleDetector {
 
 impl Detector for ScatteredModuleDetector {
     crate::impl_detector_report!(
-        name: "ScatteredModule",
         explain: _smell => (
             problem: "Scattered Module (Low Cohesion)",
             reason: "Module exports are not related to each other, which means the module might be a 'catch-all' bucket for unrelated code.",

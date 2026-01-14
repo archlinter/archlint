@@ -1,5 +1,5 @@
 use crate::config::Config;
-use crate::detectors::{detector, ArchSmell, Detector, DetectorCategory};
+use crate::detectors::{detector, ArchSmell, Detector};
 use crate::engine::AnalysisContext;
 use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
@@ -8,12 +8,7 @@ use std::path::{Path, PathBuf};
 /// This function is used for module registration side-effects.
 pub fn init() {}
 
-#[detector(
-    smell_type = SmellType::DeadCode,
-    name = "Dead Code Detector",
-    description = "Detects unused files and modules",
-    category = DetectorCategory::Global
-)]
+#[detector(SmellType::DeadCode)]
 pub struct DeadCodeDetector {
     entry_patterns: Vec<String>,
     explicit_entry_points: HashSet<PathBuf>,
@@ -22,7 +17,6 @@ pub struct DeadCodeDetector {
 
 impl Detector for DeadCodeDetector {
     crate::impl_detector_report!(
-        name: "DeadCode",
         explain: _smell => (
             problem: "Unused file detected",
             reason: "This file is not imported by any other module in the codebase. It may be leftover code from refactoring, experimental code that was never integrated, or a genuinely unused module.",

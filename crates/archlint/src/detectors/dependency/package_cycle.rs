@@ -1,4 +1,4 @@
-use crate::detectors::{detector, ArchSmell, Detector, DetectorCategory};
+use crate::detectors::{detector, ArchSmell, Detector};
 use crate::engine::AnalysisContext;
 use petgraph::graph::DiGraph;
 use std::collections::{HashMap, HashSet};
@@ -8,13 +8,7 @@ use std::path::Path;
 /// This function is used for module registration side-effects.
 pub fn init() {}
 
-#[detector(
-    smell_type = SmellType::PackageCycle,
-    name = "Package-level Cycle Detector",
-    description = "Detects circular dependencies between logical folders (packages)",
-    category = DetectorCategory::GraphBased,
-    default_enabled = false
-)]
+#[detector(SmellType::PackageCycle, default_enabled = false)]
 pub struct PackageCycleDetector;
 
 impl PackageCycleDetector {
@@ -127,7 +121,6 @@ impl PackageCycleDetector {
 
 impl Detector for PackageCycleDetector {
     crate::impl_detector_report!(
-        name: "PackageCycle",
         explain: _smell => (
             problem: "Package-level Cycle",
             reason: "Circular dependency detected between different packages/folders. This violates the goal of creating a hierarchical, directed dependency graph between logical components.",

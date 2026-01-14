@@ -131,7 +131,6 @@ macro_rules! impl_detector_report {
 
     // Pattern 1: Structured explain (problem/reason/risks/recommendations) - uses () delimiters
     (
-        name: $name:expr,
         explain: $smell_expl:ident => (
             problem: $problem:expr,
             reason: $reason:expr,
@@ -145,8 +144,8 @@ macro_rules! impl_detector_report {
         })?
         $(,)?
     ) => {
-        fn name(&self) -> &'static str {
-            $name
+        fn info(&self) -> $crate::detectors::DetectorInfo {
+            Self::metadata()
         }
 
         fn explain(&self, $smell_expl: &$crate::detectors::ArchSmell) -> $crate::detectors::Explanation {
@@ -166,7 +165,6 @@ macro_rules! impl_detector_report {
 
     // Pattern 2: Block-based explain (returns Explanation directly) - uses {} block
     (
-        name: $name:expr,
         explain: $smell_expl:ident => $explain_body:block
         $(, table: {
             title: $title:expr,
@@ -175,8 +173,8 @@ macro_rules! impl_detector_report {
         })?
         $(,)?
     ) => {
-        fn name(&self) -> &'static str {
-            $name
+        fn info(&self) -> $crate::detectors::DetectorInfo {
+            Self::metadata()
         }
 
         fn explain(&self, $smell_expl: &$crate::detectors::ArchSmell) -> $crate::detectors::Explanation {

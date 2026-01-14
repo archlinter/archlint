@@ -1,16 +1,11 @@
-use crate::detectors::{detector, ArchSmell, Detector, DetectorCategory};
+use crate::detectors::{detector, ArchSmell, Detector};
 use crate::engine::AnalysisContext;
 
 /// Initializes the detector module.
 /// This function is used for module registration side-effects.
 pub fn init() {}
 
-#[detector(
-    smell_type = SmellType::SideEffectImport,
-    name = "Side-Effect Import Detector",
-    description = "Detects imports that execute code on load without binding any symbols",
-    category = DetectorCategory::ImportBased
-)]
+#[detector(SmellType::SideEffectImport)]
 pub struct SideEffectImportDetector;
 
 impl SideEffectImportDetector {
@@ -45,7 +40,6 @@ impl SideEffectImportDetector {
 
 impl Detector for SideEffectImportDetector {
     crate::impl_detector_report!(
-        name: "SideEffectImport",
         explain: _smell => (
             problem: "Side-Effect Import",
             reason: "Import that executes code on load without binding any symbols. This can make the code's behavior unpredictable and difficult to test.",

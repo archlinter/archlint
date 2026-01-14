@@ -44,7 +44,11 @@ pub fn init() {
 use crate::engine::AnalysisContext;
 
 pub trait Detector: Send + Sync {
-    fn name(&self) -> &'static str;
+    fn info(&self) -> DetectorInfo;
+
+    fn name(&self) -> &'static str {
+        self.info().name
+    }
     fn detect(&self, ctx: &AnalysisContext) -> Vec<ArchSmell>;
 
     fn explain(&self, _smell: &ArchSmell) -> Explanation {

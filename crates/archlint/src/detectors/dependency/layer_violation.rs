@@ -1,5 +1,5 @@
 use crate::config::LayerConfig;
-use crate::detectors::{detector, ArchSmell, Detector, DetectorCategory};
+use crate::detectors::{detector, ArchSmell, Detector};
 use crate::engine::AnalysisContext;
 use petgraph::graph::NodeIndex;
 use std::path::{Path, PathBuf};
@@ -8,13 +8,7 @@ use std::path::{Path, PathBuf};
 /// This function is used for module registration side-effects.
 pub fn init() {}
 
-#[detector(
-    smell_type = SmellType::LayerViolation,
-    name = "Layer Architecture Violation Detector",
-    description = "Detects violations of layered architecture rules",
-    category = DetectorCategory::ImportBased,
-    default_enabled = false
-)]
+#[detector(SmellType::LayerViolation, default_enabled = false)]
 pub struct LayerViolationDetector;
 
 impl LayerViolationDetector {
@@ -127,7 +121,6 @@ impl LayerViolationDetector {
 
 impl Detector for LayerViolationDetector {
     crate::impl_detector_report!(
-        name: "LayerViolation",
         explain: smell => (
             problem: {
                 let (from, to) = if let crate::detectors::SmellType::LayerViolation { from_layer, to_layer } = &smell.smell_type {

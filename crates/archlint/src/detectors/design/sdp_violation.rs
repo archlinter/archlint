@@ -1,4 +1,4 @@
-use crate::detectors::{detector, ArchSmell, Detector, DetectorCategory};
+use crate::detectors::{detector, ArchSmell, Detector};
 use crate::engine::AnalysisContext;
 use petgraph::graph::NodeIndex;
 
@@ -6,13 +6,7 @@ use petgraph::graph::NodeIndex;
 /// This function is used for module registration side-effects.
 pub fn init() {}
 
-#[detector(
-    smell_type = SmellType::SdpViolation,
-    name = "Stable Dependency Principle Violation Detector",
-    description = "Detects when stable modules depend on unstable ones",
-    category = DetectorCategory::GraphBased,
-    default_enabled = false
-)]
+#[detector(SmellType::SdpViolation, default_enabled = false)]
 pub struct SdpViolationDetector;
 
 impl SdpViolationDetector {
@@ -79,7 +73,6 @@ impl SdpViolationDetector {
 
 impl Detector for SdpViolationDetector {
     crate::impl_detector_report!(
-        name: "SdpViolation",
         explain: _smell => (
             problem: "Stable Dependency Principle (SDP) Violation",
             reason: "A stable module (rarely changing, many dependents) depends on an unstable module (frequently changing).",

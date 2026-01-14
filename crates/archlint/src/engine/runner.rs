@@ -30,6 +30,13 @@ use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
+type ParsedData = (
+    HashMap<PathBuf, crate::parser::FileSymbols>,
+    HashMap<PathBuf, Vec<crate::parser::FunctionComplexity>>,
+    HashMap<PathBuf, crate::engine::context::FileMetrics>,
+    FileIgnoredLines,
+);
+
 pub struct AnalysisEngine {
     pub args: ScanArgs,
     pub config: Config,
@@ -425,16 +432,7 @@ impl AnalysisEngine {
         Ok(())
     }
 
-    #[allow(clippy::type_complexity)]
-    fn extract_parsed_data(
-        &self,
-        parsed_files: HashMap<PathBuf, ParsedFile>,
-    ) -> (
-        HashMap<PathBuf, crate::parser::FileSymbols>,
-        HashMap<PathBuf, Vec<crate::parser::FunctionComplexity>>,
-        HashMap<PathBuf, crate::engine::context::FileMetrics>,
-        FileIgnoredLines,
-    ) {
+    fn extract_parsed_data(&self, parsed_files: HashMap<PathBuf, ParsedFile>) -> ParsedData {
         let mut symbols = HashMap::new();
         let mut complexity = HashMap::new();
         let mut metrics = HashMap::new();

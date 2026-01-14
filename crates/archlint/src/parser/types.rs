@@ -110,6 +110,68 @@ pub struct MethodSymbol {
     pub is_abstract: bool,
 }
 
+/// Builder for creating MethodSymbol instances.
+pub struct MethodSymbolBuilder {
+    name: SymbolName,
+    line: usize,
+    column: usize,
+    range: CodeRange,
+    has_decorators: bool,
+    is_accessor: bool,
+    accessibility: Option<MethodAccessibility>,
+    is_abstract: bool,
+}
+
+impl MethodSymbolBuilder {
+    pub fn new(name: impl Into<SymbolName>, line: usize, column: usize, range: CodeRange) -> Self {
+        Self {
+            name: name.into(),
+            line,
+            column,
+            range,
+            has_decorators: false,
+            is_accessor: false,
+            accessibility: None,
+            is_abstract: false,
+        }
+    }
+
+    pub fn has_decorators(mut self, value: bool) -> Self {
+        self.has_decorators = value;
+        self
+    }
+
+    pub fn is_accessor(mut self, value: bool) -> Self {
+        self.is_accessor = value;
+        self
+    }
+
+    pub fn accessibility(mut self, value: Option<MethodAccessibility>) -> Self {
+        self.accessibility = value;
+        self
+    }
+
+    pub fn is_abstract(mut self, value: bool) -> Self {
+        self.is_abstract = value;
+        self
+    }
+
+    pub fn build(self) -> MethodSymbol {
+        MethodSymbol {
+            name: self.name,
+            used_fields: SymbolSet::default(),
+            used_methods: SymbolSet::default(),
+            line: self.line,
+            column: self.column,
+            range: self.range,
+            has_decorators: self.has_decorators,
+            is_accessor: self.is_accessor,
+            accessibility: self.accessibility,
+            is_abstract: self.is_abstract,
+        }
+    }
+}
+
 impl MethodSymbol {
     /// Create a new method symbol with the given metadata.
     #[inline]

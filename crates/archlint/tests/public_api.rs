@@ -120,7 +120,7 @@ fn test_get_detectors() {
         .iter()
         .find(|d| d.id == "cyclic_dependency")
         .expect("Cycles detector not found");
-    assert_eq!(cycle_detector.name, "Cycle Detector");
+    assert_eq!(cycle_detector.name, "Cyclic Dependency");
 }
 
 #[test]

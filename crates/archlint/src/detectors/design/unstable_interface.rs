@@ -1,17 +1,11 @@
-use crate::detectors::{detector, ArchSmell, Detector, DetectorCategory};
+use crate::detectors::{detector, ArchSmell, Detector};
 use crate::engine::AnalysisContext;
 
 /// Initializes the detector module.
 /// This function is used for module registration side-effects.
 pub fn init() {}
 
-#[detector(
-    smell_type = SmellType::UnstableInterface,
-    name = "Unstable Interface Detector",
-    description = "Detects modules with high churn and many dependents",
-    category = DetectorCategory::Global,
-    default_enabled = false
-)]
+#[detector(SmellType::UnstableInterface, default_enabled = false)]
 pub struct UnstableInterfaceDetector;
 
 impl UnstableInterfaceDetector {
@@ -22,7 +16,6 @@ impl UnstableInterfaceDetector {
 
 impl Detector for UnstableInterfaceDetector {
     crate::impl_detector_report!(
-        name: "UnstableInterface",
         explain: smell => (
             problem: format!(
                 "Unstable interface detected (churn: {}, dependents: {}, score: {})",

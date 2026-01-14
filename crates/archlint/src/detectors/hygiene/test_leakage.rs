@@ -1,4 +1,4 @@
-use crate::detectors::{detector, ArchSmell, Detector, DetectorCategory};
+use crate::detectors::{detector, ArchSmell, Detector};
 use crate::engine::AnalysisContext;
 use std::path::Path;
 
@@ -6,13 +6,7 @@ use std::path::Path;
 /// This function is used for module registration side-effects.
 pub fn init() {}
 
-#[detector(
-    smell_type = SmellType::TestLeakage,
-    name = "Test to Production Leakage Detector",
-    description = "Detects when production code imports test files, mocks, or test utilities",
-    category = DetectorCategory::ImportBased,
-    default_enabled = false
-)]
+#[detector(SmellType::TestLeakage, default_enabled = false)]
 pub struct TestLeakageDetector;
 
 impl TestLeakageDetector {
@@ -140,7 +134,6 @@ impl TestLeakageDetector {
 
 impl Detector for TestLeakageDetector {
     crate::impl_detector_report!(
-        name: "TestLeakage",
         explain: _smell => (
             problem: "Test-to-Production Leakage",
             reason: "A production module imports a test file, mock, or test utility. This can lead to test code being included in production bundles.",

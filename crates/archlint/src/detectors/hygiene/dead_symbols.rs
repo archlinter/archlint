@@ -1,4 +1,4 @@
-use crate::detectors::{detector, ArchSmell, Detector, DetectorCategory};
+use crate::detectors::{detector, ArchSmell, Detector};
 use crate::engine::AnalysisContext;
 use crate::parser::{FileSymbols, MethodAccessibility, SymbolKind};
 use std::collections::{HashMap, HashSet};
@@ -8,13 +8,7 @@ use std::path::{Path, PathBuf};
 /// This function is used for module registration side-effects.
 pub fn init() {}
 
-#[detector(
-    smell_type = SmellType::DeadSymbol,
-    name = "Dead Symbols Detector",
-    description = "Detects unused functions, classes, and variables within files",
-    category = DetectorCategory::Global,
-    is_deep = true
-)]
+#[detector(SmellType::DeadSymbol, is_deep = true)]
 pub struct DeadSymbolsDetector;
 
 #[derive(Default)]
@@ -22,6 +16,13 @@ struct InheritanceContext {
     parents: HashMap<(PathBuf, String), (PathBuf, String)>,
     children: HashMap<(PathBuf, String), Vec<(PathBuf, String)>>,
     reexports: HashMap<PathBuf, HashSet<PathBuf>>,
+}
+
+struct MethodCheckContext<'a> {
+    file_symbols: &'a HashMap<PathBuf, FileSymbols>,
+    symbol_usages: &'a HashMap<(PathBuf, String), HashSet<PathBuf>>,
+    inheritance_ctx: &'a InheritanceContext,
+    entry_points: &'a HashSet<PathBuf>,
 }
 
 impl DeadSymbolsDetector {
@@ -227,14 +228,17 @@ impl DeadSymbolsDetector {
 
         for (file_path, symbols) in file_symbols {
             for class in &symbols.classes {
-                smells.extend(Self::check_class_methods(
-                    file_path,
-                    class,
-                    symbols,
+                let ctx = MethodCheckContext {
                     file_symbols,
                     symbol_usages,
                     inheritance_ctx,
                     entry_points,
+                };
+                smells.extend(Self::check_class_methods(
+                    file_path,
+                    class,
+                    symbols,
+                    &ctx,
                     &ignored_methods,
                     &contract_methods,
                 ));
@@ -264,15 +268,11 @@ impl DeadSymbolsDetector {
         ignored_methods
     }
 
-    #[allow(clippy::too_many_arguments)]
     fn check_class_methods(
         file_path: &Path,
         class: &crate::parser::ClassSymbol,
         symbols: &FileSymbols,
-        file_symbols: &HashMap<PathBuf, FileSymbols>,
-        symbol_usages: &HashMap<(PathBuf, String), HashSet<PathBuf>>,
-        inheritance_ctx: &InheritanceContext,
-        entry_points: &HashSet<PathBuf>,
+        ctx: &MethodCheckContext<'_>,
         ignored_methods: &HashSet<String>,
         contract_methods: &HashMap<String, Vec<String>>,
     ) -> Vec<ArchSmell> {
@@ -283,16 +283,7 @@ impl DeadSymbolsDetector {
                 continue;
             }
 
-            if !Self::is_method_used(
-                method,
-                file_path,
-                class,
-                symbols,
-                file_symbols,
-                symbol_usages,
-                inheritance_ctx,
-                entry_points,
-            ) {
+            if !Self::is_method_used(method, file_path, class, symbols, ctx) {
                 smells.push(Self::create_dead_method_smell(file_path, class, method));
             }
         }
@@ -330,16 +321,12 @@ impl DeadSymbolsDetector {
         false
     }
 
-    #[allow(clippy::too_many_arguments)]
     fn is_method_used(
         method: &crate::parser::MethodSymbol,
         file_path: &Path,
         class: &crate::parser::ClassSymbol,
         symbols: &FileSymbols,
-        file_symbols: &HashMap<PathBuf, FileSymbols>,
-        symbol_usages: &HashMap<(PathBuf, String), HashSet<PathBuf>>,
-        inheritance_ctx: &InheritanceContext,
-        entry_points: &HashSet<PathBuf>,
+        ctx: &MethodCheckContext<'_>,
     ) -> bool {
         if symbols.local_usages.contains(method.name.as_str()) {
             return true;
@@ -347,7 +334,7 @@ impl DeadSymbolsDetector {
 
         // If class itself is defined in entry point, all non-private methods are considered used
         if method.accessibility != Some(MethodAccessibility::Private)
-            && entry_points.contains(file_path)
+            && ctx.entry_points.contains(file_path)
         {
             return true;
         }
@@ -356,11 +343,11 @@ impl DeadSymbolsDetector {
         let mut visited_parents = HashSet::new();
         visited_parents.insert(current_class_id.clone());
 
-        while let Some(parent_id) = inheritance_ctx.parents.get(&current_class_id) {
+        while let Some(parent_id) = ctx.inheritance_ctx.parents.get(&current_class_id) {
             if !visited_parents.insert(parent_id.clone()) {
                 break;
             }
-            if let Some(parent_symbols) = file_symbols.get(&parent_id.0) {
+            if let Some(parent_symbols) = ctx.file_symbols.get(&parent_id.0) {
                 if parent_symbols.local_usages.contains(method.name.as_str()) {
                     return true;
                 }
@@ -369,15 +356,7 @@ impl DeadSymbolsDetector {
         }
 
         if method.accessibility != Some(MethodAccessibility::Private)
-            && Self::is_method_used_in_importers(
-                method,
-                file_path,
-                class,
-                file_symbols,
-                symbol_usages,
-                inheritance_ctx,
-                entry_points,
-            )
+            && Self::is_method_used_in_importers(method, file_path, class, ctx)
         {
             return true;
         }
@@ -389,21 +368,18 @@ impl DeadSymbolsDetector {
         method: &crate::parser::MethodSymbol,
         file_path: &Path,
         class: &crate::parser::ClassSymbol,
-        file_symbols: &HashMap<PathBuf, FileSymbols>,
-        symbol_usages: &HashMap<(PathBuf, String), HashSet<PathBuf>>,
-        inheritance_ctx: &InheritanceContext,
-        entry_points: &HashSet<PathBuf>,
+        ctx: &MethodCheckContext<'_>,
     ) -> bool {
         let all_importers =
-            Self::collect_class_importers(file_path, class, symbol_usages, inheritance_ctx);
+            Self::collect_class_importers(file_path, class, ctx.symbol_usages, ctx.inheritance_ctx);
 
         for importer_path in all_importers {
             // If importer is an entry point, we consider non-private methods as used (part of public API)
-            if entry_points.contains(&importer_path) {
+            if ctx.entry_points.contains(&importer_path) {
                 return true;
             }
 
-            if let Some(importer_symbols) = file_symbols.get(&importer_path) {
+            if let Some(importer_symbols) = ctx.file_symbols.get(&importer_path) {
                 if importer_symbols.local_usages.contains(method.name.as_str()) {
                     return true;
                 }
@@ -574,7 +550,6 @@ impl DeadSymbolsDetector {
 
 impl Detector for DeadSymbolsDetector {
     crate::impl_detector_report!(
-        name: "DeadSymbols",
         explain: smell => (
             problem: {
                 let kind = if let crate::detectors::SmellType::DeadSymbol { kind, .. } = &smell.smell_type {

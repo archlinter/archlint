@@ -1,4 +1,4 @@
-use crate::detectors::{detector, ArchSmell, Detector, DetectorCategory};
+use crate::detectors::{detector, ArchSmell, Detector};
 use crate::engine::AnalysisContext;
 use petgraph::graph::UnGraph;
 
@@ -6,13 +6,7 @@ use petgraph::graph::UnGraph;
 /// This function is used for module registration side-effects.
 pub fn init() {}
 
-#[detector(
-    smell_type = SmellType::LowCohesion,
-    name = "Lack of Cohesion of Methods (LCOM4)",
-    description = "Detects classes with low cohesion where methods don't share common fields",
-    category = DetectorCategory::FileLocal,
-    default_enabled = false
-)]
+#[detector(SmellType::LowCohesion, default_enabled = false)]
 pub struct LcomDetector;
 
 impl LcomDetector {
@@ -52,7 +46,6 @@ impl LcomDetector {
 
 impl Detector for LcomDetector {
     crate::impl_detector_report!(
-        name: "Lcom",
         explain: _smell => (
             problem: "Low Cohesion of Methods (LCOM)",
             reason: "The methods in this class don't share common fields, suggesting the class might be doing too many unrelated things.",
