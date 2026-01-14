@@ -105,7 +105,7 @@ git:
 
 The `extends` field allows you to load presets from different sources:
 
-- **Built-in presets**: `nestjs`, `nextjs`, `react`, `oclif`, `class-validator`.
+- **Built-in presets**: `nestjs`, `nextjs`, `express`, `react`, `angular`, `vue`, `typeorm`, `prisma`, `oclif`, `class-validator`.
 - **Local files**: Relative path to a YAML file (e.g., `./archlint-shared.yaml`).
 - **URLs**: Direct URL to a YAML file (e.g., `https://example.com/preset.yaml`).
 

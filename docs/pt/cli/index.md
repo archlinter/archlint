@@ -17,6 +17,7 @@ archlint [command] [options]
 
 | Comando                        | Descrição                                         |
 | ------------------------------ | ------------------------------------------------- |
+| [`init`](/pt/cli/init)         | Inicializa um novo arquivo de configuração        |
 | [`scan`](/pt/cli/scan)         | Executa uma análise arquitetural única            |
 | [`diff`](/pt/cli/diff)         | Compara o estado atual com uma linha de base      |
 | [`snapshot`](/pt/cli/snapshot) | Salva o estado atual em um arquivo JSON           |

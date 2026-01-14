@@ -54,7 +54,7 @@ rules:
     # 匹配接口方法以避免未使用的实现产生误报
     contract_methods:
       MyInterface: ['method1', 'method2']
-      ValidatorConstraintInterface: ['validate', 'defaultMessage']
+      ValidatorConstraintInterface: ['validate']
 
   vendor_coupling:
     severity: medium

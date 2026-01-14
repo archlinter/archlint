@@ -17,6 +17,7 @@ archlint [command] [options]
 
 | 命令                           | 描述                           |
 | ------------------------------ | ------------------------------ |
+| [`init`](/zh/cli/init)         | 初始化新的配置文件             |
 | [`scan`](/zh/cli/scan)         | 运行一次性架构分析             |
 | [`diff`](/zh/cli/diff)         | 将当前状态与基线进行比较       |
 | [`snapshot`](/zh/cli/snapshot) | 将当前状态保存到 JSON 文件     |

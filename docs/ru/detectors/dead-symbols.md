@@ -24,7 +24,7 @@ rules:
     # Карта методов интерфейсов/классов, которые следует игнорировать при реализации
     contract_methods:
       MyInterface: ['method1', 'method2']
-      ValidatorConstraintInterface: ['validate']
+      ValidatorConstraintInterface: ['validate', 'defaultMessage']
 ```
 
 ## ESLint правило

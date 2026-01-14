@@ -24,7 +24,7 @@ rules:
     # 実装時に無視するインターフェース/クラスメソッドのマップ
     contract_methods:
       MyInterface: ['method1', 'method2']
-      ValidatorConstraintInterface: ['validate']
+      ValidatorConstraintInterface: ['validate', 'defaultMessage']
 ```
 
 ## ESLint ルール

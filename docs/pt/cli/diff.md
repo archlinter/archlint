@@ -24,6 +24,9 @@ O archlint não apenas conta problemas. Ele realiza um **diff semântico** dos d
 
 | Opção                  | Padrão  | Descrição                                                                     |
 | ---------------------- | ------- | ----------------------------------------------------------------------------- |
+| `-j, --json`           | `false` | Saída do relatório em formato JSON                                            |
+| `-v, --verbose`        | `false` | Habilitar saída detalhada (verbose)                                           |
+| `-p, --path <path>`    | `.`     | Caminho do projeto                                                            |
 | `--fail-on <severity>` | `low`   | Sai com código 1 se uma regressão desta severidade ou superior for encontrada |
 | `--explain`            | `false` | Fornece uma explicação detalhada para cada regressão                          |
 
