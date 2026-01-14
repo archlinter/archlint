@@ -54,7 +54,8 @@ pub fn detector(args: TokenStream, input: TokenStream) -> TokenStream {
     let is_deep = args.is_deep.unwrap_or(false);
 
     let id_tokens = if let Some(smell_type) = args.smell_type {
-        quote! { crate::detectors::ConfigurableSmellType::#smell_type.to_id() }
+        let variant = &smell_type.segments.last().unwrap().ident;
+        quote! { crate::detectors::SmellKind::#variant.to_id() }
     } else {
         let id = args.id;
         quote! { #id }

@@ -8,7 +8,7 @@ use petgraph::graph::NodeIndex;
 pub fn init() {}
 
 #[detector(
-    smell_type = AbstractnessViolation,
+    smell_type = SmellType::AbstractnessViolation,
     name = "Abstractness vs Instability Violation Detector",
     description = "Detects modules that are far from the Main Sequence (Zone of Pain or Uselessness)",
     category = DetectorCategory::Global,

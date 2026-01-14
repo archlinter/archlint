@@ -9,7 +9,7 @@ use std::path::{Path, PathBuf};
 pub fn init() {}
 
 #[detector(
-    smell_type = DeadCode,
+    smell_type = SmellType::DeadCode,
     name = "Dead Code Detector",
     description = "Detects unused files and modules",
     category = DetectorCategory::Global

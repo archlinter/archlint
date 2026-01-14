@@ -9,7 +9,7 @@ use std::path::Path;
 pub fn init() {}
 
 #[detector(
-    smell_type = PackageCycle,
+    smell_type = SmellType::PackageCycle,
     name = "Package-level Cycle Detector",
     description = "Detects circular dependencies between logical folders (packages)",
     category = DetectorCategory::GraphBased,

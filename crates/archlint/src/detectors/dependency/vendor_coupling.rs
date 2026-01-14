@@ -11,7 +11,7 @@ use crate::utils::package::PackageUtils;
 pub fn init() {}
 
 #[detector(
-    smell_type = VendorCoupling,
+    smell_type = SmellType::VendorCoupling,
     name = "Vendor Coupling Detector",
     description = "Detects excessive coupling to third-party packages",
     category = DetectorCategory::ImportBased,

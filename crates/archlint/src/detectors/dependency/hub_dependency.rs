@@ -9,7 +9,7 @@ use std::path::PathBuf;
 pub fn init() {}
 
 #[detector(
-    smell_type = HubDependency,
+    smell_type = SmellType::HubDependency,
     name = "Hub Dependency Detector",
     description = "Detects over-reliance on external packages",
     category = DetectorCategory::GraphBased,

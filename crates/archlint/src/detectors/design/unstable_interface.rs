@@ -6,7 +6,7 @@ use crate::engine::AnalysisContext;
 pub fn init() {}
 
 #[detector(
-    smell_type = UnstableInterface,
+    smell_type = SmellType::UnstableInterface,
     name = "Unstable Interface Detector",
     description = "Detects modules with high churn and many dependents",
     category = DetectorCategory::Global,

@@ -7,7 +7,7 @@ use std::path::PathBuf;
 pub fn init() {}
 
 #[detector(
-    smell_type = HubModule,
+    smell_type = SmellType::HubModule,
     name = "Hub Module Detector",
     description = "Detects modules that act as highly connected hubs with low internal logic",
     category = DetectorCategory::GraphBased,

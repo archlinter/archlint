@@ -7,7 +7,7 @@ use std::path::Path;
 pub fn init() {}
 
 #[detector(
-    smell_type = BarrelFileAbuse,
+    smell_type = SmellType::BarrelFileAbuse,
     name = "Barrel File Abuse Detector",
     description = "Detects excessive use of barrel files (index.ts) that inflate the dependency graph",
     category = DetectorCategory::ImportBased

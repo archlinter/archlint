@@ -6,7 +6,7 @@ use crate::engine::AnalysisContext;
 pub fn init() {}
 
 #[detector(
-    smell_type = HighComplexity,
+    smell_type = SmellType::HighComplexity,
     name = "Complexity Detector",
     description = "Detects functions and files with high cyclomatic complexity",
     category = DetectorCategory::FileLocal

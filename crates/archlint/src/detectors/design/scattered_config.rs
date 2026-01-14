@@ -8,7 +8,7 @@ use std::path::PathBuf;
 pub fn init() {}
 
 #[detector(
-    smell_type = ScatteredConfiguration,
+    smell_type = SmellType::ScatteredConfiguration,
     name = "Scattered Configuration Detector",
     description = "Detects environment variables that are accessed from many different modules",
     category = DetectorCategory::Global,

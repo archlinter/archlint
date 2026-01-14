@@ -9,7 +9,7 @@ use std::path::{Path, PathBuf};
 pub fn init() {}
 
 #[detector(
-    smell_type = ShotgunSurgery,
+    smell_type = SmellType::ShotgunSurgery,
     name = "Shotgun Surgery Detector",
     description = "Detects files that frequently change together",
     category = DetectorCategory::Global,

@@ -9,7 +9,7 @@ use std::path::{Path, PathBuf};
 pub fn init() {}
 
 #[detector(
-    smell_type = LayerViolation,
+    smell_type = SmellType::LayerViolation,
     name = "Layer Architecture Violation Detector",
     description = "Detects violations of layered architecture rules",
     category = DetectorCategory::ImportBased,

@@ -6,7 +6,7 @@ use crate::engine::AnalysisContext;
 pub fn init() {}
 
 #[detector(
-    smell_type = SideEffectImport,
+    smell_type = SmellType::SideEffectImport,
     name = "Side-Effect Import Detector",
     description = "Detects imports that execute code on load without binding any symbols",
     category = DetectorCategory::ImportBased

@@ -13,7 +13,7 @@ use self::tokenizer::tokenize_files;
 
 /// Main detector for code clones (duplicated code blocks).
 #[detector(
-    smell_type = CodeClone,
+    smell_type = SmellType::CodeClone,
     name = "Code Clone Detector",
     description = "Detects duplicated code blocks across the project (Type-1 clones)",
     category = DetectorCategory::Global,

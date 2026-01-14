@@ -7,7 +7,7 @@ use petgraph::graph::NodeIndex;
 pub fn init() {}
 
 #[detector(
-    smell_type = SdpViolation,
+    smell_type = SmellType::SdpViolation,
     name = "Stable Dependency Principle Violation Detector",
     description = "Detects when stable modules depend on unstable ones",
     category = DetectorCategory::GraphBased,

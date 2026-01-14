@@ -8,7 +8,7 @@ use std::path::{Path, PathBuf};
 pub fn init() {}
 
 #[detector(
-    smell_type = FeatureEnvy,
+    smell_type = SmellType::FeatureEnvy,
     name = "Feature Envy Detector",
     description = "Detects modules that use more external symbols than internal ones",
     category = DetectorCategory::Global,

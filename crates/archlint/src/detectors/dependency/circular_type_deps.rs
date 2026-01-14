@@ -10,7 +10,7 @@ use std::path::{Path, PathBuf};
 pub fn init() {}
 
 #[detector(
-    smell_type = CircularTypeDependency,
+    smell_type = SmellType::CircularTypeDependency,
     name = "Circular Type Dependencies Detector",
     description = "Detects circular dependencies between modules that only involve types",
     category = DetectorCategory::GraphBased,

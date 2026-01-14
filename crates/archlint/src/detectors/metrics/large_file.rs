@@ -6,7 +6,7 @@ use crate::engine::AnalysisContext;
 pub fn init() {}
 
 #[detector(
-    smell_type = LargeFile,
+    smell_type = SmellType::LargeFile,
     name = "Large File Detector",
     description = "Detects files that exceed the recommended line count",
     category = DetectorCategory::FileLocal

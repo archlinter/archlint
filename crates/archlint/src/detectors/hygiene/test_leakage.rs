@@ -7,7 +7,7 @@ use std::path::Path;
 pub fn init() {}
 
 #[detector(
-    smell_type = TestLeakage,
+    smell_type = SmellType::TestLeakage,
     name = "Test to Production Leakage Detector",
     description = "Detects when production code imports test files, mocks, or test utilities",
     category = DetectorCategory::ImportBased,

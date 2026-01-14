@@ -15,7 +15,7 @@ use std::path::{Path, PathBuf};
 pub fn init() {}
 
 #[detector(
-    smell_type = CyclicDependency,
+    smell_type = SmellType::CyclicDependency,
     name = "Cycle Detector",
     description = "Detects circular dependencies between modules",
     category = DetectorCategory::GraphBased

@@ -6,7 +6,7 @@ use crate::engine::AnalysisContext;
 pub fn init() {}
 
 #[detector(
-    smell_type = PrimitiveObsession,
+    smell_type = SmellType::PrimitiveObsession,
     name = "Primitive Obsession Detector",
     description = "Detects functions with too many primitive parameters",
     category = DetectorCategory::FileLocal,

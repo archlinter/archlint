@@ -9,7 +9,7 @@ use std::path::{Path, PathBuf};
 pub fn init() {}
 
 #[detector(
-    smell_type = DeadSymbol,
+    smell_type = SmellType::DeadSymbol,
     name = "Dead Symbols Detector",
     description = "Detects unused functions, classes, and variables within files",
     category = DetectorCategory::Global,

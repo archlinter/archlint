@@ -9,7 +9,7 @@ use std::path::PathBuf;
 pub fn init() {}
 
 #[detector(
-    smell_type = OrphanType,
+    smell_type = SmellType::OrphanType,
     name = "Orphan Types Detector",
     description = "Detects exported types or interfaces that are never used",
     category = DetectorCategory::Global

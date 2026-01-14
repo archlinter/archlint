@@ -7,7 +7,7 @@ use petgraph::graph::UnGraph;
 pub fn init() {}
 
 #[detector(
-    smell_type = LowCohesion,
+    smell_type = SmellType::LowCohesion,
     name = "Lack of Cohesion of Methods (LCOM4)",
     description = "Detects classes with low cohesion where methods don't share common fields",
     category = DetectorCategory::FileLocal,

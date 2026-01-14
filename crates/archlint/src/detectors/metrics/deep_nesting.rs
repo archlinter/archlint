@@ -6,7 +6,7 @@ use crate::engine::AnalysisContext;
 pub fn init() {}
 
 #[detector(
-    smell_type = DeepNesting,
+    smell_type = SmellType::DeepNesting,
     name = "Deep Nesting Detector",
     description = "Detects functions with excessive nesting depth",
     category = DetectorCategory::FileLocal

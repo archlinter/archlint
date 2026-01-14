@@ -6,7 +6,7 @@ use crate::engine::AnalysisContext;
 pub fn init() {}
 
 #[detector(
-    smell_type = HighCoupling,
+    smell_type = SmellType::HighCoupling,
     name = "High Coupling Detector (CBO)",
     description = "Detects modules with too many incoming and outgoing dependencies",
     category = DetectorCategory::GraphBased,

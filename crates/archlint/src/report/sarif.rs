@@ -1,4 +1,4 @@
-use crate::detectors::{ArchSmell, ConfigurableSmellType, Severity};
+use crate::detectors::{ArchSmell, Severity, SmellKind};
 use crate::explain::Explanation;
 use crate::report::AnalysisReport;
 use crate::Result;
@@ -227,7 +227,7 @@ fn map_locations(smell: &ArchSmell, scan_root: Option<&Path>) -> Vec<SarifLocati
     }
 }
 
-fn create_rule(category: ConfigurableSmellType) -> SarifRule {
+fn create_rule(category: SmellKind) -> SarifRule {
     let rule_id = category.to_id();
     SarifRule {
         id: rule_id.to_string(),
@@ -235,7 +235,7 @@ fn create_rule(category: ConfigurableSmellType) -> SarifRule {
             text: category.display_name().to_string(),
         },
         help_uri: Some(format!(
-            "https://archlint.org/docs/detectors/{}.html",
+            "https://archlinter.github.io/archlint/detectors/{}.html",
             rule_id
         )),
     }

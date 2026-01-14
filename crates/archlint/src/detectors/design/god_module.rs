@@ -7,7 +7,7 @@ use crate::engine::AnalysisContext;
 pub fn init() {}
 
 #[detector(
-    smell_type = GodModule,
+    smell_type = SmellType::GodModule,
     name = "God Module Detector",
     description = "Detects large modules with many incoming and outgoing dependencies",
     category = DetectorCategory::Global

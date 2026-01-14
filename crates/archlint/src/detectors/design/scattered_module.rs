@@ -9,7 +9,7 @@ use std::path::Path;
 pub fn init() {}
 
 #[detector(
-    smell_type = ScatteredModule,
+    smell_type = SmellType::ScatteredModule,
     name = "Scattered Module Detector",
     description = "Detects modules where exports are unrelated to each other",
     category = DetectorCategory::Global,

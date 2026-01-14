@@ -19,105 +19,6 @@ pub enum DetectorCategory {
 }
 
 /// Defines the specific type of an architectural smell.
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Hash, PartialOrd, Ord)]
-#[serde(tag = "type", rename_all = "camelCase")]
-pub enum SmellType {
-    /// Two or more files form a dependency cycle.
-    CyclicDependency,
-    /// A large group of interconnected cycles.
-    CyclicDependencyCluster,
-    /// A module with excessive incoming and outgoing dependencies.
-    GodModule,
-    /// Code that is never imported or executed.
-    DeadCode,
-    /// An exported symbol (function, class, etc.) that is never used.
-    DeadSymbol { name: String, kind: String },
-    /// A function with high cyclomatic complexity.
-    HighComplexity {
-        name: String,
-        line: usize,
-        complexity: usize,
-    },
-    /// A file with too many lines of code.
-    LargeFile,
-    /// An interface that changes frequently despite having many dependents.
-    UnstableInterface,
-    /// A module that accesses more data from another module than its own.
-    FeatureEnvy { most_envied_module: PathBuf },
-    /// A change in one module requires many small changes in other modules.
-    ShotgunSurgery,
-    /// A package that is a central dependency for many parts of the project.
-    HubDependency { package: String },
-
-    /// A test file that is imported by non-test code.
-    TestLeakage { test_file: PathBuf },
-    /// A dependency that violates defined architectural layers.
-    LayerViolation {
-        from_layer: String,
-        to_layer: String,
-    },
-    /// A stable module depending on a less stable module (Stable Dependencies Principle).
-    SdpViolation,
-
-    /// A file that exports too many unrelated symbols.
-    BarrelFileAbuse,
-    /// Excessive reliance on a specific third-party package.
-    VendorCoupling { package: String },
-    /// An import that is only executed for its side effects.
-    SideEffectImport,
-    /// A module that acts as a central hub for many other modules.
-    HubModule,
-
-    /// A class where methods don't operate on common fields (Lack of Cohesion of Methods).
-    LowCohesion { lcom: usize, class_name: String },
-    /// A module that consists of multiple unconnected components.
-    ScatteredModule { components: usize },
-    /// A module with high coupling to other modules (Coupling Between Objects).
-    HighCoupling { cbo: usize },
-
-    /// A dependency cycle between different packages.
-    PackageCycle { packages: Vec<String> },
-    /// A shared global state that is modified from multiple locations.
-    SharedMutableState { symbol: String },
-
-    /// A function with too many levels of nested control structures.
-    DeepNesting {
-        #[serde(alias = "function")]
-        name: String,
-        depth: usize,
-        line: usize,
-    },
-    /// A function with an excessively long list of parameters.
-    LongParameterList {
-        count: usize,
-        #[serde(alias = "function")]
-        name: String,
-    },
-
-    /// Excessive use of primitive types instead of domain-specific objects.
-    PrimitiveObsession {
-        primitives: usize,
-        #[serde(alias = "function")]
-        name: String,
-    },
-    /// A type that is defined but never used.
-    OrphanType { name: String },
-    /// Circular dependency involving only types (type-only imports).
-    CircularTypeDependency,
-    /// A module that is neither stable nor abstract enough (Abstractness violation).
-    AbstractnessViolation,
-    /// Environment variables accessed from many different files.
-    ScatteredConfiguration { env_var: String, files_count: usize },
-    /// Identical or near-identical code blocks in multiple locations.
-    CodeClone {
-        clone_hash: String,
-        token_count: usize,
-    },
-    /// Unknown smell type encountered during deserialization.
-    Unknown { raw_type: String },
-}
-
-/// Represents a smell type that can be configured in the `.archlint.yaml`.
 #[derive(
     Debug,
     Clone,
@@ -126,222 +27,317 @@ pub enum SmellType {
     PartialEq,
     Eq,
     Hash,
-    Copy,
+    PartialOrd,
+    Ord,
+    strum::EnumDiscriminants,
+)]
+#[strum_discriminants(derive(
+    Serialize,
+    Deserialize,
     EnumString,
     IntoStaticStr,
     EnumMessage,
-)]
-#[serde(rename_all = "PascalCase")]
-#[strum(ascii_case_insensitive)]
-pub enum ConfigurableSmellType {
-    #[strum(
+    Hash,
+    PartialOrd,
+    Ord,
+))]
+#[strum_discriminants(name(SmellKind))]
+#[strum_discriminants(serde(rename_all = "PascalCase"))]
+#[strum_discriminants(strum(ascii_case_insensitive))]
+#[serde(tag = "type", rename_all = "camelCase")]
+pub enum SmellType {
+    /// Two or more files form a dependency cycle.
+    #[strum_discriminants(strum(
         to_string = "cyclic_dependency",
         message = "Cyclic Dependency",
         serialize = "cyclic_dependency",
         serialize = "cyclicdependency",
         serialize = "cycles"
-    )]
+    ))]
     CyclicDependency,
-    #[strum(
+
+    /// A large group of interconnected cycles.
+    #[strum_discriminants(strum(
         to_string = "cycle_clusters",
         message = "Cyclic Dependency Cluster",
         serialize = "cyclic_dependency_cluster",
         serialize = "cyclicdependencycluster"
-    )]
+    ))]
     CyclicDependencyCluster,
-    #[strum(
+
+    /// A module with excessive incoming and outgoing dependencies.
+    #[strum_discriminants(strum(
         to_string = "god_module",
         message = "God Module",
         serialize = "godmodule"
-    )]
+    ))]
     GodModule,
-    #[strum(to_string = "dead_code", message = "Dead Code", serialize = "deadcode")]
+
+    /// Code that is never imported or executed.
+    #[strum_discriminants(strum(
+        to_string = "dead_code",
+        message = "Dead Code",
+        serialize = "deadcode"
+    ))]
     DeadCode,
-    #[strum(
+
+    /// An exported symbol (function, class, etc.) that is never used.
+    #[strum_discriminants(strum(
         to_string = "dead_symbols",
         message = "Dead Symbol",
         serialize = "dead_symbol",
         serialize = "deadsymbol"
-    )]
-    DeadSymbol,
-    #[strum(
+    ))]
+    DeadSymbol { name: String, kind: String },
+
+    /// A function with high cyclomatic complexity.
+    #[strum_discriminants(strum(
         to_string = "complexity",
         message = "High Complexity",
         serialize = "high_complexity",
         serialize = "highcomplexity"
-    )]
-    HighComplexity,
-    #[strum(
+    ))]
+    HighComplexity {
+        name: String,
+        line: usize,
+        complexity: usize,
+    },
+
+    /// A file with too many lines of code.
+    #[strum_discriminants(strum(
         to_string = "large_file",
         message = "Large File",
         serialize = "largefile"
-    )]
+    ))]
     LargeFile,
-    #[strum(
+
+    /// An interface that changes frequently despite having many dependents.
+    #[strum_discriminants(strum(
         to_string = "unstable_interface",
         message = "Unstable Interface",
         serialize = "unstableinterface"
-    )]
+    ))]
     UnstableInterface,
-    #[strum(
+
+    /// A module that accesses more data from another module than its own.
+    #[strum_discriminants(strum(
         to_string = "feature_envy",
         message = "Feature Envy",
         serialize = "featureenvy"
-    )]
-    FeatureEnvy,
-    #[strum(
+    ))]
+    FeatureEnvy { most_envied_module: PathBuf },
+
+    /// A change in one module requires many small changes in other modules.
+    #[strum_discriminants(strum(
         to_string = "shotgun_surgery",
         message = "Shotgun Surgery",
         serialize = "shotgunsurgery"
-    )]
+    ))]
     ShotgunSurgery,
-    #[strum(
+
+    /// A package that is a central dependency for many parts of the project.
+    #[strum_discriminants(strum(
         to_string = "hub_dependency",
         message = "Hub Dependency",
         serialize = "hubdependency"
-    )]
-    HubDependency,
+    ))]
+    HubDependency { package: String },
 
-    #[strum(
+    /// A test file that is imported by non-test code.
+    #[strum_discriminants(strum(
         to_string = "test_leakage",
         message = "Test Leakage",
         serialize = "testleakage"
-    )]
-    TestLeakage,
-    #[strum(
+    ))]
+    TestLeakage { test_file: PathBuf },
+
+    /// A dependency that violates defined architectural layers.
+    #[strum_discriminants(strum(
         to_string = "layer_violation",
         message = "Layer Violation",
         serialize = "layerviolation"
-    )]
-    LayerViolation,
-    #[strum(
+    ))]
+    LayerViolation {
+        from_layer: String,
+        to_layer: String,
+    },
+
+    /// A stable module depending on a less stable module (Stable Dependencies Principle).
+    #[strum_discriminants(strum(
         to_string = "sdp_violation",
         message = "SDP Violation",
         serialize = "sdpviolation"
-    )]
+    ))]
     SdpViolation,
 
-    #[strum(
+    /// A file that exports too many unrelated symbols.
+    #[strum_discriminants(strum(
         to_string = "barrel_file",
         message = "Barrel File Abuse",
         serialize = "barrel_file_abuse",
         serialize = "barrelfileabuse"
-    )]
+    ))]
     BarrelFileAbuse,
-    #[strum(
+
+    /// Excessive reliance on a specific third-party package.
+    #[strum_discriminants(strum(
         to_string = "vendor_coupling",
         message = "Vendor Coupling",
         serialize = "vendorcoupling"
-    )]
-    VendorCoupling,
-    #[strum(
+    ))]
+    VendorCoupling { package: String },
+
+    /// An import that is only executed for its side effects.
+    #[strum_discriminants(strum(
         to_string = "side_effect_import",
         message = "Side-effect Import",
         serialize = "sideeffectimport"
-    )]
+    ))]
     SideEffectImport,
-    #[strum(
+
+    /// A module that acts as a central hub for many other modules.
+    #[strum_discriminants(strum(
         to_string = "hub_module",
         message = "Hub Module",
         serialize = "hubmodule"
-    )]
+    ))]
     HubModule,
 
-    #[strum(
+    /// A class where methods don't operate on common fields (Lack of Cohesion of Methods).
+    #[strum_discriminants(strum(
         to_string = "lcom",
         message = "Low Cohesion (LCOM)",
         serialize = "low_cohesion",
         serialize = "lowcohesion"
-    )]
-    LowCohesion,
-    #[strum(
+    ))]
+    LowCohesion { lcom: usize, class_name: String },
+
+    /// A module that consists of multiple unconnected components.
+    #[strum_discriminants(strum(
         to_string = "module_cohesion",
         message = "Scattered Module",
         serialize = "scattered_module",
         serialize = "scatteredmodule"
-    )]
-    ScatteredModule,
-    #[strum(
+    ))]
+    ScatteredModule { components: usize },
+
+    /// A module with high coupling to other modules (Coupling Between Objects).
+    #[strum_discriminants(strum(
         to_string = "high_coupling",
         message = "High Coupling",
         serialize = "highcoupling"
-    )]
-    HighCoupling,
+    ))]
+    HighCoupling { cbo: usize },
 
-    #[strum(
+    /// A dependency cycle between different packages.
+    #[strum_discriminants(strum(
         to_string = "package_cycles",
         message = "Package Cycle",
         serialize = "package_cycle",
         serialize = "packagecycle"
-    )]
-    PackageCycle,
-    #[strum(
+    ))]
+    PackageCycle { packages: Vec<String> },
+
+    /// A shared global state that is modified from multiple locations.
+    #[strum_discriminants(strum(
         to_string = "shared_mutable_state",
         message = "Shared Mutable State",
         serialize = "sharedmutablestate"
-    )]
-    SharedMutableState,
+    ))]
+    SharedMutableState { symbol: String },
 
-    #[strum(
+    /// A function with too many levels of nested control structures.
+    #[strum_discriminants(strum(
         to_string = "deep_nesting",
         message = "Deep Nesting",
         serialize = "deepnesting"
-    )]
-    DeepNesting,
-    #[strum(
+    ))]
+    DeepNesting {
+        #[serde(alias = "function")]
+        name: String,
+        depth: usize,
+        line: usize,
+    },
+
+    /// A function with an excessively long list of parameters.
+    #[strum_discriminants(strum(
         to_string = "long_params",
         message = "Long Parameter List",
         serialize = "long_parameter_list",
         serialize = "longparameterlist"
-    )]
-    LongParameterList,
+    ))]
+    LongParameterList {
+        count: usize,
+        #[serde(alias = "function")]
+        name: String,
+    },
 
-    #[strum(
+    /// Excessive use of primitive types instead of domain-specific objects.
+    #[strum_discriminants(strum(
         to_string = "primitive_obsession",
         message = "Primitive Obsession",
         serialize = "primitiveobsession"
-    )]
-    PrimitiveObsession,
-    #[strum(
+    ))]
+    PrimitiveObsession {
+        primitives: usize,
+        #[serde(alias = "function")]
+        name: String,
+    },
+
+    /// A type that is defined but never used.
+    #[strum_discriminants(strum(
         to_string = "orphan_types",
         message = "Orphan Type",
         serialize = "orphan_type",
         serialize = "orphantype"
-    )]
-    OrphanType,
-    #[strum(
+    ))]
+    OrphanType { name: String },
+
+    /// Circular dependency involving only types (type-only imports).
+    #[strum_discriminants(strum(
         to_string = "circular_type_deps",
         message = "Circular Type Dependency",
         serialize = "circular_type_dependency",
         serialize = "circulartypedependency"
-    )]
+    ))]
     CircularTypeDependency,
-    #[strum(
+
+    /// A module that is neither stable nor abstract enough (Abstractness violation).
+    #[strum_discriminants(strum(
         to_string = "abstractness",
         message = "Abstractness Violation",
         serialize = "abstractness_violation",
         serialize = "abstractnessviolation"
-    )]
+    ))]
     AbstractnessViolation,
-    #[strum(
+
+    /// Environment variables accessed from many different files.
+    #[strum_discriminants(strum(
         to_string = "scattered_config",
         message = "Scattered Configuration",
         serialize = "scattered_configuration",
         serialize = "scatteredconfiguration"
-    )]
-    ScatteredConfiguration,
-    #[strum(
+    ))]
+    ScatteredConfiguration { env_var: String, files_count: usize },
+
+    /// Identical or near-identical code blocks in multiple locations.
+    #[strum_discriminants(strum(
         to_string = "code_clone",
         message = "Code Clone",
         serialize = "codeclone",
         serialize = "duplicates"
-    )]
-    CodeClone,
-    #[strum(to_string = "unknown", message = "Unknown")]
-    Unknown,
+    ))]
+    CodeClone {
+        clone_hash: String,
+        token_count: usize,
+    },
+
+    /// Unknown smell type encountered during deserialization.
+    #[strum_discriminants(strum(to_string = "unknown", message = "Unknown"))]
+    Unknown { raw_type: String },
 }
 
-impl ConfigurableSmellType {
+impl SmellKind {
     pub fn to_id(&self) -> &'static str {
         self.into()
     }
@@ -351,51 +347,15 @@ impl ConfigurableSmellType {
     }
 }
 
-impl std::fmt::Display for ConfigurableSmellType {
+impl std::fmt::Display for SmellKind {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.display_name())
     }
 }
 
 impl SmellType {
-    pub fn category(&self) -> ConfigurableSmellType {
-        match self {
-            SmellType::CyclicDependency => ConfigurableSmellType::CyclicDependency,
-            SmellType::CyclicDependencyCluster => ConfigurableSmellType::CyclicDependencyCluster,
-            SmellType::GodModule => ConfigurableSmellType::GodModule,
-            SmellType::DeadCode => ConfigurableSmellType::DeadCode,
-            SmellType::DeadSymbol { .. } => ConfigurableSmellType::DeadSymbol,
-            SmellType::HighComplexity { .. } => ConfigurableSmellType::HighComplexity,
-            SmellType::LargeFile => ConfigurableSmellType::LargeFile,
-            SmellType::UnstableInterface => ConfigurableSmellType::UnstableInterface,
-            SmellType::FeatureEnvy { .. } => ConfigurableSmellType::FeatureEnvy,
-            SmellType::ShotgunSurgery => ConfigurableSmellType::ShotgunSurgery,
-            SmellType::HubDependency { .. } => ConfigurableSmellType::HubDependency,
-
-            SmellType::TestLeakage { .. } => ConfigurableSmellType::TestLeakage,
-            SmellType::LayerViolation { .. } => ConfigurableSmellType::LayerViolation,
-            SmellType::SdpViolation => ConfigurableSmellType::SdpViolation,
-            SmellType::BarrelFileAbuse => ConfigurableSmellType::BarrelFileAbuse,
-            SmellType::VendorCoupling { .. } => ConfigurableSmellType::VendorCoupling,
-            SmellType::SideEffectImport => ConfigurableSmellType::SideEffectImport,
-            SmellType::HubModule => ConfigurableSmellType::HubModule,
-            SmellType::LowCohesion { .. } => ConfigurableSmellType::LowCohesion,
-            SmellType::ScatteredModule { .. } => ConfigurableSmellType::ScatteredModule,
-            SmellType::HighCoupling { .. } => ConfigurableSmellType::HighCoupling,
-            SmellType::PackageCycle { .. } => ConfigurableSmellType::PackageCycle,
-            SmellType::SharedMutableState { .. } => ConfigurableSmellType::SharedMutableState,
-            SmellType::DeepNesting { .. } => ConfigurableSmellType::DeepNesting,
-            SmellType::LongParameterList { .. } => ConfigurableSmellType::LongParameterList,
-            SmellType::PrimitiveObsession { .. } => ConfigurableSmellType::PrimitiveObsession,
-            SmellType::OrphanType { .. } => ConfigurableSmellType::OrphanType,
-            SmellType::CircularTypeDependency => ConfigurableSmellType::CircularTypeDependency,
-            SmellType::AbstractnessViolation => ConfigurableSmellType::AbstractnessViolation,
-            SmellType::ScatteredConfiguration { .. } => {
-                ConfigurableSmellType::ScatteredConfiguration
-            }
-            SmellType::CodeClone { .. } => ConfigurableSmellType::CodeClone,
-            SmellType::Unknown { .. } => ConfigurableSmellType::Unknown,
-        }
+    pub fn category(&self) -> SmellKind {
+        SmellKind::from(self)
     }
 }
 
