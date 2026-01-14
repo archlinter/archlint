@@ -36,7 +36,7 @@ pub fn generate_markdown(
     let registry = crate::detectors::DetectorRegistry::new();
 
     let report_order = vec![
-        "cycles",
+        "cyclic_dependency",
         "god_module",
         "dead_code",
         "dead_symbols",

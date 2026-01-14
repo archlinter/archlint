@@ -29,7 +29,7 @@ fn test_scan_with_detector_filter() {
 
     // Only run cycles detector
     let mut options = ScanOptions::new();
-    options.detectors = Some(vec!["cycles".to_string()]);
+    options.detectors = Some(vec!["cyclic_dependency".to_string()]);
 
     let result = scan(&test_data, options).expect("Scan failed");
 
@@ -48,7 +48,7 @@ fn test_scan_with_exclude_filter() {
 
     // Exclude cycles detector
     let mut options = ScanOptions::new();
-    options.exclude_detectors = vec!["cycles".to_string()];
+    options.exclude_detectors = vec!["cyclic_dependency".to_string()];
 
     let result = scan(&test_data, options).expect("Scan failed");
 
@@ -118,7 +118,7 @@ fn test_get_detectors() {
 
     let cycle_detector = detectors
         .iter()
-        .find(|d| d.id == "cycles")
+        .find(|d| d.id == "cyclic_dependency")
         .expect("Cycles detector not found");
     assert_eq!(cycle_detector.name, "Cycle Detector");
 }
