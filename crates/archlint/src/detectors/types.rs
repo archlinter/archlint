@@ -135,10 +135,11 @@ pub enum SmellType {
 #[strum(ascii_case_insensitive)]
 pub enum ConfigurableSmellType {
     #[strum(
-        to_string = "cycles",
+        to_string = "cyclic_dependency",
         message = "Cyclic Dependency",
         serialize = "cyclic_dependency",
-        serialize = "cyclicdependency"
+        serialize = "cyclicdependency",
+        serialize = "cycles"
     )]
     CyclicDependency,
     #[strum(

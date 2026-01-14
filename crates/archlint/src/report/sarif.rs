@@ -235,7 +235,7 @@ fn create_rule(category: ConfigurableSmellType) -> SarifRule {
             text: category.display_name().to_string(),
         },
         help_uri: Some(format!(
-            "https://archlinter.github.io/archlint/detectors/{}.html",
+            "https://archlint.org/docs/detectors/{}.html",
             rule_id
         )),
     }
@@ -293,7 +293,7 @@ mod tests {
         assert_eq!(sarif.version, "2.1.0");
         assert_eq!(sarif.runs.len(), 1);
         assert_eq!(sarif.runs[0].results.len(), 1);
-        assert_eq!(sarif.runs[0].results[0].rule_id, "cycles");
+        assert_eq!(sarif.runs[0].results[0].rule_id, "cyclic_dependency");
         assert_eq!(sarif.runs[0].results[0].level, "error");
         assert!(sarif.runs[0].results[0].message.text.contains("Reason:"));
     }

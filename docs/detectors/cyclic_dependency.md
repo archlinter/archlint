@@ -1,6 +1,6 @@
 # Cyclic Dependencies
 
-**ID:** `cycles` | **Severity:** Critical (default)
+**ID:** `cyclic_dependency` | **Severity:** Critical (default)
 
 Circular dependencies occur when two or more modules depend on each other, either directly or indirectly.
 
@@ -56,7 +56,7 @@ export const processPayment = (order: Order) => {
 
 ```yaml
 rules:
-  cycles:
+  cyclic_dependency:
     severity: high
     exclude: ['**/*.test.ts']
 ```

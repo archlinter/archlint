@@ -1,6 +1,6 @@
 # Shared Mutable State
 
-**ID:** `shared_state` | **Severity:** Medium (default)
+**ID:** `shared_mutable_state` | **Severity:** Medium (default)
 
 Identifies exported variables that are mutable (e.g., `export let ...` or `export var ...`).
 
