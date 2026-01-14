@@ -29,6 +29,7 @@ jobs:
     permissions:
       contents: read
       pull-requests: write # Требуется для комментариев к PR
+      security-events: write # Требуется для загрузки SARIF
     steps:
       - uses: actions/checkout@v4
         with:
@@ -77,3 +78,18 @@ jobs:
 - `--fail-on <severity>`: Выйти с кодом 1, если найдены регрессии этого уровня или выше.
 - `--explain`: Подробные советы о том, почему запах плох и как его исправить.
 - `--json`: Вывод результата в формате JSON для кастомной обработки.
+- `--format sarif`: Вывод в формате SARIF для интеграции с GitHub Code Scanning.
+
+## Интеграция с GitHub Code Scanning
+
+Вы можете загружать результаты archlint в GitHub Code Scanning, чтобы видеть архитектурные проблемы во вкладке "Security" и в виде аннотаций к PR.
+
+```yaml
+- name: Scan architecture
+  run: npx @archlinter/cli scan --format sarif --report archlint.sarif
+
+- name: Upload SARIF file
+  uses: github/codeql-action/upload-sarif@v3
+  with:
+    sarif_file: archlint.sarif
+```

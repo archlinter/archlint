@@ -29,6 +29,7 @@ jobs:
     permissions:
       contents: read
       pull-requests: write # PRコメントに必要
+      security-events: write # SARIFアップロードに必要
     steps:
       - uses: actions/checkout@v4
         with:
@@ -77,3 +78,18 @@ CLIを手動で実行したい場合は、`npx @archlinter/cli` を使用でき�
 - `--fail-on <severity>`: このレベル以上の回帰が見つかった場合、終了コード1で終了します。
 - `--explain`: 不吉なにおいがなぜ悪いのか、そしてどのように修正すればよいかについての詳細なアドバイスを表示します。
 - `--json`: カスタム処理のために結果をJSON形式で出力します。
+- `--format sarif`: GitHub Code Scanningとの統合のために、SARIF形式で出力します。
+
+## GitHub Code Scanningとの統合
+
+archlintの結果をGitHub Code Scanningにアップロードして、アーキテクチャ上の問題を「Security」タブやPRのアノテーションとして表示できます。
+
+```yaml
+- name: Scan architecture
+  run: npx @archlinter/cli scan --format sarif --report archlint.sarif
+
+- name: Upload SARIF file
+  uses: github/codeql-action/upload-sarif@v3
+  with:
+    sarif_file: archlint.sarif
+```

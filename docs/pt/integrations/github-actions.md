@@ -29,6 +29,7 @@ jobs:
     permissions:
       contents: read
       pull-requests: write # Necessário para comentários em PR
+      security-events: write # Necessário para upload de SARIF
     steps:
       - uses: actions/checkout@v4
         with:
@@ -77,3 +78,18 @@ Se preferir executar a CLI manualmente, você pode usar `npx @archlinter/cli`:
 - `--fail-on <severity>`: Sai com 1 se regressões deste nível ou superior forem encontradas.
 - `--explain`: Conselhos detalhados sobre por que um smell é ruim e como corrigi-lo.
 - `--json`: Saída do resultado como JSON para processamento personalizado.
+- `--format sarif`: Saída no formato SARIF para integração com o GitHub Code Scanning.
+
+## Integração com GitHub Code Scanning
+
+Você pode fazer upload dos resultados do archlint para o GitHub Code Scanning para ver os problemas arquiteturais na aba "Security" e como anotações em PRs.
+
+```yaml
+- name: Scan architecture
+  run: npx @archlinter/cli scan --format sarif --report archlint.sarif
+
+- name: Upload SARIF file
+  uses: github/codeql-action/upload-sarif@v3
+  with:
+    sarif_file: archlint.sarif
+```

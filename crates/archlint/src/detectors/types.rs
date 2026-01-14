@@ -1,6 +1,7 @@
 use crate::snapshot::types::SnapshotSmell;
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
+use strum::{Display, EnumMessage, EnumString, IntoStaticStr};
 
 use crate::detectors::ArchSmell;
 
@@ -117,147 +118,241 @@ pub enum SmellType {
 }
 
 /// Represents a smell type that can be configured in the `.archlint.yaml`.
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Hash, Copy)]
+#[derive(
+    Debug,
+    Clone,
+    Serialize,
+    Deserialize,
+    PartialEq,
+    Eq,
+    Hash,
+    Copy,
+    EnumString,
+    IntoStaticStr,
+    EnumMessage,
+)]
 #[serde(rename_all = "PascalCase")]
+#[strum(ascii_case_insensitive)]
 pub enum ConfigurableSmellType {
+    #[strum(
+        to_string = "cycles",
+        message = "Cyclic Dependency",
+        serialize = "cyclic_dependency",
+        serialize = "cyclicdependency"
+    )]
     CyclicDependency,
+    #[strum(
+        to_string = "cycle_clusters",
+        message = "Cyclic Dependency Cluster",
+        serialize = "cyclic_dependency_cluster",
+        serialize = "cyclicdependencycluster"
+    )]
     CyclicDependencyCluster,
+    #[strum(
+        to_string = "god_module",
+        message = "God Module",
+        serialize = "godmodule"
+    )]
     GodModule,
+    #[strum(to_string = "dead_code", message = "Dead Code", serialize = "deadcode")]
     DeadCode,
+    #[strum(
+        to_string = "dead_symbols",
+        message = "Dead Symbol",
+        serialize = "dead_symbol",
+        serialize = "deadsymbol"
+    )]
     DeadSymbol,
+    #[strum(
+        to_string = "complexity",
+        message = "High Complexity",
+        serialize = "high_complexity",
+        serialize = "highcomplexity"
+    )]
     HighComplexity,
+    #[strum(
+        to_string = "large_file",
+        message = "Large File",
+        serialize = "largefile"
+    )]
     LargeFile,
+    #[strum(
+        to_string = "unstable_interface",
+        message = "Unstable Interface",
+        serialize = "unstableinterface"
+    )]
     UnstableInterface,
+    #[strum(
+        to_string = "feature_envy",
+        message = "Feature Envy",
+        serialize = "featureenvy"
+    )]
     FeatureEnvy,
+    #[strum(
+        to_string = "shotgun_surgery",
+        message = "Shotgun Surgery",
+        serialize = "shotgunsurgery"
+    )]
     ShotgunSurgery,
+    #[strum(
+        to_string = "hub_dependency",
+        message = "Hub Dependency",
+        serialize = "hubdependency"
+    )]
     HubDependency,
 
+    #[strum(
+        to_string = "test_leakage",
+        message = "Test Leakage",
+        serialize = "testleakage"
+    )]
     TestLeakage,
+    #[strum(
+        to_string = "layer_violation",
+        message = "Layer Violation",
+        serialize = "layerviolation"
+    )]
     LayerViolation,
+    #[strum(
+        to_string = "sdp_violation",
+        message = "SDP Violation",
+        serialize = "sdpviolation"
+    )]
     SdpViolation,
 
+    #[strum(
+        to_string = "barrel_file",
+        message = "Barrel File Abuse",
+        serialize = "barrel_file_abuse",
+        serialize = "barrelfileabuse"
+    )]
     BarrelFileAbuse,
+    #[strum(
+        to_string = "vendor_coupling",
+        message = "Vendor Coupling",
+        serialize = "vendorcoupling"
+    )]
     VendorCoupling,
+    #[strum(
+        to_string = "side_effect_import",
+        message = "Side-effect Import",
+        serialize = "sideeffectimport"
+    )]
     SideEffectImport,
+    #[strum(
+        to_string = "hub_module",
+        message = "Hub Module",
+        serialize = "hubmodule"
+    )]
     HubModule,
 
+    #[strum(
+        to_string = "lcom",
+        message = "Low Cohesion (LCOM)",
+        serialize = "low_cohesion",
+        serialize = "lowcohesion"
+    )]
     LowCohesion,
+    #[strum(
+        to_string = "module_cohesion",
+        message = "Scattered Module",
+        serialize = "scattered_module",
+        serialize = "scatteredmodule"
+    )]
     ScatteredModule,
+    #[strum(
+        to_string = "high_coupling",
+        message = "High Coupling",
+        serialize = "highcoupling"
+    )]
     HighCoupling,
 
+    #[strum(
+        to_string = "package_cycles",
+        message = "Package Cycle",
+        serialize = "package_cycle",
+        serialize = "packagecycle"
+    )]
     PackageCycle,
+    #[strum(
+        to_string = "shared_mutable_state",
+        message = "Shared Mutable State",
+        serialize = "sharedmutablestate"
+    )]
     SharedMutableState,
 
+    #[strum(
+        to_string = "deep_nesting",
+        message = "Deep Nesting",
+        serialize = "deepnesting"
+    )]
     DeepNesting,
+    #[strum(
+        to_string = "long_params",
+        message = "Long Parameter List",
+        serialize = "long_parameter_list",
+        serialize = "longparameterlist"
+    )]
     LongParameterList,
 
+    #[strum(
+        to_string = "primitive_obsession",
+        message = "Primitive Obsession",
+        serialize = "primitiveobsession"
+    )]
     PrimitiveObsession,
+    #[strum(
+        to_string = "orphan_types",
+        message = "Orphan Type",
+        serialize = "orphan_type",
+        serialize = "orphantype"
+    )]
     OrphanType,
+    #[strum(
+        to_string = "circular_type_deps",
+        message = "Circular Type Dependency",
+        serialize = "circular_type_dependency",
+        serialize = "circulartypedependency"
+    )]
     CircularTypeDependency,
+    #[strum(
+        to_string = "abstractness",
+        message = "Abstractness Violation",
+        serialize = "abstractness_violation",
+        serialize = "abstractnessviolation"
+    )]
     AbstractnessViolation,
+    #[strum(
+        to_string = "scattered_config",
+        message = "Scattered Configuration",
+        serialize = "scattered_configuration",
+        serialize = "scatteredconfiguration"
+    )]
     ScatteredConfiguration,
+    #[strum(
+        to_string = "code_clone",
+        message = "Code Clone",
+        serialize = "codeclone",
+        serialize = "duplicates"
+    )]
     CodeClone,
+    #[strum(to_string = "unknown", message = "Unknown")]
     Unknown,
-}
-
-impl std::str::FromStr for ConfigurableSmellType {
-    type Err = String;
-
-    fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
-        match s.to_lowercase().as_str() {
-            "cyclicdependency" | "cyclic_dependency" => Ok(ConfigurableSmellType::CyclicDependency),
-            "cyclicdependencycluster" | "cyclic_dependency_cluster" => {
-                Ok(ConfigurableSmellType::CyclicDependencyCluster)
-            }
-            "godmodule" | "god_module" => Ok(ConfigurableSmellType::GodModule),
-            "deadcode" | "dead_code" => Ok(ConfigurableSmellType::DeadCode),
-            "deadsymbol" | "dead_symbol" => Ok(ConfigurableSmellType::DeadSymbol),
-            "highcomplexity" | "high_complexity" => Ok(ConfigurableSmellType::HighComplexity),
-            "largefile" | "large_file" => Ok(ConfigurableSmellType::LargeFile),
-            "unstableinterface" | "unstable_interface" => {
-                Ok(ConfigurableSmellType::UnstableInterface)
-            }
-            "featureenvy" | "feature_envy" => Ok(ConfigurableSmellType::FeatureEnvy),
-            "shotgunsurgery" | "shotgun_surgery" => Ok(ConfigurableSmellType::ShotgunSurgery),
-            "hubdependency" | "hub_dependency" => Ok(ConfigurableSmellType::HubDependency),
-
-            "testleakage" | "test_leakage" => Ok(ConfigurableSmellType::TestLeakage),
-            "layerviolation" | "layer_violation" => Ok(ConfigurableSmellType::LayerViolation),
-            "sdpviolation" | "sdp_violation" => Ok(ConfigurableSmellType::SdpViolation),
-            "barrelfileabuse" | "barrel_file_abuse" => Ok(ConfigurableSmellType::BarrelFileAbuse),
-            "vendorcoupling" | "vendor_coupling" => Ok(ConfigurableSmellType::VendorCoupling),
-            "sideeffectimport" | "side_effect_import" => {
-                Ok(ConfigurableSmellType::SideEffectImport)
-            }
-            "hubmodule" | "hub_module" => Ok(ConfigurableSmellType::HubModule),
-            "lowcohesion" | "low_cohesion" => Ok(ConfigurableSmellType::LowCohesion),
-            "scatteredmodule" | "scattered_module" => Ok(ConfigurableSmellType::ScatteredModule),
-            "highcoupling" | "high_coupling" => Ok(ConfigurableSmellType::HighCoupling),
-            "packagecycle" | "package_cycle" => Ok(ConfigurableSmellType::PackageCycle),
-            "sharedmutablestate" | "shared_mutable_state" => {
-                Ok(ConfigurableSmellType::SharedMutableState)
-            }
-            "deepnesting" | "deep_nesting" => Ok(ConfigurableSmellType::DeepNesting),
-            "longparameterlist" | "long_parameter_list" => {
-                Ok(ConfigurableSmellType::LongParameterList)
-            }
-            "primitiveobsession" | "primitive_obsession" => {
-                Ok(ConfigurableSmellType::PrimitiveObsession)
-            }
-            "orphantype" | "orphan_type" => Ok(ConfigurableSmellType::OrphanType),
-            "circulartypedependency" | "circular_type_dependency" => {
-                Ok(ConfigurableSmellType::CircularTypeDependency)
-            }
-            "abstractnessviolation" | "abstractness_violation" => {
-                Ok(ConfigurableSmellType::AbstractnessViolation)
-            }
-            "scatteredconfiguration" | "scattered_configuration" => {
-                Ok(ConfigurableSmellType::ScatteredConfiguration)
-            }
-            "codeclone" | "code_clone" | "duplicates" => Ok(ConfigurableSmellType::CodeClone),
-            "unknown" => Ok(ConfigurableSmellType::Unknown),
-
-            _ => Err(format!("Unknown smell type: {}", s)),
-        }
-    }
 }
 
 impl ConfigurableSmellType {
     pub fn to_id(&self) -> &'static str {
-        match self {
-            ConfigurableSmellType::CyclicDependency => "cycles",
-            ConfigurableSmellType::CyclicDependencyCluster => "cycles",
-            ConfigurableSmellType::GodModule => "god_module",
-            ConfigurableSmellType::DeadCode => "dead_code",
-            ConfigurableSmellType::DeadSymbol => "dead_symbols",
-            ConfigurableSmellType::HighComplexity => "complexity",
-            ConfigurableSmellType::LargeFile => "large_file",
-            ConfigurableSmellType::UnstableInterface => "unstable_interface",
-            ConfigurableSmellType::FeatureEnvy => "feature_envy",
-            ConfigurableSmellType::ShotgunSurgery => "shotgun_surgery",
-            ConfigurableSmellType::HubDependency => "hub_dependency",
-            ConfigurableSmellType::TestLeakage => "test_leakage",
-            ConfigurableSmellType::LayerViolation => "layer_violation",
-            ConfigurableSmellType::SdpViolation => "sdp_violation",
-            ConfigurableSmellType::BarrelFileAbuse => "barrel_file",
-            ConfigurableSmellType::VendorCoupling => "vendor_coupling",
-            ConfigurableSmellType::SideEffectImport => "side_effect_import",
-            ConfigurableSmellType::HubModule => "hub_module",
-            ConfigurableSmellType::LowCohesion => "lcom",
-            ConfigurableSmellType::ScatteredModule => "module_cohesion",
-            ConfigurableSmellType::HighCoupling => "high_coupling",
-            ConfigurableSmellType::PackageCycle => "package_cycles",
-            ConfigurableSmellType::SharedMutableState => "shared_mutable_state",
-            ConfigurableSmellType::DeepNesting => "deep_nesting",
-            ConfigurableSmellType::LongParameterList => "long_params",
-            ConfigurableSmellType::PrimitiveObsession => "primitive_obsession",
-            ConfigurableSmellType::OrphanType => "orphan_types",
-            ConfigurableSmellType::CircularTypeDependency => "circular_type_deps",
-            ConfigurableSmellType::AbstractnessViolation => "abstractness",
-            ConfigurableSmellType::ScatteredConfiguration => "scattered_config",
-            ConfigurableSmellType::CodeClone => "code_clone",
-            ConfigurableSmellType::Unknown => "unknown",
-        }
+        self.into()
+    }
+
+    pub fn display_name(&self) -> &'static str {
+        self.get_message().unwrap_or_default()
+    }
+}
+
+impl std::fmt::Display for ConfigurableSmellType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.display_name())
     }
 }
 
@@ -463,27 +558,26 @@ mod tests {
 }
 
 #[derive(
-    Debug, Clone, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Copy, schemars::JsonSchema,
+    Debug,
+    Clone,
+    Serialize,
+    Deserialize,
+    PartialEq,
+    Eq,
+    PartialOrd,
+    Ord,
+    Copy,
+    schemars::JsonSchema,
+    Display,
+    EnumString,
+    IntoStaticStr,
 )]
+#[strum(serialize_all = "lowercase", ascii_case_insensitive)]
 pub enum Severity {
     Low,
     Medium,
     High,
     Critical,
-}
-
-impl std::str::FromStr for Severity {
-    type Err = String;
-
-    fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
-        match s.to_lowercase().as_str() {
-            "low" => Ok(Severity::Low),
-            "medium" => Ok(Severity::Medium),
-            "high" => Ok(Severity::High),
-            "critical" => Ok(Severity::Critical),
-            _ => Err(format!("Unknown severity: {}", s)),
-        }
-    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

@@ -12,7 +12,7 @@ archlint scan [path] [options]
 
 | 选项                            | 默认值   | 描述                                                |
 | ------------------------------- | -------- | --------------------------------------------------- |
-| `-f, --format <format>`         | `table`  | 输出格式：`table`, `json`, `markdown`               |
+| `-f, --format <format>`         | `table`  | 输出格式：`table`, `json`, `markdown`, `sarif`      |
 | `-j, --json`                    | `false`  | `--format json` 的快捷方式                          |
 | `-r, --report <file>`           | `stdout` | 将报告保存到文件                                    |
 | `-s, --min-severity <sev>`      | `low`    | 按严重程度过滤：`low`, `medium`, `high`, `critical` |
@@ -29,6 +29,12 @@ archlint scan [path] [options]
 
 ```bash
 archlint scan --format markdown --report report.md
+```
+
+### 导出为 SARIF (用于 GitHub Code Scanning)
+
+```bash
+archlint scan --format sarif --report results.sarif
 ```
 
 ### 仅运行循环依赖检测

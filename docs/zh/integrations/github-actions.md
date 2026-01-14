@@ -29,6 +29,7 @@ jobs:
     permissions:
       contents: read
       pull-requests: write # PR 评论所需
+      security-events: write # 上传 SARIF 所需
     steps:
       - uses: actions/checkout@v4
         with:
@@ -77,3 +78,33 @@ jobs:
 - `--fail-on <severity>`：如果发现此级别或更高级别的退化，则以退出码 1 退出。
 - `--explain`：关于为什么该坏味道是不好的以及如何修复它的详细建议。
 - `--json`：将结果输出为 JSON，以便进行自定义处理。
+- `--format sarif`：以 SARIF 格式输出，用于与 GitHub Code Scanning 集成。
+
+## GitHub Code Scanning 集成
+
+您可以将 archlint 的结果上传到 GitHub Code Scanning，以便在 "Security" 选项卡中查看架构问题，并作为 PR 注解显示。
+
+::: tip 权限说明
+上传 SARIF 文件需要 `security-events: write` 权限。
+:::
+
+```yaml
+jobs:
+  archlint:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write # 上传 SARIF 所需
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Scan architecture
+        run: npx @archlinter/cli scan --format sarif --report archlint.sarif
+
+      - name: Upload SARIF file
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: archlint.sarif
+```

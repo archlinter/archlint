@@ -1,7 +1,9 @@
 use serde::{Deserialize, Serialize};
+use strum::Display;
 pub mod json;
 pub mod markdown;
 pub mod mermaid;
+pub mod sarif;
 
 use crate::config::SeverityConfig;
 use crate::detectors::{ArchSmell, CodeRange, LocationDetail, Severity, SmellType};
@@ -30,7 +32,7 @@ use console::style;
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default, Display)]
 pub enum GradeLevel {
     #[default]
     Excellent,
@@ -39,19 +41,6 @@ pub enum GradeLevel {
     Moderate,
     Poor,
     Critical,
-}
-
-impl std::fmt::Display for GradeLevel {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            GradeLevel::Excellent => write!(f, "Excellent"),
-            GradeLevel::Good => write!(f, "Good"),
-            GradeLevel::Fair => write!(f, "Fair"),
-            GradeLevel::Moderate => write!(f, "Moderate"),
-            GradeLevel::Poor => write!(f, "Poor"),
-            GradeLevel::Critical => write!(f, "Critical"),
-        }
-    }
 }
 
 /// Represents the overall architectural grade of a project.
@@ -407,6 +396,15 @@ impl AnalysisReport {
                     self.write_json(path, severity_config)
                 } else {
                     let output = json::generate_json(self, severity_config);
+                    println!("{}", serde_json::to_string_pretty(&output)?);
+                    Ok(())
+                }
+            }
+            crate::args::OutputFormat::Sarif => {
+                if let Some(path) = path {
+                    sarif::write_report(self, path, severity_config, scan_root)
+                } else {
+                    let output = sarif::generate_sarif(self, severity_config, scan_root)?;
                     println!("{}", serde_json::to_string_pretty(&output)?);
                     Ok(())
                 }

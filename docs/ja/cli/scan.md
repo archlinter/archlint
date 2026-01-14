@@ -12,7 +12,7 @@ archlint scan [path] [options]
 
 | オプション                      | デフォルト | 説明                                                        |
 | ------------------------------- | ---------- | ----------------------------------------------------------- |
-| `-f, --format <format>`         | `table`    | 出力形式: `table`, `json`, `markdown`                       |
+| `-f, --format <format>`         | `table`    | 出力形式: `table`, `json`, `markdown`, `sarif`              |
 | `-j, --json`                    | `false`    | `--format json` のショートカット                            |
 | `-r, --report <file>`           | `stdout`   | レポートをファイルに保存します                              |
 | `-s, --min-severity <sev>`      | `low`      | 重要度でフィルタリング: `low`, `medium`, `high`, `critical` |
@@ -29,6 +29,12 @@ archlint scan [path] [options]
 
 ```bash
 archlint scan --format markdown --report report.md
+```
+
+### SARIFへのエクスポート (GitHub Code Scanning用)
+
+```bash
+archlint scan --format sarif --report results.sarif
 ```
 
 ### サイクル検出のみを実行
