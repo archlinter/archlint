@@ -241,9 +241,11 @@ impl<'a> UnifiedVisitor {
                     if m.kind == MethodDefinitionKind::Constructor =>
                 {
                     for param in &m.value.params.items {
-                        // Collect constructor parameters as class fields
-                        // In TypeScript, parameters with access modifiers become fields,
-                        // but for NestJS/Dependency Injection, all constructor parameters are typically fields
+                        // In TypeScript, only parameters with access modifiers (public, private, protected)
+                        // or readonly become class fields (parameter properties).
+                        // However, for NestJS/Dependency Injection patterns, constructor parameters
+                        // are typically fields even without explicit modifiers (decorators handle this).
+                        // We collect all constructor parameters as fields to support both cases.
                         if let oxc_ast::ast::BindingPattern::BindingIdentifier(id) = &param.pattern
                         {
                             self.temp_fields.insert(Self::atom_to_compact(&id.name));

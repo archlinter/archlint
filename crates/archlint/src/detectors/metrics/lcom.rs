@@ -91,7 +91,14 @@ impl Detector for LcomDetector {
             let max_lcom: usize = rule.get_option("max_lcom").unwrap_or(4);
 
             for class in &symbols.classes {
-                if class.methods.len() < min_methods {
+                // Filter methods the same way as calculate_lcom4 does
+                let filtered_methods: Vec<_> = class
+                    .methods
+                    .iter()
+                    .filter(|m| m.name != "constructor" && !m.is_accessor)
+                    .collect();
+
+                if filtered_methods.len() < min_methods {
                     continue;
                 }
 
