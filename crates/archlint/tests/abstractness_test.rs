@@ -152,3 +152,21 @@ fn test_external_interface_abstract_dependency_ok() {
         "Expected to be OK when only interfaces/types are imported from the service file"
     );
 }
+
+#[test]
+fn test_abstract_classes_ignored() {
+    let ctx = analyze_fixture_with_rule(
+        "abstractness/abstract_classes",
+        "abstractness",
+        Some("distance_threshold: 0.5\nfan_in_threshold: 5"),
+    );
+    let detector = AbstractnessViolationDetector;
+    let smells = detector.detect(&ctx);
+
+    // abstract.service.ts: 10 concrete clients, but it's an abstract class
+    // It should be ignored and no smells should be found.
+    assert!(
+        smells.is_empty(),
+        "Expected abstract classes to be ignored by the detector"
+    );
+}
