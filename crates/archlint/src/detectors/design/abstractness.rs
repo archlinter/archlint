@@ -1,7 +1,7 @@
 use crate::detectors::{detector, ArchSmell, Detector, Explanation};
 use crate::engine::AnalysisContext;
 use crate::graph::EdgeData;
-use crate::parser::{FileSymbols, SymbolKind};
+use crate::parser::{ClassSymbol, FileSymbols, SymbolKind};
 use petgraph::graph::NodeIndex;
 
 /// Initializes the detector module.
@@ -103,6 +103,81 @@ impl AbstractnessViolationDetector {
         }
         fan_out as f64 / (fan_in + fan_out) as f64
     }
+
+    fn should_skip_node(
+        &self,
+        ctx: &AnalysisContext,
+        node: NodeIndex,
+        rule: &crate::rule_resolver::ResolvedRuleConfig,
+        a: f64,
+        i: f64,
+        d: f64,
+    ) -> bool {
+        let fan_in = ctx.graph.fan_in(node);
+        let fan_in_threshold: usize = rule.get_option("fan_in_threshold").unwrap_or(10);
+        let distance_threshold: f64 = rule.get_option("distance_threshold").unwrap_or(0.85);
+
+        // 1. Check if we should ignore this file based on stability and abstractness
+        // Zone of Pain: Needs high fan-in to be relevant.
+        // Zone of Uselessness: Needs high abstractness but low fan-in is exactly the point.
+        let is_potential_pain = i < 0.5 && a < 0.5;
+        if is_potential_pain && fan_in < fan_in_threshold {
+            return true;
+        }
+
+        d <= distance_threshold
+    }
+
+    fn has_active_components(&self, symbols: &FileSymbols) -> bool {
+        symbols
+            .classes
+            .iter()
+            .any(|c| self.is_active_class(symbols, c))
+    }
+
+    fn is_active_class(&self, symbols: &FileSymbols, c: &ClassSymbol) -> bool {
+        // 1. Must be exported
+        let is_exported = symbols
+            .exports
+            .iter()
+            .any(|e| e.kind == SymbolKind::Class && e.name == c.name);
+
+        if !is_exported {
+            return false;
+        }
+
+        // 2. Exclude abstract classes (they are already abstractions by definition)
+        if c.is_abstract {
+            return false;
+        }
+
+        // 3. Exclude simple Errors
+        if let Some(super_class) = &c.super_class {
+            if super_class.to_lowercase().contains("error") {
+                return false;
+            }
+        }
+
+        // 4. Exclude Data Carriers (DTOs, Entities, simple structures)
+        if c.methods.is_empty() {
+            return false;
+        }
+
+        // 5. Exclude generic infrastructure patterns (like Migrations)
+        let method_names: Vec<String> = c
+            .methods
+            .iter()
+            .map(|m| m.name.to_lowercase().to_string())
+            .collect();
+        if method_names.len() <= 2
+            && (method_names.contains(&"up".to_string())
+                || method_names.contains(&"down".to_string()))
+        {
+            return false;
+        }
+
+        true
+    }
 }
 
 impl Detector for AbstractnessViolationDetector {
@@ -150,106 +225,31 @@ impl Detector for AbstractnessViolationDetector {
     );
 
     fn detect(&self, ctx: &AnalysisContext) -> Vec<ArchSmell> {
-        let mut smells = Vec::new();
+        ctx.graph
+            .nodes()
+            .filter_map(|node| {
+                let path = ctx.graph.get_file_path(node)?;
+                let symbols = ctx.file_symbols.get(path)?;
+                let rule = ctx.get_rule_for_file("abstractness", path)?;
 
-        for node in ctx.graph.nodes() {
-            if let Some(path) = ctx.graph.get_file_path(node) {
-                if let Some(symbols) = ctx.file_symbols.get(path) {
-                    let rule = match ctx.get_rule_for_file("abstractness", path) {
-                        Some(r) => r,
-                        None => continue,
-                    };
+                let fan_in = ctx.graph.fan_in(node);
+                let a = self.calculate_abstractness(ctx, path, node);
+                let i = self.calculate_instability(ctx, node);
+                let d = (a + i - 1.0).abs();
 
-                    let fan_in = ctx.graph.fan_in(node);
-                    let fan_in_threshold: usize = rule.get_option("fan_in_threshold").unwrap_or(10);
-                    let distance_threshold: f64 =
-                        rule.get_option("distance_threshold").unwrap_or(0.85);
-
-                    let a = self.calculate_abstractness(ctx, path, node);
-                    let i = self.calculate_instability(ctx, node);
-                    let d = (a + i - 1.0).abs();
-
-                    // 1. Check if we should ignore this file based on stability and abstractness
-                    // Zone of Pain: Needs high fan-in to be relevant.
-                    // Zone of Uselessness: Needs high abstractness but low fan-in is exactly the point.
-                    let is_potential_pain = i < 0.5 && a < 0.5;
-                    if is_potential_pain && fan_in < fan_in_threshold {
-                        continue;
-                    }
-
-                    if d <= distance_threshold {
-                        continue;
-                    }
-
-                    // 2. Identify "Active" components by checking exported classes
-                    let active_exported_classes: Vec<_> = symbols
-                        .classes
-                        .iter()
-                        .filter(|c| {
-                            // Must be exported
-                            let is_exported = symbols
-                                .exports
-                                .iter()
-                                .any(|e| e.kind == SymbolKind::Class && e.name == c.name);
-
-                            if !is_exported {
-                                return false;
-                            }
-
-                            // A. Exclude simple Errors (generic check for any class extending something with "Error")
-                            if let Some(super_class) = &c.super_class {
-                                let sc = super_class.to_lowercase();
-                                if sc.contains("error") {
-                                    return false;
-                                }
-                            }
-
-                            // B. Exclude Data Carriers (DTOs, Entities, simple structures)
-                            // A class with no methods is just a data container.
-                            if c.methods.is_empty() {
-                                return false;
-                            }
-
-                            // C. Exclude generic infrastructure patterns (like Migrations)
-                            // Migrations usually have up/down methods and no other logic.
-                            let method_names: Vec<String> = c
-                                .methods
-                                .iter()
-                                .map(|m| m.name.to_lowercase().to_string())
-                                .collect();
-                            if method_names.len() <= 2
-                                && (method_names.contains(&"up".to_string())
-                                    || method_names.contains(&"down".to_string()))
-                            {
-                                return false;
-                            }
-
-                            true
-                        })
-                        .collect();
-
-                    if active_exported_classes.is_empty() {
-                        continue;
-                    }
-
-                    let distance_threshold: f64 =
-                        rule.get_option("distance_threshold").unwrap_or(0.85);
-
-                    let a = self.calculate_abstractness(ctx, path, node);
-                    let i = self.calculate_instability(ctx, node);
-
-                    let d = (a + i - 1.0).abs();
-
-                    if d > distance_threshold {
-                        let mut smell =
-                            ArchSmell::new_abstractness_violation(path.clone(), d, a, i, fan_in);
-                        smell.severity = rule.severity;
-                        smells.push(smell);
-                    }
+                if self.should_skip_node(ctx, node, &rule, a, i, d) {
+                    return None;
                 }
-            }
-        }
 
-        smells
+                if !self.has_active_components(symbols) {
+                    return None;
+                }
+
+                let mut smell =
+                    ArchSmell::new_abstractness_violation(path.clone(), d, a, i, fan_in);
+                smell.severity = rule.severity;
+                Some(smell)
+            })
+            .collect()
     }
 }
