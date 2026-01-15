@@ -1,3 +1,9 @@
+## [0.14.1](https://github.com/archlinter/archlint/compare/v0.14.0...v0.14.1) (2026-01-15)
+
+### Bug Fixes
+
+- **lcom:** support TypeScript parameter properties and update oxc_ast ([#28](https://github.com/archlinter/archlint/issues/28)) ([aa798ce](https://github.com/archlinter/archlint/commit/aa798ce6644efda13daa909a18db4ba8b7e9b355))
+
 ## [0.14.0](https://github.com/archlinter/archlint/compare/v0.13.0...v0.14.0) (2026-01-15)
 
 ### Features
