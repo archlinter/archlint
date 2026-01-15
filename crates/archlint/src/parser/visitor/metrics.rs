@@ -17,7 +17,7 @@ impl<'a> UnifiedVisitor {
             self.collect_class_fields(it);
         }
 
-        oxc_ast::visit::walk::walk_class(self, it);
+        oxc_ast_visit::walk::walk_class(self, it);
 
         if self.config.collect_classes {
             self.finalize_class_symbol(it, class_name);
@@ -27,7 +27,7 @@ impl<'a> UnifiedVisitor {
     }
 
     pub(crate) fn handle_variable_declarator(&mut self, it: &oxc_ast::ast::VariableDeclarator<'a>) {
-        if let oxc_ast::ast::BindingPatternKind::BindingIdentifier(ref id) = it.id.kind {
+        if let oxc_ast::ast::BindingPattern::BindingIdentifier(ref id) = &it.id {
             if let Some(ref init) = it.init {
                 if matches!(
                     init,
@@ -40,7 +40,7 @@ impl<'a> UnifiedVisitor {
                 }
             }
         }
-        oxc_ast::visit::walk::walk_variable_declarator(self, it);
+        oxc_ast_visit::walk::walk_variable_declarator(self, it);
         self.current_name_override = None;
         self.current_span_override = None;
     }
@@ -81,7 +81,7 @@ impl<'a> UnifiedVisitor {
 
         self.current_name_override = Some(name);
         self.current_span_override = Some(it.key.span());
-        oxc_ast::visit::walk::walk_method_definition(self, it);
+        oxc_ast_visit::walk::walk_method_definition(self, it);
         self.current_name_override = None;
         self.current_span_override = None;
 
@@ -113,7 +113,7 @@ impl<'a> UnifiedVisitor {
 
         self.collect_function_metrics(name, span, complexity, max_depth, &it.params);
 
-        oxc_ast::visit::walk::walk_function(self, it, flags);
+        oxc_ast_visit::walk::walk_function(self, it, flags);
     }
 
     pub(crate) fn handle_arrow_function_expression(
@@ -132,7 +132,7 @@ impl<'a> UnifiedVisitor {
 
         self.collect_function_metrics(name, span, complexity, max_depth, &it.params);
 
-        oxc_ast::visit::walk::walk_arrow_function_expression(self, it);
+        oxc_ast_visit::walk::walk_arrow_function_expression(self, it);
     }
 
     fn get_scoped_name(&mut self, base_name: Option<CompactString>) -> CompactString {
@@ -184,7 +184,6 @@ impl<'a> UnifiedVisitor {
             .iter()
             .filter(|param| {
                 param
-                    .pattern
                     .type_annotation
                     .as_ref()
                     .map(|a| Self::is_primitive_type(&a.type_annotation))
@@ -232,10 +231,26 @@ impl<'a> UnifiedVisitor {
 
     fn collect_class_fields(&mut self, it: &Class<'a>) {
         for item in &it.body.body {
-            if let ClassElement::PropertyDefinition(p) = item {
-                if let Some(name) = p.key.name() {
-                    self.temp_fields.insert(CompactString::new(&name));
+            match item {
+                ClassElement::PropertyDefinition(p) => {
+                    if let Some(name) = p.key.name() {
+                        self.temp_fields.insert(CompactString::new(&name));
+                    }
                 }
+                ClassElement::MethodDefinition(m)
+                    if m.kind == MethodDefinitionKind::Constructor =>
+                {
+                    for param in &m.value.params.items {
+                        // Collect constructor parameters as class fields
+                        // In TypeScript, parameters with access modifiers become fields,
+                        // but for NestJS/Dependency Injection, all constructor parameters are typically fields
+                        if let oxc_ast::ast::BindingPattern::BindingIdentifier(id) = &param.pattern
+                        {
+                            self.temp_fields.insert(Self::atom_to_compact(&id.name));
+                        }
+                    }
+                }
+                _ => {}
             }
         }
     }
@@ -261,11 +276,9 @@ impl<'a> UnifiedVisitor {
             .and_then(|expr| Self::expression_to_string(expr).map(CompactString::new));
 
         let mut implements = Vec::new();
-        if let Some(impls) = &it.implements {
-            for imp in impls {
-                let name = Self::ts_type_name_to_string(&imp.expression);
-                implements.push(CompactString::new(name));
-            }
+        for imp in &it.implements {
+            let name = Self::ts_type_name_to_string(&imp.expression);
+            implements.push(CompactString::new(name));
         }
 
         let class_symbol = ClassSymbol {

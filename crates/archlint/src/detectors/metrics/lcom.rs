@@ -15,17 +15,27 @@ impl LcomDetector {
     }
 
     fn calculate_lcom4(&self, class: &crate::parser::ClassSymbol) -> usize {
+        let methods: Vec<_> = class
+            .methods
+            .iter()
+            .filter(|m| m.name != "constructor" && !m.is_accessor)
+            .collect();
+
+        if methods.is_empty() {
+            return 1;
+        }
+
         let mut graph = UnGraph::<(), ()>::new_undirected();
         let mut method_nodes = Vec::new();
 
-        for _ in 0..class.methods.len() {
+        for _ in 0..methods.len() {
             method_nodes.push(graph.add_node(()));
         }
 
-        for i in 0..class.methods.len() {
-            for j in (i + 1)..class.methods.len() {
-                let m1 = &class.methods[i];
-                let m2 = &class.methods[j];
+        for i in 0..methods.len() {
+            for j in (i + 1)..methods.len() {
+                let m1 = methods[i];
+                let m2 = methods[j];
 
                 // methods are connected if they share a field
                 let shares_field = m1.used_fields.iter().any(|f| m2.used_fields.contains(f));

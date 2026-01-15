@@ -1,5 +1,5 @@
 use oxc_ast::ast::{ArrowFunctionExpression, Function};
-use oxc_ast::visit::Visit;
+use oxc_ast_visit::Visit;
 
 pub struct ComplexityVisitor {
     pub complexity: usize,
@@ -52,42 +52,42 @@ impl<'a> Visit<'a> for ComplexityVisitor {
     fn visit_if_statement(&mut self, it: &oxc_ast::ast::IfStatement<'a>) {
         self.complexity += 1;
         self.enter_nesting();
-        oxc_ast::visit::walk::walk_if_statement(self, it);
+        oxc_ast_visit::walk::walk_if_statement(self, it);
         self.exit_nesting();
     }
 
     fn visit_while_statement(&mut self, it: &oxc_ast::ast::WhileStatement<'a>) {
         self.complexity += 1;
         self.enter_nesting();
-        oxc_ast::visit::walk::walk_while_statement(self, it);
+        oxc_ast_visit::walk::walk_while_statement(self, it);
         self.exit_nesting();
     }
 
     fn visit_do_while_statement(&mut self, it: &oxc_ast::ast::DoWhileStatement<'a>) {
         self.complexity += 1;
         self.enter_nesting();
-        oxc_ast::visit::walk::walk_do_while_statement(self, it);
+        oxc_ast_visit::walk::walk_do_while_statement(self, it);
         self.exit_nesting();
     }
 
     fn visit_for_statement(&mut self, it: &oxc_ast::ast::ForStatement<'a>) {
         self.complexity += 1;
         self.enter_nesting();
-        oxc_ast::visit::walk::walk_for_statement(self, it);
+        oxc_ast_visit::walk::walk_for_statement(self, it);
         self.exit_nesting();
     }
 
     fn visit_for_in_statement(&mut self, it: &oxc_ast::ast::ForInStatement<'a>) {
         self.complexity += 1;
         self.enter_nesting();
-        oxc_ast::visit::walk::walk_for_in_statement(self, it);
+        oxc_ast_visit::walk::walk_for_in_statement(self, it);
         self.exit_nesting();
     }
 
     fn visit_for_of_statement(&mut self, it: &oxc_ast::ast::ForOfStatement<'a>) {
         self.complexity += 1;
         self.enter_nesting();
-        oxc_ast::visit::walk::walk_for_of_statement(self, it);
+        oxc_ast_visit::walk::walk_for_of_statement(self, it);
         self.exit_nesting();
     }
 
@@ -95,35 +95,35 @@ impl<'a> Visit<'a> for ComplexityVisitor {
         if it.test.is_some() {
             self.complexity += 1;
             self.enter_nesting();
-            oxc_ast::visit::walk::walk_switch_case(self, it);
+            oxc_ast_visit::walk::walk_switch_case(self, it);
             self.exit_nesting();
         } else {
-            oxc_ast::visit::walk::walk_switch_case(self, it);
+            oxc_ast_visit::walk::walk_switch_case(self, it);
         }
     }
 
     fn visit_catch_clause(&mut self, it: &oxc_ast::ast::CatchClause<'a>) {
         self.complexity += 1;
         self.enter_nesting();
-        oxc_ast::visit::walk::walk_catch_clause(self, it);
+        oxc_ast_visit::walk::walk_catch_clause(self, it);
         self.exit_nesting();
     }
 
     fn visit_conditional_expression(&mut self, it: &oxc_ast::ast::ConditionalExpression<'a>) {
         self.complexity += 1;
-        oxc_ast::visit::walk::walk_conditional_expression(self, it);
+        oxc_ast_visit::walk::walk_conditional_expression(self, it);
     }
 
     fn visit_logical_expression(&mut self, it: &oxc_ast::ast::LogicalExpression<'a>) {
         self.complexity += 1;
-        oxc_ast::visit::walk::walk_logical_expression(self, it);
+        oxc_ast_visit::walk::walk_logical_expression(self, it);
     }
 
     fn visit_static_member_expression(&mut self, it: &oxc_ast::ast::StaticMemberExpression<'a>) {
         if it.optional {
             self.complexity += 1;
         }
-        oxc_ast::visit::walk::walk_static_member_expression(self, it);
+        oxc_ast_visit::walk::walk_static_member_expression(self, it);
     }
 
     fn visit_computed_member_expression(
@@ -133,14 +133,14 @@ impl<'a> Visit<'a> for ComplexityVisitor {
         if it.optional {
             self.complexity += 1;
         }
-        oxc_ast::visit::walk::walk_computed_member_expression(self, it);
+        oxc_ast_visit::walk::walk_computed_member_expression(self, it);
     }
 
     fn visit_call_expression(&mut self, it: &oxc_ast::ast::CallExpression<'a>) {
         if it.optional {
             self.complexity += 1;
         }
-        oxc_ast::visit::walk::walk_call_expression(self, it);
+        oxc_ast_visit::walk::walk_call_expression(self, it);
     }
 }
 
