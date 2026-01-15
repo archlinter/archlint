@@ -1,3 +1,13 @@
+## [0.14.0](https://github.com/archlinter/archlint/compare/v0.13.0...v0.14.0) (2026-01-15)
+
+### Features
+
+- **report:** add SARIF output support for GitHub Code Scanning integration ([#27](https://github.com/archlinter/archlint/issues/27)) ([0c70e79](https://github.com/archlinter/archlint/commit/0c70e790df31d9f5d39fa7d1feb4e15489125759))
+
+### Bug Fixes
+
+- **security:** update hono to 4.11.4 to address CVE-2026-22818 and CVE-2026-22817 ([fd9a7bc](https://github.com/archlinter/archlint/commit/fd9a7bc45d233fc3339937dbe604401d29233c97))
+
 ## [0.13.0](https://github.com/archlinter/archlint/compare/v0.12.0...v0.13.0) (2026-01-14)
 
 ### Features
