@@ -1,1 +1,3 @@
-import { MyError } from './error'; import { MyDto } from './dto'; export const c4 = 1;
+import { MyError } from './error';
+import { MyDto } from './dto';
+export const c4 = { e: new MyError(), d: new MyDto() };

@@ -234,20 +234,10 @@ impl Detector for AbstractnessViolationDetector {
                         continue;
                     }
 
-                    let distance_threshold: f64 =
-                        rule.get_option("distance_threshold").unwrap_or(0.85);
-
-                    let a = self.calculate_abstractness(ctx, path, node);
-                    let i = self.calculate_instability(ctx, node);
-
-                    let d = (a + i - 1.0).abs();
-
-                    if d > distance_threshold {
-                        let mut smell =
-                            ArchSmell::new_abstractness_violation(path.clone(), d, a, i, fan_in);
-                        smell.severity = rule.severity;
-                        smells.push(smell);
-                    }
+                    let mut smell =
+                        ArchSmell::new_abstractness_violation(path.clone(), d, a, i, fan_in);
+                    smell.severity = rule.severity;
+                    smells.push(smell);
                 }
             }
         }

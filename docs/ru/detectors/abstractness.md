@@ -1,6 +1,6 @@
 # Нарушение Абстрактности (Abstractness Violation)
 
-**ID:** `abstractness` | **Severity:** Medium (default)
+**ID:** `abstractness` | **Уровень серьёзности:** Средний (по умолчанию)
 
 ## Что находит это правило (TL;DR)
 

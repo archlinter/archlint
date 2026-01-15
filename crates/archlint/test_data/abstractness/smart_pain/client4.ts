@@ -1,1 +1,2 @@
-import { Service } from './service'; export const c4 = 1;
+import { Service } from './service';
+export const c4 = new Service();
