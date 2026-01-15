@@ -1,6 +1,6 @@
 {
   "name": "@archlinter/cli-linux-x64-musl",
-  "version": "0.14.1",
+  "version": "0.15.0",
   "description": "archlint CLI binary for Linux x64 (musl/Alpine)",
   "license": "MIT",
   "repository": {

@@ -1,6 +1,6 @@
 {
   "name": "archlint",
-  "version": "0.14.1",
+  "version": "0.15.0",
   "private": true,
   "description": "Fast architecture smell detector for TypeScript/JavaScript",
   "homepage": "https://archlinter.github.io/archlint/",

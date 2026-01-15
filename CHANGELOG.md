@@ -1,3 +1,9 @@
+## [0.15.0](https://github.com/archlinter/archlint/compare/v0.14.1...v0.15.0) (2026-01-15)
+
+### Features
+
+- **abstractness:** improve detector with semantic rules and better r… ([#29](https://github.com/archlinter/archlint/issues/29)) ([717ebb1](https://github.com/archlinter/archlint/commit/717ebb179713bd316c7bdb2301b23da19170cef6))
+
 ## [0.14.1](https://github.com/archlinter/archlint/compare/v0.14.0...v0.14.1) (2026-01-15)
 
 ### Bug Fixes
