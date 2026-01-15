@@ -119,6 +119,8 @@ impl ArchSmell {
     impl_metric_accessor!(avg_co_changes, AvgCoChanges, f64);
     impl_metric_accessor!(dependent_count, DependentCount, usize);
     impl_metric_accessor!(instability, Instability, f64);
+    impl_metric_accessor!(distance, Distance, f64);
+    impl_metric_accessor!(abstractness, Abstractness, f64);
     impl_metric_accessor!(lcom, Lcom, usize);
     impl_metric_accessor!(components, Components, usize);
     impl_metric_accessor!(cbo, Cbo, usize);
@@ -769,17 +771,34 @@ impl ArchSmell {
         }
     }
 
-    pub fn new_abstractness_violation(path: PathBuf, distance: f64) -> Self {
+    pub fn new_abstractness_violation(
+        path: PathBuf,
+        distance: f64,
+        abstractness: f64,
+        instability: f64,
+        fan_in: usize,
+    ) -> Self {
         Self {
             smell_type: SmellType::AbstractnessViolation,
             severity: Severity::Low,
             files: vec![path.clone()],
-            metrics: vec![SmellMetric::Distance(distance)],
-            locations: vec![LocationDetail::new(
-                path,
-                0,
-                format!("Distance from main sequence: {:.2}", distance),
-            )],
+            metrics: vec![
+                SmellMetric::Distance(distance),
+                SmellMetric::Abstractness(abstractness),
+                SmellMetric::Instability(instability),
+                SmellMetric::FanIn(fan_in),
+            ],
+            locations: vec![LocationDetail::new(path, 0, {
+                let zone = if abstractness + instability < 1.0 {
+                    "Pain"
+                } else {
+                    "Uselessness"
+                };
+                format!(
+                        "Zone: {} | Distance: {:.2} (Abstractness: {:.2}, Instability: {:.2}, Fan-in: {})",
+                        zone, distance, abstractness, instability, fan_in
+                    )
+            })],
             cluster: None,
         }
     }

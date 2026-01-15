@@ -1,2 +1,2 @@
-export type Abstract = { a: number };
-import { something } from './somewhere';
+export interface IUnused {}
+export class Unused implements IUnused {}
