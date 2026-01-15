@@ -710,6 +710,7 @@ pub enum SmellMetric {
     Cbo(usize),
     Depth(usize),
     Distance(f64),
+    Abstractness(f64),
     TokenCount(usize),
     CloneInstances(usize),
     ParameterCount(usize),

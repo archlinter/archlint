@@ -177,6 +177,7 @@ export default defineConfig({
     ['meta', { name: 'twitter:title', content: 'archlint | Stop architecture degradation' }],
     ['meta', { name: 'twitter:description', content: 'Fast, AST-based architecture smell detector for TypeScript/JavaScript projects.' }],
     ['meta', { name: 'twitter:image', content: 'https://archlinter.github.io/archlint/logo.png' }],
+    ['meta', { name: 'google-site-verification', content: '_ToxudSDZbgPUnzyrbazpdEJvrDYv4ZVZQ6xzS9jzIo' }],
   ],
 
   locales: {

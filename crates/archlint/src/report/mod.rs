@@ -452,16 +452,16 @@ impl AnalysisReport {
             ]);
         }
 
-        println!(
-            "\n{}\n{}",
-            style("Architectural Smells Report").bold().underlined(),
-            table
-        );
-
         if self.smells.is_empty() {
             println!(
-                "{}",
+                "\n{}",
                 style("No smells found matching current filters.").dim()
+            );
+        } else {
+            println!(
+                "\n{}\n{}",
+                style("Architectural Smells Report").bold().underlined(),
+                table
             );
         }
 

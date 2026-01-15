@@ -345,7 +345,9 @@ impl ParserConfig {
                 )
             }),
             collect_primitive_params: active_ids.contains("primitive_obsession"),
-            collect_classes: active_ids.contains("lcom") || active_ids.contains("dead_symbols"),
+            collect_classes: active_ids.contains("lcom")
+                || active_ids.contains("dead_symbols")
+                || active_ids.contains("abstractness"),
             collect_env_vars: active_ids.contains("scattered_config"),
             collect_used_symbols: active_ids.contains("scattered_module")
                 || active_ids.contains("lcom"),

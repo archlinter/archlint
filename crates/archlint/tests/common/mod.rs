@@ -69,7 +69,10 @@ pub fn analyze_fixture_with_config(name: &str, config: Config) -> AnalysisContex
                     graph.add_dependency(
                         from_node,
                         to_node,
-                        archlint::graph::EdgeData::new(import.line),
+                        archlint::graph::EdgeData::with_symbols(
+                            import.line,
+                            vec![import.name.to_string()],
+                        ),
                     );
                 }
             }
