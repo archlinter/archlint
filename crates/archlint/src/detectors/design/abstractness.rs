@@ -1,6 +1,7 @@
 use crate::detectors::{detector, ArchSmell, Detector, Explanation};
 use crate::engine::AnalysisContext;
-use crate::parser::SymbolKind;
+use crate::graph::EdgeData;
+use crate::parser::{FileSymbols, SymbolKind};
 use petgraph::graph::NodeIndex;
 
 /// Initializes the detector module.
@@ -28,63 +29,70 @@ impl AbstractnessViolationDetector {
             .collect();
 
         if incoming_edges.is_empty() {
-            // Fallback to classic abstractness calculation if no one is using the module yet.
-            // A = (Number of exported interfaces/types) / (Total exported classes/functions/interfaces/types)
-            if let Some(symbols) = ctx.file_symbols.get(path) {
-                let abstract_count = symbols
-                    .exports
-                    .iter()
-                    .filter(|e| e.kind == SymbolKind::Interface || e.kind == SymbolKind::Type)
-                    .count();
-                let total_count = symbols
-                    .exports
-                    .iter()
-                    .filter(|e| {
-                        e.kind == SymbolKind::Class
-                            || e.kind == SymbolKind::Function
-                            || e.kind == SymbolKind::Interface
-                            || e.kind == SymbolKind::Type
-                    })
-                    .count();
-
-                if total_count == 0 {
-                    return 0.0;
-                }
-                return abstract_count as f64 / total_count as f64;
-            }
-            return 0.0;
+            return self.calculate_fallback_abstractness(ctx, path);
         }
 
         let mut abstract_usages = 0;
-        let total_usages = incoming_edges.len();
+        let our_symbols = ctx.file_symbols.get(path);
 
-        for edge in incoming_edges {
-            let edge_data = edge.weight();
-
-            // If there are no imported symbols information, we can't be sure,
-            // so we treat it as concrete to be safe (or neutral).
-            if edge_data.imported_symbols.is_empty() {
-                continue;
-            }
-
-            // Check if any of the imported symbols are concrete (Classes or Functions)
-            let has_concrete_import = edge_data.imported_symbols.iter().any(|symbol_name| {
-                if let Some(our_symbols) = ctx.file_symbols.get(path) {
-                    our_symbols.exports.iter().any(|e| {
-                        e.name.as_str() == symbol_name
-                            && (e.kind == SymbolKind::Class || e.kind == SymbolKind::Function)
-                    })
-                } else {
-                    false
-                }
-            });
-
-            if !has_concrete_import {
+        for edge in &incoming_edges {
+            if self.is_abstract_usage(edge.weight(), our_symbols) {
                 abstract_usages += 1;
             }
         }
 
-        abstract_usages as f64 / total_usages as f64
+        abstract_usages as f64 / incoming_edges.len() as f64
+    }
+
+    fn calculate_fallback_abstractness(
+        &self,
+        ctx: &AnalysisContext,
+        path: &std::path::PathBuf,
+    ) -> f64 {
+        let symbols = match ctx.file_symbols.get(path) {
+            Some(s) => s,
+            None => return 0.0,
+        };
+
+        let abstract_count = symbols
+            .exports
+            .iter()
+            .filter(|e| matches!(e.kind, SymbolKind::Interface | SymbolKind::Type))
+            .count();
+
+        let total_count = symbols
+            .exports
+            .iter()
+            .filter(|e| {
+                matches!(
+                    e.kind,
+                    SymbolKind::Class
+                        | SymbolKind::Function
+                        | SymbolKind::Interface
+                        | SymbolKind::Type
+                )
+            })
+            .count();
+
+        if total_count == 0 {
+            return 0.0;
+        }
+        abstract_count as f64 / total_count as f64
+    }
+
+    fn is_abstract_usage(&self, edge_data: &EdgeData, symbols: Option<&FileSymbols>) -> bool {
+        if edge_data.imported_symbols.is_empty() {
+            return false;
+        }
+
+        !edge_data.imported_symbols.iter().any(|symbol_name| {
+            symbols.is_some_and(|s| {
+                s.exports.iter().any(|e| {
+                    e.name.as_str() == symbol_name
+                        && matches!(e.kind, SymbolKind::Class | SymbolKind::Function)
+                })
+            })
+        })
     }
 
     fn calculate_instability(&self, ctx: &AnalysisContext, node: NodeIndex) -> f64 {
@@ -129,14 +137,9 @@ impl Detector for AbstractnessViolationDetector {
         },
         table: {
             title: "Abstractness Violations",
-            columns: ["File", "Zone", "Distance", "Abstractness", "Instability", "In", "pts"],
+            columns: ["File", "Distance", "Abstractness", "Instability", "In", "pts"],
             row: AbstractnessViolation (smell, location, pts) => [
                 location,
-                {
-                    let a = smell.abstractness().unwrap_or(0.0);
-                    let i = smell.instability().unwrap_or(0.0);
-                    if a + i < 1.0 { "Pain" } else { "Uselessness" }
-                },
                 format!("{:.2}", smell.distance().unwrap_or(0.0)),
                 format!("{:.2}", smell.abstractness().unwrap_or(0.0)),
                 format!("{:.2}", smell.instability().unwrap_or(0.0)),
@@ -193,12 +196,7 @@ impl Detector for AbstractnessViolationDetector {
                                 return false;
                             }
 
-                            // A. Exclude abstract classes (they are already abstractions by definition)
-                            if c.is_abstract {
-                                return false;
-                            }
-
-                            // B. Exclude simple Errors (generic check for any class extending something with "Error")
+                            // A. Exclude simple Errors (generic check for any class extending something with "Error")
                             if let Some(super_class) = &c.super_class {
                                 let sc = super_class.to_lowercase();
                                 if sc.contains("error") {
@@ -206,13 +204,13 @@ impl Detector for AbstractnessViolationDetector {
                                 }
                             }
 
-                            // C. Exclude Data Carriers (DTOs, Entities, simple structures)
+                            // B. Exclude Data Carriers (DTOs, Entities, simple structures)
                             // A class with no methods is just a data container.
                             if c.methods.is_empty() {
                                 return false;
                             }
 
-                            // D. Exclude generic infrastructure patterns (like Migrations)
+                            // C. Exclude generic infrastructure patterns (like Migrations)
                             // Migrations usually have up/down methods and no other logic.
                             let method_names: Vec<String> = c
                                 .methods
@@ -234,10 +232,20 @@ impl Detector for AbstractnessViolationDetector {
                         continue;
                     }
 
-                    let mut smell =
-                        ArchSmell::new_abstractness_violation(path.clone(), d, a, i, fan_in);
-                    smell.severity = rule.severity;
-                    smells.push(smell);
+                    let distance_threshold: f64 =
+                        rule.get_option("distance_threshold").unwrap_or(0.85);
+
+                    let a = self.calculate_abstractness(ctx, path, node);
+                    let i = self.calculate_instability(ctx, node);
+
+                    let d = (a + i - 1.0).abs();
+
+                    if d > distance_threshold {
+                        let mut smell =
+                            ArchSmell::new_abstractness_violation(path.clone(), d, a, i, fan_in);
+                        smell.severity = rule.severity;
+                        smells.push(smell);
+                    }
                 }
             }
         }
