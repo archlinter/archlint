@@ -2,7 +2,7 @@ use crate::parser::line_index::LineIndex;
 use compact_str::CompactString;
 use oxc_allocator::Allocator;
 use oxc_ast::ast;
-use oxc_ast::visit::Visit;
+use oxc_ast_visit::Visit;
 use oxc_parser::Parser;
 use oxc_span::{GetSpan, SourceType, Span};
 use oxc_syntax::scope::ScopeFlags;
@@ -131,37 +131,37 @@ impl<'a> Visit<'a> for TokenCollector {
 
     fn visit_call_expression(&mut self, it: &ast::CallExpression<'a>) {
         self.add_marker("$CALL", it.span);
-        oxc_ast::visit::walk::walk_call_expression(self, it);
+        oxc_ast_visit::walk::walk_call_expression(self, it);
     }
 
     fn visit_new_expression(&mut self, it: &ast::NewExpression<'a>) {
         self.add_marker("$NEW", it.span);
-        oxc_ast::visit::walk::walk_new_expression(self, it);
+        oxc_ast_visit::walk::walk_new_expression(self, it);
     }
 
     fn visit_await_expression(&mut self, it: &ast::AwaitExpression<'a>) {
         self.add_marker("$AWAIT", it.span);
-        oxc_ast::visit::walk::walk_await_expression(self, it);
+        oxc_ast_visit::walk::walk_await_expression(self, it);
     }
 
     fn visit_return_statement(&mut self, it: &ast::ReturnStatement<'a>) {
         self.add_marker("$RETURN", it.span);
-        oxc_ast::visit::walk::walk_return_statement(self, it);
+        oxc_ast_visit::walk::walk_return_statement(self, it);
     }
 
     fn visit_if_statement(&mut self, it: &ast::IfStatement<'a>) {
         self.add_marker("$IF", it.span);
-        oxc_ast::visit::walk::walk_if_statement(self, it);
+        oxc_ast_visit::walk::walk_if_statement(self, it);
     }
 
     fn visit_object_expression(&mut self, it: &ast::ObjectExpression<'a>) {
         self.add_marker("$OBJ", it.span);
-        oxc_ast::visit::walk::walk_object_expression(self, it);
+        oxc_ast_visit::walk::walk_object_expression(self, it);
     }
 
     fn visit_assignment_expression(&mut self, it: &ast::AssignmentExpression<'a>) {
         self.add_marker("$ASSIGN", it.span);
-        oxc_ast::visit::walk::walk_assignment_expression(self, it);
+        oxc_ast_visit::walk::walk_assignment_expression(self, it);
     }
 
     fn visit_binary_expression(&mut self, it: &ast::BinaryExpression<'a>) {
@@ -190,7 +190,7 @@ impl<'a> Visit<'a> for TokenCollector {
             ast::BinaryOperator::Instanceof => "$INSTANCEOF",
         };
         self.add_marker(op_marker, it.span);
-        oxc_ast::visit::walk::walk_binary_expression(self, it);
+        oxc_ast_visit::walk::walk_binary_expression(self, it);
     }
 
     fn visit_member_expression(&mut self, it: &ast::MemberExpression<'a>) {
@@ -206,7 +206,7 @@ impl<'a> Visit<'a> for TokenCollector {
                 self.add_marker("$MEMBER", p.span);
             }
         }
-        oxc_ast::visit::walk::walk_member_expression(self, it);
+        oxc_ast_visit::walk::walk_member_expression(self, it);
     }
 
     fn visit_this_expression(&mut self, it: &ast::ThisExpression) {
@@ -219,22 +219,22 @@ impl<'a> Visit<'a> for TokenCollector {
 
     fn visit_property_key(&mut self, it: &ast::PropertyKey<'a>) {
         self.add_marker("$KEY", it.span());
-        oxc_ast::visit::walk::walk_property_key(self, it);
+        oxc_ast_visit::walk::walk_property_key(self, it);
     }
 
     fn visit_spread_element(&mut self, it: &ast::SpreadElement<'a>) {
         self.add_marker("...", it.span);
-        oxc_ast::visit::walk::walk_spread_element(self, it);
+        oxc_ast_visit::walk::walk_spread_element(self, it);
     }
 
     fn visit_array_expression(&mut self, it: &ast::ArrayExpression<'a>) {
         self.add_marker("$ARRAY", it.span);
-        oxc_ast::visit::walk::walk_array_expression(self, it);
+        oxc_ast_visit::walk::walk_array_expression(self, it);
     }
 
     fn visit_variable_declaration(&mut self, it: &ast::VariableDeclaration<'a>) {
         self.add_marker("$VAR", it.span);
-        oxc_ast::visit::walk::walk_variable_declaration(self, it);
+        oxc_ast_visit::walk::walk_variable_declaration(self, it);
     }
 
     fn visit_method_definition(&mut self, it: &ast::MethodDefinition<'a>) {
@@ -246,47 +246,47 @@ impl<'a> Visit<'a> for TokenCollector {
 
     fn visit_function(&mut self, it: &ast::Function<'a>, flags: ScopeFlags) {
         self.add_marker("$FUNC", it.span);
-        oxc_ast::visit::walk::walk_function(self, it, flags);
+        oxc_ast_visit::walk::walk_function(self, it, flags);
     }
 
     fn visit_arrow_function_expression(&mut self, it: &ast::ArrowFunctionExpression<'a>) {
         self.add_marker("$ARROW", it.span);
-        oxc_ast::visit::walk::walk_arrow_function_expression(self, it);
+        oxc_ast_visit::walk::walk_arrow_function_expression(self, it);
     }
 
     fn visit_while_statement(&mut self, it: &ast::WhileStatement<'a>) {
         self.add_marker("$WHILE", it.span);
-        oxc_ast::visit::walk::walk_while_statement(self, it);
+        oxc_ast_visit::walk::walk_while_statement(self, it);
     }
 
     fn visit_for_statement(&mut self, it: &ast::ForStatement<'a>) {
         self.add_marker("$FOR", it.span);
-        oxc_ast::visit::walk::walk_for_statement(self, it);
+        oxc_ast_visit::walk::walk_for_statement(self, it);
     }
 
     fn visit_for_in_statement(&mut self, it: &ast::ForInStatement<'a>) {
         self.add_marker("$FOR", it.span);
-        oxc_ast::visit::walk::walk_for_in_statement(self, it);
+        oxc_ast_visit::walk::walk_for_in_statement(self, it);
     }
 
     fn visit_for_of_statement(&mut self, it: &ast::ForOfStatement<'a>) {
         self.add_marker("$FOR", it.span);
-        oxc_ast::visit::walk::walk_for_of_statement(self, it);
+        oxc_ast_visit::walk::walk_for_of_statement(self, it);
     }
 
     fn visit_try_statement(&mut self, it: &ast::TryStatement<'a>) {
         self.add_marker("$TRY", it.span);
-        oxc_ast::visit::walk::walk_try_statement(self, it);
+        oxc_ast_visit::walk::walk_try_statement(self, it);
     }
 
     fn visit_catch_clause(&mut self, it: &ast::CatchClause<'a>) {
         self.add_marker("$CATCH", it.span);
-        oxc_ast::visit::walk::walk_catch_clause(self, it);
+        oxc_ast_visit::walk::walk_catch_clause(self, it);
     }
 
     fn visit_switch_statement(&mut self, it: &ast::SwitchStatement<'a>) {
         self.add_marker("$SWITCH", it.span);
-        oxc_ast::visit::walk::walk_switch_statement(self, it);
+        oxc_ast_visit::walk::walk_switch_statement(self, it);
     }
 
     fn visit_import_declaration(&mut self, _it: &ast::ImportDeclaration<'a>) {

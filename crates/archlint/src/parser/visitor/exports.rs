@@ -1,10 +1,10 @@
 use crate::parser::types::{ExportedSymbol, ImportedSymbol, SymbolKind, SymbolName, SymbolSet};
 use crate::parser::visitor::{interned, UnifiedVisitor};
 use oxc_ast::ast::{
-    BindingPatternKind, Declaration, ExportAllDeclaration, ExportDefaultDeclaration,
+    BindingPattern, Declaration, ExportAllDeclaration, ExportDefaultDeclaration,
     ExportNamedDeclaration, VariableDeclaration, VariableDeclarationKind,
 };
-use oxc_ast::visit::Visit;
+use oxc_ast_visit::Visit;
 use oxc_syntax::scope::ScopeFlags;
 
 impl<'a> UnifiedVisitor {
@@ -63,7 +63,7 @@ impl<'a> UnifiedVisitor {
             is_reexport: true,
             is_dynamic: false,
         });
-        oxc_ast::visit::walk::walk_export_all_declaration(self, it);
+        oxc_ast_visit::walk::walk_export_all_declaration(self, it);
     }
 
     pub(crate) fn handle_export_default_declaration(&mut self, it: &ExportDefaultDeclaration<'a>) {
@@ -81,7 +81,7 @@ impl<'a> UnifiedVisitor {
             is_default: true,
         });
         self.has_runtime_code = true;
-        oxc_ast::visit::walk::walk_export_default_declaration(self, it);
+        oxc_ast_visit::walk::walk_export_default_declaration(self, it);
     }
 
     pub(crate) fn handle_variable_export(&mut self, d: &VariableDeclaration<'a>) {
@@ -89,7 +89,7 @@ impl<'a> UnifiedVisitor {
         let is_mutable = d.kind != VariableDeclarationKind::Const;
 
         for decl in &d.declarations {
-            if let BindingPatternKind::BindingIdentifier(id) = &decl.id.kind {
+            if let BindingPattern::BindingIdentifier(id) = &decl.id {
                 let range = self.get_range(decl.span);
                 let export_idx = self.exports.len();
                 self.exports.push(ExportedSymbol {
@@ -200,10 +200,8 @@ impl<'a> UnifiedVisitor {
             is_default: false,
         });
 
-        if let Some(extends) = &d.extends {
-            for heritage in extends {
-                self.visit_expression(&heritage.expression);
-            }
+        for heritage in &d.extends {
+            self.visit_expression(&heritage.expression);
         }
         self.visit_ts_interface_body(&d.body);
     }

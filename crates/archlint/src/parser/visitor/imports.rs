@@ -82,7 +82,7 @@ impl<'a> UnifiedVisitor {
                 is_dynamic: false,
             });
         }
-        oxc_ast::visit::walk::walk_import_declaration(self, it);
+        oxc_ast_visit::walk::walk_import_declaration(self, it);
     }
 
     pub(crate) fn handle_reexport_specifiers(

@@ -127,7 +127,7 @@ npx @archlinter/cli diff .archlint-baseline.json
 - Barrel file abuse
 - High coupling
 
-[→ See all 30+ detectors](docs/detectors.md)
+[→ See all 30+ detectors](https://archlinter.github.io/archlint/detectors/)
 
 ---
 

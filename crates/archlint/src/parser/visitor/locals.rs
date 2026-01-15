@@ -41,7 +41,7 @@ impl<'a> UnifiedVisitor {
             self.local_usages
                 .insert(Self::atom_to_compact(&qn.right.name));
         }
-        oxc_ast::visit::walk::walk_ts_type_name(self, it);
+        oxc_ast_visit::walk::walk_ts_type_name(self, it);
     }
 
     pub(crate) fn handle_expression(&mut self, expr: &Expression<'a>) {
@@ -85,7 +85,7 @@ impl<'a> UnifiedVisitor {
             }
             _ => {}
         }
-        oxc_ast::visit::walk::walk_expression(self, expr);
+        oxc_ast_visit::walk::walk_expression(self, expr);
     }
 
     pub(crate) fn handle_static_member(&mut self, s: &oxc_ast::ast::StaticMemberExpression<'_>) {

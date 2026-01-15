@@ -4,7 +4,7 @@ use crate::parser::types::{
 use crate::parser::visitor::UnifiedVisitor;
 use crate::Result;
 use oxc_allocator::Allocator;
-use oxc_ast::visit::Visit;
+use oxc_ast_visit::Visit;
 use oxc_parser::Parser;
 use oxc_span::SourceType;
 use rustc_hash::FxHashMap;
