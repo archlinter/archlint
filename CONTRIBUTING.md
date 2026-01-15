@@ -4,6 +4,7 @@ archlint is an opinionated tool with a strong architectural philosophy.
 The core vision and design decisions are maintained by the author.
 
 Contributions are welcome, especially:
+
 - new detectors for real-world architectural problems
 - improvements to existing detectors or presets
 - documentation and real usage examples
