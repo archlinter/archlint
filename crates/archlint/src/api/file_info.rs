@@ -75,6 +75,13 @@ pub struct FileMetrics {
     pub lines: usize,
 
     /// Max cyclomatic complexity in file
+    pub cyclomatic_complexity: Option<usize>,
+
+    /// Max cognitive complexity in file
+    pub cognitive_complexity: Option<usize>,
+
+    /// @deprecated use cyclomatic_complexity or cognitive_complexity
+    #[serde(default, alias = "complexity")]
     pub complexity: Option<usize>,
 
     /// Number of files importing this file

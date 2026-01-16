@@ -39,7 +39,7 @@ rules:
 overrides:
   - files: ['**/tests/**', '**/mocks/**']
     rules:
-      complexity: off
+      cyclomatic_complexity: off
       god_module: off
       large_file: medium
 ```
@@ -71,11 +71,11 @@ function processTransaction(id: string, amount: number, currency: string, date: 
 
 import { internal } from './private'; // archlint-disable-line layer_violation - 迁移的临时排除
 
-/* archlint-disable complexity */
+/* archlint-disable cyclomatic_complexity */
 function legacyCode() {
   // 此代码块将被忽略
 }
-/* archlint-enable complexity */
+/* archlint-enable cyclomatic_complexity */
 ```
 
 您可以指定多个以逗号分隔的规则，或使用 `*` 忽略所有规则。

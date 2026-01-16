@@ -45,12 +45,13 @@ O `archlint` vem com mais de 28 detectores integrados categorizados pelo tipo de
 
 ## Complexidade e Tamanho
 
-| Detector                                           | ID             | Descrição                                 | Padrão |
-| -------------------------------------------------- | -------------- | ----------------------------------------- | ------ |
-| [Alta Complexidade](/pt/detectors/complexity)      | `complexity`   | Funções com alta complexidade ciclomática | ✅     |
-| [Aninhamento Profundo](/pt/detectors/deep_nesting) | `deep_nesting` | Blocos de código profundamente aninhados  | ✅     |
-| [Muitos Parâmetros](/pt/detectors/long_params)     | `long_params`  | Funções com muitos parâmetros             | ✅     |
-| [Arquivo Grande](/pt/detectors/large_file)         | `large_file`   | Arquivos fonte que são muito grandes      | ✅     |
+| Detector                                                        | ID                      | Descrição                                 | Padrão |
+| --------------------------------------------------------------- | ----------------------- | ----------------------------------------- | ------ |
+| [Complexidade Ciclomática](/pt/detectors/cyclomatic_complexity) | `cyclomatic_complexity` | Funções com alta complexidade ciclomática | ✅     |
+| [Complexidade Cognitiva](/pt/detectors/cognitive_complexity)    | `cognitive_complexity`  | Funções com alta complexidade cognitiva   | ✅     |
+| [Aninhamento Profundo](/pt/detectors/deep_nesting)              | `deep_nesting`          | Blocos de código profundamente aninhados  | ✅     |
+| [Muitos Parâmetros](/pt/detectors/long_params)                  | `long_params`           | Funções com muitos parâmetros             | ✅     |
+| [Arquivo Grande](/pt/detectors/large_file)                      | `large_file`            | Arquivos fonte que são muito grandes      | ✅     |
 
 ## Padrões de Mudança
 

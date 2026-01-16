@@ -39,7 +39,7 @@ Para lógica mais complexa (por exemplo, alterar configurações ou desativar v�
 overrides:
   - files: ['**/tests/**', '**/mocks/**']
     rules:
-      complexity: off
+      cyclomatic_complexity: off
       god_module: off
       large_file: medium
 ```
@@ -71,11 +71,11 @@ function processTransaction(id: string, amount: number, currency: string, date: 
 
 import { internal } from './private'; // archlint-disable-line layer_violation - Exclusão temporária para migração
 
-/* archlint-disable complexity */
+/* archlint-disable cyclomatic_complexity, cognitive_complexity */
 function legacyCode() {
-  // Este bloco será ignorado
+  // Este bloco será ignorado para ambos os tipos de complexidade
 }
-/* archlint-enable complexity */
+/* archlint-enable cyclomatic_complexity, cognitive_complexity */
 ```
 
 Você pode especificar várias regras separadas por vírgulas ou usar `*` para ignorar todas as regras.

@@ -52,7 +52,7 @@ impl HubModuleDetector {
             .map(|functions| {
                 functions
                     .iter()
-                    .map(|func| func.complexity)
+                    .map(|func| func.cyclomatic_complexity)
                     .max()
                     .unwrap_or(0)
             })

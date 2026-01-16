@@ -169,7 +169,8 @@ impl MermaidGenerator {
                 SmellType::CyclicDependency => classes.push("cycle"),
                 SmellType::CyclicDependencyCluster => classes.push("cycle"),
                 SmellType::DeadSymbol { .. } => classes.push("deadSymbol"),
-                SmellType::HighComplexity { .. } => classes.push("complexity"),
+                SmellType::HighCyclomaticComplexity { .. }
+                | SmellType::HighCognitiveComplexity { .. } => classes.push("complexity"),
                 SmellType::LargeFile => classes.push("largeFile"),
                 SmellType::UnstableInterface => classes.push("unstableInterface"),
                 SmellType::FeatureEnvy { .. } => classes.push("featureEnvy"),

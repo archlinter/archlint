@@ -12,21 +12,22 @@ fn get_line_number(code: &str, pattern: &str) -> usize {
 #[test]
 fn test_parse_ignore_comments_line() {
     let parser = ImportParser::new().unwrap();
-    let code = r#"// archlint-disable-line complexity
+    let code = r#"// archlint-disable-line cyclomatic_complexity
 
 function complex() {}
 
 function another() {} // archlint-disable-line *"#;
     let result = parser.parse_code(code, "test.ts").unwrap();
 
-    let line_complexity = get_line_number(code, "archlint-disable-line complexity");
+    let line_cyclomatic_complexity =
+        get_line_number(code, "archlint-disable-line cyclomatic_complexity");
     let line_another = get_line_number(code, "function another()");
 
     assert!(result
         .ignored_lines
-        .get(&line_complexity)
-        .expect("expected ignore rules for complexity line")
-        .contains("complexity"));
+        .get(&line_cyclomatic_complexity)
+        .expect("expected ignore rules for cyclomatic_complexity line")
+        .contains("cyclomatic_complexity"));
     assert!(result
         .ignored_lines
         .get(&line_another)
@@ -37,7 +38,7 @@ function another() {} // archlint-disable-line *"#;
 #[test]
 fn test_parse_ignore_comments_next_line() {
     let parser = ImportParser::new().unwrap();
-    let code = r#"// archlint-disable-next-line complexity
+    let code = r#"// archlint-disable-next-line cyclomatic_complexity
 function complex() {}
 
 // archlint-disable-next-line *
@@ -51,7 +52,7 @@ function another() {}"#;
         .ignored_lines
         .get(&line_complex_func)
         .expect("expected ignore rules for complex() function line")
-        .contains("complexity"));
+        .contains("cyclomatic_complexity"));
     assert!(result
         .ignored_lines
         .get(&line_another_func)
@@ -86,39 +87,39 @@ function complex() {}"#;
 #[test]
 fn test_parse_ignore_comments_block() {
     let parser = ImportParser::new().unwrap();
-    let code = r#"// archlint-disable complexity
+    let code = r#"// archlint-disable cyclomatic_complexity
 function a() {}
 function b() {}
-// archlint-enable complexity
+// archlint-enable cyclomatic_complexity
 function c() {}"#;
     let result = parser.parse_code(code, "test.ts").unwrap();
 
     let line_a = get_line_number(code, "function a()");
     let line_b = get_line_number(code, "function b()");
     let line_c = get_line_number(code, "function c()");
-    let line_disable = get_line_number(code, "// archlint-disable complexity");
-    let line_enable = get_line_number(code, "// archlint-enable complexity");
+    let line_disable = get_line_number(code, "// archlint-disable cyclomatic_complexity");
+    let line_enable = get_line_number(code, "// archlint-enable cyclomatic_complexity");
 
     assert!(result
         .ignored_lines
         .get(&line_disable)
         .unwrap()
-        .contains("complexity"));
+        .contains("cyclomatic_complexity"));
     assert!(result
         .ignored_lines
         .get(&line_a)
         .unwrap()
-        .contains("complexity"));
+        .contains("cyclomatic_complexity"));
     assert!(result
         .ignored_lines
         .get(&line_b)
         .unwrap()
-        .contains("complexity"));
+        .contains("cyclomatic_complexity"));
     assert!(result
         .ignored_lines
         .get(&line_enable)
         .unwrap()
-        .contains("complexity"));
+        .contains("cyclomatic_complexity"));
 
     assert!(!result.ignored_lines.contains_key(&line_c));
 }
@@ -155,13 +156,13 @@ function b() {}"#;
 #[test]
 fn test_parse_ignore_comments_with_rules() {
     let parser = ImportParser::new().unwrap();
-    let code = r#"// archlint-disable-line complexity, large_file, custom-rule
+    let code = r#"// archlint-disable-line cyclomatic_complexity, large_file, custom-rule
 function complex() {}"#;
     let result = parser.parse_code(code, "test.ts").unwrap();
 
     let line_comment = get_line_number(code, "archlint-disable-line");
     let rules = result.ignored_lines.get(&line_comment).unwrap();
-    assert!(rules.contains("complexity"));
+    assert!(rules.contains("cyclomatic_complexity"));
     assert!(rules.contains("large_file"));
     assert!(rules.contains("custom-rule"));
     assert_eq!(rules.len(), 3);
@@ -170,12 +171,12 @@ function complex() {}"#;
 #[test]
 fn test_parse_ignore_comments_with_reasons() {
     let parser = ImportParser::new().unwrap();
-    let code = r#"// archlint-disable-line complexity because this function is just huge
+    let code = r#"// archlint-disable-line cyclomatic_complexity because this function is just huge
 function complex() {}"#;
     let result = parser.parse_code(code, "test.ts").unwrap();
 
     let line_comment = get_line_number(code, "archlint-disable-line");
     let rules = result.ignored_lines.get(&line_comment).unwrap();
-    assert!(rules.contains("complexity"));
+    assert!(rules.contains("cyclomatic_complexity"));
     assert_eq!(rules.len(), 1);
 }

@@ -1,6 +1,6 @@
-# High Complexity
+# Cyclomatic Complexity
 
-**ID:** `complexity` | **Severity:** Medium (default)
+**ID:** `cyclomatic_complexity` | **Severity:** Medium (default)
 
 This detector identifies functions with high Cyclomatic Complexity.
 
@@ -20,7 +20,7 @@ This detector identifies functions with high Cyclomatic Complexity.
 
 ```yaml
 rules:
-  complexity:
+  cyclomatic_complexity:
     severity: medium
     max_complexity: 15
 ```
@@ -34,7 +34,7 @@ This detector is available as an ESLint rule for real-time feedback in your edit
 export default [
   {
     rules: {
-      '@archlinter/no-high-complexity': 'warn',
+      '@archlinter/no-high-cyclomatic-complexity': 'warn',
     },
   },
 ];

@@ -224,6 +224,15 @@ impl Analyzer {
         self.scan_incremental_inner(changed, Some(overlays))
     }
 
+    fn get_active_parser_config(
+        &self,
+        enabled_detectors: &[(String, Box<dyn crate::detectors::Detector>)],
+    ) -> ParserConfig {
+        let active_ids: HashSet<String> =
+            enabled_detectors.iter().map(|(id, _)| id.clone()).collect();
+        ParserConfig::from_active_detectors(&active_ids)
+    }
+
     /// Core incremental scan logic shared by both `scan_incremental` and `scan_incremental_with_overlays`
     fn scan_incremental_inner(
         &mut self,
@@ -238,19 +247,14 @@ impl Analyzer {
             return Ok(result);
         }
 
-        // 1. Prepare parser and resolver
-        let parser = ImportParser::new()?;
-        let resolver = PathResolver::new(&self.project_root, &self.config);
-
-        // Get active detectors to determine parser config
-        let presets = &self.state.presets;
+        // 1. Prepare detectors, parser and resolver
         let registry = DetectorRegistry::new();
         let (enabled_detectors, _needs_deep) =
-            registry.get_enabled_full(&self.config, presets, self.args.all_detectors);
+            registry.get_enabled_full(&self.config, &self.state.presets, self.args.all_detectors);
 
-        let active_ids: HashSet<String> =
-            enabled_detectors.iter().map(|(id, _)| id.clone()).collect();
-        let parser_config = ParserConfig::from_active_detectors(&active_ids);
+        let parser = ImportParser::new()?;
+        let resolver = PathResolver::new(&self.project_root, &self.config);
+        let parser_config = self.get_active_parser_config(&enabled_detectors);
 
         // 2. Update state for changed files
         if let Some(ovl) = overlays {
@@ -361,19 +365,21 @@ mod tests {
     use super::*;
     use crate::api::options::ScanOptions;
     use std::fs;
-    use tempfile::tempdir;
+    use tempfile::{tempdir, TempDir};
+
+    fn setup_test_project() -> Result<(TempDir, PathBuf, PathBuf, PathBuf)> {
+        let dir = tempdir()?;
+        let project_path = fs::canonicalize(dir.path())?;
+        let a_ts = project_path.join("a.ts");
+        let b_ts = project_path.join("b.ts");
+        fs::write(&a_ts, "export const a = 1;")?;
+        fs::write(&b_ts, "import { a } from './a'; export const b = a + 1;")?;
+        Ok((dir, project_path, a_ts, b_ts))
+    }
 
     #[test]
     fn test_analyzer_basic_flow() -> Result<()> {
-        let dir = tempdir()?;
-        let project_path = fs::canonicalize(dir.path())?;
-
-        let a_ts = project_path.join("a.ts");
-        let b_ts = project_path.join("b.ts");
-
-        fs::write(&a_ts, "export const a = 1;")?;
-        fs::write(&b_ts, "import { a } from './a'; export const b = a + 1;")?;
-
+        let (_dir, project_path, a_ts, _b_ts) = setup_test_project()?;
         let mut analyzer = Analyzer::new(&project_path, ScanOptions::default())?;
 
         // Initial scan
@@ -387,10 +393,9 @@ mod tests {
 
         // Change a.ts
         fs::write(&a_ts, "export const a = 2;")?;
-        let inc_result = analyzer.scan_incremental(vec![a_ts.clone()])?;
+        let inc_result = analyzer.scan_incremental(vec![a_ts])?;
 
         assert_eq!(inc_result.changed_count, 1);
-        // a.ts changed, b.ts imports a.ts -> both affected
         assert_eq!(inc_result.affected_count, 2);
 
         Ok(())
@@ -398,12 +403,7 @@ mod tests {
 
     #[test]
     fn test_scan_incremental_with_overlays() -> Result<()> {
-        let dir = tempdir()?;
-        let project_path = fs::canonicalize(dir.path())?;
-
-        let a_ts = project_path.join("a.ts");
-        fs::write(&a_ts, "export const a = 1;")?;
-
+        let (_dir, project_path, a_ts, _b_ts) = setup_test_project()?;
         let mut analyzer = Analyzer::new(&project_path, ScanOptions::default())?;
         analyzer.scan()?;
 
@@ -421,7 +421,8 @@ mod tests {
 
         // But analysis should work
         assert_eq!(result.changed_count, 1);
-        assert_eq!(result.affected_count, 1);
+        // a.ts changed, b.ts imports a.ts -> both affected
+        assert_eq!(result.affected_count, 2);
 
         Ok(())
     }

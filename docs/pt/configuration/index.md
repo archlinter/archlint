@@ -64,7 +64,7 @@ rules:
 overrides:
   - files: ['**/legacy/**']
     rules:
-      complexity: medium
+      cyclomatic_complexity: medium
       god_module: off
 
 # Configuração de pontuação e graduação

@@ -262,7 +262,9 @@ pub struct FunctionComplexity {
     /// Exact code range of the function.
     pub range: CodeRange,
     /// Cyclomatic complexity score.
-    pub complexity: usize,
+    pub cyclomatic_complexity: usize,
+    /// Cognitive complexity score.
+    pub cognitive_complexity: usize,
     /// Maximum nesting depth.
     pub max_depth: usize,
     /// Total number of parameters.
@@ -337,6 +339,8 @@ impl ParserConfig {
                 matches!(
                     id.as_str(),
                     "complexity"
+                        | "cyclomatic_complexity"
+                        | "cognitive_complexity"
                         | "deep_nesting"
                         | "long_params"
                         | "hub_module"

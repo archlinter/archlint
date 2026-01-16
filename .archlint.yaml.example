@@ -67,7 +67,8 @@ rules:
 overrides:
   - files: ["**/tests/**", "**/mocks/**"]
     rules:
-      complexity: off
+      cyclomatic_complexity: off
+      cognitive_complexity: off
       god_module: off
 
 # Scoring and grading configuration

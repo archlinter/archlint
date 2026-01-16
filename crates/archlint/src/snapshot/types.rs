@@ -113,7 +113,10 @@ pub struct SnapshotSummary {
     pub dead_code: usize,
     pub dead_symbols: usize,
     pub layer_violations: usize,
-    pub high_complexity: usize,
+    #[serde(default, alias = "highComplexity")]
+    pub high_cyclomatic_complexity: usize,
+    #[serde(default)]
+    pub high_cognitive_complexity: usize,
     pub hub_modules: usize,
 
     // Optional extended metrics

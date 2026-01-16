@@ -1,6 +1,6 @@
-# Высокая сложность
+# Цикломатическая сложность (Cyclomatic Complexity)
 
-**ID:** `complexity` | **Степень критичности:** Средняя (по умолчанию)
+**ID:** `cyclomatic_complexity` | **Степень критичности:** Средняя (по умолчанию)
 
 Этот детектор находит функции с высокой цикломатической сложностью.
 
@@ -20,7 +20,7 @@
 
 ```yaml
 rules:
-  complexity:
+  cyclomatic_complexity:
     severity: medium
     max_complexity: 15
 ```
@@ -34,7 +34,7 @@ rules:
 export default [
   {
     rules: {
-      '@archlinter/no-high-complexity': 'warn',
+      '@archlinter/no-high-cyclomatic-complexity': 'warn',
     },
   },
 ];

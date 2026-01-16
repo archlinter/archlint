@@ -39,7 +39,8 @@ For more complex logic (e.g., changing settings or disabling multiple rules for 
 overrides:
   - files: ['**/tests/**', '**/mocks/**']
     rules:
-      complexity: off
+      cyclomatic_complexity: off
+      cognitive_complexity: off
       god_module: off
       large_file: medium
 ```
@@ -71,11 +72,11 @@ function processTransaction(id: string, amount: number, currency: string, date: 
 
 import { internal } from './private'; // archlint-disable-line layer_violation - Temporary exclusion for migration
 
-/* archlint-disable complexity */
+/* archlint-disable cyclomatic_complexity, cognitive_complexity */
 function legacyCode() {
-  // This block is ignored
+  // This block is ignored for both complexity types
 }
-/* archlint-enable complexity */
+/* archlint-enable cyclomatic_complexity, cognitive_complexity */
 ```
 
 You can specify multiple rules separated by commas or use `*` to ignore all rules.

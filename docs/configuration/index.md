@@ -38,6 +38,8 @@ rules:
   # Short form: severity level or "off"
   cycles: high
   dead_code: medium
+  cyclomatic_complexity: low
+  cognitive_complexity: high
 
   # Full form: with additional options
   god_module:
@@ -64,7 +66,8 @@ rules:
 overrides:
   - files: ['**/legacy/**']
     rules:
-      complexity: medium
+      cyclomatic_complexity: medium
+      cognitive_complexity: high
       god_module: off
 
 # Scoring and grading configuration
@@ -153,5 +156,5 @@ When enabled, the tool:
 
 The `diff` section controls how architectural regressions are detected when comparing two snapshots:
 
-- **`metric_threshold_percent`** (default: `20`): Defines how much a metric (like cyclomatic complexity or coupling) must increase before it is reported as a "worsened" smell. For example, with a threshold of 20%, a function's complexity must increase from 10 to at least 12 to be flagged.
+- **`metric_threshold_percent`** (default: `20`): Defines how much a metric (like cyclomatic/cognitive complexity or coupling) must increase before it is reported as a "worsened" smell. For example, with a threshold of 20%, a function's cyclomatic complexity must increase from 10 to at least 12 to be flagged.
 - **`line_tolerance`** (default: `50`): Defines the maximum number of lines a code symbol can shift (due to additions or deletions elsewhere in the file) before archlint stops recognizing it as the same smell. This "fuzzy matching" prevents shifted code from being reported as a new regression.

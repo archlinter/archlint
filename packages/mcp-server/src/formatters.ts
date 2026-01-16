@@ -83,7 +83,8 @@ export function formatStatsMd(result: JsScanResult): string {
   md += `| God Modules | ${result.summary.godModules} |\n`;
   md += `| Dead Code | ${result.summary.deadCode} |\n`;
   md += `| Dead Symbols | ${result.summary.deadSymbols} |\n`;
-  md += `| High Complexity Functions | ${result.summary.highComplexityFunctions} |\n`;
+  md += `| High Cyclomatic Complexity Functions | ${result.summary.highCyclomaticComplexityFunctions} |\n`;
+  md += `| High Cognitive Complexity Functions | ${result.summary.highCognitiveComplexityFunctions} |\n`;
   md += `| Unstable Interfaces | ${result.summary.unstableInterfaces} |\n`;
   md += `| Feature Envy | ${result.summary.featureEnvy} |\n`;
   md += `| Shotgun Surgery | ${result.summary.shotgunSurgery} |\n`;

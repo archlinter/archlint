@@ -1,8 +1,8 @@
-use crate::parser::complexity::{calculate_arrow_complexity, calculate_complexity};
 use crate::parser::types::{
     ClassSymbol, FunctionComplexity, MethodAccessibility, MethodSymbol, SymbolName, SymbolSet,
 };
 use crate::parser::visitor::{interned, UnifiedVisitor};
+use crate::parser::{calculate_arrow_complexity, calculate_complexity, ComplexityMetrics};
 use compact_str::CompactString;
 use oxc_ast::ast::{Class, ClassElement, Expression, Function, MethodDefinitionKind, TSType};
 use oxc_span::GetSpan;
@@ -98,10 +98,14 @@ impl<'a> UnifiedVisitor {
     pub(crate) fn handle_function(&mut self, it: &Function<'a>, flags: ScopeFlags) {
         let name = self.get_scoped_name(it.id.as_ref().map(|id| Self::atom_to_compact(&id.name)));
 
-        let (complexity, max_depth) = if self.config.collect_complexity {
+        let metrics = if self.config.collect_complexity {
             calculate_complexity(it)
         } else {
-            (0, 0)
+            ComplexityMetrics {
+                cyclomatic: 0,
+                cognitive: 0,
+                max_depth: 0,
+            }
         };
 
         let span = it
@@ -111,7 +115,14 @@ impl<'a> UnifiedVisitor {
             .or(self.current_span_override.take())
             .unwrap_or(it.span);
 
-        self.collect_function_metrics(name, span, complexity, max_depth, &it.params);
+        self.collect_function_metrics(
+            name,
+            span,
+            metrics.cyclomatic,
+            metrics.cognitive,
+            metrics.max_depth,
+            &it.params,
+        );
 
         oxc_ast_visit::walk::walk_function(self, it, flags);
     }
@@ -122,15 +133,26 @@ impl<'a> UnifiedVisitor {
     ) {
         let name = self.get_scoped_name(None);
 
-        let (complexity, max_depth) = if self.config.collect_complexity {
+        let metrics = if self.config.collect_complexity {
             calculate_arrow_complexity(it)
         } else {
-            (0, 0)
+            ComplexityMetrics {
+                cyclomatic: 0,
+                cognitive: 0,
+                max_depth: 0,
+            }
         };
 
         let span = self.current_span_override.take().unwrap_or(it.span);
 
-        self.collect_function_metrics(name, span, complexity, max_depth, &it.params);
+        self.collect_function_metrics(
+            name,
+            span,
+            metrics.cyclomatic,
+            metrics.cognitive,
+            metrics.max_depth,
+            &it.params,
+        );
 
         oxc_ast_visit::walk::walk_arrow_function_expression(self, it);
     }
@@ -150,7 +172,8 @@ impl<'a> UnifiedVisitor {
         &mut self,
         name: CompactString,
         span: oxc_span::Span,
-        complexity: usize,
+        cyclomatic_complexity: usize,
+        cognitive_complexity: usize,
         max_depth: usize,
         params: &oxc_ast::ast::FormalParameters<'a>,
     ) {
@@ -170,7 +193,8 @@ impl<'a> UnifiedVisitor {
             name,
             line,
             range,
-            complexity,
+            cyclomatic_complexity,
+            cognitive_complexity,
             max_depth,
             param_count,
             primitive_params,

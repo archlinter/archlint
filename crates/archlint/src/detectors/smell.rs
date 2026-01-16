@@ -112,7 +112,8 @@ impl ArchSmell {
     impl_metric_accessor!(fan_out, FanOut, usize);
     impl_metric_accessor!(churn, Churn, usize);
     impl_metric_accessor!(cycle_length, CycleLength, usize);
-    impl_metric_accessor!(complexity, Complexity, usize);
+    impl_metric_accessor!(cyclomatic_complexity, CyclomaticComplexity, usize);
+    impl_metric_accessor!(cognitive_complexity, CognitiveComplexity, usize);
     impl_metric_accessor!(lines, Lines, usize);
     impl_metric_accessor!(instability_score, InstabilityScore, usize);
     impl_metric_accessor!(envy_ratio, EnvyRatio, f64);
@@ -236,16 +237,7 @@ impl ArchSmell {
     }
 
     pub fn new_dead_symbol(file: PathBuf, name: String, kind: String) -> Self {
-        let location =
-            LocationDetail::new(file.clone(), 0, format!("{} '{}' definition", kind, name));
-        Self {
-            smell_type: SmellType::DeadSymbol { name, kind },
-            severity: Severity::Low,
-            files: vec![file],
-            metrics: Vec::new(),
-            locations: vec![location],
-            cluster: None,
-        }
+        Self::new_dead_symbol_with_line(file, name, kind, 0)
     }
 
     pub fn new_dead_symbol_with_line(
@@ -270,13 +262,14 @@ impl ArchSmell {
         }
     }
 
-    pub fn new_high_complexity(
+    fn new_complexity_smell(
         file: PathBuf,
         name: String,
         line: usize,
         complexity: usize,
         threshold: usize,
         range: Option<CodeRange>,
+        is_cognitive: bool,
     ) -> Self {
         let severity = if complexity >= threshold * 2 {
             Severity::High
@@ -286,30 +279,74 @@ impl ArchSmell {
             Severity::Low
         };
 
-        let mut locations = Vec::new();
+        let type_name = if is_cognitive {
+            "cognitive"
+        } else {
+            "cyclomatic"
+        };
+        let mut location = LocationDetail::new(
+            file.clone(),
+            line,
+            format!(
+                "Function '{}' ({} complexity: {})",
+                name, type_name, complexity
+            ),
+        );
         if let Some(r) = range {
-            locations.push(
-                LocationDetail::new(
-                    file.clone(),
-                    line,
-                    format!("Function '{}' (complexity: {})", name, complexity),
-                )
-                .with_range(r),
-            );
+            location = location.with_range(r);
         }
+        let locations = vec![location];
+
+        let (smell_type, metric) = if is_cognitive {
+            (
+                SmellType::HighCognitiveComplexity {
+                    name,
+                    line,
+                    complexity,
+                },
+                SmellMetric::CognitiveComplexity(complexity),
+            )
+        } else {
+            (
+                SmellType::HighCyclomaticComplexity {
+                    name,
+                    line,
+                    complexity,
+                },
+                SmellMetric::CyclomaticComplexity(complexity),
+            )
+        };
 
         Self {
-            smell_type: SmellType::HighComplexity {
-                name,
-                line,
-                complexity,
-            },
+            smell_type,
             severity,
             files: vec![file],
-            metrics: vec![SmellMetric::Complexity(complexity)],
+            metrics: vec![metric],
             locations,
             cluster: None,
         }
+    }
+
+    pub fn new_high_cyclomatic_complexity(
+        file: PathBuf,
+        name: String,
+        line: usize,
+        complexity: usize,
+        threshold: usize,
+        range: Option<CodeRange>,
+    ) -> Self {
+        Self::new_complexity_smell(file, name, line, complexity, threshold, range, false)
+    }
+
+    pub fn new_high_cognitive_complexity(
+        file: PathBuf,
+        name: String,
+        line: usize,
+        complexity: usize,
+        threshold: usize,
+        range: Option<CodeRange>,
+    ) -> Self {
+        Self::new_complexity_smell(file, name, line, complexity, threshold, range, true)
     }
 
     pub fn new_large_file(file: PathBuf, lines: usize) -> Self {
@@ -605,7 +642,7 @@ impl ArchSmell {
             metrics: vec![
                 SmellMetric::FanIn(fan_in),
                 SmellMetric::FanOut(fan_out),
-                SmellMetric::Complexity(complexity),
+                SmellMetric::CyclomaticComplexity(complexity),
             ],
             locations: Vec::new(),
             cluster: None,

@@ -25,8 +25,14 @@ pub fn generate_smell_id(smell: &ArchSmell, project_root: &Path) -> String {
             id_for_symbol_smell("dead", &smell.files[0], name, line, project_root)
         }),
 
-        SmellType::HighComplexity { name, .. } => with_line_hash_fallback(smell, |line| {
-            id_for_symbol_smell("cmplx", &smell.files[0], name, line, project_root)
+        SmellType::HighCyclomaticComplexity { name, .. } => {
+            with_line_hash_fallback(smell, |line| {
+                id_for_symbol_smell("ccycl", &smell.files[0], name, line, project_root)
+            })
+        }
+
+        SmellType::HighCognitiveComplexity { name, .. } => with_line_hash_fallback(smell, |line| {
+            id_for_symbol_smell("ccog", &smell.files[0], name, line, project_root)
         }),
 
         SmellType::HubModule => id_for_file_smell(&smell.files[0], "hub", project_root),

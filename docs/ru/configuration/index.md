@@ -60,7 +60,7 @@ rules:
 overrides:
   - files: ['**/legacy/**']
     rules:
-      complexity: medium
+      cyclomatic_complexity: medium
       god_module: off
 
 # Настройка оценки и грейдинга

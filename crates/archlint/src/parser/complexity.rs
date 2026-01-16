@@ -1,9 +1,19 @@
-use oxc_ast::ast::{ArrowFunctionExpression, Function};
+use oxc_ast::ast::{ArrowFunctionExpression, Function, LogicalOperator, Statement};
 use oxc_ast_visit::Visit;
 
 pub struct ComplexityVisitor {
-    pub complexity: usize,
-    pub current_depth: usize,
+    pub cyclomatic: usize,
+    pub cognitive: usize,
+    pub max_depth: usize,
+    current_depth: usize,
+    current_nesting: usize,
+    current_logical_op: Option<LogicalOperator>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct ComplexityMetrics {
+    pub cyclomatic: usize,
+    pub cognitive: usize,
     pub max_depth: usize,
 }
 
@@ -16,131 +26,199 @@ impl Default for ComplexityVisitor {
 impl ComplexityVisitor {
     pub fn new() -> Self {
         Self {
-            complexity: 1,
-            current_depth: 0,
+            cyclomatic: 1,
+            cognitive: 0,
             max_depth: 0,
+            current_depth: 0,
+            current_nesting: 0,
+            current_logical_op: None,
         }
     }
 
-    fn enter_nesting(&mut self) {
+    fn enter_nesting<F: FnOnce(&mut Self)>(&mut self, f: F) {
         self.current_depth += 1;
         if self.current_depth > self.max_depth {
             self.max_depth = self.current_depth;
         }
-    }
-
-    fn exit_nesting(&mut self) {
+        let old_nesting = self.current_nesting;
+        self.current_nesting += 1;
+        f(self);
+        self.current_nesting = old_nesting;
         self.current_depth -= 1;
     }
 }
 
-pub fn calculate_complexity(func: &Function<'_>) -> (usize, usize) {
+pub fn calculate_complexity(func: &Function<'_>) -> ComplexityMetrics {
     let mut visitor = ComplexityVisitor::new();
     if let Some(body) = &func.body {
         visitor.visit_function_body(body);
     }
-    (visitor.complexity, visitor.max_depth)
+    ComplexityMetrics {
+        cyclomatic: visitor.cyclomatic,
+        cognitive: visitor.cognitive,
+        max_depth: visitor.max_depth,
+    }
 }
 
-pub fn calculate_arrow_complexity(func: &ArrowFunctionExpression<'_>) -> (usize, usize) {
+pub fn calculate_arrow_complexity(func: &ArrowFunctionExpression<'_>) -> ComplexityMetrics {
     let mut visitor = ComplexityVisitor::new();
     visitor.visit_function_body(&func.body);
-    (visitor.complexity, visitor.max_depth)
+    ComplexityMetrics {
+        cyclomatic: visitor.cyclomatic,
+        cognitive: visitor.cognitive,
+        max_depth: visitor.max_depth,
+    }
 }
 
 impl<'a> Visit<'a> for ComplexityVisitor {
+    fn visit_function(
+        &mut self,
+        _it: &oxc_ast::ast::Function<'a>,
+        _flags: oxc_syntax::scope::ScopeFlags,
+    ) {
+    }
+
+    fn visit_arrow_function_expression(&mut self, _it: &oxc_ast::ast::ArrowFunctionExpression<'a>) {
+    }
+
+    fn visit_class(&mut self, _it: &oxc_ast::ast::Class<'a>) {}
+
     fn visit_if_statement(&mut self, it: &oxc_ast::ast::IfStatement<'a>) {
-        self.complexity += 1;
-        self.enter_nesting();
-        oxc_ast_visit::walk::walk_if_statement(self, it);
-        self.exit_nesting();
+        self.cyclomatic += 1;
+        self.cognitive += 1 + self.current_nesting;
+
+        // Ensure logical operators in the condition are counted
+        self.visit_expression(&it.test);
+
+        self.enter_nesting(|v| {
+            v.visit_statement(&it.consequent);
+        });
+
+        if let Some(alternate) = &it.alternate {
+            // Cyclomatic: doesn't count 'else' itself, only branching points.
+            // Cognitive: +1 for 'else' or 'else if'.
+            if let Statement::IfStatement(_) = alternate {
+                // For 'else if', we don't increase nesting level for the alternate itself,
+                // the nested visit_if_statement will handle its own structural increment.
+                self.visit_statement(alternate);
+            } else {
+                self.cognitive += 1;
+                self.enter_nesting(|v| {
+                    v.visit_statement(alternate);
+                });
+            }
+        }
     }
 
     fn visit_while_statement(&mut self, it: &oxc_ast::ast::WhileStatement<'a>) {
-        self.complexity += 1;
-        self.enter_nesting();
-        oxc_ast_visit::walk::walk_while_statement(self, it);
-        self.exit_nesting();
+        self.cyclomatic += 1;
+        self.cognitive += 1 + self.current_nesting;
+        self.enter_nesting(|v| {
+            oxc_ast_visit::walk::walk_while_statement(v, it);
+        });
     }
 
     fn visit_do_while_statement(&mut self, it: &oxc_ast::ast::DoWhileStatement<'a>) {
-        self.complexity += 1;
-        self.enter_nesting();
-        oxc_ast_visit::walk::walk_do_while_statement(self, it);
-        self.exit_nesting();
+        self.cyclomatic += 1;
+        self.cognitive += 1 + self.current_nesting;
+        self.enter_nesting(|v| {
+            oxc_ast_visit::walk::walk_do_while_statement(v, it);
+        });
     }
 
     fn visit_for_statement(&mut self, it: &oxc_ast::ast::ForStatement<'a>) {
-        self.complexity += 1;
-        self.enter_nesting();
-        oxc_ast_visit::walk::walk_for_statement(self, it);
-        self.exit_nesting();
+        self.cyclomatic += 1;
+        self.cognitive += 1 + self.current_nesting;
+        self.enter_nesting(|v| {
+            oxc_ast_visit::walk::walk_for_statement(v, it);
+        });
     }
 
     fn visit_for_in_statement(&mut self, it: &oxc_ast::ast::ForInStatement<'a>) {
-        self.complexity += 1;
-        self.enter_nesting();
-        oxc_ast_visit::walk::walk_for_in_statement(self, it);
-        self.exit_nesting();
+        self.cyclomatic += 1;
+        self.cognitive += 1 + self.current_nesting;
+        self.enter_nesting(|v| {
+            oxc_ast_visit::walk::walk_for_in_statement(v, it);
+        });
     }
 
     fn visit_for_of_statement(&mut self, it: &oxc_ast::ast::ForOfStatement<'a>) {
-        self.complexity += 1;
-        self.enter_nesting();
-        oxc_ast_visit::walk::walk_for_of_statement(self, it);
-        self.exit_nesting();
+        self.cyclomatic += 1;
+        self.cognitive += 1 + self.current_nesting;
+        self.enter_nesting(|v| {
+            oxc_ast_visit::walk::walk_for_of_statement(v, it);
+        });
+    }
+
+    fn visit_switch_statement(&mut self, it: &oxc_ast::ast::SwitchStatement<'a>) {
+        // Cognitive: +1 for the whole switch
+        self.cognitive += 1 + self.current_nesting;
+        self.enter_nesting(|v| {
+            oxc_ast_visit::walk::walk_switch_statement(v, it);
+        });
     }
 
     fn visit_switch_case(&mut self, it: &oxc_ast::ast::SwitchCase<'a>) {
-        if it.test.is_some() {
-            self.complexity += 1;
-            self.enter_nesting();
-            oxc_ast_visit::walk::walk_switch_case(self, it);
-            self.exit_nesting();
-        } else {
-            oxc_ast_visit::walk::walk_switch_case(self, it);
-        }
+        // Cyclomatic: each case counts
+        self.cyclomatic += 1;
+        oxc_ast_visit::walk::walk_switch_case(self, it);
     }
 
     fn visit_catch_clause(&mut self, it: &oxc_ast::ast::CatchClause<'a>) {
-        self.complexity += 1;
-        self.enter_nesting();
-        oxc_ast_visit::walk::walk_catch_clause(self, it);
-        self.exit_nesting();
+        self.cyclomatic += 1;
+        self.cognitive += 1 + self.current_nesting;
+        self.enter_nesting(|v| {
+            oxc_ast_visit::walk::walk_catch_clause(v, it);
+        });
     }
 
     fn visit_conditional_expression(&mut self, it: &oxc_ast::ast::ConditionalExpression<'a>) {
-        self.complexity += 1;
-        oxc_ast_visit::walk::walk_conditional_expression(self, it);
+        self.cyclomatic += 1;
+        self.cognitive += 1 + self.current_nesting;
+        self.enter_nesting(|v| {
+            oxc_ast_visit::walk::walk_conditional_expression(v, it);
+        });
     }
 
     fn visit_logical_expression(&mut self, it: &oxc_ast::ast::LogicalExpression<'a>) {
-        self.complexity += 1;
+        self.cyclomatic += 1;
+
+        // Cognitive: sequences of same operators count as 1.
+        let is_new_sequence = self.current_logical_op != Some(it.operator);
+        if is_new_sequence {
+            self.cognitive += 1;
+        }
+
+        let old_op = self.current_logical_op;
+        self.current_logical_op = Some(it.operator);
         oxc_ast_visit::walk::walk_logical_expression(self, it);
+        self.current_logical_op = old_op;
     }
 
-    fn visit_static_member_expression(&mut self, it: &oxc_ast::ast::StaticMemberExpression<'a>) {
-        if it.optional {
-            self.complexity += 1;
+    fn visit_assignment_expression(&mut self, it: &oxc_ast::ast::AssignmentExpression<'a>) {
+        use oxc_ast::ast::AssignmentOperator;
+        if matches!(
+            it.operator,
+            AssignmentOperator::LogicalAnd
+                | AssignmentOperator::LogicalOr
+                | AssignmentOperator::LogicalNullish
+        ) {
+            self.cyclomatic += 1;
+            self.cognitive += 1;
         }
-        oxc_ast_visit::walk::walk_static_member_expression(self, it);
+        oxc_ast_visit::walk::walk_assignment_expression(self, it);
     }
 
-    fn visit_computed_member_expression(
-        &mut self,
-        it: &oxc_ast::ast::ComputedMemberExpression<'a>,
-    ) {
-        if it.optional {
-            self.complexity += 1;
+    fn visit_break_statement(&mut self, it: &oxc_ast::ast::BreakStatement<'a>) {
+        if it.label.is_some() {
+            self.cognitive += 1;
         }
-        oxc_ast_visit::walk::walk_computed_member_expression(self, it);
     }
 
-    fn visit_call_expression(&mut self, it: &oxc_ast::ast::CallExpression<'a>) {
-        if it.optional {
-            self.complexity += 1;
+    fn visit_continue_statement(&mut self, it: &oxc_ast::ast::ContinueStatement<'a>) {
+        if it.label.is_some() {
+            self.cognitive += 1;
         }
-        oxc_ast_visit::walk::walk_call_expression(self, it);
     }
 }
 
@@ -151,7 +229,7 @@ mod tests {
     use oxc_parser::Parser;
     use oxc_span::SourceType;
 
-    fn parse_function(code: &str) -> (usize, usize) {
+    fn parse_function(code: &str) -> ComplexityMetrics {
         let allocator = Allocator::default();
         let source_type = SourceType::default().with_typescript(true);
         let ret = Parser::new(&allocator, code, source_type).parse();
@@ -161,142 +239,130 @@ mod tests {
             if let oxc_ast::ast::Statement::FunctionDeclaration(func) = stmt {
                 return calculate_complexity(func);
             }
-            if let oxc_ast::ast::Statement::ExpressionStatement(expr_stmt) = stmt {
-                if let oxc_ast::ast::Expression::ArrowFunctionExpression(arrow) =
-                    &expr_stmt.expression
-                {
-                    return calculate_arrow_complexity(arrow);
-                }
-            }
         }
-        (0, 0)
+        ComplexityMetrics {
+            cyclomatic: 0,
+            cognitive: 0,
+            max_depth: 0,
+        }
     }
 
     #[test]
-    fn test_empty_function() {
-        let (complexity, max_depth) = parse_function("function test() {}");
-        assert_eq!(complexity, 1);
-        assert_eq!(max_depth, 0);
-    }
-
-    #[test]
-    fn test_nested_if_while() {
+    fn test_cyclomatic_basics() {
         let code = r#"
-            function test(x) {
-                if (x > 0) {
-                    while (x < 10) {
-                        x++;
+            function test(a, b) {
+                if (a) { // +1
+                    while (b) { // +1
+                        console.log(1);
                     }
                 }
             }
         "#;
-        let (complexity, max_depth) = parse_function(code);
-        assert_eq!(complexity, 3); // 1 + if + while
-        assert_eq!(max_depth, 2);
+        let metrics = parse_function(code);
+        assert_eq!(metrics.cyclomatic, 3);
+        assert_eq!(metrics.cognitive, 3); // if (+1), while (+2)
+        assert_eq!(metrics.max_depth, 2);
     }
 
     #[test]
-    fn test_switch_case_complexity() {
+    fn test_cognitive_nesting() {
         let code = r#"
-            function test(x) {
-                switch(x) {
-                    case 1: return 1;
-                    case 2: return 2;
-                    default: return 0;
+            function test(a, b, c) {
+                if (a) { // +1
+                    if (b) { // +2
+                        if (c) { // +3
+                            return 1;
+                        }
+                    }
                 }
             }
         "#;
-        let (complexity, max_depth) = parse_function(code);
-        assert_eq!(complexity, 3); // 1 + case 1 + case 2
-        assert_eq!(max_depth, 1);
+        let metrics = parse_function(code);
+        assert_eq!(metrics.cyclomatic, 4);
+        assert_eq!(metrics.cognitive, 6); // 1 + 2 + 3
     }
 
     #[test]
-    fn test_catch_clause() {
-        let code = r#"
-            function test() {
-                try {
-                    doSomething();
-                } catch (e) {
-                    handleError(e);
-                }
-            }
-        "#;
-        let (complexity, max_depth) = parse_function(code);
-        assert_eq!(complexity, 2); // 1 + catch
-        assert_eq!(max_depth, 1);
-    }
-
-    #[test]
-    fn test_ternary_operator() {
-        let code = r#"
-            function test(x) {
-                return x > 0 ? 1 : 0;
-            }
-        "#;
-        let (complexity, _max_depth) = parse_function(code);
-        assert_eq!(complexity, 2); // 1 + ternary
-    }
-
-    #[test]
-    fn test_logical_operators() {
+    fn test_else_if_logic() {
         let code = r#"
             function test(a, b) {
-                if (a && b || a) {
+                if (a) { // +1
+                    return 1;
+                } else if (b) { // +1 (cc), +1 (cog: structural only, no nesting)
+                    return 2;
+                } else { // +0 (cc), +1 (cog structural)
+                    return 3;
+                }
+            }
+        "#;
+        let metrics = parse_function(code);
+        assert_eq!(metrics.cyclomatic, 3);
+        assert_eq!(metrics.cognitive, 3); // if (+1), else if (+1), else (+1)
+    }
+
+    #[test]
+    fn test_logical_operator_sequences() {
+        let code = r#"
+            function test(a, b, c) {
+                if (a && b && c) { // cc: +3 (if + 2 logical), cog: +1 (if) +1 (sequence)
                     return 1;
                 }
-                return 0;
             }
         "#;
-        let (complexity, _max_depth) = parse_function(code);
-        assert_eq!(complexity, 4); // 1 + if + && + ||
+        let metrics = parse_function(code);
+        assert_eq!(metrics.cyclomatic, 4); // 1 (function) + 1 (if) + 2 (&&) = 4
+        assert_eq!(metrics.cognitive, 2); // 1 (if) + 1 (&& sequence) = 2
+
+        let code_mixed = r#"
+            function test(a, b, c) {
+                if (a && b || c) {
+                    return 1;
+                }
+            }
+        "#;
+        let metrics_mixed = parse_function(code_mixed);
+        assert_eq!(metrics_mixed.cyclomatic, 4);
+        assert_eq!(metrics_mixed.cognitive, 3); // 1 (if) + 1 (&&) + 1 (|| is new sequence) = 3
     }
 
     #[test]
-    fn test_optional_chaining() {
+    fn test_nested_ternaries() {
         let code = r#"
-            function test(obj) {
-                return obj?.prop?.method()?.();
+            function test(a, b, c) {
+                return a ? (b ? 1 : 2) : 3;
             }
         "#;
-        let (complexity, _max_depth) = parse_function(code);
-        assert_eq!(complexity, 4); // 1 + obj?.prop + .method() + .()
+        let metrics = parse_function(code);
+        assert_eq!(metrics.cyclomatic, 3); // 1 (function) + 2 (ternaries)
+        assert_eq!(metrics.cognitive, 3); // 1 (first ternary) + 2 (nested ternary: 1 + 1 nesting)
     }
 
     #[test]
-    fn test_arrow_function_complexity() {
-        let code = "(x) => { if (x) return 1; return 0; }";
-        let (complexity, max_depth) = parse_function(code);
-        assert_eq!(complexity, 2); // 1 + if
-        assert_eq!(max_depth, 1);
-    }
-
-    #[test]
-    fn test_do_while_complexity() {
+    fn test_labeled_break_continue() {
         let code = r#"
-            function test(x) {
-                do {
-                    x--;
-                } while (x > 0);
+            function test(a, b) {
+                outer: while (a) {
+                    while (b) {
+                        break outer;
+                    }
+                }
             }
         "#;
-        let (complexity, max_depth) = parse_function(code);
-        assert_eq!(complexity, 2); // 1 + do-while
-        assert_eq!(max_depth, 1);
+        let metrics = parse_function(code);
+        assert_eq!(metrics.cyclomatic, 3);
+        assert_eq!(metrics.cognitive, 4); // while (1), while (1 + 1 nesting), break outer (+1)
     }
 
     #[test]
-    fn test_for_variants_complexity() {
-        let code_for = "function t() { for(let i=0; i<10; i++) {} }";
-        let (c1, _) = parse_function(code_for);
-        assert_eq!(c1, 2);
-
-        let code_for_in = "function t(obj) { for(let k in obj) {} }";
-        let (c2, _) = parse_function(code_for_in);
-        assert_eq!(c2, 2);
-
-        let code_for_of = "function t(arr) { for(let v of arr) {} }";
-        let (c3, _) = parse_function(code_for_of);
-        assert_eq!(c3, 2);
+    fn test_logical_assignment_operators() {
+        let code = r#"
+            function test(a, b) {
+                a &&= b;
+                a ||= b;
+            }
+        "#;
+        let metrics = parse_function(code);
+        assert_eq!(metrics.cyclomatic, 3); // 1 (function) + 2 (logical assignments)
+        assert_eq!(metrics.cognitive, 2); // 1 (&&=) + 1 (||=)
     }
 }

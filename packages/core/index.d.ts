@@ -78,6 +78,9 @@ export interface JsSummary {
   godModules: number
   deadCode: number
   deadSymbols: number
+  highCyclomaticComplexityFunctions: number
+  highCognitiveComplexityFunctions: number
+  /** @deprecated use highCyclomaticComplexityFunctions or highCognitiveComplexityFunctions */
   highComplexityFunctions: number
   unstableInterfaces: number
   featureEnvy: number
@@ -112,6 +115,9 @@ export interface JsExportInfo {
 }
 export interface JsFileMetrics {
   lines: number
+  cyclomaticComplexity?: number
+  cognitiveComplexity?: number
+  /** @deprecated use cyclomaticComplexity or cognitiveComplexity */
   complexity?: number
   fanIn: number
   fanOut: number

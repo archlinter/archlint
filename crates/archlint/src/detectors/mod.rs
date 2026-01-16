@@ -29,7 +29,9 @@ pub use design::{
     unstable_interface,
 };
 pub use hygiene::{dead_code, dead_symbols, side_effect_import, test_leakage};
-pub use metrics::{complexity, deep_nesting, large_file, lcom, long_params};
+pub use metrics::{
+    cognitive_complexity, cyclomatic_complexity, deep_nesting, large_file, lcom, long_params,
+};
 
 /// Ensures all detectors are registered.
 /// This is needed to force the linker to include all modules when using the `inventory` crate.

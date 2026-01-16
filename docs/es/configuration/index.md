@@ -7,7 +7,7 @@ description: Aprenda a configurar archlint usando .archlint.yaml, definir capas 
 
 archlint se puede configurar usando un archivo `.archlint.yaml` en la raíz de su proyecto. Si no se encuentra ningún archivo de configuración, la herramienta utiliza valores predeterminados razonables para todos los detectores.
 
-## Estructura del Archivo de Configuración
+## Estructura del archivo de configuración
 
 ```yaml
 # Archivos y directorios a ignorar (global)
@@ -38,6 +38,8 @@ rules:
   # Forma corta: nivel de severidad o "off"
   cycles: high
   dead_code: medium
+  cyclomatic_complexity: low
+  cognitive_complexity: high
 
   # Forma completa: con opciones adicionales
   god_module:
@@ -64,7 +66,8 @@ rules:
 overrides:
   - files: ['**/legacy/**']
     rules:
-      complexity: medium
+      cyclomatic_complexity: medium
+      cognitive_complexity: high
       god_module: off
 
 # Configuración de puntuación y calificación
@@ -101,7 +104,7 @@ git:
   history_period: '1y'
 ```
 
-## Extends (Extensión)
+## Extensión (extends)
 
 El campo `extends` le permite cargar presets desde diferentes fuentes:
 
@@ -111,7 +114,7 @@ El campo `extends` le permite cargar presets desde diferentes fuentes:
 
 Los presets se fusionan en el orden en que se listan. La configuración del usuario siempre tiene la prioridad más alta.
 
-## Reglas y Niveles de Severidad
+## Reglas y niveles de severidad
 
 En la sección `rules`, puede usar los siguientes niveles:
 
@@ -139,13 +142,13 @@ archlint puede sincronizarse automáticamente con su `tsconfig.json`. Use el cam
 
 Cuando está habilitado, la herramienta:
 
-1. **Carga Alias**: Extrae `compilerOptions.paths` y `compilerOptions.baseUrl` para configurar automáticamente `aliases`.
+1. **Carga alias**: Extrae `compilerOptions.paths` y `compilerOptions.baseUrl` para configurar automáticamente `aliases`.
 2. **Auto-ignorar**: Agrega `compilerOptions.outDir` a la lista global de `ignore`.
 3. **Exclusiones**: Incorpora patrones del campo `exclude` en la lista de `ignore`.
 
-## Configuración de Diff
+## Configuración de diff
 
 La sección `diff` controla cómo se detectan las regresiones arquitectónicas al comparar dos instantáneas:
 
-- **`metric_threshold_percent`** (por defecto: `20`): Define cuánto debe aumentar una métrica (como la complejidad ciclomática o el acoplamiento) antes de que se informe como un smell "empeorado". Por ejemplo, con un umbral del 20%, la complejidad de una función debe aumentar de 10 a al menos 12 para ser señalada.
+- **`metric_threshold_percent`** (por defecto: `20`): Define cuánto debe aumentar una métrica (como la complejidad ciclomática/cognitiva o el acoplamiento) antes de que se informe como un smell "empeorado". Por ejemplo, con un umbral del 20%, la complejidad ciclomática o cognitiva de una función debe aumentar de 10 a al menos 12 para ser señalada.
 - **`line_tolerance`** (por defecto: `50`): Define el número máximo de líneas que un símbolo de código puede desplazarse (debido a adiciones o eliminaciones en otras partes del archivo) antes de que archlint deje de reconocerlo como el mismo smell. Este "emparejamiento difuso" evita que el código desplazado se informe como una nueva regresión.

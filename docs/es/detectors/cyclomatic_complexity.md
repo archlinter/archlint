@@ -1,8 +1,8 @@
-# Complejidad Elevada
+# Complejidad ciclomática (Cyclomatic Complexity)
 
-**ID:** `complexity` | **Severidad:** Media (por defecto)
+**ID:** `cyclomatic_complexity` | **Severidad:** Media (por defecto)
 
-Este detector identifica funciones con una alta Complejidad Ciclomática.
+Este detector identifica funciones con una alta complejidad ciclomática.
 
 ## Por qué esto es un problema
 
@@ -12,15 +12,15 @@ Este detector identifica funciones con una alta Complejidad Ciclomática.
 
 ## Cómo solucionarlo
 
-1. **Extraer Método (Extract Method)**: Divide la lógica compleja en funciones más pequeñas con nombre.
-2. **Cláusulas de Guarda (Guard Clauses)**: Utiliza retornos tempranos para reducir los niveles de anidamiento.
-3. **Reemplazar Condicional con Polimorfismo**: Utiliza objetos o estrategias en lugar de bloques `switch` o `if/else` grandes.
+1. **Extraer método (Extract Method)**: Divide la lógica compleja en funciones más pequeñas con nombre.
+2. **Cláusulas de guarda (Guard Clauses)**: Utiliza retornos tempranos para reducir los niveles de anidamiento.
+3. **Reemplazar condicional con polimorfismo**: Utiliza objetos o estrategias en lugar de bloques `switch` o `if/else` grandes.
 
 ## Configuración
 
 ```yaml
 rules:
-  complexity:
+  cyclomatic_complexity:
     severity: medium
     max_complexity: 15
 ```
@@ -34,7 +34,7 @@ Este detector está disponible como una regla ESLint para recibir retroalimentac
 export default [
   {
     rules: {
-      '@archlinter/no-high-complexity': 'warn',
+      '@archlinter/no-high-cyclomatic-complexity': 'warn',
     },
   },
 ];

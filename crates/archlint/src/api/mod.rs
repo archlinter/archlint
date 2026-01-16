@@ -105,7 +105,15 @@ pub(crate) fn build_file_info(
 
         let file_metrics = FileMetrics {
             lines: metrics.map(|m| m.lines).unwrap_or(0),
-            complexity: complexities.and_then(|c| c.iter().map(|f| f.complexity).max()),
+            cyclomatic_complexity: complexities
+                .and_then(|c| c.iter().map(|f| f.cyclomatic_complexity).max()),
+            cognitive_complexity: complexities
+                .and_then(|c| c.iter().map(|f| f.cognitive_complexity).max()),
+            complexity: complexities.and_then(|c| {
+                c.iter()
+                    .map(|f| f.cyclomatic_complexity.max(f.cognitive_complexity))
+                    .max()
+            }),
             fan_in,
             fan_out,
         };

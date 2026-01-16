@@ -1,6 +1,6 @@
-# 高复杂度 (High Complexity)
+# 圈复杂度 (Cyclomatic Complexity)
 
-**ID:** `complexity` | **严重程度:** 中 (默认)
+**ID:** `cyclomatic_complexity` | **严重程度:** 中 (默认)
 
 该检测器识别具有高圈复杂度 (Cyclomatic Complexity) 的函数。
 
@@ -20,7 +20,7 @@
 
 ```yaml
 rules:
-  complexity:
+  cyclomatic_complexity:
     severity: medium
     max_complexity: 15
 ```
@@ -34,7 +34,7 @@ rules:
 export default [
   {
     rules: {
-      '@archlinter/no-high-complexity': 'warn',
+      '@archlinter/no-high-cyclomatic-complexity': 'warn',
     },
   },
 ];

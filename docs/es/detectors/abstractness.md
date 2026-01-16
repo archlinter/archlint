@@ -69,7 +69,7 @@ Según los valores de **A** e **I**, los módulos caen en zonas específicas:
 - **Métricas**: I ≈ 0–0.3 (estable), A ≈ 0–0.3 (concreto).
 - **Problema**: Todos dependen de una implementación concreta. Cambiarla es peligroso porque es tanto rígida como altamente acoplada.
 
-**Ejemplo Malo (Dependencia concreta):**
+**Ejemplo malo (Dependencia concreta):**
 
 ```typescript
 // database.service.ts

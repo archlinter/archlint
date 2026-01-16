@@ -61,7 +61,8 @@ const enSidebar: DefaultTheme.Sidebar = {
     {
       text: 'Complexity & Size',
       items: [
-        { text: 'High Complexity', link: '/detectors/complexity' },
+        { text: 'Cyclomatic Complexity', link: '/detectors/cyclomatic_complexity' },
+        { text: 'Cognitive Complexity', link: '/detectors/cognitive_complexity' },
         { text: 'Deep Nesting', link: '/detectors/deep_nesting' },
         { text: 'Long Parameters', link: '/detectors/long_params' },
         { text: 'Large File', link: '/detectors/large_file' },
@@ -249,7 +250,8 @@ export default defineConfig({
             {
               text: 'Сложность и размер',
               items: [
-                { text: 'Высокая сложность', link: '/ru/detectors/complexity' },
+                { text: 'Цикломатическая сложность', link: '/ru/detectors/cyclomatic_complexity' },
+                { text: 'Когнитивная сложность', link: '/ru/detectors/cognitive_complexity' },
                 { text: 'Глубокая вложенность', link: '/ru/detectors/deep_nesting' },
                 { text: 'Много параметров', link: '/ru/detectors/long_params' },
                 { text: 'Большой файл', link: '/ru/detectors/large_file' },
@@ -404,7 +406,8 @@ export default defineConfig({
             {
               text: '复杂度与大小',
               items: [
-                { text: '高复杂度', link: '/zh/detectors/complexity' },
+                { text: '圈复杂度', link: '/zh/detectors/cyclomatic_complexity' },
+                { text: '认知复杂度', link: '/zh/detectors/cognitive_complexity' },
                 { text: '深层嵌套', link: '/zh/detectors/deep_nesting' },
                 { text: '参数过多', link: '/zh/detectors/long_params' },
                 { text: '大文件', link: '/zh/detectors/large_file' },
@@ -559,7 +562,8 @@ export default defineConfig({
             {
               text: 'Complexidade e Tamanho',
               items: [
-                { text: 'Alta Complexidade', link: '/pt/detectors/complexity' },
+                { text: 'Complexidade Ciclomática', link: '/pt/detectors/cyclomatic_complexity' },
+                { text: 'Complexidade Cognitiva', link: '/pt/detectors/cognitive_complexity' },
                 { text: 'Aninhamento Profundo', link: '/pt/detectors/deep_nesting' },
                 { text: 'Muitos Parâmetros', link: '/pt/detectors/long_params' },
                 { text: 'Arquivo Grande', link: '/pt/detectors/large_file' },
@@ -714,7 +718,8 @@ export default defineConfig({
             {
               text: 'Complejidad y Tamaño',
               items: [
-                { text: 'Alta Complejidad', link: '/es/detectors/complexity' },
+                { text: 'Complejidad Ciclomática', link: '/es/detectors/cyclomatic_complexity' },
+                { text: 'Complejidad Cognitiva', link: '/es/detectors/cognitive_complexity' },
                 { text: 'Anidamiento Profundo', link: '/es/detectors/deep_nesting' },
                 { text: 'Demasiados Parámetros', link: '/es/detectors/long_params' },
                 { text: 'Archivo Grande', link: '/es/detectors/large_file' },
@@ -869,7 +874,8 @@ export default defineConfig({
             {
               text: '複雑度とサイズ',
               items: [
-                { text: '高い複雑度', link: '/ja/detectors/complexity' },
+                { text: '循環的複雑度', link: '/ja/detectors/cyclomatic_complexity' },
+                { text: '認知的複雑度', link: '/ja/detectors/cognitive_complexity' },
                 { text: '深いネスト', link: '/ja/detectors/deep_nesting' },
                 { text: '多すぎる引数', link: '/ja/detectors/long_params' },
                 { text: '巨大なファイル', link: '/ja/detectors/large_file' },

@@ -32,8 +32,12 @@ pub fn generate(report: &AnalysisReport, severity_config: &SeverityConfig) -> St
     output.push_str(&format!("| Dead code files | {} |\n", report.dead_code()));
     output.push_str(&format!("| Dead symbols | {} |\n", report.dead_symbols()));
     output.push_str(&format!(
-        "| High complexity functions | {} |\n",
-        report.high_complexity_functions()
+        "| High cyclomatic complexity functions | {} |\n",
+        report.high_cyclomatic_complexity_functions()
+    ));
+    output.push_str(&format!(
+        "| High cognitive complexity functions | {} |\n",
+        report.high_cognitive_complexity_functions()
     ));
     output.push_str(&format!("| Large files | {} |\n", report.large_files()));
     output.push_str(&format!(

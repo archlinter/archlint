@@ -70,12 +70,12 @@ Cuando estés listo para lanzar, activa manualmente el flujo de trabajo de Relea
 
 El flujo de trabajo realizará lo siguiente:
 
-1. **Calcular Versión**: `semantic-release` analiza los commits desde el último lanzamiento.
-2. **Actualizar Archivos**: Actualiza automáticamente `Cargo.toml`, `package.json` y `CHANGELOG.md`.
-3. **Commit y Tag**: Crea un nuevo commit y una etiqueta (tag) de Git para el lanzamiento.
+1. **Calcular versión**: `semantic-release` analiza los commits desde el último lanzamiento.
+2. **Actualizar archivos**: Actualiza automáticamente `Cargo.toml`, `package.json` y `CHANGELOG.md`.
+3. **Commit y tag**: Crea un nuevo commit y una etiqueta (tag) de Git para el lanzamiento.
 4. **Activar CI**: El envío del tag activa el flujo de trabajo de CI, que construye todos los binarios.
 5. **Publicar en npm**: La CI publica todos los paquetes en el registro de npm (solo en etiquetas).
-6. **Adjuntar Binarios**: La CI sube los binarios independientes a la Release de GitHub.
+6. **Adjuntar binarios**: La CI sube los binarios independientes a la Release de GitHub.
 
 ## Números de Versión
 
