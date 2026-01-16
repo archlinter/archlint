@@ -1,12 +1,7 @@
 name: Canary Release
 
 on:
-  workflow_run:
-    workflows: ['CI']
-    types:
-      - completed
-    branches:
-      - main
+  workflow_dispatch:
 
 jobs:
   canary:
@@ -14,7 +9,6 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
-    if: ${{ github.event.workflow_run.conclusion == 'success' }}
     steps:
       - uses: actions/checkout@v4
         with:

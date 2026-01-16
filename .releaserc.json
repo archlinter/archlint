@@ -82,7 +82,8 @@
     [
       "@semantic-release/github",
       {
-        "assets": []
+        "assets": [],
+        "draftRelease": true
       }
     ]
   ]

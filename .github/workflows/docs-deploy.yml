@@ -1,12 +1,8 @@
 name: Deploy Documentation
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - 'docs/**'
-      - 'package.json'
-      - '.github/workflows/docs-deploy.yml'
+  release:
+    types: [published]
   workflow_dispatch:
 
 concurrency:
