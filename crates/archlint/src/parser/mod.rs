@@ -5,7 +5,9 @@ pub mod tokenizer;
 pub mod types;
 pub mod visitor;
 
-pub use complexity::{calculate_arrow_complexity, calculate_complexity, ComplexityVisitor};
+pub use complexity::{
+    calculate_arrow_complexity, calculate_complexity, ComplexityMetrics, ComplexityVisitor,
+};
 pub use import_parser::ImportParser;
 pub use line_index::LineIndex;
 pub use tokenizer::{tokenize_and_normalize, NormalizedToken};

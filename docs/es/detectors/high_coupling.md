@@ -13,7 +13,7 @@ El alto acoplamiento ocurre cuando un módulo depende de demasiados otros módul
 ## Cómo solucionar
 
 1. **Extraer responsabilidades**: Si un módulo tiene demasiadas dependencias, es probable que esté haciendo demasiado.
-2. **Usar abstracciones**: Dependa de una interfaz o una fachada en lugar de muchas implementaciones concretas.
+2. **Usar abstracciones**: Depende de una interfaz o una fachada en lugar de muchas implementaciones concretas.
 
 ## Configuración
 

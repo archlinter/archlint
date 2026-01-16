@@ -2,7 +2,7 @@ use crate::parser::types::{
     ClassSymbol, FunctionComplexity, MethodAccessibility, MethodSymbol, SymbolName, SymbolSet,
 };
 use crate::parser::visitor::{interned, UnifiedVisitor};
-use crate::parser::{calculate_arrow_complexity, calculate_complexity};
+use crate::parser::{calculate_arrow_complexity, calculate_complexity, ComplexityMetrics};
 use compact_str::CompactString;
 use oxc_ast::ast::{Class, ClassElement, Expression, Function, MethodDefinitionKind, TSType};
 use oxc_span::GetSpan;
@@ -101,7 +101,7 @@ impl<'a> UnifiedVisitor {
         let metrics = if self.config.collect_complexity {
             calculate_complexity(it)
         } else {
-            crate::parser::complexity::ComplexityMetrics {
+            ComplexityMetrics {
                 cyclomatic: 0,
                 cognitive: 0,
                 max_depth: 0,
@@ -136,7 +136,7 @@ impl<'a> UnifiedVisitor {
         let metrics = if self.config.collect_complexity {
             calculate_arrow_complexity(it)
         } else {
-            crate::parser::complexity::ComplexityMetrics {
+            ComplexityMetrics {
                 cyclomatic: 0,
                 cognitive: 0,
                 max_depth: 0,
