@@ -72,6 +72,9 @@ impl<'a> Visit<'a> for ComplexityVisitor {
         self.cyclomatic += 1;
         self.cognitive += 1 + self.current_nesting;
 
+        // Ensure logical operators in the condition are counted
+        self.visit_expression(&it.test);
+
         self.enter_nesting(|v| {
             v.visit_statement(&it.consequent);
         });

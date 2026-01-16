@@ -21,7 +21,7 @@ La Complejidad Cognitiva se calcula basándose en:
 ## Cómo solucionarlo
 
 1.  **Aplanar la lógica**: Utiliza cláusulas de guarda (retornos tempranos) para reducir el anidamiento.
-2.  **Extraer método**: Mueve bloques anidados o condiciones complexas para funciones pequeñas y enfocadas.
+2.  **Extraer método**: Mueve bloques anidados o condiciones complejas para funciones pequeñas y enfocadas.
 3.  **Simplificar expresiones**: Divide las condiciones booleanas complejas en variables o funciones intermedias.
 4.  **Reemplazar ifs anidados**: Considera usar una tabla de búsqueda o el patrón Strategy.
 

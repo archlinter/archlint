@@ -729,6 +729,7 @@ pub enum SmellMetric {
     FanOut(usize),
     Churn(usize),
     CycleLength(usize),
+    #[serde(alias = "complexity")]
     CyclomaticComplexity(usize),
     CognitiveComplexity(usize),
     Lines(usize),
