@@ -142,7 +142,7 @@ archlint puede sincronizarse automáticamente con su `tsconfig.json`. Use el cam
 
 Cuando está habilitado, la herramienta:
 
-1. **Carga Alias**: Extrae `compilerOptions.paths` y `compilerOptions.baseUrl` para configurar automáticamente `aliases`.
+1. **Carga alias**: Extrae `compilerOptions.paths` y `compilerOptions.baseUrl` para configurar automáticamente `aliases`.
 2. **Auto-ignorar**: Agrega `compilerOptions.outDir` a la lista global de `ignore`.
 3. **Exclusiones**: Incorpora patrones del campo `exclude` en la lista de `ignore`.
 

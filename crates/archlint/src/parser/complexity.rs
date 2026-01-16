@@ -10,6 +10,13 @@ pub struct ComplexityVisitor {
     current_logical_op: Option<LogicalOperator>,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct ComplexityMetrics {
+    pub cyclomatic: usize,
+    pub cognitive: usize,
+    pub max_depth: usize,
+}
+
 impl Default for ComplexityVisitor {
     fn default() -> Self {
         Self::new()
@@ -41,18 +48,26 @@ impl ComplexityVisitor {
     }
 }
 
-pub fn calculate_complexity(func: &Function<'_>) -> (usize, usize, usize) {
+pub fn calculate_complexity(func: &Function<'_>) -> ComplexityMetrics {
     let mut visitor = ComplexityVisitor::new();
     if let Some(body) = &func.body {
         visitor.visit_function_body(body);
     }
-    (visitor.cyclomatic, visitor.cognitive, visitor.max_depth)
+    ComplexityMetrics {
+        cyclomatic: visitor.cyclomatic,
+        cognitive: visitor.cognitive,
+        max_depth: visitor.max_depth,
+    }
 }
 
-pub fn calculate_arrow_complexity(func: &ArrowFunctionExpression<'_>) -> (usize, usize, usize) {
+pub fn calculate_arrow_complexity(func: &ArrowFunctionExpression<'_>) -> ComplexityMetrics {
     let mut visitor = ComplexityVisitor::new();
     visitor.visit_function_body(&func.body);
-    (visitor.cyclomatic, visitor.cognitive, visitor.max_depth)
+    ComplexityMetrics {
+        cyclomatic: visitor.cyclomatic,
+        cognitive: visitor.cognitive,
+        max_depth: visitor.max_depth,
+    }
 }
 
 impl<'a> Visit<'a> for ComplexityVisitor {
@@ -214,7 +229,7 @@ mod tests {
     use oxc_parser::Parser;
     use oxc_span::SourceType;
 
-    fn parse_function(code: &str) -> (usize, usize, usize) {
+    fn parse_function(code: &str) -> ComplexityMetrics {
         let allocator = Allocator::default();
         let source_type = SourceType::default().with_typescript(true);
         let ret = Parser::new(&allocator, code, source_type).parse();
@@ -225,7 +240,11 @@ mod tests {
                 return calculate_complexity(func);
             }
         }
-        (0, 0, 0)
+        ComplexityMetrics {
+            cyclomatic: 0,
+            cognitive: 0,
+            max_depth: 0,
+        }
     }
 
     #[test]
@@ -239,10 +258,10 @@ mod tests {
                 }
             }
         "#;
-        let (cc, cog, depth) = parse_function(code);
-        assert_eq!(cc, 3);
-        assert_eq!(cog, 3); // if (+1), while (+2)
-        assert_eq!(depth, 2);
+        let metrics = parse_function(code);
+        assert_eq!(metrics.cyclomatic, 3);
+        assert_eq!(metrics.cognitive, 3); // if (+1), while (+2)
+        assert_eq!(metrics.max_depth, 2);
     }
 
     #[test]
@@ -258,9 +277,9 @@ mod tests {
                 }
             }
         "#;
-        let (cc, cog, _) = parse_function(code);
-        assert_eq!(cc, 4);
-        assert_eq!(cog, 6); // 1 + 2 + 3
+        let metrics = parse_function(code);
+        assert_eq!(metrics.cyclomatic, 4);
+        assert_eq!(metrics.cognitive, 6); // 1 + 2 + 3
     }
 
     #[test]
@@ -276,8 +295,74 @@ mod tests {
                 }
             }
         "#;
-        let (cc, cog, _) = parse_function(code);
-        assert_eq!(cc, 3);
-        assert_eq!(cog, 3); // if (+1), else if (+1), else (+1)
+        let metrics = parse_function(code);
+        assert_eq!(metrics.cyclomatic, 3);
+        assert_eq!(metrics.cognitive, 3); // if (+1), else if (+1), else (+1)
+    }
+
+    #[test]
+    fn test_logical_operator_sequences() {
+        let code = r#"
+            function test(a, b, c) {
+                if (a && b && c) { // cc: +3 (if + 2 logical), cog: +1 (if) +1 (sequence)
+                    return 1;
+                }
+            }
+        "#;
+        let metrics = parse_function(code);
+        assert_eq!(metrics.cyclomatic, 4); // 1 (function) + 1 (if) + 2 (&&) = 4
+        assert_eq!(metrics.cognitive, 2); // 1 (if) + 1 (&& sequence) = 2
+
+        let code_mixed = r#"
+            function test(a, b, c) {
+                if (a && b || c) {
+                    return 1;
+                }
+            }
+        "#;
+        let metrics_mixed = parse_function(code_mixed);
+        assert_eq!(metrics_mixed.cyclomatic, 4);
+        assert_eq!(metrics_mixed.cognitive, 3); // 1 (if) + 1 (&&) + 1 (|| is new sequence) = 3
+    }
+
+    #[test]
+    fn test_nested_ternaries() {
+        let code = r#"
+            function test(a, b, c) {
+                return a ? (b ? 1 : 2) : 3;
+            }
+        "#;
+        let metrics = parse_function(code);
+        assert_eq!(metrics.cyclomatic, 3); // 1 (function) + 2 (ternaries)
+        assert_eq!(metrics.cognitive, 3); // 1 (first ternary) + 2 (nested ternary: 1 + 1 nesting)
+    }
+
+    #[test]
+    fn test_labeled_break_continue() {
+        let code = r#"
+            function test(a, b) {
+                outer: while (a) {
+                    while (b) {
+                        break outer;
+                    }
+                }
+            }
+        "#;
+        let metrics = parse_function(code);
+        assert_eq!(metrics.cyclomatic, 3);
+        assert_eq!(metrics.cognitive, 4); // while (1), while (1 + 1 nesting), break outer (+1)
+    }
+
+    #[test]
+    fn test_logical_assignment_operators() {
+        let code = r#"
+            function test(a, b) {
+                a &&= b;
+                a ||= b;
+            }
+        "#;
+        let metrics = parse_function(code);
+        assert_eq!(metrics.cyclomatic, 3); // 1 (function) + 2 (logical assignments)
+        assert_eq!(metrics.cognitive, 2); // 1 (&&=) + 1 (||=)
     }
 }

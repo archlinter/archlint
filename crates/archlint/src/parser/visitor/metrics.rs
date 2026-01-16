@@ -98,12 +98,15 @@ impl<'a> UnifiedVisitor {
     pub(crate) fn handle_function(&mut self, it: &Function<'a>, flags: ScopeFlags) {
         let name = self.get_scoped_name(it.id.as_ref().map(|id| Self::atom_to_compact(&id.name)));
 
-        let (cyclomatic_complexity, cognitive_complexity, max_depth) =
-            if self.config.collect_complexity {
-                calculate_complexity(it)
-            } else {
-                (0, 0, 0)
-            };
+        let metrics = if self.config.collect_complexity {
+            calculate_complexity(it)
+        } else {
+            crate::parser::complexity::ComplexityMetrics {
+                cyclomatic: 0,
+                cognitive: 0,
+                max_depth: 0,
+            }
+        };
 
         let span = it
             .id
@@ -115,9 +118,9 @@ impl<'a> UnifiedVisitor {
         self.collect_function_metrics(
             name,
             span,
-            cyclomatic_complexity,
-            cognitive_complexity,
-            max_depth,
+            metrics.cyclomatic,
+            metrics.cognitive,
+            metrics.max_depth,
             &it.params,
         );
 
@@ -130,21 +133,24 @@ impl<'a> UnifiedVisitor {
     ) {
         let name = self.get_scoped_name(None);
 
-        let (cyclomatic_complexity, cognitive_complexity, max_depth) =
-            if self.config.collect_complexity {
-                calculate_arrow_complexity(it)
-            } else {
-                (0, 0, 0)
-            };
+        let metrics = if self.config.collect_complexity {
+            calculate_arrow_complexity(it)
+        } else {
+            crate::parser::complexity::ComplexityMetrics {
+                cyclomatic: 0,
+                cognitive: 0,
+                max_depth: 0,
+            }
+        };
 
         let span = self.current_span_override.take().unwrap_or(it.span);
 
         self.collect_function_metrics(
             name,
             span,
-            cyclomatic_complexity,
-            cognitive_complexity,
-            max_depth,
+            metrics.cyclomatic,
+            metrics.cognitive,
+            metrics.max_depth,
             &it.params,
         );
 

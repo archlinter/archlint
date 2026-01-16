@@ -6,17 +6,17 @@ Este detector identifica funciones con una alta complejidad cognitiva. La comple
 
 ## Por qué esto es un problema
 
-- **Alta Carga Mental**: La lógica profundamente anidada y las expresiones booleanas complejas dificultan que los desarrolladores mantengan el estado en su cabeza.
-- **Riesgo de Mantenimiento**: El código que es difícil de entender es propenso a errores durante la modificación.
-- **Errores Ocultos**: Los errores de lógica a menudo se esconden en estructuras profundamente anidadas.
+- **Alta carga mental**: La lógica profundamente anidada y las expresiones booleanas complejas dificultan que los desarrolladores mantengan el estado en su cabeza.
+- **Riesgo de mantenimiento**: El código que es difícil de entender es propenso a errores durante la modificación.
+- **Errores ocultos**: Los errores de lógica a menudo se esconden en estructuras profundamente anidadas.
 
 ## Cómo se calcula
 
-La Complejidad Cognitiva se calcula basándose en:
+La complejidad cognitiva se calcula basándose en:
 
-1.  **Incrementos Estructurales**: `if`, `else`, `switch`, `for`, `while`, `do-while`, `catch`, operadores ternarios y secuencias lógicas.
-2.  **Penalización por Anidamiento**: Los incrementos para las estructuras de control aumentan según su nivel de anidamiento.
-3.  **Casos Especiales**: `switch` cuenta solo una vez para todo el bloque, independientemente del número de casos.
+1.  **Incrementos estructurales**: `if`, `else`, `switch`, `for`, `while`, `do-while`, `catch`, operadores ternarios y secuencias lógicas.
+2.  **Penalización por anidamiento**: Los incrementos para las estructuras de control aumentan según su nivel de anidamiento.
+3.  **Casos especiales**: `switch` cuenta solo una vez para todo el bloque, independientemente del número de casos.
 
 ## Cómo solucionarlo
 

@@ -34,4 +34,4 @@ rules:
 
 1. **Romper el núcleo**: Identifique los módulos "núcleo" o "hub" que participan en múltiples ciclos y desacóplelos primero.
 2. **Capas**: Imponga reglas estrictas de capas para evitar dependencias horizontales o hacia arriba.
-3. **Refactorizar Monolitos**: A menudo, los clústeres son una señal de que un solo módulo grande se dividió incorrectamente. Considere fusionar o volver a dividir siguiendo diferentes límites.
+3. **Refactorizar monolitos**: A menudo, los clústeres son una señal de que un solo módulo grande se dividió incorrectamente. Considere fusionar o volver a dividir siguiendo diferentes límites.

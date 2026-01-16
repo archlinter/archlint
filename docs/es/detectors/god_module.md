@@ -22,8 +22,8 @@ Un "Módulo Dios" (God Module) es un archivo que ha crecido demasiado y ha asumi
 
 ## Cómo solucionar
 
-1. **Identificar Responsabilidades**: Enumere todas las diferentes tareas que realiza el módulo.
-2. **Extraer Módulos**: Divida el archivo en módulos más pequeños y enfocados.
+1. **Identificar responsabilidades**: Enumere todas las diferentes tareas que realiza el módulo.
+2. **Extraer módulos**: Divida el archivo en módulos más pequeños y enfocados.
 3. **Patrón de Fachada**: Si el módulo actúa como coordinador, mantenga solo la lógica de coordinación y delegue el trabajo a los submódulos.
 
 ## Configuración

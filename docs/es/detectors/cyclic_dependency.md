@@ -65,7 +65,7 @@ rules:
 
 1. **Extraer lógica compartida**: Mueve las partes comunes a un nuevo módulo del que dependan ambos módulos existentes.
 2. **Inyección de Dependencias (Dependency Injection)**: Pasa las dependencias como argumentos en lugar de importarlas.
-3. **Usar Eventos**: Utiliza un bus de eventos o callbacks para desacoplar los módulos.
+3. **Usar eventos**: Utiliza un bus de eventos o callbacks para desacoplar los módulos.
 
 ## Regla ESLint
 
