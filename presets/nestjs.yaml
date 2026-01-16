@@ -11,6 +11,12 @@ rules:
   layer_violation: high
   module_cohesion: off
   dead_symbols:
+    ignore_methods:
+      - onModuleInit
+      - onModuleDestroy
+      - onApplicationBootstrap
+      - beforeApplicationShutdown
+      - onApplicationShutdown
     contract_methods:
       OnModuleInit: ['onModuleInit']
       OnApplicationBootstrap: ['onApplicationBootstrap']
