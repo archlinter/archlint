@@ -1,6 +1,6 @@
 {
   "name": "@archlinter/cli-linux-arm64",
-  "version": "0.15.0",
+  "version": "0.15.1",
   "description": "archlint CLI binary for Linux ARM64",
   "license": "MIT",
   "repository": {

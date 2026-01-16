@@ -1,3 +1,9 @@
+## [0.15.1](https://github.com/archlinter/archlint/compare/v0.15.0...v0.15.1) (2026-01-16)
+
+### Bug Fixes
+
+- **presets:** ignore nestjs lifecycle methods in dead_symbols (fixes [#30](https://github.com/archlinter/archlint/issues/30)) ([#32](https://github.com/archlinter/archlint/issues/32)) ([9a1c20c](https://github.com/archlinter/archlint/commit/9a1c20c996cde452ffbf435de5e0e7c95945e431))
+
 ## [0.15.0](https://github.com/archlinter/archlint/compare/v0.14.1...v0.15.0) (2026-01-15)
 
 ### Features

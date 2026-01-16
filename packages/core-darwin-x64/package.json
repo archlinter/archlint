@@ -1,6 +1,6 @@
 {
   "name": "@archlinter/core-darwin-x64",
-  "version": "0.15.0",
+  "version": "0.15.1",
   "description": "archlint native binding for macOS x64",
   "license": "MIT",
   "repository": {
