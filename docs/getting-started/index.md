@@ -23,7 +23,7 @@ No servers to set up, no databases to maintain. It's a CLI tool that runs in sec
 
 ## Key Features
 
-- **28+ Detectors**: Covering dependencies, module design, complexity, and design patterns.
+- **28+ Detectors**: Covering dependencies, module design, cyclomatic/cognitive complexity, and design patterns.
 - **Fast**: Built with Rust and the `oxc` parser.
 - **Framework-Aware**: Built-in intelligence for NestJS, Next.js, Express, React, Vue, Angular, and more.
 - **Visual**: Generates reports with Mermaid diagrams for circular dependencies.

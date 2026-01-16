@@ -91,14 +91,19 @@ fn test_snapshot_determinism() {
     }
 }
 
-fn make_complexity_smell(id: &str, file: &str, func: &str, line: usize) -> SnapshotSmell {
+fn make_cyclomatic_complexity_smell(
+    id: &str,
+    file: &str,
+    func: &str,
+    line: usize,
+) -> SnapshotSmell {
     SnapshotSmell {
         id: id.to_string(),
-        smell_type: "HighComplexity".to_string(),
+        smell_type: "HighCyclomaticComplexity".to_string(),
         severity: "Medium".to_string(),
         files: vec![file.to_string()],
         metrics: HashMap::new(),
-        details: Some(SmellType::HighComplexity {
+        details: Some(SmellType::HighCyclomaticComplexity {
             name: func.to_string(),
             line,
             complexity: 15,
@@ -108,7 +113,29 @@ fn make_complexity_smell(id: &str, file: &str, func: &str, line: usize) -> Snaps
             line,
             column: None,
             range: None,
-            description: Some(format!("Function '{}' (complexity: 15)", func)),
+            description: Some(format!("Function '{}' (cyclomatic complexity: 15)", func)),
+        }],
+    }
+}
+
+fn make_cognitive_complexity_smell(id: &str, file: &str, func: &str, line: usize) -> SnapshotSmell {
+    SnapshotSmell {
+        id: id.to_string(),
+        smell_type: "HighCognitiveComplexity".to_string(),
+        severity: "Medium".to_string(),
+        files: vec![file.to_string()],
+        metrics: HashMap::new(),
+        details: Some(SmellType::HighCognitiveComplexity {
+            name: func.to_string(),
+            line,
+            complexity: 15,
+        }),
+        locations: vec![Location {
+            file: file.to_string(),
+            line,
+            column: None,
+            range: None,
+            description: Some(format!("Function '{}' (cognitive complexity: 15)", func)),
         }],
     }
 }
@@ -128,7 +155,7 @@ fn make_snapshot(smells: Vec<SnapshotSmell>) -> Snapshot {
 #[test]
 fn test_shifted_smell_not_regression() {
     // Baseline: complexity smell at line 10
-    let baseline = make_snapshot(vec![make_complexity_smell(
+    let baseline = make_snapshot(vec![make_cyclomatic_complexity_smell(
         "cmplx:src/service.ts:processData:10",
         "src/service.ts",
         "processData",
@@ -136,7 +163,7 @@ fn test_shifted_smell_not_regression() {
     )]);
 
     // Current: same smell shifted to line 15 (someone added 5 lines above)
-    let current = make_snapshot(vec![make_complexity_smell(
+    let current = make_snapshot(vec![make_cyclomatic_complexity_smell(
         "cmplx:src/service.ts:processData:15",
         "src/service.ts",
         "processData",
@@ -159,7 +186,7 @@ fn test_shifted_smell_not_regression() {
 #[test]
 fn test_renamed_function_is_not_regression() {
     // Baseline: complexity in funcA
-    let baseline = make_snapshot(vec![make_complexity_smell(
+    let baseline = make_snapshot(vec![make_cyclomatic_complexity_smell(
         "cmplx:src/service.ts:funcA:10",
         "src/service.ts",
         "funcA",
@@ -167,7 +194,7 @@ fn test_renamed_function_is_not_regression() {
     )]);
 
     // Current: complexity in funcB (same location, different name - rename)
-    let current = make_snapshot(vec![make_complexity_smell(
+    let current = make_snapshot(vec![make_cyclomatic_complexity_smell(
         "cmplx:src/service.ts:funcB:12",
         "src/service.ts",
         "funcB",
@@ -188,7 +215,7 @@ fn test_renamed_function_is_not_regression() {
 #[test]
 fn test_too_far_shift_is_regression() {
     // Baseline: complexity at line 10
-    let baseline = make_snapshot(vec![make_complexity_smell(
+    let baseline = make_snapshot(vec![make_cyclomatic_complexity_smell(
         "cmplx:src/service.ts:processData:10",
         "src/service.ts",
         "processData",
@@ -196,7 +223,7 @@ fn test_too_far_shift_is_regression() {
     )]);
 
     // Current: same function but at line 200 (way too far - likely different occurrence)
-    let current = make_snapshot(vec![make_complexity_smell(
+    let current = make_snapshot(vec![make_cyclomatic_complexity_smell(
         "cmplx:src/service.ts:processData:200",
         "src/service.ts",
         "processData",
@@ -215,4 +242,86 @@ fn test_too_far_shift_is_regression() {
     );
     assert_eq!(result.summary.new_smells, 1);
     assert_eq!(result.summary.fixed_smells, 1);
+}
+
+#[test]
+fn test_cognitive_complexity_shifted() {
+    let baseline = make_snapshot(vec![make_cognitive_complexity_smell(
+        "ccog:src/service.ts:process:10",
+        "src/service.ts",
+        "process",
+        10,
+    )]);
+
+    let current = make_snapshot(vec![make_cognitive_complexity_smell(
+        "ccog:src/service.ts:process:15",
+        "src/service.ts",
+        "process",
+        15,
+    )]);
+
+    let result = DiffEngine::default().diff(&baseline, &current);
+    assert!(!result.has_regressions, "Shifted cog smell should match");
+}
+
+#[test]
+fn test_cognitive_complexity_renamed() {
+    let baseline = make_snapshot(vec![make_cognitive_complexity_smell(
+        "ccog:src/service.ts:funcA:10",
+        "src/service.ts",
+        "funcA",
+        10,
+    )]);
+
+    let current = make_snapshot(vec![make_cognitive_complexity_smell(
+        "ccog:src/service.ts:funcB:10",
+        "src/service.ts",
+        "funcB",
+        10,
+    )]);
+
+    let result = DiffEngine::default().diff(&baseline, &current);
+    assert!(!result.has_regressions, "Renamed cog smell should match");
+}
+
+#[test]
+fn test_cognitive_complexity_too_far() {
+    let baseline = make_snapshot(vec![make_cognitive_complexity_smell(
+        "ccog:src/service.ts:process:10",
+        "src/service.ts",
+        "process",
+        10,
+    )]);
+
+    let current = make_snapshot(vec![make_cognitive_complexity_smell(
+        "ccog:src/service.ts:process:100",
+        "src/service.ts",
+        "process",
+        100,
+    )]);
+
+    let result = DiffEngine::default()
+        .with_line_tolerance(10)
+        .diff(&baseline, &current);
+    assert!(result.has_regressions, "Far cog shift should NOT match");
+}
+
+#[test]
+fn test_cognitive_complexity_regression() {
+    let baseline = make_snapshot(vec![make_cognitive_complexity_smell(
+        "cog:src/service.ts:process:10",
+        "src/service.ts",
+        "process",
+        10,
+    )]);
+
+    let current = make_snapshot(vec![make_cognitive_complexity_smell(
+        "cog:src/service.ts:process:10",
+        "src/service.ts",
+        "process",
+        10,
+    )]);
+
+    let result = DiffEngine::default().diff(&baseline, &current);
+    assert!(!result.has_regressions);
 }

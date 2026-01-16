@@ -10,7 +10,8 @@ import { noSdpViolations } from './no-sdp-violations';
 import { noHubModules } from './no-hub-modules';
 import { noDeepNesting } from './no-deep-nesting';
 import { noLongParams } from './no-long-params';
-import { noHighComplexity } from './no-high-complexity';
+import { noHighCyclomaticComplexity } from './no-high-cyclomatic-complexity';
+import { noHighCognitiveComplexity } from './no-high-cognitive-complexity';
 import { noCodeClone } from './no-code-clone';
 import { noRegression } from './no-regression';
 
@@ -26,7 +27,8 @@ export const rules: Record<string, Rule.RuleModule> = {
   'no-hub-modules': noHubModules,
   'no-deep-nesting': noDeepNesting,
   'no-long-params': noLongParams,
-  'no-high-complexity': noHighComplexity,
+  'no-high-cyclomatic-complexity': noHighCyclomaticComplexity,
+  'no-high-cognitive-complexity': noHighCognitiveComplexity,
   'no-code-clone': noCodeClone,
   'no-regression': noRegression,
 };

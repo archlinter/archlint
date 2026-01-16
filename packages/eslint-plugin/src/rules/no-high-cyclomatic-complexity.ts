@@ -1,13 +1,13 @@
 import { createArchlintRule } from '../utils/rule-factory';
 
-export const noHighComplexity = createArchlintRule({
-  detectorId: 'high_complexity',
+export const noHighCyclomaticComplexity = createArchlintRule({
+  detectorId: 'cyclomatic_complexity',
   messageId: 'smell',
   description: 'Disallow functions with high cyclomatic complexity',
   category: 'Code Quality',
   recommended: true,
   strategy: 'all-files',
   messages: {
-    smell: 'High complexity detected: {{reason}}',
+    smell: 'High cyclomatic complexity detected: {{reason}}',
   },
 });

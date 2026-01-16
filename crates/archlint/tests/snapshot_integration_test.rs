@@ -15,7 +15,7 @@ fn test_metrics_roundtrip_integration() {
     // Create a smell with diverse metrics
     let metrics = vec![
         SmellMetric::FanIn(10),
-        SmellMetric::Complexity(25),
+        SmellMetric::CyclomaticComplexity(25),
         SmellMetric::InstabilityDiff(0.75),
         SmellMetric::FilesCount(5),
     ];
@@ -60,7 +60,7 @@ fn test_metrics_roundtrip_integration() {
 
     // 3. Verify all metrics are preserved
     assert_eq!(restored_smell.fan_in(), Some(10));
-    assert_eq!(restored_smell.complexity(), Some(25));
+    assert_eq!(restored_smell.cyclomatic_complexity(), Some(25));
     // InstabilityDiff doesn't have an accessor yet, but we can check the metrics vector
     let has_instability = restored_smell
         .metrics

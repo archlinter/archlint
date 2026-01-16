@@ -127,8 +127,10 @@ pub struct AnalysisReport {
     dead_code: usize,
     /// Count of unused exported symbols.
     dead_symbols: usize,
-    /// Count of high complexity functions.
-    high_complexity_functions: usize,
+    /// Count of high cyclomatic complexity functions.
+    high_cyclomatic_complexity_functions: usize,
+    /// Count of high cognitive complexity functions.
+    high_cognitive_complexity_functions: usize,
     /// Count of large files.
     large_files: usize,
     /// Count of unstable interfaces.
@@ -186,8 +188,12 @@ impl AnalysisReport {
         self.dead_symbols
     }
 
-    pub fn high_complexity_functions(&self) -> usize {
-        self.high_complexity_functions
+    pub fn high_cyclomatic_complexity_functions(&self) -> usize {
+        self.high_cyclomatic_complexity_functions
+    }
+
+    pub fn high_cognitive_complexity_functions(&self) -> usize {
+        self.high_cognitive_complexity_functions
     }
 
     pub fn large_files(&self) -> usize {
@@ -264,7 +270,8 @@ impl AnalysisReport {
         self.god_modules = 0;
         self.dead_code = 0;
         self.dead_symbols = 0;
-        self.high_complexity_functions = 0;
+        self.high_cyclomatic_complexity_functions = 0;
+        self.high_cognitive_complexity_functions = 0;
         self.large_files = 0;
         self.unstable_interfaces = 0;
         self.feature_envy = 0;
@@ -280,7 +287,12 @@ impl AnalysisReport {
                 SmellType::GodModule => self.god_modules += 1,
                 SmellType::DeadCode => self.dead_code += 1,
                 SmellType::DeadSymbol { .. } => self.dead_symbols += 1,
-                SmellType::HighComplexity { .. } => self.high_complexity_functions += 1,
+                SmellType::HighCyclomaticComplexity { .. } => {
+                    self.high_cyclomatic_complexity_functions += 1
+                }
+                SmellType::HighCognitiveComplexity { .. } => {
+                    self.high_cognitive_complexity_functions += 1
+                }
                 SmellType::LargeFile => self.large_files += 1,
                 SmellType::UnstableInterface => self.unstable_interfaces += 1,
                 SmellType::FeatureEnvy { .. } => self.feature_envy += 1,
@@ -518,10 +530,15 @@ impl AnalysisReport {
             SmellType::DeadSymbol { name, .. } => {
                 format!("Dead Symbol\n({})", name)
             }
-            SmellType::HighComplexity {
+            SmellType::HighCyclomaticComplexity {
                 name, complexity, ..
             } => {
-                format!("Complexity\n({}: {})", name, complexity)
+                format!("Cyclomatic Complexity\n({}: {})", name, complexity)
+            }
+            SmellType::HighCognitiveComplexity {
+                name, complexity, ..
+            } => {
+                format!("Cognitive Complexity\n({}: {})", name, complexity)
             }
             SmellType::LargeFile => "Large File".to_string(),
             SmellType::UnstableInterface => "Unstable Interface".to_string(),
@@ -762,7 +779,8 @@ impl AnalysisReportBuilder {
             god_modules: 0,
             dead_code: 0,
             dead_symbols: 0,
-            high_complexity_functions: 0,
+            high_cyclomatic_complexity_functions: 0,
+            high_cognitive_complexity_functions: 0,
             large_files: 0,
             unstable_interfaces: 0,
             feature_envy: 0,

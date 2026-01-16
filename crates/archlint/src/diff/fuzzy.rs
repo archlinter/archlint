@@ -10,7 +10,7 @@ use std::collections::{BTreeMap, HashSet};
 /// Smell type prefixes that support symbol-based fuzzy matching.
 /// Side-effect smells use hash-based IDs and are excluded.
 const SYMBOL_BASED_PREFIXES: &[&str] = &[
-    "cmplx", "nest", "params", "prim", "dead", "shared", "orphan", "lcom",
+    "cmplx", "ccycl", "ccog", "nest", "params", "prim", "dead", "shared", "orphan", "lcom",
 ];
 
 /// Matcher for finding corresponding smells when exact ID matching fails.
@@ -161,7 +161,8 @@ impl FuzzyMatcher {
         // First, try to get from details
         if let Some(ref details) = smell.details {
             let name = match details {
-                SmellType::HighComplexity { name, .. } => Some(name.clone()),
+                SmellType::HighCyclomaticComplexity { name, .. } => Some(name.clone()),
+                SmellType::HighCognitiveComplexity { name, .. } => Some(name.clone()),
                 SmellType::DeadSymbol { name, .. } => Some(name.clone()),
                 SmellType::LongParameterList { name, .. } => Some(name.clone()),
                 SmellType::PrimitiveObsession { name, .. } => Some(name.clone()),
@@ -237,7 +238,8 @@ impl FuzzyMatcher {
         // Then, try details
         if let Some(ref details) = smell.details {
             match details {
-                SmellType::HighComplexity { line, .. } => return Some(*line),
+                SmellType::HighCyclomaticComplexity { line, .. } => return Some(*line),
+                SmellType::HighCognitiveComplexity { line, .. } => return Some(*line),
                 SmellType::DeepNesting { line, .. } => return Some(*line),
                 _ => {}
             }
@@ -277,7 +279,7 @@ mod tests {
             severity: "Medium".to_string(),
             files: vec![file.to_string()],
             metrics: HashMap::new(),
-            details: Some(SmellType::HighComplexity {
+            details: Some(SmellType::HighCyclomaticComplexity {
                 name: "testFunc".to_string(),
                 line,
                 complexity: 0,
@@ -296,13 +298,13 @@ mod tests {
     fn test_shifted_smell_matches() {
         let baseline = make_smell(
             "cmplx:src/foo.ts:testFunc:10",
-            "HighComplexity",
+            "HighCyclomaticComplexity",
             "src/foo.ts",
             10,
         );
         let current = make_smell(
             "cmplx:src/foo.ts:testFunc:15",
-            "HighComplexity",
+            "HighCyclomaticComplexity",
             "src/foo.ts",
             15,
         );
@@ -319,11 +321,11 @@ mod tests {
     fn test_renamed_function_matches_by_proximity() {
         let mut baseline = make_smell(
             "cmplx:src/foo.ts:funcA:10",
-            "HighComplexity",
+            "HighCyclomaticComplexity",
             "src/foo.ts",
             10,
         );
-        baseline.details = Some(SmellType::HighComplexity {
+        baseline.details = Some(SmellType::HighCyclomaticComplexity {
             name: "funcA".to_string(),
             line: 10,
             complexity: 0,
@@ -331,11 +333,11 @@ mod tests {
 
         let mut current = make_smell(
             "cmplx:src/foo.ts:funcX:12",
-            "HighComplexity",
+            "HighCyclomaticComplexity",
             "src/foo.ts",
             12,
         );
-        current.details = Some(SmellType::HighComplexity {
+        current.details = Some(SmellType::HighCyclomaticComplexity {
             name: "funcX".to_string(),
             line: 12,
             complexity: 0,
@@ -357,11 +359,11 @@ mod tests {
     fn test_prefer_matching_name_over_closer_proximity() {
         let mut baseline = make_smell(
             "cmplx:src/foo.ts:target:10",
-            "HighComplexity",
+            "HighCyclomaticComplexity",
             "src/foo.ts",
             10,
         );
-        baseline.details = Some(SmellType::HighComplexity {
+        baseline.details = Some(SmellType::HighCyclomaticComplexity {
             name: "target".to_string(),
             line: 10,
             complexity: 0,
@@ -370,11 +372,11 @@ mod tests {
         // Candidate 1: matching name but further (diff 5)
         let mut current1 = make_smell(
             "cmplx:src/foo.ts:target:15",
-            "HighComplexity",
+            "HighCyclomaticComplexity",
             "src/foo.ts",
             15,
         );
-        current1.details = Some(SmellType::HighComplexity {
+        current1.details = Some(SmellType::HighCyclomaticComplexity {
             name: "target".to_string(),
             line: 15,
             complexity: 0,
@@ -383,11 +385,11 @@ mod tests {
         // Candidate 2: different name but closer (diff 2)
         let mut current2 = make_smell(
             "cmplx:src/foo.ts:other:12",
-            "HighComplexity",
+            "HighCyclomaticComplexity",
             "src/foo.ts",
             12,
         );
-        current2.details = Some(SmellType::HighComplexity {
+        current2.details = Some(SmellType::HighCyclomaticComplexity {
             name: "other".to_string(),
             line: 12,
             complexity: 0,
@@ -407,13 +409,13 @@ mod tests {
     fn test_too_far_shift_no_match() {
         let baseline = make_smell(
             "cmplx:src/foo.ts:testFunc:10",
-            "HighComplexity",
+            "HighCyclomaticComplexity",
             "src/foo.ts",
             10,
         );
         let current = make_smell(
             "cmplx:src/foo.ts:testFunc:100",
-            "HighComplexity",
+            "HighCyclomaticComplexity",
             "src/foo.ts",
             100,
         );
@@ -492,15 +494,20 @@ mod tests {
     fn test_deterministic_selection_same_distance() {
         let baseline = make_smell(
             "cmplx:src/foo.ts:test:10",
-            "HighComplexity",
+            "HighCyclomaticComplexity",
             "src/foo.ts",
             10,
         );
         // Two candidates at the same distance (5 lines away)
-        let current1 = make_smell("cmplx:src/foo.ts:test:5", "HighComplexity", "src/foo.ts", 5);
+        let current1 = make_smell(
+            "cmplx:src/foo.ts:test:5",
+            "HighCyclomaticComplexity",
+            "src/foo.ts",
+            5,
+        );
         let current2 = make_smell(
             "cmplx:src/foo.ts:test:15",
-            "HighComplexity",
+            "HighCyclomaticComplexity",
             "src/foo.ts",
             15,
         );
@@ -518,19 +525,19 @@ mod tests {
     fn test_already_matched_not_reused() {
         let baseline1 = make_smell(
             "cmplx:src/foo.ts:test:10",
-            "HighComplexity",
+            "HighCyclomaticComplexity",
             "src/foo.ts",
             10,
         );
         let baseline2 = make_smell(
             "cmplx:src/foo.ts:test:12",
-            "HighComplexity",
+            "HighCyclomaticComplexity",
             "src/foo.ts",
             12,
         );
         let current = make_smell(
             "cmplx:src/foo.ts:test:11",
-            "HighComplexity",
+            "HighCyclomaticComplexity",
             "src/foo.ts",
             11,
         );
@@ -609,5 +616,32 @@ mod tests {
             FuzzyMatcher::extract_key(&smell).is_none(),
             "HubDependency should be excluded from fuzzy matching (no files)"
         );
+    }
+
+    #[test]
+    fn test_cognitive_complexity_fuzzy_matching() {
+        let baseline = make_smell(
+            "ccog:src/foo.ts:test:10",
+            "HighCognitiveComplexity",
+            "src/foo.ts",
+            10,
+        );
+        let current = make_smell(
+            "ccog:src/foo.ts:test:12",
+            "HighCognitiveComplexity",
+            "src/foo.ts",
+            12,
+        );
+
+        let matcher = FuzzyMatcher::new(10);
+        let pairs = matcher.match_orphans(&[&baseline], &[&current]);
+
+        assert_eq!(
+            pairs.len(),
+            1,
+            "Cognitive complexity should match by proximity"
+        );
+        assert_eq!(pairs[0].baseline.id, baseline.id);
+        assert_eq!(pairs[0].current.id, current.id);
     }
 }

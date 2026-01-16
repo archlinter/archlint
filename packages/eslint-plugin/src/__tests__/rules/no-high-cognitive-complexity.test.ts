@@ -1,6 +1,6 @@
 import { vi, describe, it } from 'vitest';
 import { ruleTester } from '../setup';
-import { noHighComplexity } from '../../rules/no-high-complexity';
+import { noHighCognitiveComplexity } from '../../rules/no-high-cognitive-complexity';
 import { AnalysisState } from '../../utils/cache';
 
 vi.mock('../../utils/cache', async (importOriginal) => {
@@ -19,30 +19,30 @@ vi.mock('../../utils/project-root', () => ({
 
 const { isAnalysisReady, getSmellsForFile } = await import('../../utils/cache');
 
-describe('no-high-complexity', () => {
-  it('should report high complexity', () => {
+describe('no-high-cognitive-complexity', () => {
+  it('should report high cognitive complexity', () => {
     (isAnalysisReady as any).mockReturnValue(AnalysisState.Ready);
     (getSmellsForFile as any).mockReturnValue([
       {
         smell: {
-          smellType: 'HighComplexity { name: "complexFunction", line: 10, complexity: 25 }',
+          smellType: 'HighCognitiveComplexity { name: "complexFunction", line: 10, complexity: 25 }',
           files: ['/project/complex.ts'],
           locations: [
             {
               file: '/project/complex.ts',
               line: 10,
               column: 0,
-              description: "Function 'complexFunction' (complexity: 25)",
+              description: "Function 'complexFunction' (cognitive complexity: 25)",
             },
           ],
         },
         explanation: {
-          reason: 'Function "complexFunction" has cyclomatic complexity of 25',
+          reason: 'Function "complexFunction" has cognitive complexity of 25',
         },
       },
     ]);
 
-    ruleTester.run('no-high-complexity', noHighComplexity, {
+    ruleTester.run('no-high-cognitive-complexity', noHighCognitiveComplexity, {
       valid: [],
       invalid: [
         {
@@ -51,7 +51,7 @@ describe('no-high-complexity', () => {
           errors: [
             {
               messageId: 'smell',
-              data: { reason: "Function 'complexFunction' (complexity: 25)" },
+              data: { reason: "Function 'complexFunction' (cognitive complexity: 25)" },
               line: 10,
             },
           ],

@@ -391,7 +391,17 @@ function matchesSmellType(smellType: string, detectorId: string): boolean {
     dead_symbols: ['deadsymbol'],
     cycles: ['cyclicdependency', 'cyclicdependencycluster'],
     high_coupling: ['highcoupling'],
-    high_complexity: ['highcomplexity'],
+    high_cyclomatic_complexity: [
+      'cyclomatic_complexity',
+      'high_cyclomatic_complexity',
+      'complexity',
+      'cyclomaticcomplexity',
+    ],
+    high_cognitive_complexity: [
+      'cognitive_complexity',
+      'high_cognitive_complexity',
+      'cognitivecomplexity',
+    ],
     long_params: ['longparameterlist'],
     deep_nesting: ['deepnesting'],
     god_module: ['godmodule'],

@@ -1,6 +1,6 @@
 # Игнорирование файлов
 
-archlint предоставляет несколько способов исключения файлов или директорий из анализа.
+Archlint предоставляет несколько способов исключения файлов или директорий из анализа.
 
 ## Глобальное игнорирование
 
@@ -39,7 +39,7 @@ rules:
 overrides:
   - files: ['**/tests/**', '**/mocks/**']
     rules:
-      complexity: off
+      cyclomatic_complexity: off
       god_module: off
       large_file: medium
 ```
@@ -71,11 +71,11 @@ function processTransaction(id: string, amount: number, currency: string, date: 
 
 import { internal } from './private'; // archlint-disable-line layer_violation - Временное исключение для миграции
 
-/* archlint-disable complexity */
+/* archlint-disable cyclomatic_complexity, cognitive_complexity */
 function legacyCode() {
-  // Этот блок будет проигнорирован
+  // Этот блок будет проигнорирован для обоих типов сложности
 }
-/* archlint-enable complexity */
+/* archlint-enable cyclomatic_complexity, cognitive_complexity */
 ```
 
 Вы можете указать несколько правил через запятую или использовать `*`, чтобы игнорировать все правила.

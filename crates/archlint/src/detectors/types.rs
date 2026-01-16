@@ -113,16 +113,34 @@ pub enum SmellType {
 
     /// A function with high cyclomatic complexity.
     #[strum_discriminants(strum(
-        to_string = "complexity",
-        message = "High Complexity",
-        serialize = "high_complexity",
-        serialize = "highcomplexity",
+        to_string = "cyclomatic_complexity",
+        message = "High Cyclomatic Complexity",
+        serialize = "cyclomatic_complexity",
+        serialize = "high_cyclomatic_complexity",
+        serialize = "complexity",
         props(
             category = "FileLocal",
             description = "A function with high cyclomatic complexity"
         )
     ))]
-    HighComplexity {
+    HighCyclomaticComplexity {
+        name: String,
+        line: usize,
+        complexity: usize,
+    },
+
+    /// A function with high cognitive complexity.
+    #[strum_discriminants(strum(
+        to_string = "cognitive_complexity",
+        message = "High Cognitive Complexity",
+        serialize = "cognitive_complexity",
+        serialize = "high_cognitive_complexity",
+        props(
+            category = "FileLocal",
+            description = "A function with high cognitive complexity (how hard it is to understand)"
+        )
+    ))]
+    HighCognitiveComplexity {
         name: String,
         line: usize,
         complexity: usize,
@@ -515,6 +533,23 @@ impl From<&SnapshotSmell> for SmellType {
             "CircularTypeDependency" => SmellType::CircularTypeDependency,
             "AbstractnessViolation" => SmellType::AbstractnessViolation,
             "ShotgunSurgery" => SmellType::ShotgunSurgery,
+            "HighComplexity"
+            | "Complexity"
+            | "HighCyclomaticComplexity"
+            | "CyclomaticComplexity" => {
+                SmellType::HighCyclomaticComplexity {
+                    name: String::new(), // Will be filled by details if present
+                    line: 0,
+                    complexity: 0,
+                }
+            }
+            "HighCognitiveComplexity" | "CognitiveComplexity" => {
+                SmellType::HighCognitiveComplexity {
+                    name: String::new(),
+                    line: 0,
+                    complexity: 0,
+                }
+            }
             unknown => {
                 log::warn!("Missing details for complex smell type: {}", unknown);
                 SmellType::Unknown {
@@ -534,15 +569,15 @@ mod tests {
     #[test]
     fn test_smell_type_from_snapshot_complex() {
         let mut metrics = HashMap::new();
-        metrics.insert("complexity".to_string(), MetricValue::Int(20));
+        metrics.insert("cyclomaticComplexity".to_string(), MetricValue::Int(20));
 
         let snapshot = SnapshotSmell {
             id: "test".to_string(),
-            smell_type: "HighComplexity".to_string(),
+            smell_type: "HighCyclomaticComplexity".to_string(),
             severity: "High".to_string(),
             files: vec!["file.ts".to_string()],
             metrics,
-            details: Some(SmellType::HighComplexity {
+            details: Some(SmellType::HighCyclomaticComplexity {
                 name: "myFunc".to_string(),
                 line: 10,
                 complexity: 20,
@@ -552,7 +587,7 @@ mod tests {
 
         let smell_type = SmellType::from(&snapshot);
         match smell_type {
-            SmellType::HighComplexity {
+            SmellType::HighCyclomaticComplexity {
                 name,
                 line,
                 complexity,
@@ -561,7 +596,7 @@ mod tests {
                 assert_eq!(line, 10);
                 assert_eq!(complexity, 20);
             }
-            _ => panic!("Expected HighComplexity, got {:?}", smell_type),
+            _ => panic!("Expected HighCyclomaticComplexity, got {:?}", smell_type),
         }
     }
 
@@ -694,7 +729,8 @@ pub enum SmellMetric {
     FanOut(usize),
     Churn(usize),
     CycleLength(usize),
-    Complexity(usize),
+    CyclomaticComplexity(usize),
+    CognitiveComplexity(usize),
     Lines(usize),
     InstabilityScore(usize),
     EnvyRatio(f64),

@@ -234,3 +234,53 @@ macro_rules! render_table {
         table
     }};
 }
+
+#[macro_export]
+macro_rules! impl_complexity_detector {
+    (
+        struct: $struct_name:ident,
+        smell: $smell_type:ident,
+        id: $id:expr,
+        title: $title:expr,
+        reason: $reason:expr,
+        risks: [$($risk:expr),* $(,)?],
+        recs: [$($rec:expr),* $(,)?]
+    ) => {
+        #[detector(SmellType::$smell_type)]
+        pub struct $struct_name;
+
+        impl $struct_name {
+            pub fn new_default(_config: &$crate::config::Config) -> Self {
+                Self
+            }
+        }
+
+        impl $crate::detectors::Detector for $struct_name {
+            $crate::impl_detector_report!(
+                explain: smell => (
+                    problem: {
+                        let prefix = $id.split('_').next().unwrap_or($id);
+                        if let $crate::detectors::SmellType::$smell_type { name, complexity, .. } = &smell.smell_type {
+                            format!("Function `{}` has high {} complexity ({})", name, prefix, complexity)
+                        } else {
+                            format!("High {} complexity", prefix).into()
+                        }
+                    },
+                    reason: $reason,
+                    risks: [$($risk),*],
+                    recommendations: [$($rec),*]
+                ),
+                table: {
+                    title: $title,
+                    columns: ["Location", "Function", "Complexity", "Score"],
+                    row: $smell_type { name, complexity, line } (smell, location, pts) => [location, name, complexity, pts]
+                }
+            );
+
+            fn detect(&self, ctx: &$crate::engine::AnalysisContext) -> Vec<$crate::detectors::ArchSmell> {
+                let is_cognitive = $id == "cognitive_complexity";
+                $crate::detectors::metrics::detect_complexity_smells(ctx, $id, is_cognitive)
+            }
+        }
+    };
+}

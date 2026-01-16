@@ -101,6 +101,11 @@ pub struct JsSummary {
     pub god_modules: u32,
     pub dead_code: u32,
     pub dead_symbols: u32,
+    /// Number of functions with high cyclomatic complexity.
+    pub high_cyclomatic_complexity_functions: u32,
+    /// Number of functions with high cognitive complexity.
+    pub high_cognitive_complexity_functions: u32,
+    /// @deprecated use high_cyclomatic_complexity_functions or high_cognitive_complexity_functions
     pub high_complexity_functions: u32,
     pub unstable_interfaces: u32,
     pub feature_envy: u32,
@@ -147,6 +152,11 @@ pub struct JsExportInfo {
 #[napi(object)]
 pub struct JsFileMetrics {
     pub lines: u32,
+    /// Max cyclomatic complexity in file
+    pub cyclomatic_complexity: Option<u32>,
+    /// Max cognitive complexity in file
+    pub cognitive_complexity: Option<u32>,
+    /// @deprecated use cyclomatic_complexity or cognitive_complexity
     pub complexity: Option<u32>,
     pub fan_in: u32,
     pub fan_out: u32,
@@ -357,7 +367,12 @@ impl From<archlint::Summary> for JsSummary {
             god_modules: s.god_modules.to_js_u32(),
             dead_code: s.dead_code.to_js_u32(),
             dead_symbols: s.dead_symbols.to_js_u32(),
-            high_complexity_functions: s.high_complexity_functions.to_js_u32(),
+            high_cyclomatic_complexity_functions: s
+                .high_cyclomatic_complexity_functions
+                .to_js_u32(),
+            high_cognitive_complexity_functions: s.high_cognitive_complexity_functions.to_js_u32(),
+            high_complexity_functions: s.high_cyclomatic_complexity_functions.to_js_u32()
+                + s.high_cognitive_complexity_functions.to_js_u32(),
             unstable_interfaces: s.unstable_interfaces.to_js_u32(),
             feature_envy: s.feature_envy.to_js_u32(),
             shotgun_surgery: s.shotgun_surgery.to_js_u32(),
@@ -416,7 +431,12 @@ impl From<archlint::FileMetrics> for JsFileMetrics {
     fn from(m: archlint::FileMetrics) -> Self {
         Self {
             lines: m.lines.to_js_u32(),
-            complexity: m.complexity.to_js_u32(),
+            cyclomatic_complexity: m.cyclomatic_complexity.to_js_u32(),
+            cognitive_complexity: m.cognitive_complexity.to_js_u32(),
+            complexity: match (m.cyclomatic_complexity, m.cognitive_complexity) {
+                (None, None) => None,
+                (a, b) => Some(a.unwrap_or(0).max(b.unwrap_or(0)).to_js_u32()),
+            },
             fan_in: m.fan_in.to_js_u32(),
             fan_out: m.fan_out.to_js_u32(),
         }

@@ -45,12 +45,13 @@ archlint comes with 28+ built-in detectors categorized by the type of architectu
 
 ## Complexity & Size
 
-| Detector                                  | ID             | Description                               | Default |
-| ----------------------------------------- | -------------- | ----------------------------------------- | ------- |
-| [High Complexity](/detectors/complexity)  | `complexity`   | Functions with high cyclomatic complexity | ✅      |
-| [Deep Nesting](/detectors/deep_nesting)   | `deep_nesting` | Deeply nested code blocks                 | ✅      |
-| [Long Parameters](/detectors/long_params) | `long_params`  | Functions with too many parameters        | ✅      |
-| [Large File](/detectors/large_file)       | `large_file`   | Source files that are too large           | ✅      |
+| Detector                                                  | ID                      | Description                               | Default |
+| --------------------------------------------------------- | ----------------------- | ----------------------------------------- | ------- |
+| [Cyclomatic Complexity](/detectors/cyclomatic_complexity) | `cyclomatic_complexity` | Functions with high cyclomatic complexity | ✅      |
+| [Cognitive Complexity](/detectors/cognitive_complexity)   | `cognitive_complexity`  | Functions with high cognitive complexity  | ✅      |
+| [Deep Nesting](/detectors/deep_nesting)                   | `deep_nesting`          | Deeply nested code blocks                 | ✅      |
+| [Long Parameters](/detectors/long_params)                 | `long_params`           | Functions with too many parameters        | ✅      |
+| [Large File](/detectors/large_file)                       | `large_file`            | Source files that are too large           | ✅      |
 
 ## Change Patterns
 

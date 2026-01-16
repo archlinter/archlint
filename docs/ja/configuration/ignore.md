@@ -39,7 +39,7 @@ rules:
 overrides:
   - files: ['**/tests/**', '**/mocks/**']
     rules:
-      complexity: off
+      cyclomatic_complexity: off
       god_module: off
       large_file: medium
 ```
@@ -71,11 +71,11 @@ function processTransaction(id: string, amount: number, currency: string, date: 
 
 import { internal } from './private'; // archlint-disable-line layer_violation - 移行のための一時的な除外
 
-/* archlint-disable complexity */
+/* archlint-disable cyclomatic_complexity */
 function legacyCode() {
   // このブロックは無視されます
 }
-/* archlint-enable complexity */
+/* archlint-enable cyclomatic_complexity */
 ```
 
 カンマで区切って複数のルールを指定したり、`*` を使用してすべてのルールを無視したりできます。

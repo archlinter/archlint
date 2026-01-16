@@ -156,7 +156,7 @@ fn test_complexity_calculation() {
     "#;
     let result = parser.parse_code(code, "test.ts").unwrap();
     assert_eq!(result.functions.len(), 1);
-    assert_eq!(result.functions[0].complexity, 4); // 1 + if + for + if
+    assert_eq!(result.functions[0].cyclomatic_complexity, 4); // 1 + if + for + if
 }
 
 #[test]

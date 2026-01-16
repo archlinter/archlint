@@ -74,6 +74,14 @@ pub struct Summary {
     /// Number of dead symbols (unused exports).
     pub dead_symbols: usize,
     /// Number of functions with high cyclomatic complexity.
+    pub high_cyclomatic_complexity_functions: usize,
+    /// Number of functions with high cognitive complexity.
+    pub high_cognitive_complexity_functions: usize,
+    /// @deprecated use high_cyclomatic_complexity_functions or high_cognitive_complexity_functions
+    #[deprecated(
+        since = "0.16.0",
+        note = "Use high_cyclomatic_complexity_functions or high_cognitive_complexity_functions"
+    )]
     pub high_complexity_functions: usize,
     /// Number of unstable interfaces.
     pub unstable_interfaces: usize,
@@ -115,7 +123,11 @@ impl ScanResult {
             god_modules: report.god_modules(),
             dead_code: report.dead_code(),
             dead_symbols: report.dead_symbols(),
-            high_complexity_functions: report.high_complexity_functions(),
+            high_cyclomatic_complexity_functions: report.high_cyclomatic_complexity_functions(),
+            high_cognitive_complexity_functions: report.high_cognitive_complexity_functions(),
+            #[allow(deprecated)]
+            high_complexity_functions: report.high_cyclomatic_complexity_functions()
+                + report.high_cognitive_complexity_functions(),
             unstable_interfaces: report.unstable_interfaces(),
             feature_envy: report.feature_envy(),
             shotgun_surgery: report.shotgun_surgery(),

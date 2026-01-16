@@ -1,8 +1,8 @@
-# Ignorar Archivos
+# Ignorar archivos
 
-archlint proporciona varias formas de excluir archivos o directorios del análisis.
+Archlint proporciona varias formas de excluir archivos o directorios del análisis.
 
-## Ignorar Globalmente
+## Ignorar globalmente
 
 La sección `ignore` en la raíz de `.archlint.yaml` especifica los archivos que todos los detectores deben omitir por completo.
 
@@ -17,9 +17,9 @@ ignore:
 
 ## Soporte para .gitignore
 
-Por defecto, archlint respeta automáticamente su archivo `.gitignore`. No necesita duplicar estos patrones en `.archlint.yaml`. Si desea desactivar este comportamiento, establezca `git: { enabled: false }`.
+Por defecto, Archlint respeta automáticamente su archivo `.gitignore`. No necesita duplicar estos patrones en `.archlint.yaml`. Si desea desactivar este comportamiento, establezca `git: { enabled: false }`.
 
-## Ignorar por Regla
+## Ignorar por regla
 
 Puede excluir archivos de un detector específico usando el campo `exclude` dentro de la sección `rules`. Esto es útil si desea que un archivo sea analizado por la mayoría de los detectores pero omitido por uno específico.
 
@@ -31,7 +31,7 @@ rules:
       - '**/*.entity.ts'
 ```
 
-## Sobrescrituras de Rutas (Overrides)
+## Sobrescrituras de rutas (overrides)
 
 Para una lógica más compleja (por ejemplo, cambiar configuraciones o desactivar varias reglas para un directorio específico), utilice la sección `overrides`:
 
@@ -39,12 +39,13 @@ Para una lógica más compleja (por ejemplo, cambiar configuraciones o desactiva
 overrides:
   - files: ['**/tests/**', '**/mocks/**']
     rules:
-      complexity: off
+      cyclomatic_complexity: off
+      cognitive_complexity: off
       god_module: off
       large_file: medium
 ```
 
-## Ignorar en Línea
+## Ignorar en línea
 
 Puede ignorar problemas arquitectónicos específicos directamente en su código fuente utilizando comentarios especiales. Esto es útil para suprimir advertencias en casos excepcionales.
 
@@ -71,11 +72,11 @@ function processTransaction(id: string, amount: number, currency: string, date: 
 
 import { internal } from './private'; // archlint-disable-line layer_violation - Exclusión temporal para migración
 
-/* archlint-disable complexity */
+/* archlint-disable cyclomatic_complexity, cognitive_complexity */
 function legacyCode() {
-  // Este bloque será ignorado
+  // Este bloque será ignorado para ambos tipos de complejidad
 }
-/* archlint-enable complexity */
+/* archlint-enable cyclomatic_complexity, cognitive_complexity */
 ```
 
 Puede especificar múltiples reglas separadas por comas o usar `*` para ignorar todas las reglas.

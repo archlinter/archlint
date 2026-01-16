@@ -1,6 +1,6 @@
-# 高い複雑度 (High Complexity)
+# 循環的複雑度 (Cyclomatic Complexity)
 
-**ID:** `complexity` | **重要度:** 中 (デフォルト)
+**ID:** `cyclomatic_complexity` | **重要度:** 中 (デフォルト)
 
 このディテクターは、循環的複雑度（Cyclomatic Complexity）が高い関数を特定します。
 
@@ -20,7 +20,7 @@
 
 ```yaml
 rules:
-  complexity:
+  cyclomatic_complexity:
     severity: medium
     max_complexity: 15
 ```
@@ -34,7 +34,7 @@ rules:
 export default [
   {
     rules: {
-      '@archlinter/no-high-complexity': 'warn',
+      '@archlinter/no-high-cyclomatic-complexity': 'warn',
     },
   },
 ];
