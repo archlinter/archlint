@@ -371,8 +371,10 @@ impl From<archlint::Summary> for JsSummary {
                 .high_cyclomatic_complexity_functions
                 .to_js_u32(),
             high_cognitive_complexity_functions: s.high_cognitive_complexity_functions.to_js_u32(),
-            high_complexity_functions: s.high_cyclomatic_complexity_functions.to_js_u32()
-                + s.high_cognitive_complexity_functions.to_js_u32(),
+            high_complexity_functions: s
+                .high_cyclomatic_complexity_functions
+                .max(s.high_cognitive_complexity_functions)
+                .to_js_u32(),
             unstable_interfaces: s.unstable_interfaces.to_js_u32(),
             feature_envy: s.feature_envy.to_js_u32(),
             shotgun_surgery: s.shotgun_surgery.to_js_u32(),

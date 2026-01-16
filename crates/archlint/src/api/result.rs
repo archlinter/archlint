@@ -126,8 +126,9 @@ impl ScanResult {
             high_cyclomatic_complexity_functions: report.high_cyclomatic_complexity_functions(),
             high_cognitive_complexity_functions: report.high_cognitive_complexity_functions(),
             #[allow(deprecated)]
-            high_complexity_functions: report.high_cyclomatic_complexity_functions()
-                + report.high_cognitive_complexity_functions(),
+            high_complexity_functions: report
+                .high_cyclomatic_complexity_functions()
+                .max(report.high_cognitive_complexity_functions()),
             unstable_interfaces: report.unstable_interfaces(),
             feature_envy: report.feature_envy(),
             shotgun_surgery: report.shotgun_surgery(),
