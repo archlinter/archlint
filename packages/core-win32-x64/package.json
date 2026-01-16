@@ -1,6 +1,6 @@
 {
   "name": "@archlinter/core-win32-x64",
-  "version": "0.15.1",
+  "version": "0.16.0",
   "description": "archlint native binding for Windows x64",
   "license": "MIT",
   "repository": {

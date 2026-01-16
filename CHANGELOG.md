@@ -1,3 +1,9 @@
+## [0.16.0](https://github.com/archlinter/archlint/compare/v0.15.1...v0.16.0) (2026-01-16)
+
+### Features
+
+- **complexity:** add cognitive complexity detector and rename classic to cyclomatic ([#31](https://github.com/archlinter/archlint/issues/31)) ([bd2cb63](https://github.com/archlinter/archlint/commit/bd2cb63fed540500f68ede9c28a042ec945ccf4d))
+
 ## [0.15.1](https://github.com/archlinter/archlint/compare/v0.15.0...v0.15.1) (2026-01-16)
 
 ### Bug Fixes
