@@ -276,7 +276,8 @@ impl DeadCodeDetector {
         let relative_path = path
             .strip_prefix(&self.project_root)
             .unwrap_or(path)
-            .to_string_lossy();
+            .to_string_lossy()
+            .replace('\\', "/");
 
         for pattern in &self.compiled_exclude {
             if pattern.matches(&relative_path) {
@@ -550,5 +551,48 @@ impl DeadCodeDetector {
         }
 
         false
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::path::PathBuf;
+
+    #[test]
+    fn test_is_path_excluded_windows_normalization() {
+        let detector = DeadCodeDetector::new(
+            &Config::default(),
+            HashSet::new(),
+            Vec::new(),
+            vec!["src/ignored/*.ts".to_string()],
+            PathBuf::from("/project"),
+        );
+
+        // Simulate a Windows-style path. On Unix, this is just a path with backslashes in name.
+        // But our logic should normalize it to forward slashes.
+        let path = PathBuf::from("/project/src\\ignored\\file.ts");
+
+        assert!(
+            detector.is_path_excluded(&path),
+            "Should match normalized path"
+        );
+    }
+
+    #[test]
+    fn test_is_path_excluded_basic() {
+        let detector = DeadCodeDetector::new(
+            &Config::default(),
+            HashSet::new(),
+            Vec::new(),
+            vec!["src/ignored/*.ts".to_string()],
+            PathBuf::from("/project"),
+        );
+
+        let path = PathBuf::from("/project/src/ignored/file.ts");
+        assert!(detector.is_path_excluded(&path));
+
+        let path2 = PathBuf::from("/project/src/used/file.ts");
+        assert!(!detector.is_path_excluded(&path2));
     }
 }
