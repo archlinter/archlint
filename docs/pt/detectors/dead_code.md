@@ -31,10 +31,20 @@ import { usedHelper } from './utils';
 ## Configuração
 
 ```yaml
+rules:
+  dead_code:
+    exclude:
+      - '**/tests/**'
+      - '**/temp/**'
 entry_points:
   - 'src/index.ts'
   - 'src/api/**/*.ts'
 ```
+
+### Opções
+
+- `exclude`: Uma lista de padrões glob para ignorar ao detectar código morto. Arquivos que correspondam a esses padrões serão tratados como se não existissem para fins de análise de dependência de entrada.
+- `entry_points`: Pontos de entrada globais que nunca devem ser relatados como código morto.
 
 ## Regra ESLint
 
