@@ -31,10 +31,20 @@ import { usedHelper } from './utils';
 ## Configuration
 
 ```yaml
+rules:
+  dead_code:
+    exclude:
+      - '**/tests/**'
+      - '**/temp/**'
 entry_points:
   - 'src/index.ts'
   - 'src/api/**/*.ts'
 ```
+
+### Options
+
+- `exclude`: A list of glob patterns to ignore when detecting dead code. Files matching these patterns will be treated as if they don't exist for the purpose of incoming dependency analysis.
+- `entry_points`: Global entry points that should never be reported as dead code.
 
 ## ESLint Rule
 

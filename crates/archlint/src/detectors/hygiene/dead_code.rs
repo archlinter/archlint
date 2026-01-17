@@ -14,6 +14,7 @@ pub struct DeadCodeDetector {
     explicit_entry_points: HashSet<PathBuf>,
     dynamic_load_patterns: Vec<String>,
     exclude: Vec<String>,
+    compiled_exclude: Vec<glob::Pattern>,
     project_root: PathBuf,
 }
 
@@ -249,17 +250,26 @@ impl DeadCodeDetector {
 
         patterns.extend(config.entry_points.clone());
 
+        let mut compiled_exclude = Vec::with_capacity(exclude.len());
+        for pattern_str in &exclude {
+            match glob::Pattern::new(pattern_str) {
+                Ok(p) => compiled_exclude.push(p),
+                Err(e) => log::warn!("Invalid exclude pattern '{}': {}", pattern_str, e),
+            }
+        }
+
         Self {
             entry_patterns: patterns,
             explicit_entry_points,
             dynamic_load_patterns,
             exclude,
+            compiled_exclude,
             project_root,
         }
     }
 
     fn is_path_excluded(&self, path: &Path) -> bool {
-        if self.exclude.is_empty() {
+        if self.compiled_exclude.is_empty() {
             return false;
         }
 
@@ -268,16 +278,9 @@ impl DeadCodeDetector {
             .unwrap_or(path)
             .to_string_lossy();
 
-        for pattern_str in &self.exclude {
-            match glob::Pattern::new(pattern_str) {
-                Ok(pattern) => {
-                    if pattern.matches(&relative_path) {
-                        return true;
-                    }
-                }
-                Err(e) => {
-                    log::warn!("Invalid exclude pattern '{}': {}", pattern_str, e);
-                }
+        for pattern in &self.compiled_exclude {
+            if pattern.matches(&relative_path) {
+                return true;
             }
         }
 
@@ -291,7 +294,7 @@ impl DeadCodeDetector {
         symbol_imports: &HashMap<(PathBuf, String), HashSet<PathBuf>>,
     ) -> bool {
         let symbols = match file_symbols.get(path) {
-            Some(s) if !s.exports.is_empty() => s,
+            Some(s) => s,
             _ => return false,
         };
 
@@ -336,7 +339,7 @@ impl DeadCodeDetector {
             }
             fs.imports.iter().any(|import| {
                 (import.name == "default" || import.name == "*")
-                    && (import.source == path_str || import.source.ends_with(file_name))
+                    && Self::matches_source(&import.source, path_str, file_name)
             })
         })
     }
@@ -358,9 +361,29 @@ impl DeadCodeDetector {
                         && export
                             .source
                             .as_ref()
-                            .is_some_and(|source| source == path_str || source.ends_with(file_name))
+                            .map(|source| Self::matches_source(source, path_str, file_name))
+                            .unwrap_or(false)
                 })
             })
+    }
+
+    fn matches_source(source: &str, path_str: &str, file_name: &str) -> bool {
+        if source == path_str || source.ends_with(file_name) {
+            return true;
+        }
+
+        // Handle extension-less imports (e.g. import './foo' for foo.ts)
+        if let Some(dot_pos) = file_name.rfind('.') {
+            let base = &file_name[..dot_pos];
+            if source == base
+                || source.ends_with(&format!("/{}", base))
+                || source.ends_with(&format!("\\{}", base))
+            {
+                return true;
+            }
+        }
+
+        false
     }
 
     fn check_local_usages(
@@ -435,8 +458,7 @@ impl DeadCodeDetector {
                 return false;
             }
             fs.imports.iter().any(|import| {
-                import.source == reexporter_str.as_ref()
-                    || import.source.ends_with(reexporter_file_name)
+                Self::matches_source(&import.source, &reexporter_str, reexporter_file_name)
             })
         })
     }

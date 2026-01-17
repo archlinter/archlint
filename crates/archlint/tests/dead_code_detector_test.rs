@@ -69,9 +69,15 @@ fn test_dead_code_with_exclude() {
 
     let ctx = analyze_fixture_with_config("dead_code", config);
 
-    // Note: new_default() uses empty exclude list, but detect() internally creates
-    // a new detector instance that reads rule.exclude from ctx.config.
-    let detector = DeadCodeDetector::new_default(&ctx.config);
+    let rule = ctx.get_rule("dead_code").unwrap();
+    // Explicitly construct the detector with values from config to avoid implicit behavior in detect()
+    let detector = DeadCodeDetector::new(
+        &ctx.config,
+        HashSet::new(),
+        Vec::new(),
+        rule.exclude.clone(),
+        ctx.project_path.clone(),
+    );
     let smells = detector.detect(&ctx);
 
     // dead.ts is normally dead code, but it's excluded, so should NOT be in results
