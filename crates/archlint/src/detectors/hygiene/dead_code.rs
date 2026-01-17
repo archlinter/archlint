@@ -55,12 +55,27 @@ impl Detector for DeadCodeDetector {
             None => return Vec::new(),
         };
 
-        let detector = Self::new(
+        // Combine rule-specific exclude and global config ignore.
+        // If the detector was manually constructed with its own exclude list, prefer that.
+        let mut combined_exclude = if self.exclude.is_empty() {
+            rule.exclude.clone()
+        } else {
+            self.exclude.clone()
+        };
+        combined_exclude.extend(ctx.config.ignore.clone());
+
+        let project_root = if self.project_root.as_os_str().is_empty() {
+            ctx.project_path.clone()
+        } else {
+            self.project_root.clone()
+        };
+
+        let detector = DeadCodeDetector::new(
             &ctx.config,
             ctx.script_entry_points.clone(),
             ctx.dynamic_load_patterns.clone(),
-            rule.exclude,
-            ctx.project_path.clone(),
+            combined_exclude,
+            project_root,
         );
 
         let symbol_imports = detector.build_symbol_imports_map(ctx.file_symbols.as_ref());
