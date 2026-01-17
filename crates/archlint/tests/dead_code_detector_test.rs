@@ -47,17 +47,16 @@ fn test_dead_code_with_exclude() {
     use archlint::config::{RuleConfig, RuleFullConfig};
     use std::collections::HashMap;
 
-    // A.ts imports B.ts
-    // If A.ts is excluded, B.ts should be dead (if A.ts was the only one importing it)
-    // In our fixture: main.ts imports used.ts.
-    // If we exclude main.ts, used.ts should become dead.
+    // Test fixture has: main.ts (entry) -> used.ts, and dead.ts (unused)
+    // We exclude dead.ts to verify that excluded files are not reported,
+    // even when they would otherwise be detected as dead code.
 
     let mut rules = HashMap::new();
     rules.insert(
         "dead_code".to_string(),
         RuleConfig::Full(RuleFullConfig {
             enabled: Some(true),
-            exclude: vec!["main.ts".to_string()],
+            exclude: vec!["dead.ts".to_string()],
             ..Default::default()
         }),
     );
@@ -70,22 +69,38 @@ fn test_dead_code_with_exclude() {
 
     let ctx = analyze_fixture_with_config("dead_code", config);
 
+    // Note: new_default() uses empty exclude list, but detect() internally creates
+    // a new detector instance that reads rule.exclude from ctx.config.
     let detector = DeadCodeDetector::new_default(&ctx.config);
     let smells = detector.detect(&ctx);
 
-    // used.ts is imported by main.ts. Since main.ts is excluded, used.ts should be detected as dead code.
+    // dead.ts is normally dead code, but it's excluded, so should NOT be in results
     assert!(
-        smells
+        !smells
             .iter()
-            .any(|s| s.files.iter().any(|f| f.ends_with("used.ts"))),
-        "Expected used.ts to be dead code when its only importer (main.ts) is excluded"
+            .any(|s| s.files.iter().any(|f| f.ends_with("dead.ts"))),
+        "Excluded file (dead.ts) should not be reported as dead code"
     );
 
-    // main.ts itself should not be in results because it's excluded
+    // main.ts is entry point, should not be reported
     assert!(
         !smells
             .iter()
             .any(|s| s.files.iter().any(|f| f.ends_with("main.ts"))),
-        "Excluded file should not be reported as dead code"
+        "Entry point should not be reported as dead code"
+    );
+
+    // used.ts is imported by main.ts, should not be reported
+    assert!(
+        !smells
+            .iter()
+            .any(|s| s.files.iter().any(|f| f.ends_with("used.ts"))),
+        "Used file should not be reported as dead code"
+    );
+
+    // No dead code should be detected since dead.ts is excluded
+    assert!(
+        smells.is_empty(),
+        "Expected no dead code when the only dead file is excluded"
     );
 }

@@ -254,9 +254,14 @@ impl DeadCodeDetector {
             .to_string_lossy();
 
         for pattern_str in &self.exclude {
-            if let Ok(pattern) = glob::Pattern::new(pattern_str) {
-                if pattern.matches(&relative_path) {
-                    return true;
+            match glob::Pattern::new(pattern_str) {
+                Ok(pattern) => {
+                    if pattern.matches(&relative_path) {
+                        return true;
+                    }
+                }
+                Err(e) => {
+                    log::warn!("Invalid exclude pattern '{}': {}", pattern_str, e);
                 }
             }
         }
