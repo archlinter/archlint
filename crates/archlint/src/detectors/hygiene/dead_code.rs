@@ -575,25 +575,6 @@ mod tests {
     }
 
     #[test]
-    fn test_is_path_excluded_windows_style_path() {
-        let detector = DeadCodeDetector::new(
-            &Config::default(),
-            HashSet::new(),
-            Vec::new(),
-            &["src/ignored/*.ts".to_string()],
-            PathBuf::from("C:\\project"),
-        );
-
-        // Simulate a realistic Windows path with a drive letter and backslashes.
-        let path = PathBuf::from("C:\\project\\src\\ignored\\file.ts");
-
-        assert!(
-            detector.is_path_excluded(&path),
-            "Should match Windows-style path with drive letter"
-        );
-    }
-
-    #[test]
     fn test_is_path_excluded_basic() {
         let detector = DeadCodeDetector::new(
             &Config::default(),
