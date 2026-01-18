@@ -58,12 +58,13 @@ impl Detector for DeadCodeDetector {
 
         // Combine rule-specific exclude and global config ignore.
         // If the detector was manually constructed with its own exclude list, prefer that.
-        let mut combined_exclude = if self.exclude.is_empty() {
-            rule.exclude.clone()
+        let mut combined_exclude = Vec::new();
+        if self.exclude.is_empty() {
+            combined_exclude.extend_from_slice(&rule.exclude);
         } else {
-            self.exclude.clone()
-        };
-        combined_exclude.extend(ctx.config.ignore.clone());
+            combined_exclude.extend_from_slice(&self.exclude);
+        }
+        combined_exclude.extend_from_slice(&ctx.config.ignore);
 
         let project_root = if self.project_root.as_os_str().is_empty() {
             ctx.project_path.clone()
@@ -71,11 +72,11 @@ impl Detector for DeadCodeDetector {
             self.project_root.clone()
         };
 
-        let detector = DeadCodeDetector::new(
+        let detector = Self::new(
             &ctx.config,
             ctx.script_entry_points.clone(),
             ctx.dynamic_load_patterns.clone(),
-            combined_exclude,
+            &combined_exclude,
             project_root,
         );
 
@@ -193,13 +194,7 @@ impl DeadCodeDetector {
 
     #[must_use]
     pub fn new_default(config: &Config) -> Self {
-        Self::new(
-            config,
-            HashSet::new(),
-            Vec::new(),
-            Vec::new(),
-            PathBuf::new(),
-        )
+        Self::new(config, HashSet::new(), Vec::new(), &[], PathBuf::new())
     }
 
     #[must_use]
@@ -207,7 +202,7 @@ impl DeadCodeDetector {
         config: &Config,
         explicit_entry_points: HashSet<PathBuf>,
         dynamic_load_patterns: Vec<String>,
-        exclude: Vec<String>,
+        exclude: &[String],
         project_root: PathBuf,
     ) -> Self {
         let mut patterns = vec![
@@ -251,10 +246,10 @@ impl DeadCodeDetector {
         patterns.extend(config.entry_points.clone());
 
         let mut compiled_exclude = Vec::with_capacity(exclude.len());
-        for pattern_str in &exclude {
+        for pattern_str in exclude {
             match glob::Pattern::new(pattern_str) {
                 Ok(p) => compiled_exclude.push(p),
-                Err(e) => log::warn!("Invalid exclude pattern '{}': {}", pattern_str, e),
+                Err(e) => log::warn!("Invalid exclude pattern '{pattern_str}': {e}"),
             }
         }
 
@@ -262,7 +257,7 @@ impl DeadCodeDetector {
             entry_patterns: patterns,
             explicit_entry_points,
             dynamic_load_patterns,
-            exclude,
+            exclude: exclude.to_vec(),
             compiled_exclude,
             project_root,
         }
@@ -362,8 +357,7 @@ impl DeadCodeDetector {
                         && export
                             .source
                             .as_ref()
-                            .map(|source| Self::matches_source(source, path_str, file_name))
-                            .unwrap_or(false)
+                            .is_some_and(|source| Self::matches_source(source, path_str, file_name))
                 })
             })
     }
@@ -377,8 +371,8 @@ impl DeadCodeDetector {
         if let Some(dot_pos) = file_name.rfind('.') {
             let base = &file_name[..dot_pos];
             if source == base
-                || source.ends_with(&format!("/{}", base))
-                || source.ends_with(&format!("\\{}", base))
+                || source.ends_with(&format!("/{base}"))
+                || source.ends_with(&format!("\\{base}"))
             {
                 return true;
             }
@@ -565,7 +559,7 @@ mod tests {
             &Config::default(),
             HashSet::new(),
             Vec::new(),
-            vec!["src/ignored/*.ts".to_string()],
+            &["src/ignored/*.ts".to_string()],
             PathBuf::from("/project"),
         );
 
@@ -585,7 +579,7 @@ mod tests {
             &Config::default(),
             HashSet::new(),
             Vec::new(),
-            vec!["src/ignored/*.ts".to_string()],
+            &["src/ignored/*.ts".to_string()],
             PathBuf::from("/project"),
         );
 

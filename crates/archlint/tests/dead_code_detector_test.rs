@@ -25,7 +25,7 @@ fn test_dead_code_detected() {
         &ctx.config,
         HashSet::new(),
         Vec::new(),
-        Vec::new(),
+        &[],
         ctx.project_path.clone(),
     );
     let smells = detector.detect(&ctx);
@@ -75,7 +75,7 @@ fn test_dead_code_with_exclude() {
         &ctx.config,
         HashSet::new(),
         Vec::new(),
-        rule.exclude.clone(),
+        &rule.exclude,
         ctx.project_path.clone(),
     );
     let smells = detector.detect(&ctx);
