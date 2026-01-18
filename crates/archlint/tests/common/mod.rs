@@ -132,3 +132,23 @@ pub fn analyze_fixture_with_rule(
     let config = create_config_with_rule(rule, options);
     analyze_fixture_with_config(fixture, config)
 }
+
+/// Helper to create `dead_code` detector with exclude patterns
+#[allow(dead_code)]
+pub fn create_dead_code_config(exclude: Vec<String>) -> Config {
+    let mut rules = HashMap::new();
+    rules.insert(
+        "dead_code".to_string(),
+        RuleConfig::Full(RuleFullConfig {
+            enabled: Some(true),
+            exclude,
+            ..Default::default()
+        }),
+    );
+
+    Config {
+        rules,
+        entry_points: vec!["main.ts".to_string()],
+        ..Default::default()
+    }
+}

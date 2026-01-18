@@ -31,10 +31,28 @@ import { usedHelper } from './utils';
 ## 設定 (Configuration)
 
 ```yaml
+# ルール固有のオプション
+rules:
+  dead_code:
+    exclude:
+      - '**/tests/**'
+      - '**/temp/**'
+
+# グローバルオプション (ルートレベル)
 entry_points:
   - 'src/index.ts'
   - 'src/api/**/*.ts'
 ```
+
+### オプション
+
+#### ルールオプション (`rules.dead_code`)
+
+- `exclude`: 未使用コードの検出時に無視する glob パターンのリスト。これらのパターンに一致するファイルは、インポート依存関係の分析において存在しないものとして扱われます。
+
+#### グローバルオプション (ルートレベル)
+
+- `entry_points`: 未使用のコードとして報告されないグローバルなエントリポイント。
 
 ## ESLint ルール
 
