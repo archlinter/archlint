@@ -22,10 +22,10 @@ fn test_dead_code_with_nested_exclude() {
 
     // ignored/unused.ts is excluded, should not be in results
     assert!(
-        !smells.iter().any(|s| s
-            .files
-            .iter()
-            .any(|f| f.to_string_lossy().contains("ignored/unused.ts"))),
+        !smells.iter().any(|s| s.files.iter().any(|f| f
+            .to_string_lossy()
+            .replace('\\', "/")
+            .contains("ignored/unused.ts"))),
         "Excluded file in nested directory should not be reported"
     );
 }
@@ -50,6 +50,7 @@ fn test_dead_code_excluded_importer() {
     assert!(
         smells.iter().any(|s| s.files.iter().any(|f| f
             .to_string_lossy()
+            .replace('\\', "/")
             .contains("importer_ignored/should_be_dead.ts"))),
         "should_be_dead.ts should be reported as dead code because its only importer is excluded"
     );
@@ -58,6 +59,7 @@ fn test_dead_code_excluded_importer() {
     assert!(
         !smells.iter().any(|s| s.files.iter().any(|f| f
             .to_string_lossy()
+            .replace('\\', "/")
             .contains("importer_ignored/ignored_importer.ts"))),
         "Excluded importer should not be reported as dead code"
     );

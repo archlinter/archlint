@@ -31,11 +31,14 @@ import { usedHelper } from './utils';
 ## 配置
 
 ```yaml
+# 规则特定选项
 rules:
   dead_code:
     exclude:
       - '**/tests/**'
       - '**/temp/**'
+
+# 全局选项 (根级别)
 entry_points:
   - 'src/index.ts'
   - 'src/api/**/*.ts'
@@ -43,7 +46,12 @@ entry_points:
 
 ### 选项
 
+#### 规则选项 (`rules.dead_code`)
+
 - `exclude`: 检测死代码时要忽略的 glob 模式列表。匹配这些模式的文件在进行入站依赖分析时将被视为不存在。
+
+#### 全局选项 (根级别)
+
 - `entry_points`: 永远不会被报告为死代码的全局入口点。
 
 ## ESLint 规则

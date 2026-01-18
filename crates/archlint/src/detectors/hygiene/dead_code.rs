@@ -480,7 +480,7 @@ impl DeadCodeDetector {
                 && export
                     .source
                     .as_ref()
-                    .is_some_and(|source| source == path_str || source.ends_with(file_name))
+                    .is_some_and(|source| Self::matches_source(source, path_str, file_name))
         })
     }
 
