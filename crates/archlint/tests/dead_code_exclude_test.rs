@@ -21,11 +21,11 @@ fn test_dead_code_with_nested_exclude() {
     let smells = detector.detect(&ctx);
 
     // ignored/unused.ts is excluded, should not be in results
+    let ignored_unused = std::path::Path::new("ignored").join("unused.ts");
     assert!(
-        !smells.iter().any(|s| s.files.iter().any(|f| f
-            .to_string_lossy()
-            .replace('\\', "/")
-            .contains("ignored/unused.ts"))),
+        !smells
+            .iter()
+            .any(|s| s.files.iter().any(|f| f.ends_with(&ignored_unused))),
         "Excluded file in nested directory should not be reported"
     );
 }
@@ -47,20 +47,20 @@ fn test_dead_code_excluded_importer() {
 
     // importer_ignored/ignored_importer.ts is excluded, so its import of should_be_dead.ts
     // should be ignored, making should_be_dead.ts dead code.
+    let should_be_dead = std::path::Path::new("importer_ignored").join("should_be_dead.ts");
     assert!(
-        smells.iter().any(|s| s.files.iter().any(|f| f
-            .to_string_lossy()
-            .replace('\\', "/")
-            .contains("importer_ignored/should_be_dead.ts"))),
+        smells
+            .iter()
+            .any(|s| s.files.iter().any(|f| f.ends_with(&should_be_dead))),
         "should_be_dead.ts should be reported as dead code because its only importer is excluded"
     );
 
     // importer_ignored/ignored_importer.ts itself should not be in results because it's excluded
+    let ignored_importer = std::path::Path::new("importer_ignored").join("ignored_importer.ts");
     assert!(
-        !smells.iter().any(|s| s.files.iter().any(|f| f
-            .to_string_lossy()
-            .replace('\\', "/")
-            .contains("importer_ignored/ignored_importer.ts"))),
+        !smells
+            .iter()
+            .any(|s| s.files.iter().any(|f| f.ends_with(&ignored_importer))),
         "Excluded importer should not be reported as dead code"
     );
 }

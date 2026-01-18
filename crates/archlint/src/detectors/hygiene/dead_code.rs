@@ -555,7 +555,7 @@ mod tests {
     use std::path::PathBuf;
 
     #[test]
-    fn test_is_path_excluded_windows_normalization() {
+    fn test_is_path_excluded_backslash_normalization() {
         let detector = DeadCodeDetector::new(
             &Config::default(),
             HashSet::new(),
@@ -564,13 +564,32 @@ mod tests {
             PathBuf::from("/project"),
         );
 
-        // Simulate a Windows-style path. On Unix, this is just a path with backslashes in name.
-        // But our logic should normalize it to forward slashes.
+        // Test that backslashes in paths are normalized to forward slashes for glob matching.
+        // This ensures patterns using forward slashes match paths with backslashes.
         let path = PathBuf::from("/project/src\\ignored\\file.ts");
 
         assert!(
             detector.is_path_excluded(&path),
             "Should match normalized path"
+        );
+    }
+
+    #[test]
+    fn test_is_path_excluded_windows_style_path() {
+        let detector = DeadCodeDetector::new(
+            &Config::default(),
+            HashSet::new(),
+            Vec::new(),
+            &["src/ignored/*.ts".to_string()],
+            PathBuf::from("C:\\project"),
+        );
+
+        // Simulate a realistic Windows path with a drive letter and backslashes.
+        let path = PathBuf::from("C:\\project\\src\\ignored\\file.ts");
+
+        assert!(
+            detector.is_path_excluded(&path),
+            "Should match Windows-style path with drive letter"
         );
     }
 
