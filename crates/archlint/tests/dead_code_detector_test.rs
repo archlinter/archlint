@@ -44,29 +44,12 @@ fn test_dead_code_detected() {
 
 #[test]
 fn test_dead_code_with_exclude() {
-    use archlint::config::{RuleConfig, RuleFullConfig};
-    use std::collections::HashMap;
+    use common::create_dead_code_config;
 
     // Test fixture has: main.ts (entry) -> used.ts, and dead.ts (unused)
     // We exclude dead.ts to verify that excluded files are not reported,
     // even when they would otherwise be detected as dead code.
-
-    let mut rules = HashMap::new();
-    rules.insert(
-        "dead_code".to_string(),
-        RuleConfig::Full(RuleFullConfig {
-            enabled: Some(true),
-            exclude: vec!["dead.ts".to_string()],
-            ..Default::default()
-        }),
-    );
-
-    let config = Config {
-        rules,
-        entry_points: vec!["main.ts".to_string()],
-        ..Default::default()
-    };
-
+    let config = create_dead_code_config(vec!["dead.ts".to_string()]);
     let ctx = analyze_fixture_with_config("dead_code", config);
 
     let rule = ctx.get_rule("dead_code").unwrap();
