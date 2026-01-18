@@ -132,19 +132,20 @@ impl DeadCodeDetector {
             if self.is_path_excluded(importer_path) {
                 continue;
             }
-            for export in &symbols.exports {
-                if export.is_reexport {
-                    if let Some(ref source) = export.source {
-                        let reexported_file = PathBuf::from(source);
-                        if file_symbols.contains_key(&reexported_file) {
-                            reexport_map
-                                .entry(reexported_file)
-                                .or_default()
-                                .insert(importer_path.clone());
-                        }
-                    }
-                }
-            }
+
+            symbols
+                .exports
+                .iter()
+                .filter(|e| e.is_reexport)
+                .filter_map(|e| e.source.as_ref())
+                .map(PathBuf::from)
+                .filter(|reexported_file| file_symbols.contains_key(reexported_file))
+                .for_each(|reexported_file| {
+                    reexport_map
+                        .entry(reexported_file)
+                        .or_default()
+                        .insert(importer_path.clone());
+                });
         }
 
         reexport_map
