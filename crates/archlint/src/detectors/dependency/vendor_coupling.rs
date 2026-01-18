@@ -8,13 +8,14 @@ use crate::utils::package::PackageUtils;
 
 /// Initializes the detector module.
 /// This function is used for module registration side-effects.
-pub fn init() {}
+pub const fn init() {}
 
 #[detector(SmellType::VendorCoupling, default_enabled = false)]
 pub struct VendorCouplingDetector;
 
 impl VendorCouplingDetector {
-    pub fn new_default(_config: &crate::config::Config) -> Self {
+    #[must_use]
+    pub const fn new_default(_config: &crate::config::Config) -> Self {
         Self
     }
 
@@ -71,7 +72,7 @@ impl Detector for VendorCouplingDetector {
                 } else {
                     "unknown"
                 };
-                format!("Vendor Coupling: `{}`", package)
+                format!("Vendor Coupling: `{package}`")
             },
             reason: "Direct usage of a third-party package in many files. This makes it difficult to replace the vendor library in the future.",
             risks: [
@@ -107,8 +108,7 @@ impl Detector for VendorCouplingDetector {
 
         let severity = rule
             .as_ref()
-            .map(|r| r.severity)
-            .unwrap_or(crate::detectors::Severity::Medium);
+            .map_or(crate::detectors::Severity::Medium, |r| r.severity);
 
         package_usage
             .into_iter()

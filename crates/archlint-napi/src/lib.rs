@@ -1,5 +1,3 @@
-#![deny(clippy::all)]
-
 use napi::bindgen_prelude::*;
 use napi_derive::napi;
 use std::collections::HashMap;
@@ -14,31 +12,28 @@ use types::{
 
 #[napi]
 pub fn run_diff(options: JsDiffOptions) -> Result<JsDiffResult> {
-    let baseline = archlint::snapshot::read_snapshot(Path::new(&options.baseline_path))
+    let baseline = archlint::snapshot::read_snapshot(Path::new(&options.baseline))
         .map_err(|e| Error::from_reason(e.to_string()))?;
 
-    let current = if let Some(path) = options.current_path {
+    let current = if let Some(path) = options.current {
         archlint::snapshot::read_snapshot(Path::new(&path))
             .map_err(|e| Error::from_reason(e.to_string()))?
     } else {
         // Analyze current state
-        let mut analyzer = archlint::Analyzer::new(
-            options.project_path.clone(),
-            archlint::ScanOptions::default(),
-        )
-        .map_err(|e| Error::from_reason(e.to_string()))?;
+        let mut analyzer =
+            archlint::Analyzer::new(options.project.clone(), archlint::ScanOptions::default())
+                .map_err(|e| Error::from_reason(e.to_string()))?;
 
         let scan_result = analyzer
             .scan()
             .map_err(|e| Error::from_reason(e.to_string()))?;
 
-        archlint::snapshot::SnapshotGenerator::new(PathBuf::from(&options.project_path))
+        archlint::snapshot::SnapshotGenerator::new(PathBuf::from(&options.project))
             .generate(&scan_result)
     };
 
-    let config =
-        archlint::config::Config::load_or_default(None, Some(Path::new(&options.project_path)))
-            .map_err(|e| Error::from_reason(e.to_string()))?;
+    let config = archlint::config::Config::load_or_default(None, Some(Path::new(&options.project)))
+        .map_err(|e| Error::from_reason(e.to_string()))?;
 
     let engine = archlint::diff::DiffEngine::new()
         .with_threshold(config.diff.metric_threshold_percent)
@@ -52,7 +47,7 @@ pub fn run_diff(options: JsDiffOptions) -> Result<JsDiffResult> {
 pub async fn run_diff_async(options: JsDiffOptions) -> Result<JsDiffResult> {
     tokio::task::spawn_blocking(move || run_diff(options))
         .await
-        .map_err(|e| Error::from_reason(format!("Task execution failed: {}", e)))?
+        .map_err(|e| Error::from_reason(format!("Task execution failed: {e}")))?
 }
 
 #[napi]
@@ -62,7 +57,7 @@ pub async fn scan(path: String, options: Option<JsScanOptions>) -> Result<JsScan
     // Run in blocking task to not block JS event loop
     let result = tokio::task::spawn_blocking(move || archlint::scan(path, opts))
         .await
-        .map_err(|e| Error::from_reason(format!("Task execution failed: {}", e)))?
+        .map_err(|e| Error::from_reason(format!("Task execution failed: {e}")))?
         .map_err(|e| Error::from_reason(e.to_string()))?;
 
     Ok(result.into())
@@ -120,7 +115,7 @@ impl ArchlintAnalyzer {
             analyzer.scan().map(JsScanResult::from)
         })
         .await
-        .map_err(|e| Error::from_reason(format!("Task execution failed: {}", e)))?
+        .map_err(|e| Error::from_reason(format!("Task execution failed: {e}")))?
         .map_err(|e: archlint::AnalysisError| Error::from_reason(e.to_string()))
     }
 
@@ -139,7 +134,7 @@ impl ArchlintAnalyzer {
                 .map(JsIncrementalResult::from)
         })
         .await
-        .map_err(|e| Error::from_reason(format!("Task execution failed: {}", e)))?
+        .map_err(|e| Error::from_reason(format!("Task execution failed: {e}")))?
         .map_err(|e: archlint::AnalysisError| Error::from_reason(e.to_string()))
     }
 
@@ -201,7 +196,7 @@ impl ArchlintAnalyzer {
                 .map(JsIncrementalResult::from)
         })
         .await
-        .map_err(|e| Error::from_reason(format!("Task execution failed: {}", e)))?
+        .map_err(|e| Error::from_reason(format!("Task execution failed: {e}")))?
         .map_err(|e: archlint::AnalysisError| Error::from_reason(e.to_string()))
     }
 
@@ -220,7 +215,7 @@ impl ArchlintAnalyzer {
             analyzer.rescan().map(JsScanResult::from)
         })
         .await
-        .map_err(|e| Error::from_reason(format!("Task execution failed: {}", e)))?
+        .map_err(|e| Error::from_reason(format!("Task execution failed: {e}")))?
         .map_err(|e: archlint::AnalysisError| Error::from_reason(e.to_string()))
     }
 
@@ -245,6 +240,7 @@ impl ArchlintAnalyzer {
     }
 
     #[napi]
+    #[must_use]
     pub fn get_state_stats(&self) -> JsStateStats {
         let analyzer = self.inner.lock().unwrap();
         analyzer.get_state_stats().into()

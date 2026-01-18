@@ -80,7 +80,7 @@ pub struct FileMetrics {
     /// Max cognitive complexity in file
     pub cognitive_complexity: Option<usize>,
 
-    /// @deprecated use cyclomatic_complexity or cognitive_complexity
+    /// @deprecated use `cyclomatic_complexity` or `cognitive_complexity`
     #[serde(default, alias = "complexity")]
     pub complexity: Option<usize>,
 

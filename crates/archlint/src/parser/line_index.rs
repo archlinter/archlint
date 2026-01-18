@@ -10,6 +10,7 @@ pub struct LineIndex {
 impl LineIndex {
     /// Build line index from source text using SIMD-accelerated newline search
     #[inline]
+    #[must_use]
     pub fn new(text: &str) -> Self {
         let bytes = text.as_bytes();
         // Pre-allocate based on average line length estimate (~40 chars)
@@ -27,6 +28,7 @@ impl LineIndex {
 
     /// Get 1-based line and column for a byte offset using binary search (O(log n))
     #[inline]
+    #[must_use]
     pub fn line_col(&self, offset: usize) -> (usize, usize) {
         let offset = offset as u32;
         // Binary search for the line containing this offset
@@ -41,13 +43,15 @@ impl LineIndex {
 
     /// Get just the 1-based line number
     #[inline]
+    #[must_use]
     pub fn line(&self, offset: usize) -> usize {
         self.line_col(offset).0
     }
 
     /// Total number of lines
     #[inline]
-    pub fn line_count(&self) -> usize {
+    #[must_use]
+    pub const fn line_count(&self) -> usize {
         self.line_starts.len()
     }
 }

@@ -6,7 +6,7 @@ use std::path::{Path, PathBuf};
 
 /// Initializes the detector module.
 /// This function is used for module registration side-effects.
-pub fn init() {}
+pub const fn init() {}
 
 #[detector(SmellType::DeadSymbol, is_deep = true)]
 pub struct DeadSymbolsDetector;
@@ -26,10 +26,12 @@ struct MethodCheckContext<'a> {
 }
 
 impl DeadSymbolsDetector {
-    pub fn new_default(_config: &crate::config::Config) -> Self {
+    #[must_use]
+    pub const fn new_default(_config: &crate::config::Config) -> Self {
         Self
     }
 
+    #[must_use]
     pub fn detect_symbols(
         file_symbols: &HashMap<PathBuf, FileSymbols>,
         entry_points: &HashSet<PathBuf>,
@@ -143,7 +145,7 @@ impl DeadSymbolsDetector {
         file_symbols
             .values()
             .flat_map(|symbols| &symbols.local_usages)
-            .map(|usage| usage.to_string())
+            .map(std::string::ToString::to_string)
             .collect()
     }
 
@@ -256,7 +258,7 @@ impl DeadSymbolsDetector {
 
     fn build_ignored_methods_set(ctx: &AnalysisContext) -> HashSet<String> {
         let mut ignored_methods: HashSet<String> =
-            ["constructor".to_string()].into_iter().collect();
+            std::iter::once("constructor".to_string()).collect();
 
         let rule = ctx.resolve_rule("dead_symbols", None);
         if let Some(methods) = rule.get_option::<Vec<String>>("ignore_methods") {
@@ -557,7 +559,7 @@ impl Detector for DeadSymbolsDetector {
                 } else {
                     "symbol"
                 };
-                format!("Unused {} detected", kind)
+                format!("Unused {kind} detected")
             },
             reason: "The symbol is defined but not imported by any other file or used locally.",
             risks: [
@@ -619,7 +621,7 @@ mod tests {
 
     #[test]
     fn test_detect_unused_private_method() {
-        let code = r#"
+        let code = r"
             class MyService {
                 private usedMethod() {
                     return 1;
@@ -631,13 +633,13 @@ mod tests {
                     return this.usedMethod();
                 }
             }
-        "#;
+        ";
         let path = PathBuf::from("service.ts");
         let parser = ImportParser::new().unwrap();
         let parsed = parser.parse_code(code, &path).unwrap();
 
         let mut file_symbols = HashMap::new();
-        file_symbols.insert(path.clone(), parsed.symbols);
+        file_symbols.insert(path, parsed.symbols);
 
         let mut ctx = AnalysisContext::default_for_test();
         ctx.file_symbols = Arc::new(file_symbols);
@@ -665,25 +667,25 @@ mod tests {
 
     #[test]
     fn test_detect_unused_public_method_with_name_collision() {
-        let service_code = r#"
+        let service_code = r"
             export class MetricsService {
                 public usedMethod() { return 1; }
                 public unusedMethod() { return 2; }
             }
-        "#;
-        let other_service_code = r#"
+        ";
+        let other_service_code = r"
             export class OtherService {
                 public unusedMethod() { return 3; }
                 public main() { return this.unusedMethod(); }
             }
-        "#;
-        let consumer_code = r#"
+        ";
+        let consumer_code = r"
             import { MetricsService } from './metrics.service';
             class Consumer {
                 constructor(private metrics: MetricsService) {}
                 run() { this.metrics.usedMethod(); }
             }
-        "#;
+        ";
 
         let path1 = PathBuf::from("metrics.service.ts");
         let path2 = PathBuf::from("other.service.ts");
@@ -695,9 +697,9 @@ mod tests {
         let parsed3 = parser.parse_code(consumer_code, &path3).unwrap();
 
         let mut file_symbols = HashMap::new();
-        file_symbols.insert(path1.clone(), parsed1.symbols);
-        file_symbols.insert(path2.clone(), parsed2.symbols);
-        file_symbols.insert(path3.clone(), parsed3.symbols);
+        file_symbols.insert(path1, parsed1.symbols);
+        file_symbols.insert(path2, parsed2.symbols);
+        file_symbols.insert(path3, parsed3.symbols);
 
         let mut ctx = AnalysisContext::default_for_test();
         ctx.file_symbols = Arc::new(file_symbols);
@@ -731,6 +733,7 @@ mod tests {
     }
 
     #[test]
+    #[allow(clippy::too_many_lines)]
     fn test_namespace_inheritance() {
         let mut file_symbols = HashMap::new();
 
@@ -771,7 +774,7 @@ mod tests {
             has_runtime_code: true,
             env_vars: FxHashSet::default(),
         };
-        file_symbols.insert(base_path.clone(), base_symbols);
+        file_symbols.insert(base_path, base_symbols);
 
         let child_path = PathBuf::from("child.ts");
         let child_symbols = FileSymbols {
@@ -811,7 +814,7 @@ mod tests {
             has_runtime_code: true,
             env_vars: FxHashSet::default(),
         };
-        file_symbols.insert(child_path.clone(), child_symbols);
+        file_symbols.insert(child_path, child_symbols);
 
         let main_path = PathBuf::from("main.ts");
         let mut local_usages = FxHashSet::default();
@@ -840,9 +843,8 @@ mod tests {
 
         let mut ctx = AnalysisContext::default_for_test();
         ctx.file_symbols = Arc::new(file_symbols.clone());
-        ctx.script_entry_points = HashSet::from_iter(vec![main_path.clone()]);
+        ctx.script_entry_points = HashSet::from_iter(vec![main_path]);
 
-        let _detector = DeadSymbolsDetector;
         let smells =
             DeadSymbolsDetector::detect_symbols(&file_symbols, &ctx.script_entry_points, &ctx);
 
@@ -858,12 +860,12 @@ mod tests {
 
     #[test]
     fn test_polymorphism_and_barrels() {
-        let base_code = r#"
+        let base_code = r"
             export abstract class Base {
                 protected abstract usedInBase(): void;
                 public run() { this.usedInBase(); }
             }
-        "#;
+        ";
         let child_code = r#"
             import { Base } from './base';
             export class Child extends Base {
@@ -871,14 +873,14 @@ mod tests {
                 public unusedMethod(): void { console.log("unused"); }
             }
         "#;
-        let index_code = r#"
+        let index_code = r"
             export * from './child';
-        "#;
-        let consumer_code = r#"
+        ";
+        let consumer_code = r"
             import { Child } from './index';
             const c = new Child();
             c.run();
-        "#;
+        ";
 
         let path_base = PathBuf::from("base.ts");
         let path_child = PathBuf::from("child.ts");
@@ -892,7 +894,7 @@ mod tests {
         let parsed_consumer = parser.parse_code(consumer_code, &path_consumer).unwrap();
 
         let mut file_symbols = HashMap::new();
-        file_symbols.insert(path_base.clone(), parsed_base.symbols);
+        file_symbols.insert(path_base, parsed_base.symbols);
         file_symbols.insert(path_child.clone(), parsed_child.symbols);
         file_symbols.insert(path_index.clone(), parsed_index.symbols);
         file_symbols.insert(path_consumer.clone(), parsed_consumer.symbols);
@@ -938,18 +940,18 @@ mod tests {
 
     #[test]
     fn test_contract_methods_skip() {
-        let code = r#"
+        let code = r"
             export class ThrottlerConfig implements ThrottlerOptionsFactory {
                 createThrottlerOptions() { return {}; }
                 unusedMethod() { return 1; }
             }
-        "#;
+        ";
         let path = PathBuf::from("config.ts");
         let parser = ImportParser::new().unwrap();
         let parsed = parser.parse_code(code, &path).unwrap();
 
         let mut file_symbols = HashMap::new();
-        file_symbols.insert(path.clone(), parsed.symbols);
+        file_symbols.insert(path, parsed.symbols);
 
         let mut ctx = AnalysisContext::default_for_test();
         ctx.file_symbols = Arc::new(file_symbols);

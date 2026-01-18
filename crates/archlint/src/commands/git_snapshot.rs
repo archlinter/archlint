@@ -97,8 +97,7 @@ pub fn generate_snapshot_from_git_ref(
         )
         .map_err(|_| {
             crate::AnalysisError::GitCommand(format!(
-                "Project path {:?} is not inside repository root {:?}",
-                project_path, repo_root
+                "Project path {project_path:?} is not inside repository root {repo_root:?}"
             ))
         })?
         .to_path_buf();
@@ -125,20 +124,19 @@ pub fn generate_snapshot_from_git_ref(
                     "--no-tags",
                     "--depth=1",
                     remote,
-                    &format!("+refs/heads/{}:refs/remotes/{}/{}", branch, remote, branch),
+                    &format!("+refs/heads/{branch}:refs/remotes/{remote}/{branch}"),
                 ])
                 .current_dir(project_path)
                 .output();
 
             // Try resolving again
             repo.revparse_single(git_ref).map_err(|e| {
-                crate::AnalysisError::GitCommand(format!("Cannot resolve '{}': {}", git_ref, e))
+                crate::AnalysisError::GitCommand(format!("Cannot resolve '{git_ref}': {e}"))
             })?
         }
         Err(e) => {
             return Err(crate::AnalysisError::GitCommand(format!(
-                "Cannot resolve '{}': {}",
-                git_ref, e
+                "Cannot resolve '{git_ref}': {e}"
             )));
         }
     };
@@ -163,7 +161,7 @@ pub fn generate_snapshot_from_git_ref(
     let scan_result = analyzer.scan()?;
 
     debug!("Worktree path: {:?}", worktree.path());
-    debug!("Analysis path: {:?}", analysis_path);
+    debug!("Analysis path: {analysis_path:?}");
 
     // Generate snapshot (paths relative to analysis_path)
     let snapshot = SnapshotGenerator::new(analysis_path)

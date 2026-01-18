@@ -105,7 +105,7 @@ pub struct JsSummary {
     pub high_cyclomatic_complexity_functions: u32,
     /// Number of functions with high cognitive complexity.
     pub high_cognitive_complexity_functions: u32,
-    /// @deprecated use high_cyclomatic_complexity_functions or high_cognitive_complexity_functions
+    /// @deprecated use `high_cyclomatic_complexity_functions` or `high_cognitive_complexity_functions`
     pub high_complexity_functions: u32,
     pub unstable_interfaces: u32,
     pub feature_envy: u32,
@@ -156,7 +156,7 @@ pub struct JsFileMetrics {
     pub cyclomatic_complexity: Option<u32>,
     /// Max cognitive complexity in file
     pub cognitive_complexity: Option<u32>,
-    /// @deprecated use cyclomatic_complexity or cognitive_complexity
+    /// @deprecated use `cyclomatic_complexity` or `cognitive_complexity`
     pub complexity: Option<u32>,
     pub fan_in: u32,
     pub fan_out: u32,
@@ -252,7 +252,7 @@ impl ToJsU32 for Option<u64> {
 
 impl From<JsScanOptions> for archlint::ScanOptions {
     fn from(opts: JsScanOptions) -> Self {
-        archlint::ScanOptions {
+        Self {
             config_path: opts.config_path.map(Into::into),
             config: None,
             detectors: opts.detectors,
@@ -262,7 +262,7 @@ impl From<JsScanOptions> for archlint::ScanOptions {
             enable_cache: opts.cache.unwrap_or(true),
             enable_git: opts.git.unwrap_or(true),
             git_history_period: opts.git_history_period,
-            max_file_size: opts.max_file_size.map(|s| s as u64),
+            max_file_size: opts.max_file_size.map(u64::from),
         }
     }
 }
@@ -387,9 +387,9 @@ impl From<archlint::Summary> for JsSummary {
 impl From<archlint::ArchitectureGrade> for JsArchitectureGrade {
     fn from(g: archlint::ArchitectureGrade) -> Self {
         Self {
-            score: g.score as f64,
+            score: f64::from(g.score),
             level: format!("{:?}", g.level),
-            density: g.density as f64,
+            density: f64::from(g.density),
         }
     }
 }
@@ -530,9 +530,9 @@ impl From<archlint::StateStats> for JsStateStats {
 
 #[napi(object)]
 pub struct JsDiffOptions {
-    pub baseline_path: String,
-    pub project_path: String,
-    pub current_path: Option<String>,
+    pub baseline: String,
+    pub project: String,
+    pub current: Option<String>,
 }
 
 #[napi(object)]

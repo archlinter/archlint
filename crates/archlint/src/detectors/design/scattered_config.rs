@@ -5,13 +5,14 @@ use std::path::PathBuf;
 
 /// Initializes the detector module.
 /// This function is used for module registration side-effects.
-pub fn init() {}
+pub const fn init() {}
 
 #[detector(SmellType::ScatteredConfiguration, default_enabled = false)]
 pub struct ScatteredConfigDetector;
 
 impl ScatteredConfigDetector {
-    pub fn new_default(_config: &crate::config::Config) -> Self {
+    #[must_use]
+    pub const fn new_default(_config: &crate::config::Config) -> Self {
         Self
     }
 }
@@ -21,7 +22,7 @@ impl Detector for ScatteredConfigDetector {
         explain: smell => (
             problem: {
                 if let crate::detectors::SmellType::ScatteredConfiguration { env_var, .. } = &smell.smell_type {
-                    format!("Scattered Configuration: `{}`", env_var)
+                    format!("Scattered Configuration: `{env_var}`")
                 } else {
                     "Scattered Configuration".into()
                 }

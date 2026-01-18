@@ -12,6 +12,7 @@ pub struct ResolvedRuleConfig {
 }
 
 impl ResolvedRuleConfig {
+    #[must_use]
     pub fn resolve(config: &Config, detector_id: &str, file_path: Option<&Path>) -> Self {
         let mut enabled = true;
         let mut severity = Severity::Medium;
@@ -80,7 +81,11 @@ impl ResolvedRuleConfig {
         }
     }
 
-    fn apply_severity(rule_severity: RuleSeverity, enabled: &mut bool, severity: &mut Severity) {
+    const fn apply_severity(
+        rule_severity: RuleSeverity,
+        enabled: &mut bool,
+        severity: &mut Severity,
+    ) {
         match rule_severity {
             RuleSeverity::Off => *enabled = false,
             RuleSeverity::Low => {
@@ -114,6 +119,7 @@ impl ResolvedRuleConfig {
         false
     }
 
+    #[must_use]
     pub fn get_option<T: DeserializeOwned>(&self, key: &str) -> Option<T> {
         if let serde_yaml::Value::Mapping(m) = &self.options {
             if let Some(v) = m.get(serde_yaml::Value::String(key.to_string())) {

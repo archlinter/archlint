@@ -12,7 +12,7 @@ pub fn expand_glob(pattern: &str, extensions: &[&str]) -> Result<GlobExpansion> 
     let base_path = base_path.canonicalize().unwrap_or(base_path);
 
     let paths = glob::glob(pattern).map_err(|e| {
-        crate::error::AnalysisError::PathResolution(format!("Invalid glob pattern: {}", e))
+        crate::error::AnalysisError::PathResolution(format!("Invalid glob pattern: {e}"))
     })?;
 
     let files = paths
@@ -20,8 +20,7 @@ pub fn expand_glob(pattern: &str, extensions: &[&str]) -> Result<GlobExpansion> 
         .filter(|p| p.is_file())
         .filter(|p| {
             p.extension()
-                .map(|ext| extensions.iter().any(|e| *e == ext.to_string_lossy()))
-                .unwrap_or(false)
+                .is_some_and(|ext| extensions.iter().any(|e| *e == ext.to_string_lossy()))
         })
         .filter_map(|p| p.canonicalize().ok())
         .collect();
@@ -47,8 +46,7 @@ fn extract_base_path(pattern: &str) -> PathBuf {
         path.to_path_buf()
     } else {
         path.parent()
-            .map(|p| p.to_path_buf())
-            .unwrap_or_else(|| PathBuf::from("."))
+            .map_or_else(|| PathBuf::from("."), std::path::Path::to_path_buf)
     }
 }
 

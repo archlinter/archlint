@@ -109,7 +109,8 @@ pub fn validate_detector_ids(s: &str) -> Result<String, String> {
 
 impl ScanArgs {
     /// Get output format, taking into account the --json flag
-    pub fn output_format(&self) -> OutputFormat {
+    #[must_use]
+    pub const fn output_format(&self) -> OutputFormat {
         if self.json {
             OutputFormat::Json
         } else {
@@ -118,7 +119,8 @@ impl ScanArgs {
     }
 
     /// Get quiet flag, automatically enabled when JSON output is requested
-    pub fn is_quiet(&self) -> bool {
+    #[must_use]
+    pub const fn is_quiet(&self) -> bool {
         self.quiet
             || matches!(
                 self.output_format(),

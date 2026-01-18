@@ -113,7 +113,7 @@ fn make_cyclomatic_complexity_smell(
             line,
             column: None,
             range: None,
-            description: Some(format!("Function '{}' (cyclomatic complexity: 15)", func)),
+            description: Some(format!("Function '{func}' (cyclomatic complexity: 15)")),
         }],
     }
 }
@@ -135,7 +135,7 @@ fn make_cognitive_complexity_smell(id: &str, file: &str, func: &str, line: usize
             line,
             column: None,
             range: None,
-            description: Some(format!("Function '{}' (cognitive complexity: 15)", func)),
+            description: Some(format!("Function '{func}' (cognitive complexity: 15)")),
         }],
     }
 }

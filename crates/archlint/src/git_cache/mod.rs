@@ -23,7 +23,7 @@ impl GitHistoryCache {
 
     pub fn open(project_root: &Path) -> Result<Self> {
         let repo = Repository::discover(project_root).map_err(|e| {
-            crate::AnalysisError::Anyhow(anyhow::anyhow!("Git repository not found: {}", e))
+            crate::AnalysisError::Anyhow(anyhow::anyhow!("Git repository not found: {e}"))
         })?;
 
         let cache_dir = resolve_cache_dir(project_root);
@@ -82,10 +82,7 @@ impl GitHistoryCache {
             let oid = match oid_result {
                 Ok(oid) => oid,
                 Err(e) => {
-                    log::debug!(
-                        "Stopping revwalk due to error (likely shallow clone): {}",
-                        e
-                    );
+                    log::debug!("Stopping revwalk due to error (likely shallow clone): {e}");
                     break;
                 }
             };
@@ -98,7 +95,7 @@ impl GitHistoryCache {
                         }
                     }
                     Err(e) => {
-                        log::debug!("Failed to find commit {}: {}", oid, e);
+                        log::debug!("Failed to find commit {oid}: {e}");
                     }
                 }
             } else {
@@ -225,32 +222,30 @@ fn parse_history_period(period: &str) -> crate::Result<Option<i64>> {
     let (val_str, suffix) = period.split_at(period.len().saturating_sub(1));
     let val = val_str.parse::<i64>().map_err(|_| {
         crate::AnalysisError::InvalidConfig(format!(
-            "Invalid number in git history period '{}'. Expected positive integer followed by 'd', 'm', or 'y'.",
-            period
+            "Invalid number in git history period '{period}'. Expected positive integer followed by 'd', 'm', or 'y'."
         ))
     })?;
 
     if val <= 0 {
         return Err(crate::AnalysisError::InvalidConfig(format!(
-            "Git history period value must be positive, got '{}'",
-            period
+            "Git history period value must be positive, got '{period}'"
         )));
     }
 
     let cutoff = match suffix {
         "d" => (now - Duration::days(val)).timestamp(),
-        "m" => now
-            .checked_sub_months(chrono::Months::new(val as u32))
-            .map(|dt| dt.timestamp())
-            .unwrap_or(0),
+        "m" => {
+            // val is already checked to be positive above, safe to convert
+            let months = val.try_into().unwrap_or(u32::MAX);
+            now.checked_sub_months(chrono::Months::new(months))
+                .map_or(0, |dt| dt.timestamp())
+        }
         "y" => now
             .with_year(now.year() - val as i32)
-            .map(|dt| dt.timestamp())
-            .unwrap_or(0),
+            .map_or(0, |dt| dt.timestamp()),
         _ => {
             return Err(crate::AnalysisError::InvalidConfig(format!(
-                "Invalid git history period '{}'. Expected format like '90d', '6m', '1y' or 'all'.",
-                period
+                "Invalid git history period '{period}'. Expected format like '90d', '6m', '1y' or 'all'."
             )));
         }
     };

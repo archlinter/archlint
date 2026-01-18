@@ -233,13 +233,10 @@ fn sync_config_schema() -> anyhow::Result<()> {
         fs::write(&schema_path, schema_json)?;
     } else {
         let existing_schema = fs::read_to_string(&schema_path).unwrap_or_default();
-        if existing_schema != schema_json {
-            panic!(
-                "Config schema is out of sync! Run 'UPDATE_SCHEMA=1 cargo test config::tests::sync_config_schema' to update.\n\
-                 Path: {:?}",
-                schema_path
-            );
-        }
+        assert!(existing_schema == schema_json,
+            "Config schema is out of sync! Run 'UPDATE_SCHEMA=1 cargo test config::tests::sync_config_schema' to update.\n\
+             Path: {schema_path:?}"
+        );
     }
 
     Ok(())

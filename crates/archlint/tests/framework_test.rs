@@ -58,8 +58,7 @@ fn test_lcom_skips_nestjs_controller() {
 
     let mut symbols = FileSymbols::default();
     symbols.classes.push(class);
-    ctx.file_symbols_mut()
-        .insert(controller_path.clone(), symbols);
+    ctx.file_symbols_mut().insert(controller_path, symbols);
 
     let detector = LcomDetector;
     let smells = detector.detect(&ctx);

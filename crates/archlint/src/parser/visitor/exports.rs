@@ -34,11 +34,10 @@ impl<'a> UnifiedVisitor {
     pub(crate) fn handle_export_all_declaration(&mut self, it: &ExportAllDeclaration<'a>) {
         let source = Self::atom_to_compact(&it.source.value);
         let range = self.get_range(it.span);
-        let name = it
-            .exported
-            .as_ref()
-            .map(|id| Self::export_name_to_compact(id.name()))
-            .unwrap_or_else(|| interned::STAR.clone());
+        let name = it.exported.as_ref().map_or_else(
+            || interned::STAR.clone(),
+            |id| Self::export_name_to_compact(id.name()),
+        );
 
         self.exports.push(ExportedSymbol {
             name: name.clone(),

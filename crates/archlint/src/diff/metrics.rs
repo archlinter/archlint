@@ -18,10 +18,12 @@ pub struct MetricComparator {
 }
 
 impl MetricComparator {
-    pub fn new(threshold_percent: f64) -> Self {
+    #[must_use]
+    pub const fn new(threshold_percent: f64) -> Self {
         Self { threshold_percent }
     }
 
+    #[must_use]
     pub fn compare(
         &self,
         id: &str,

@@ -8,6 +8,7 @@ use crate::Result;
 use std::fs;
 use std::path::Path;
 
+#[must_use]
 pub fn generate_markdown(
     report: &AnalysisReport,
     graph: Option<&DependencyGraph>,

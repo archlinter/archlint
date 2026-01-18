@@ -23,7 +23,7 @@ pub struct FuzzyMatcher {
 }
 
 impl Default for FuzzyMatcher {
-    /// Creates a FuzzyMatcher with default tolerance (50 lines).
+    /// Creates a `FuzzyMatcher` with default tolerance (50 lines).
     fn default() -> Self {
         Self { line_tolerance: 50 }
     }
@@ -48,8 +48,9 @@ struct SmellKey {
 }
 
 impl FuzzyMatcher {
-    /// Create a new FuzzyMatcher with the specified line tolerance.
-    pub fn new(line_tolerance: usize) -> Self {
+    /// Create a new `FuzzyMatcher` with the specified line tolerance.
+    #[must_use]
+    pub const fn new(line_tolerance: usize) -> Self {
         Self { line_tolerance }
     }
 
@@ -57,6 +58,7 @@ impl FuzzyMatcher {
     ///
     /// Returns pairs of smells that are likely the same issue but with shifted line numbers.
     /// Orphaned smells are those that didn't have an exact ID match.
+    #[must_use]
     pub fn match_orphans<'a>(
         &self,
         orphaned_baseline: &[&'a SnapshotSmell],
@@ -121,7 +123,7 @@ impl FuzzyMatcher {
 
     /// Group smells by their matching key for efficient lookup.
     ///
-    /// Key format: (smell_type, first_file).
+    /// Key format: (`smell_type`, `first_file`).
     fn group_by_key<'a>(
         smells: &[&'a SnapshotSmell],
     ) -> BTreeMap<SmellKey, Vec<&'a SnapshotSmell>> {
@@ -136,7 +138,7 @@ impl FuzzyMatcher {
         groups
     }
 
-    /// Extract matching key from smell: (smell_type, file).
+    /// Extract matching key from smell: (`smell_type`, file).
     ///
     /// Fuzzy matching is only supported for "symbol-based" smells that affect a single file.
     /// Multi-file smells (like cyclic dependencies between multiple files) are excluded
@@ -157,6 +159,7 @@ impl FuzzyMatcher {
     }
 
     /// Extract symbol/function name from smell details or ID.
+    #[must_use]
     pub fn extract_symbol_name(smell: &SnapshotSmell) -> Option<String> {
         // First, try to get from details
         if let Some(ref details) = smell.details {
@@ -209,7 +212,7 @@ impl FuzzyMatcher {
     /// Try to extract symbol name from ID string.
     ///
     /// Resilience: parses from the right to handle ':' in paths or descriptions.
-    /// Expected format from right: ...:symbol_name:line
+    /// Expected format from right: ...:`symbol_name:line`
     fn extract_name_from_id(id: &str) -> Option<String> {
         // We expect at least 3 parts: prefix:path...:name:line
         let mut it = id.rsplitn(3, ':');
@@ -229,6 +232,7 @@ impl FuzzyMatcher {
     }
 
     /// Extract line number from smell.
+    #[must_use]
     pub fn extract_line(smell: &SnapshotSmell) -> Option<usize> {
         // First, try locations
         if let Some(loc) = smell.locations.first() {

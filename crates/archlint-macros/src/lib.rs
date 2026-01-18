@@ -4,6 +4,7 @@ use quote::quote;
 use syn::{parse_macro_input, DeriveInput};
 
 #[derive(Debug, FromMeta)]
+#[allow(clippy::option_if_let_else)]
 struct DetectorArgs {
     #[darling(default)]
     id: Option<String>,
@@ -21,21 +22,18 @@ struct DetectorArgs {
     smell_type: Option<syn::Path>,
 }
 
-#[proc_macro_attribute]
-pub fn detector(args: TokenStream, input: TokenStream) -> TokenStream {
+fn parse_attr_args(args: TokenStream) -> Result<Vec<syn::Meta>, TokenStream> {
     let args_cloned = proc_macro2::TokenStream::from(args.clone());
     let mut attr_args_list = Vec::new();
-
-    // Try to parse as meta list first
-    match syn::parse::Parser::parse2(
+    let meta_list = syn::parse::Parser::parse2(
         syn::punctuated::Punctuated::<syn::Meta, syn::Token![,]>::parse_terminated,
         args_cloned.clone(),
-    ) {
+    );
+
+    match meta_list {
         Ok(meta_list) => {
-            // Check if first item is a path (positional argument like SmellType::Variant)
             if let Some(first) = meta_list.first() {
                 if let syn::Meta::Path(path) = first {
-                    // First argument is a path, treat it as smell_type
                     attr_args_list.push(syn::Meta::NameValue(syn::MetaNameValue {
                         path: syn::parse_quote!(smell_type),
                         value: syn::Expr::Path(syn::ExprPath {
@@ -45,18 +43,15 @@ pub fn detector(args: TokenStream, input: TokenStream) -> TokenStream {
                         }),
                         eq_token: syn::token::Eq::default(),
                     }));
-                    // Add remaining arguments
                     for meta in meta_list.iter().skip(1) {
                         attr_args_list.push(meta.clone());
                     }
                 } else {
-                    // Regular named arguments
                     attr_args_list.extend(meta_list);
                 }
             }
         }
         Err(_) => {
-            // Try to parse as a single path (e.g., #[detector(SmellType::Variant)])
             if let Ok(path) = syn::parse2::<syn::Path>(args_cloned) {
                 attr_args_list.push(syn::Meta::NameValue(syn::MetaNameValue {
                     path: syn::parse_quote!(smell_type),
@@ -68,19 +63,27 @@ pub fn detector(args: TokenStream, input: TokenStream) -> TokenStream {
                     eq_token: syn::token::Eq::default(),
                 }));
             } else {
-                return TokenStream::from(
+                return Err(TokenStream::from(
                     syn::Error::new_spanned(
                         proc_macro2::TokenStream::from(args),
                         "Invalid detector attribute arguments",
                     )
                     .to_compile_error(),
-                );
+                ));
             }
         }
     }
 
-    let input_struct = parse_macro_input!(input as DeriveInput);
+    Ok(attr_args_list)
+}
 
+#[proc_macro_attribute]
+pub fn detector(args: TokenStream, input: TokenStream) -> TokenStream {
+    let attr_args_list = match parse_attr_args(args) {
+        Ok(list) => list,
+        Err(err) => return err,
+    };
+    let input_struct = parse_macro_input!(input as DeriveInput);
     let nested_meta: Vec<syn::Meta> = attr_args_list.into_iter().collect();
 
     let args = match DetectorArgs::from_list(
@@ -95,41 +98,51 @@ pub fn detector(args: TokenStream, input: TokenStream) -> TokenStream {
         }
     };
 
+    let DetectorArgs {
+        id,
+        name,
+        description,
+        category,
+        default_enabled,
+        is_deep,
+        smell_type,
+    } = args;
+
     let struct_name = &input_struct.ident;
     let factory_name = quote::format_ident!("{}Factory", struct_name);
 
-    let default_enabled = args.default_enabled.unwrap_or(true);
-    let is_deep = args.is_deep.unwrap_or(false);
+    let default_enabled = default_enabled.unwrap_or(true);
+    let is_deep = is_deep.unwrap_or(false);
 
     let (id_tokens, name_tokens, description_tokens, category_tokens) = if let Some(smell_type) =
-        args.smell_type
+        smell_type
     {
-        let variant = &smell_type.segments.last().unwrap().ident;
-        let id = quote! { crate::detectors::SmellKind::#variant.to_id() };
-        let name = if let Some(n) = args.name {
-            quote! { #n }
-        } else {
-            quote! { crate::detectors::SmellKind::#variant.display_name() }
+        let Some(variant) = smell_type.segments.last().map(|segment| &segment.ident) else {
+            return TokenStream::from(
+                syn::Error::new_spanned(smell_type, "smell_type must be a non-empty path")
+                    .to_compile_error(),
+            );
         };
-        let description = if let Some(d) = args.description {
-            quote! { #d }
-        } else {
-            quote! { {
-                use strum::EnumProperty;
-                crate::detectors::SmellKind::#variant.get_str("description").unwrap_or_else(|| crate::detectors::SmellKind::#variant.display_name())
-            } }
-        };
-        let category = if let Some(c) = args.category {
-            quote! { #c }
-        } else {
-            quote! { crate::detectors::SmellKind::#variant.default_category() }
-        };
-        (id, name, description, category)
+        let id_tokens = quote! { crate::detectors::SmellKind::#variant.to_id() };
+        let name_tokens = name.map_or_else(
+            || quote! { crate::detectors::SmellKind::#variant.display_name() },
+            |n| quote! { #n },
+        );
+        let description_tokens = description.map_or_else(
+            || {
+                quote! { {
+                    use strum::EnumProperty;
+                    crate::detectors::SmellKind::#variant.get_str("description").unwrap_or_else(|| crate::detectors::SmellKind::#variant.display_name())
+                } }
+            },
+            |d| quote! { #d },
+        );
+        let category_tokens = category.map_or_else(
+            || quote! { crate::detectors::SmellKind::#variant.default_category() },
+            |c| quote! { #c },
+        );
+        (id_tokens, name_tokens, description_tokens, category_tokens)
     } else {
-        let id = args.id;
-        let name = args.name;
-        let description = args.description;
-        let category = args.category;
         (
             quote! { #id },
             quote! { #name },

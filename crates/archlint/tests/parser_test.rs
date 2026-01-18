@@ -4,10 +4,10 @@ use compact_str::CompactString;
 #[test]
 fn test_local_usages_in_interface_property() {
     let parser = ImportParser::new().unwrap();
-    let code = r#"
+    let code = r"
 export interface A { name: string; }
 export interface B { ref: A; }
-"#;
+";
     let result = parser.parse_code(code, "test.ts").unwrap();
 
     println!(
@@ -30,10 +30,10 @@ export interface B { ref: A; }
 #[test]
 fn test_local_usages_in_extends() {
     let parser = ImportParser::new().unwrap();
-    let code = r#"
+    let code = r"
 export interface A { name: string; }
 export interface B extends A { extra: number; }
-"#;
+";
     let result = parser.parse_code(code, "test.ts").unwrap();
 
     println!(
@@ -56,11 +56,11 @@ export interface B extends A { extra: number; }
 #[test]
 fn test_local_usages_in_type_union() {
     let parser = ImportParser::new().unwrap();
-    let code = r#"
+    let code = r"
 export interface A { name: string; }
 export interface B { value: number; }
 export type C = A | B;
-"#;
+";
     let result = parser.parse_code(code, "test.ts").unwrap();
 
     println!(
@@ -87,7 +87,7 @@ export type C = A | B;
 #[test]
 fn test_parse_simple_import() {
     let parser = ImportParser::new().unwrap();
-    let code = r#"import { foo } from './bar';"#;
+    let code = r"import { foo } from './bar';";
     let result = parser.parse_code(code, "test.ts").unwrap();
 
     assert_eq!(result.symbols.imports.len(), 1);
@@ -98,7 +98,7 @@ fn test_parse_simple_import() {
 #[test]
 fn test_parse_default_import() {
     let parser = ImportParser::new().unwrap();
-    let code = r#"import foo from './bar';"#;
+    let code = r"import foo from './bar';";
     let result = parser.parse_code(code, "test.ts").unwrap();
 
     assert_eq!(result.symbols.imports.len(), 1);
@@ -113,7 +113,7 @@ fn test_parse_default_import() {
 #[test]
 fn test_parse_namespace_import() {
     let parser = ImportParser::new().unwrap();
-    let code = r#"import * as foo from './bar';"#;
+    let code = r"import * as foo from './bar';";
     let result = parser.parse_code(code, "test.ts").unwrap();
 
     assert_eq!(result.symbols.imports.len(), 1);
@@ -128,7 +128,7 @@ fn test_parse_namespace_import() {
 #[test]
 fn test_parse_reexport() {
     let parser = ImportParser::new().unwrap();
-    let code = r#"export { foo } from './bar';"#;
+    let code = r"export { foo } from './bar';";
     let result = parser.parse_code(code, "test.ts").unwrap();
 
     assert_eq!(result.symbols.exports.len(), 1);
@@ -143,7 +143,7 @@ fn test_parse_reexport() {
 #[test]
 fn test_complexity_calculation() {
     let parser = ImportParser::new().unwrap();
-    let code = r#"
+    let code = r"
         function complex(x: number) {
             if (x > 0) {
                 for (let i = 0; i < x; i++) {
@@ -153,7 +153,7 @@ fn test_complexity_calculation() {
                 }
             }
         }
-    "#;
+    ";
     let result = parser.parse_code(code, "test.ts").unwrap();
     assert_eq!(result.functions.len(), 1);
     assert_eq!(result.functions[0].cyclomatic_complexity, 4); // 1 + if + for + if
@@ -162,7 +162,7 @@ fn test_complexity_calculation() {
 #[test]
 fn test_metrics_types_file() {
     let parser = ImportParser::new().unwrap();
-    let code = r#"
+    let code = r"
 export interface MetricsDefaultMetricsConfig {
   enabled: boolean;
 }
@@ -183,7 +183,7 @@ export interface MetricsConfig {
   push: MetricsPushConfig;
   pull: MetricsPullConfig;
 }
-"#;
+";
     let result = parser.parse_code(code, "types.ts").unwrap();
 
     println!(

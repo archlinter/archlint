@@ -46,12 +46,12 @@ fn print_regressions_section(result: &DiffResult, verbose: bool) {
     println!("{}", style("━".repeat(50)).dim());
     println!();
 
-    if !verbose {
-        print_regressions_table(&result.regressions);
-    } else {
+    if verbose {
         for reg in &result.regressions {
             print_regression(reg, verbose);
         }
+    } else {
+        print_regressions_table(&result.regressions);
     }
 }
 
@@ -117,7 +117,7 @@ fn print_regressions_table(regressions: &[Regression]) {
         ]);
     }
 
-    println!("{}", table);
+    println!("{table}");
 }
 
 fn format_severity_cell(severity: &str) -> Cell {
@@ -137,15 +137,15 @@ fn format_severity_cell(severity: &str) -> Cell {
 }
 
 fn format_reg_locations(reg: &Regression) -> String {
-    if !reg.smell.locations.is_empty() {
+    if reg.smell.locations.is_empty() {
+        reg.smell.files.join("\n")
+    } else {
         reg.smell
             .locations
             .iter()
             .map(format_snapshot_location)
             .collect::<Vec<_>>()
             .join("\n")
-    } else {
-        reg.smell.files.join("\n")
     }
 }
 
@@ -187,7 +187,7 @@ fn print_regression(reg: &Regression, verbose: bool) {
 fn print_reg_locations(reg: &Regression) {
     let locations = format_reg_locations(reg);
     for loc in locations.lines() {
-        println!("   {}", loc);
+        println!("   {loc}");
     }
 }
 
@@ -202,12 +202,9 @@ fn print_regression_type_info(reg: &Regression) {
             to,
             change_percent,
         } => {
-            println!(
-                "   {}: {:.2} → {:.2} (+{:.0}%)",
-                metric, from, to, change_percent
-            );
+            println!("   {metric}: {from:.2} → {to:.2} (+{change_percent:.0}%)");
         }
-        _ => {}
+        RegressionType::NewSmell => {}
     }
 }
 
@@ -216,12 +213,12 @@ fn print_regression_explanation(reg: &Regression) {
         println!();
         println!("   {}", style("WHY BAD:").cyan().bold());
         for line in explain.why_bad.lines() {
-            println!("   {}", line);
+            println!("   {line}");
         }
         println!();
         println!("   {}", style("HOW TO FIX:").green().bold());
         for line in explain.how_to_fix.lines() {
-            println!("   {}", line);
+            println!("   {line}");
         }
     }
 }

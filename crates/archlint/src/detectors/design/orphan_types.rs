@@ -6,13 +6,14 @@ use std::path::PathBuf;
 
 /// Initializes the detector module.
 /// This function is used for module registration side-effects.
-pub fn init() {}
+pub const fn init() {}
 
 #[detector(SmellType::OrphanType)]
 pub struct OrphanTypesDetector;
 
 impl OrphanTypesDetector {
-    pub fn new_default(_config: &crate::config::Config) -> Self {
+    #[must_use]
+    pub const fn new_default(_config: &crate::config::Config) -> Self {
         Self
     }
 
@@ -57,7 +58,7 @@ impl Detector for OrphanTypesDetector {
                     crate::detectors::SmellType::OrphanType { name } => name.clone(),
                     _ => "unknown".to_string(),
                 };
-                format!("Orphan Type `{}` detected", name)
+                format!("Orphan Type `{name}` detected")
             },
             reason: "The type or interface is exported but never used by any other module in the codebase.",
             risks: [
@@ -87,7 +88,7 @@ impl Detector for OrphanTypesDetector {
         type_definitions
             .into_iter()
             .filter(|(_, name)| !all_usages.contains(*name))
-            .flat_map(|(path, name)| {
+            .filter_map(|(path, name)| {
                 let file_rule = ctx.get_rule_for_file("orphan_types", path)?;
                 let mut smell = ArchSmell::new_orphan_type(path.clone(), name.to_string());
                 smell.severity = file_rule.severity;

@@ -169,7 +169,7 @@ impl DetectionContext<'_> {
                 self.clusters.push(Cluster {
                     hash: range_hash,
                     token_count: length,
-                    occurrences: vec![occ1.clone(), occ2.clone()],
+                    occurrences: vec![occ1, occ2],
                 });
                 self.occ_to_cluster.insert(key1, idx);
                 self.occ_to_cluster.insert(key2, idx);
@@ -195,6 +195,7 @@ impl DetectionContext<'_> {
 }
 
 /// Hashes a sequence of tokens into a deterministic 32-byte hash.
+#[must_use]
 pub fn hash_tokens(tokens: &[NormalizedToken]) -> [u8; 32] {
     let mut hasher = Sha256::new();
     for token in tokens {
@@ -207,6 +208,7 @@ pub fn hash_tokens(tokens: &[NormalizedToken]) -> [u8; 32] {
 /// Builds a map of token window hashes to their locations in the project.
 ///
 /// This is the first step in the sliding window algorithm.
+#[must_use]
 pub fn build_window_map(
     file_tokens: &FxHashMap<PathBuf, Vec<NormalizedToken>>,
     min_tokens: usize,
@@ -232,6 +234,7 @@ pub fn build_window_map(
 ///
 /// This avoids reporting the same duplicated block multiple times if it spans across
 /// several overlapping token windows.
+#[must_use]
 pub fn merge_overlapping_occurrences(mut occurrences: Vec<Occurrence>) -> Vec<Occurrence> {
     occurrences.sort_by(|a, b| a.file.cmp(&b.file).then(a.token_start.cmp(&b.token_start)));
 
@@ -309,6 +312,7 @@ fn calculate_range_bounds(
 ///
 /// Iterates over matching token windows and expands them forward and backward
 /// to find the maximum possible duplicated range.
+#[must_use]
 pub fn detect_clusters(
     file_tokens: &FxHashMap<PathBuf, Vec<NormalizedToken>>,
     window_map: FxHashMap<[u8; 32], Vec<(PathBuf, usize)>>,

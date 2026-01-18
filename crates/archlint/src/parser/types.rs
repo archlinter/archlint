@@ -110,7 +110,7 @@ pub struct MethodSymbol {
     pub is_abstract: bool,
 }
 
-/// Builder for creating MethodSymbol instances.
+/// Builder for creating `MethodSymbol` instances.
 pub struct MethodSymbolBuilder {
     name: SymbolName,
     line: usize,
@@ -136,26 +136,31 @@ impl MethodSymbolBuilder {
         }
     }
 
-    pub fn has_decorators(mut self, value: bool) -> Self {
+    #[must_use]
+    pub const fn has_decorators(mut self, value: bool) -> Self {
         self.has_decorators = value;
         self
     }
 
-    pub fn is_accessor(mut self, value: bool) -> Self {
+    #[must_use]
+    pub const fn is_accessor(mut self, value: bool) -> Self {
         self.is_accessor = value;
         self
     }
 
-    pub fn accessibility(mut self, value: Option<MethodAccessibility>) -> Self {
+    #[must_use]
+    pub const fn accessibility(mut self, value: Option<MethodAccessibility>) -> Self {
         self.accessibility = value;
         self
     }
 
-    pub fn is_abstract(mut self, value: bool) -> Self {
+    #[must_use]
+    pub const fn is_abstract(mut self, value: bool) -> Self {
         self.is_abstract = value;
         self
     }
 
+    #[must_use]
     pub fn build(self) -> MethodSymbol {
         MethodSymbol {
             name: self.name,
@@ -312,6 +317,7 @@ impl Default for ParserConfig {
 
 impl ParserConfig {
     #[inline]
+    #[must_use]
     pub const fn all() -> Self {
         Self {
             collect_complexity: true,
@@ -323,6 +329,7 @@ impl ParserConfig {
     }
 
     #[inline]
+    #[must_use]
     pub const fn minimal() -> Self {
         Self {
             collect_complexity: false,
@@ -333,6 +340,7 @@ impl ParserConfig {
         }
     }
 
+    #[must_use]
     pub fn from_active_detectors(active_ids: &HashSet<String>) -> Self {
         Self {
             collect_complexity: active_ids.iter().any(|id| {

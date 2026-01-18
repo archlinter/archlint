@@ -8,13 +8,13 @@ pub fn append_explanation(output: &mut String, explanation: &Explanation) {
 
     output.push_str("**Risks:**\n");
     for risk in &explanation.risks {
-        output.push_str(&format!("- {}\n", risk));
+        output.push_str(&format!("- {risk}\n"));
     }
     output.push('\n');
 
     output.push_str("**Recommendations:**\n");
     for rec in &explanation.recommendations {
-        output.push_str(&format!("- {}\n", rec));
+        output.push_str(&format!("- {rec}\n"));
     }
     output.push('\n');
 }
@@ -64,6 +64,7 @@ fn extract_filename(file_path: &Path) -> String {
         .to_string()
 }
 
+#[must_use]
 pub fn group_files_by_directory(
     dead_smells: &[&SmellWithExplanation],
 ) -> BTreeMap<String, Vec<String>> {

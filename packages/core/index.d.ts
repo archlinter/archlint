@@ -78,9 +78,11 @@ export interface JsSummary {
   godModules: number
   deadCode: number
   deadSymbols: number
+  /** Number of functions with high cyclomatic complexity. */
   highCyclomaticComplexityFunctions: number
+  /** Number of functions with high cognitive complexity. */
   highCognitiveComplexityFunctions: number
-  /** @deprecated use highCyclomaticComplexityFunctions or highCognitiveComplexityFunctions */
+  /** @deprecated use `high_cyclomatic_complexity_functions` or `high_cognitive_complexity_functions` */
   highComplexityFunctions: number
   unstableInterfaces: number
   featureEnvy: number
@@ -115,9 +117,11 @@ export interface JsExportInfo {
 }
 export interface JsFileMetrics {
   lines: number
+  /** Max cyclomatic complexity in file */
   cyclomaticComplexity?: number
+  /** Max cognitive complexity in file */
   cognitiveComplexity?: number
-  /** @deprecated use cyclomaticComplexity or cognitiveComplexity */
+  /** @deprecated use `cyclomatic_complexity` or `cognitive_complexity` */
   complexity?: number
   fanIn: number
   fanOut: number
@@ -161,9 +165,9 @@ export interface JsStateStats {
   graphEdges: number
 }
 export interface JsDiffOptions {
-  baselinePath: string
-  projectPath: string
-  currentPath?: string
+  baseline: string
+  project: string
+  current?: string
 }
 export interface JsDiffResult {
   hasRegressions: boolean

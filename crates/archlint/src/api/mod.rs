@@ -67,6 +67,7 @@ pub fn load_config<P: AsRef<Path>>(path: Option<P>) -> Result<Config> {
 }
 
 /// Get list of all available detectors
+#[must_use]
 pub fn get_detectors() -> Vec<DetectorInfo> {
     DetectorRegistry::new().list_all()
 }
@@ -104,7 +105,7 @@ pub(crate) fn build_file_info(
         };
 
         let file_metrics = FileMetrics {
-            lines: metrics.map(|m| m.lines).unwrap_or(0),
+            lines: metrics.map_or(0, |m| m.lines),
             cyclomatic_complexity: complexities
                 .and_then(|c| c.iter().map(|f| f.cyclomatic_complexity).max()),
             cognitive_complexity: complexities
@@ -145,7 +146,7 @@ pub(crate) fn build_file_info(
                     crate::parser::SymbolKind::Unknown => ExportKind::Variable,
                 },
                 is_default: e.is_default,
-                source: e.source.as_ref().map(|s| s.to_string()),
+                source: e.source.as_ref().map(std::string::ToString::to_string),
             })
             .collect();
 

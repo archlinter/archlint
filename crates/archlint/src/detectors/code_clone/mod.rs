@@ -14,7 +14,8 @@ use self::tokenizer::tokenize_files;
 pub struct CodeCloneDetector;
 
 impl CodeCloneDetector {
-    pub fn new_default(_config: &crate::config::Config) -> Self {
+    #[must_use]
+    pub const fn new_default(_config: &crate::config::Config) -> Self {
         Self
     }
 
@@ -36,11 +37,11 @@ impl CodeCloneDetector {
         let mut smells = Vec::new();
 
         for cluster in clusters.into_iter().filter(|c| c.occurrences.len() >= 2) {
-            let hash_str = cluster
-                .hash
-                .iter()
-                .map(|b| format!("{:02x}", b))
-                .collect::<String>();
+            let hash_str = cluster.hash.iter().fold(String::new(), |mut acc, b| {
+                use std::fmt::Write;
+                let _ = write!(acc, "{b:02x}");
+                acc
+            });
 
             let merged_occurrences = merge_overlapping_occurrences(cluster.occurrences);
 
@@ -160,4 +161,4 @@ impl Detector for CodeCloneDetector {
 
 /// Initializes the detector module.
 /// This function is used for module registration side-effects.
-pub fn init() {}
+pub const fn init() {}

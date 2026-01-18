@@ -55,6 +55,7 @@ pub struct UnifiedVisitor {
 
 impl UnifiedVisitor {
     /// Create a new visitor for the given source text.
+    #[must_use]
     pub fn new(source_text: &str, config: ParserConfig) -> Self {
         // Pre-allocate based on file size heuristics to minimize re-allocations.
         // Heuristics:
@@ -104,22 +105,24 @@ impl UnifiedVisitor {
     }
 
     #[inline]
+    #[must_use]
     pub fn get_line_number_from_offset(&self, offset: usize) -> usize {
         self.line_index.line(offset)
     }
 
     #[inline]
-    pub fn line_count(&self) -> usize {
+    #[must_use]
+    pub const fn line_count(&self) -> usize {
         self.line_index.line_count()
     }
 
-    /// Convert oxc Atom to CompactString efficiently
+    /// Convert oxc Atom to `CompactString` efficiently
     #[inline]
     pub(crate) fn atom_to_compact(atom: &oxc_span::Atom) -> CompactString {
         CompactString::new(atom.as_str())
     }
 
-    /// Convert oxc ModuleExportName to CompactString
+    /// Convert oxc `ModuleExportName` to `CompactString`
     #[inline]
     pub(crate) fn export_name_to_compact(name: oxc_span::Atom) -> CompactString {
         CompactString::new(name.as_str())

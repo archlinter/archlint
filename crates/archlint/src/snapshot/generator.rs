@@ -14,6 +14,7 @@ pub struct SnapshotGenerator {
 }
 
 impl SnapshotGenerator {
+    #[must_use]
     pub fn new(project_root: PathBuf) -> Self {
         let project_root = project_root.canonicalize().unwrap_or(project_root);
         Self {
@@ -22,11 +23,13 @@ impl SnapshotGenerator {
         }
     }
 
-    pub fn with_commit(mut self, include: bool) -> Self {
+    #[must_use]
+    pub const fn with_commit(mut self, include: bool) -> Self {
         self.include_commit = include;
         self
     }
 
+    #[must_use]
     pub fn generate(&self, scan_result: &ScanResult) -> Snapshot {
         let commit = if self.include_commit {
             get_git_commit(&self.project_root)
@@ -79,11 +82,10 @@ impl SnapshotGenerator {
             .locations
             .iter()
             .map(|loc| {
-                let file = loc
-                    .file
-                    .strip_prefix(&self.project_root)
-                    .map(|p| p.to_string_lossy().replace('\\', "/"))
-                    .unwrap_or_else(|_| loc.file.to_string_lossy().replace('\\', "/"));
+                let file = loc.file.strip_prefix(&self.project_root).map_or_else(
+                    |_| loc.file.to_string_lossy().replace('\\', "/"),
+                    |p| p.to_string_lossy().replace('\\', "/"),
+                );
 
                 crate::snapshot::types::Location {
                     file,
@@ -111,12 +113,12 @@ impl SnapshotGenerator {
                             metrics.insert(k, val);
                         }
                         Err(e) => {
-                            log::debug!("Failed to convert metric value for {}: {}", k, e);
+                            log::debug!("Failed to convert metric value for {k}: {e}");
                         }
                     }
                 }
             } else {
-                log::debug!("Failed to serialize metric to JSON object: {:?}", metric);
+                log::debug!("Failed to serialize metric to JSON object: {metric:?}");
             }
         }
 
@@ -183,7 +185,7 @@ fn smell_type_to_string(smell_type: &SmellType) -> String {
         SmellType::LayerViolation { .. } => "LayerViolation".to_string(),
         SmellType::HubModule => "HubModule".to_string(),
         SmellType::LowCohesion { .. } => "LowCohesion".to_string(),
-        _ => format!("{:?}", smell_type)
+        _ => format!("{smell_type:?}")
             .split('{')
             .next()
             .unwrap_or("Unknown")

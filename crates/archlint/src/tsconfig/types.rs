@@ -31,8 +31,8 @@ pub struct CompilerOptions {
 impl CompilerOptions {
     /// Merges another `CompilerOptions` into this one.
     /// Existing values in `self` take precedence over values from `other`.
-    pub fn merge(&mut self, other: CompilerOptions) {
-        let CompilerOptions {
+    pub fn merge(&mut self, other: Self) {
+        let Self {
             paths,
             base_url,
             out_dir,

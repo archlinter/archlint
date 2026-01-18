@@ -5,6 +5,7 @@ use archlint::detectors::{ArchSmell, Detector, Severity, SmellMetric, SmellType}
 use archlint::snapshot::{SnapshotGenerator, SnapshotSmell};
 use common::analyze_fixture_with_config;
 use std::collections::HashMap;
+use std::convert::TryFrom;
 use std::path::PathBuf;
 
 #[test]
@@ -35,7 +36,7 @@ fn test_metrics_roundtrip_integration() {
 
     // Create a mock ScanResult
     let smells = vec![archlint::api::SmellWithExplanation {
-        smell: original_smell.clone(),
+        smell: original_smell,
         explanation: archlint::Explanation {
             problem: "test".into(),
             reason: "test".into(),
@@ -49,14 +50,14 @@ fn test_metrics_roundtrip_integration() {
         summary: Default::default(),
         files: vec![],
         grade: Default::default(),
-        project_path: project_root.clone(),
+        project_path: project_root,
     };
 
     let snapshot = generator.generate(&scan_result);
     let snapshot_smell = &snapshot.smells[0];
 
-    // 2. Convert SnapshotSmell -> ArchSmell (via From trait)
-    let restored_smell = ArchSmell::from(snapshot_smell);
+    // 2. Convert SnapshotSmell -> ArchSmell (via TryFrom trait)
+    let restored_smell = ArchSmell::try_from(snapshot_smell).unwrap();
 
     // 3. Verify all metrics are preserved
     assert_eq!(restored_smell.fan_in(), Some(10));
@@ -129,7 +130,7 @@ fn test_unknown_smell_type_integration() {
         locations: vec![],
     };
 
-    let restored_smell = ArchSmell::from(&snapshot);
+    let restored_smell = ArchSmell::try_from(&snapshot).unwrap();
 
     match restored_smell.smell_type {
         SmellType::Unknown { raw_type } => {

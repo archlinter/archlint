@@ -4,13 +4,14 @@ use petgraph::graph::NodeIndex;
 
 /// Initializes the detector module.
 /// This function is used for module registration side-effects.
-pub fn init() {}
+pub const fn init() {}
 
 #[detector(SmellType::SdpViolation, default_enabled = false)]
 pub struct SdpViolationDetector;
 
 impl SdpViolationDetector {
-    pub fn new_default(_config: &crate::config::Config) -> Self {
+    #[must_use]
+    pub const fn new_default(_config: &crate::config::Config) -> Self {
         Self
     }
 
@@ -42,9 +43,8 @@ impl SdpViolationDetector {
                     ctx.graph.get_file_path(to_node),
                 ) {
                     let edge_data = ctx.graph.get_edge_data(node, to_node);
-                    let (import_line, import_range) = edge_data
-                        .map(|e| (e.import_line, e.import_range))
-                        .unwrap_or((0, None));
+                    let (import_line, import_range) =
+                        edge_data.map_or((0, None), |e| (e.import_line, e.import_range));
 
                     smells.push(ArchSmell::new_sdp_violation(
                         from_path.clone(),

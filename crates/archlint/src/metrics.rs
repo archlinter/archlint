@@ -130,7 +130,8 @@ impl GitChurn {
         }
     }
 
-    pub fn is_available(&self) -> bool {
+    #[must_use]
+    pub const fn is_available(&self) -> bool {
         self.repo.is_some()
     }
 }
@@ -142,7 +143,8 @@ pub struct FileMetrics {
 }
 
 impl FileMetrics {
-    pub fn new(fan_in: usize, fan_out: usize, churn: usize) -> Self {
+    #[must_use]
+    pub const fn new(fan_in: usize, fan_out: usize, churn: usize) -> Self {
         Self {
             fan_in,
             fan_out,

@@ -4,13 +4,14 @@ use std::path::Path;
 
 /// Initializes the detector module.
 /// This function is used for module registration side-effects.
-pub fn init() {}
+pub const fn init() {}
 
 #[detector(SmellType::TestLeakage, default_enabled = false)]
 pub struct TestLeakageDetector;
 
 impl TestLeakageDetector {
-    pub fn new_default(_config: &crate::config::Config) -> Self {
+    #[must_use]
+    pub const fn new_default(_config: &crate::config::Config) -> Self {
         Self
     }
 
@@ -30,9 +31,8 @@ impl TestLeakageDetector {
             if let Some(to_path) = ctx.graph.get_file_path(to_node) {
                 if self.is_test_file(to_path, test_patterns) {
                     let edge_data = ctx.graph.get_edge_data(node, to_node);
-                    let (import_line, import_range) = edge_data
-                        .map(|e| (e.import_line, e.import_range))
-                        .unwrap_or((0, None));
+                    let (import_line, import_range) =
+                        edge_data.map_or((0, None), |e| (e.import_line, e.import_range));
 
                     smells.push(ArchSmell::new_test_leakage(
                         from_path.clone(),
@@ -118,16 +118,12 @@ impl TestLeakageDetector {
 
     fn has_test_component(&self, path: &Path) -> bool {
         path.components().any(|component| {
-            component
-                .as_os_str()
-                .to_str()
-                .map(|s| {
-                    matches!(
-                        s,
-                        "__tests__" | "__mocks__" | "test" | "tests" | "__fixtures__"
-                    )
-                })
-                .unwrap_or(false)
+            component.as_os_str().to_str().is_some_and(|s| {
+                matches!(
+                    s,
+                    "__tests__" | "__mocks__" | "test" | "tests" | "__fixtures__"
+                )
+            })
         })
     }
 }

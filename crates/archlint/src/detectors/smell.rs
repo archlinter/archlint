@@ -22,7 +22,8 @@ pub struct LocationDetail {
 
 impl LocationDetail {
     /// Create a new location detail.
-    pub fn new(file: PathBuf, line: usize, description: String) -> Self {
+    #[must_use]
+    pub const fn new(file: PathBuf, line: usize, description: String) -> Self {
         Self {
             file,
             line,
@@ -33,7 +34,8 @@ impl LocationDetail {
     }
 
     /// Add exact range information to the location detail.
-    pub fn with_range(mut self, range: CodeRange) -> Self {
+    #[must_use]
+    pub const fn with_range(mut self, range: CodeRange) -> Self {
         self.line = range.start_line;
         self.column = Some(range.start_column);
         self.range = Some(range);
@@ -131,18 +133,22 @@ impl ArchSmell {
     impl_metric_accessor!(primitive_count, PrimitiveCount, usize);
     impl_metric_accessor!(internal_refs, InternalRefs, usize);
     impl_metric_accessor!(external_refs, ExternalRefs, usize);
+    impl_metric_accessor!(threshold, Threshold, usize);
 
     /// Get the severity level of this smell.
-    pub fn effective_severity(&self) -> Severity {
+    #[must_use]
+    pub const fn effective_severity(&self) -> Severity {
         self.severity
     }
 
     /// Calculate weighted score
-    pub fn score(&self, config: &SeverityConfig) -> u32 {
+    #[must_use]
+    pub const fn score(&self, config: &SeverityConfig) -> u32 {
         let severity = self.effective_severity();
         config.weights.score(&severity)
     }
 
+    #[must_use]
     pub fn new_cycle(files: Vec<PathBuf>) -> Self {
         let cycle_length = files.len();
         let severity = match cycle_length {
@@ -162,6 +168,7 @@ impl ArchSmell {
         }
     }
 
+    #[must_use]
     pub fn new_cycle_with_locations(files: Vec<PathBuf>, locations: Vec<LocationDetail>) -> Self {
         let cycle_length = files.len();
         let severity = match cycle_length {
@@ -181,6 +188,7 @@ impl ArchSmell {
         }
     }
 
+    #[must_use]
     pub fn new_cycle_cluster(cluster: CycleCluster) -> Self {
         let cycle_length = cluster.files.len();
         let severity = match cycle_length {
@@ -200,6 +208,7 @@ impl ArchSmell {
         }
     }
 
+    #[must_use]
     pub fn new_god_module(file: PathBuf, fan_in: usize, fan_out: usize, churn: usize) -> Self {
         // Score calculation: fan-in + fan-out + (churn / 2)
         // Churn is weighted at 50% as it can grow significantly over time
@@ -225,6 +234,7 @@ impl ArchSmell {
         }
     }
 
+    #[must_use]
     pub fn new_dead_code(file: PathBuf) -> Self {
         Self {
             smell_type: SmellType::DeadCode,
@@ -236,21 +246,20 @@ impl ArchSmell {
         }
     }
 
+    #[must_use]
     pub fn new_dead_symbol(file: PathBuf, name: String, kind: String) -> Self {
         Self::new_dead_symbol_with_line(file, name, kind, 0)
     }
 
+    #[must_use]
     pub fn new_dead_symbol_with_line(
         file: PathBuf,
         name: String,
         kind: String,
         line: usize,
     ) -> Self {
-        let location = LocationDetail::new(
-            file.clone(),
-            line,
-            format!("{} '{}' definition", kind, name),
-        );
+        let location =
+            LocationDetail::new(file.clone(), line, format!("{kind} '{name}' definition"));
 
         Self {
             smell_type: SmellType::DeadSymbol { name, kind },
@@ -273,10 +282,15 @@ impl ArchSmell {
     ) -> Self {
         let severity = if complexity >= threshold * 2 {
             Severity::High
-        } else if complexity >= (threshold as f32 * 1.5) as usize {
-            Severity::Medium
         } else {
-            Severity::Low
+            // Calculate 1.5 * threshold safely using integer arithmetic
+            // This is equivalent to (threshold * 1.5).ceil()
+            let rounded_threshold_usize = (threshold * 3).div_ceil(2);
+            if complexity >= rounded_threshold_usize {
+                Severity::Medium
+            } else {
+                Severity::Low
+            }
         };
 
         let type_name = if is_cognitive {
@@ -287,10 +301,7 @@ impl ArchSmell {
         let mut location = LocationDetail::new(
             file.clone(),
             line,
-            format!(
-                "Function '{}' ({} complexity: {})",
-                name, type_name, complexity
-            ),
+            format!("Function '{name}' ({type_name} complexity: {complexity})"),
         );
         if let Some(r) = range {
             location = location.with_range(r);
@@ -327,6 +338,7 @@ impl ArchSmell {
         }
     }
 
+    #[must_use]
     pub fn new_high_cyclomatic_complexity(
         file: PathBuf,
         name: String,
@@ -338,6 +350,7 @@ impl ArchSmell {
         Self::new_complexity_smell(file, name, line, complexity, threshold, range, false)
     }
 
+    #[must_use]
     pub fn new_high_cognitive_complexity(
         file: PathBuf,
         name: String,
@@ -349,7 +362,8 @@ impl ArchSmell {
         Self::new_complexity_smell(file, name, line, complexity, threshold, range, true)
     }
 
-    pub fn new_large_file(file: PathBuf, lines: usize) -> Self {
+    #[must_use]
+    pub fn new_large_file(file: PathBuf, lines: usize, threshold: usize) -> Self {
         let severity = match lines {
             0..=1500 => Severity::Low,
             1501..=3000 => Severity::Medium,
@@ -360,12 +374,13 @@ impl ArchSmell {
             smell_type: SmellType::LargeFile,
             severity,
             files: vec![file],
-            metrics: vec![SmellMetric::Lines(lines)],
+            metrics: vec![SmellMetric::Lines(lines), SmellMetric::Threshold(threshold)],
             locations: Vec::new(),
             cluster: None,
         }
     }
 
+    #[must_use]
     pub fn new_unstable_interface(
         file: PathBuf,
         churn: usize,
@@ -393,6 +408,7 @@ impl ArchSmell {
         }
     }
 
+    #[must_use]
     pub fn new_feature_envy(
         file: PathBuf,
         most_envied_module: PathBuf,
@@ -422,6 +438,7 @@ impl ArchSmell {
         }
     }
 
+    #[must_use]
     pub fn new_shotgun_surgery(
         file: PathBuf,
         avg_co_changes: f64,
@@ -444,7 +461,7 @@ impl ArchSmell {
         )];
 
         locations.extend(co_changed_files.iter().map(|(f, count)| {
-            LocationDetail::new(f.clone(), 0, format!("Changed together {} times", count))
+            LocationDetail::new(f.clone(), 0, format!("Changed together {count} times"))
         }));
 
         Self {
@@ -460,6 +477,7 @@ impl ArchSmell {
         }
     }
 
+    #[must_use]
     pub fn new_hub_dependency(package: String, dependent_files: Vec<PathBuf>) -> Self {
         let count = dependent_files.len();
         let severity = if count >= 50 {
@@ -490,6 +508,7 @@ impl ArchSmell {
         }
     }
 
+    #[must_use]
     pub fn new_test_leakage(
         from: PathBuf,
         to: PathBuf,
@@ -507,9 +526,7 @@ impl ArchSmell {
         }
 
         Self {
-            smell_type: SmellType::TestLeakage {
-                test_file: to.clone(),
-            },
+            smell_type: SmellType::TestLeakage { test_file: to },
             severity: Severity::High,
             files: vec![location.file.clone()],
             metrics: Vec::new(),
@@ -518,6 +535,7 @@ impl ArchSmell {
         }
     }
 
+    #[must_use]
     pub fn new_layer_violation(
         from: PathBuf,
         to: PathBuf,
@@ -553,6 +571,7 @@ impl ArchSmell {
         }
     }
 
+    #[must_use]
     pub fn new_sdp_violation(
         from: PathBuf,
         to: PathBuf,
@@ -589,6 +608,7 @@ impl ArchSmell {
         }
     }
 
+    #[must_use]
     pub fn new_barrel_abuse(path: PathBuf, reexport_count: usize, is_in_cycle: bool) -> Self {
         Self {
             smell_type: SmellType::BarrelFileAbuse,
@@ -604,6 +624,7 @@ impl ArchSmell {
         }
     }
 
+    #[must_use]
     pub fn new_vendor_coupling(package: String, files: Vec<PathBuf>) -> Self {
         let count = files.len();
         Self {
@@ -619,6 +640,7 @@ impl ArchSmell {
         }
     }
 
+    #[must_use]
     pub fn new_side_effect_import(path: PathBuf, source: String, line: usize) -> Self {
         Self {
             smell_type: SmellType::SideEffectImport,
@@ -628,12 +650,13 @@ impl ArchSmell {
             locations: vec![LocationDetail::new(
                 path,
                 line,
-                format!("Side-effect import of '{}'", source),
+                format!("Side-effect import of '{source}'"),
             )],
             cluster: None,
         }
     }
 
+    #[must_use]
     pub fn new_hub_module(path: PathBuf, fan_in: usize, fan_out: usize, complexity: usize) -> Self {
         Self {
             smell_type: SmellType::HubModule,
@@ -649,6 +672,7 @@ impl ArchSmell {
         }
     }
 
+    #[must_use]
     pub fn new_low_cohesion(path: PathBuf, class_name: String, lcom: usize) -> Self {
         Self {
             smell_type: SmellType::LowCohesion {
@@ -661,12 +685,13 @@ impl ArchSmell {
             locations: vec![LocationDetail::new(
                 path,
                 0,
-                format!("Class '{}' has low cohesion", class_name),
+                format!("Class '{class_name}' has low cohesion"),
             )],
             cluster: None,
         }
     }
 
+    #[must_use]
     pub fn new_scattered_module(path: PathBuf, components: usize) -> Self {
         Self {
             smell_type: SmellType::ScatteredModule { components },
@@ -676,12 +701,13 @@ impl ArchSmell {
             locations: vec![LocationDetail::new(
                 path,
                 0,
-                format!("Module has {} unconnected components", components),
+                format!("Module has {components} unconnected components"),
             )],
             cluster: None,
         }
     }
 
+    #[must_use]
     pub fn new_high_coupling(path: PathBuf, cbo: usize) -> Self {
         Self {
             smell_type: SmellType::HighCoupling { cbo },
@@ -693,7 +719,8 @@ impl ArchSmell {
         }
     }
 
-    pub fn new_package_cycle(packages: Vec<String>) -> Self {
+    #[must_use]
+    pub const fn new_package_cycle(packages: Vec<String>) -> Self {
         Self {
             smell_type: SmellType::PackageCycle { packages },
             severity: Severity::High,
@@ -704,6 +731,7 @@ impl ArchSmell {
         }
     }
 
+    #[must_use]
     pub fn new_shared_mutable_state(path: PathBuf, symbol: String) -> Self {
         Self {
             smell_type: SmellType::SharedMutableState {
@@ -715,12 +743,13 @@ impl ArchSmell {
             locations: vec![LocationDetail::new(
                 path,
                 0,
-                format!("Exported mutable state '{}'", symbol),
+                format!("Exported mutable state '{symbol}'"),
             )],
             cluster: None,
         }
     }
 
+    #[must_use]
     pub fn new_deep_nesting(
         path: PathBuf,
         name: String,
@@ -740,13 +769,14 @@ impl ArchSmell {
             locations: vec![LocationDetail::new(
                 path,
                 line,
-                format!("Function '{}' is too deeply nested", name),
+                format!("Function '{name}' is too deeply nested"),
             )
             .with_range(range)],
             cluster: None,
         }
     }
 
+    #[must_use]
     pub fn new_long_params(
         path: PathBuf,
         name: String,
@@ -765,13 +795,14 @@ impl ArchSmell {
             locations: vec![LocationDetail::new(
                 path,
                 line,
-                format!("Function '{}' has {} parameters", name, count),
+                format!("Function '{name}' has {count} parameters"),
             )
             .with_range(range)],
             cluster: None,
         }
     }
 
+    #[must_use]
     pub fn new_primitive_obsession(path: PathBuf, name: String, primitives: usize) -> Self {
         Self {
             smell_type: SmellType::PrimitiveObsession {
@@ -784,15 +815,13 @@ impl ArchSmell {
             locations: vec![LocationDetail::new(
                 path,
                 0,
-                format!(
-                    "Function '{}' has {} primitive parameters",
-                    name, primitives
-                ),
+                format!("Function '{name}' has {primitives} primitive parameters"),
             )],
             cluster: None,
         }
     }
 
+    #[must_use]
     pub fn new_orphan_type(path: PathBuf, name: String) -> Self {
         Self {
             smell_type: SmellType::OrphanType { name: name.clone() },
@@ -802,12 +831,13 @@ impl ArchSmell {
             locations: vec![LocationDetail::new(
                 path,
                 0,
-                format!("Type '{}' is never used", name),
+                format!("Type '{name}' is never used"),
             )],
             cluster: None,
         }
     }
 
+    #[must_use]
     pub fn new_abstractness_violation(
         path: PathBuf,
         distance: f64,
@@ -832,14 +862,14 @@ impl ArchSmell {
                     "Uselessness"
                 };
                 format!(
-                        "Zone: {} | Distance: {:.2} (Abstractness: {:.2}, Instability: {:.2}, Fan-in: {})",
-                        zone, distance, abstractness, instability, fan_in
+                        "Zone: {zone} | Distance: {distance:.2} (Abstractness: {abstractness:.2}, Instability: {instability:.2}, Fan-in: {fan_in})"
                     )
             })],
             cluster: None,
         }
     }
 
+    #[must_use]
     pub fn new_scattered_configuration(env_var: String, files: Vec<PathBuf>) -> Self {
         let count = files.len();
         Self {
@@ -852,12 +882,13 @@ impl ArchSmell {
             metrics: vec![SmellMetric::DependentCount(count)],
             locations: files
                 .into_iter()
-                .map(|f| LocationDetail::new(f, 0, format!("Accesses '{}'", env_var)))
+                .map(|f| LocationDetail::new(f, 0, format!("Accesses '{env_var}'")))
                 .collect(),
             cluster: None,
         }
     }
 
+    #[must_use]
     pub fn new_code_clone(
         locations: Vec<LocationDetail>,
         token_count: usize,
@@ -893,15 +924,18 @@ impl ArchSmell {
     }
 }
 
-impl From<&SnapshotSmell> for ArchSmell {
-    fn from(smell: &SnapshotSmell) -> Self {
+impl TryFrom<&SnapshotSmell> for ArchSmell {
+    type Error = String;
+
+    fn try_from(smell: &SnapshotSmell) -> Result<Self, Self::Error> {
         let mut metrics = Vec::new();
         for (name, value) in &smell.metrics {
             let json_val = match value {
                 MetricValue::Int(i) => serde_json::Value::Number((*i).into()),
-                MetricValue::Float(f) => {
-                    serde_json::Value::Number(serde_json::Number::from_f64(*f).unwrap())
-                }
+                MetricValue::Float(f) => serde_json::Value::Number(
+                    serde_json::Number::from_f64(*f)
+                        .ok_or_else(|| format!("Invalid float value: {f}"))?,
+                ),
                 MetricValue::String(s) => serde_json::Value::String(s.clone()),
             };
 
@@ -923,14 +957,14 @@ impl From<&SnapshotSmell> for ArchSmell {
             })
             .collect();
 
-        Self {
+        Ok(Self {
             smell_type: SmellType::from(smell),
             severity: smell.severity.parse().unwrap_or(Severity::Medium),
             files: smell.files.iter().map(PathBuf::from).collect(),
             metrics,
             locations,
             cluster: None,
-        }
+        })
     }
 }
 
@@ -939,6 +973,7 @@ mod tests {
     use super::*;
     use crate::snapshot::types::{MetricValue, SnapshotSmell};
     use std::collections::HashMap;
+    use std::convert::TryFrom;
 
     #[test]
     fn test_arch_smell_from_snapshot() {
@@ -956,7 +991,7 @@ mod tests {
             locations: vec![],
         };
 
-        let arch_smell = ArchSmell::from(&snapshot);
+        let arch_smell = ArchSmell::try_from(&snapshot).unwrap();
         assert_eq!(arch_smell.severity, Severity::Critical);
         assert_eq!(arch_smell.files[0], PathBuf::from("src/app.ts"));
         assert_eq!(arch_smell.fan_in(), Some(5));

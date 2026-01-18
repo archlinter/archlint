@@ -188,9 +188,8 @@ impl Analyzer {
 
         for (detector_id, detector) in enabled_detectors {
             let info = registry.get_info(detector_id);
-            let is_file_local = info
-                .map(|i| i.category == crate::detectors::DetectorCategory::FileLocal)
-                .unwrap_or(false);
+            let is_file_local =
+                info.is_some_and(|i| i.category == crate::detectors::DetectorCategory::FileLocal);
 
             let smells = detector.detect(ctx);
 
@@ -335,11 +334,13 @@ impl Analyzer {
     ///
     /// This uses the dependency graph to find all files that directly or
     /// transitively depend on the changed files.
+    #[must_use]
     pub fn get_affected_files(&self, changed: &[PathBuf]) -> Vec<PathBuf> {
         self.state.get_affected_files(changed).into_iter().collect()
     }
 
     /// Get statistics about the current internal state of the analyzer.
+    #[must_use]
     pub fn get_state_stats(&self) -> StateStats {
         StateStats {
             files_count: self.state.file_symbols.len(),

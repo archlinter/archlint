@@ -3,13 +3,14 @@ use crate::engine::AnalysisContext;
 
 /// Initializes the detector module.
 /// This function is used for module registration side-effects.
-pub fn init() {}
+pub const fn init() {}
 
 #[detector(SmellType::SideEffectImport)]
 pub struct SideEffectImportDetector;
 
 impl SideEffectImportDetector {
-    pub fn new_default(_config: &crate::config::Config) -> Self {
+    #[must_use]
+    pub const fn new_default(_config: &crate::config::Config) -> Self {
         Self
     }
 
@@ -56,7 +57,7 @@ impl Detector for SideEffectImportDetector {
             columns: ["Location", "Source", "pts"],
             row: SideEffectImport { } (smell, location, pts) => [
                 location,
-                smell.locations.first().map(|l| l.description.replace("Side-effect import of ", "").replace("'", "")).unwrap_or_else(|| "unknown".into()),
+                smell.locations.first().map_or_else(|| "unknown".into(), |l| l.description.replace("Side-effect import of ", "").replace('\'', "")),
                 pts
             ]
         }

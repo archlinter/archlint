@@ -106,9 +106,10 @@ pub fn analyze_fixture_with_config(name: &str, config: Config) -> AnalysisContex
 #[allow(dead_code)]
 pub fn create_config_with_rule(rule_name: &str, options_yaml: Option<&str>) -> Config {
     let mut config = Config::default();
-    let options = options_yaml
-        .map(|s| serde_yaml::from_str(s).expect("Failed to parse options YAML"))
-        .unwrap_or(serde_yaml::Value::Mapping(serde_yaml::Mapping::new()));
+    let options = options_yaml.map_or(
+        serde_yaml::Value::Mapping(serde_yaml::Mapping::new()),
+        |s| serde_yaml::from_str(s).expect("Failed to parse options YAML"),
+    );
 
     config.rules.insert(
         rule_name.to_string(),

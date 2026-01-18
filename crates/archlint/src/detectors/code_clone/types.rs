@@ -1,7 +1,7 @@
 use std::path::PathBuf;
 
 /// Represents a single occurrence of a duplicated code block.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Occurrence {
     /// Absolute path to the file containing the clone.
     pub file: PathBuf,
@@ -19,7 +19,8 @@ pub struct Occurrence {
 
 impl Occurrence {
     /// Checks if this occurrence overlaps with another one in terms of source lines.
-    pub fn overlaps(&self, other: &Occurrence) -> bool {
+    #[must_use]
+    pub fn overlaps(&self, other: &Self) -> bool {
         if self.file != other.file {
             return false;
         }
@@ -29,7 +30,7 @@ impl Occurrence {
     }
 
     /// Merges another occurrence into this one, expanding the boundaries.
-    pub fn merge_with(&mut self, other: Occurrence) {
+    pub fn merge_with(&mut self, other: Self) {
         // Update start line/column if other starts earlier
         if other.start_line < self.start_line {
             self.start_line = other.start_line;
@@ -51,7 +52,7 @@ impl Occurrence {
 }
 
 /// Represents a set of duplicated code blocks (a clone class).
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Cluster {
     /// Hash of the normalized tokens in this clone class.
     pub hash: [u8; 32],

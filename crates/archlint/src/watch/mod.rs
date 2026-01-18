@@ -21,7 +21,8 @@ pub struct FileWatcher {
 }
 
 impl FileWatcher {
-    pub fn new(path: PathBuf, config: WatchConfig) -> Self {
+    #[must_use]
+    pub const fn new(path: PathBuf, config: WatchConfig) -> Self {
         Self {
             config,
             project_path: path,
@@ -83,7 +84,7 @@ impl FileWatcher {
         event: notify::Event,
         pending_changes: &mut Vec<PathBuf>,
         last_change: &mut Instant,
-        watcher: &FileWatcher,
+        watcher: &Self,
     ) {
         for path in event.paths {
             if watcher.should_process(&path) {

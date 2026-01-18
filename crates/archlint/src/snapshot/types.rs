@@ -37,7 +37,7 @@ pub struct SnapshotSmell {
     /// Stable ID for diff comparison
     pub id: String,
 
-    /// Smell type as string (e.g., "CyclicDependency", "GodModule")
+    /// Smell type as string (e.g., "`CyclicDependency`", "`GodModule`")
     pub smell_type: String,
 
     /// Severity level
@@ -58,7 +58,7 @@ pub struct SnapshotSmell {
     pub locations: Vec<Location>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct Location {
     pub file: String,
@@ -77,25 +77,28 @@ pub enum MetricValue {
 }
 
 impl MetricValue {
-    pub fn as_i64(&self) -> Option<i64> {
+    #[must_use]
+    pub const fn as_i64(&self) -> Option<i64> {
         match self {
-            MetricValue::Int(v) => Some(*v),
-            MetricValue::Float(v) => Some(*v as i64),
-            MetricValue::String(_) => None,
+            Self::Int(v) => Some(*v),
+            Self::Float(v) => Some(*v as i64),
+            Self::String(_) => None,
         }
     }
 
-    pub fn as_f64(&self) -> f64 {
+    #[must_use]
+    pub const fn as_f64(&self) -> f64 {
         match self {
-            MetricValue::Int(v) => *v as f64,
-            MetricValue::Float(v) => *v,
-            MetricValue::String(_) => 0.0,
+            Self::Int(v) => *v as f64,
+            Self::Float(v) => *v,
+            Self::String(_) => 0.0,
         }
     }
 
-    pub fn as_str(&self) -> Option<&str> {
+    #[must_use]
+    pub const fn as_str(&self) -> Option<&str> {
         match self {
-            MetricValue::String(s) => Some(s.as_str()),
+            Self::String(s) => Some(s.as_str()),
             _ => None,
         }
     }

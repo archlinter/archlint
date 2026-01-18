@@ -6,6 +6,7 @@ use std::path::{Path, PathBuf};
 pub struct MermaidGenerator;
 
 impl MermaidGenerator {
+    #[must_use]
     pub fn generate(
         smells: &[(ArchSmell, crate::explain::Explanation)],
         graph: &DependencyGraph,
@@ -58,16 +59,16 @@ impl MermaidGenerator {
         sorted_files.sort();
 
         for (idx, file) in sorted_files.into_iter().enumerate() {
-            let node_id = format!("file{}", idx);
+            let node_id = format!("file{idx}");
             let file_name = Self::get_short_name(file);
 
             let classes =
-                Self::get_css_classes(file_smells.get(file).map(|v| v.as_slice()).unwrap_or(&[]));
+                Self::get_css_classes(file_smells.get(file).map_or(&[], std::vec::Vec::as_slice));
 
             if classes.is_empty() {
-                output.push_str(&format!("    {}[{}]\n", node_id, file_name));
+                output.push_str(&format!("    {node_id}[{file_name}]\n"));
             } else {
-                output.push_str(&format!("    {}[{}]:::{}\n", node_id, file_name, classes));
+                output.push_str(&format!("    {node_id}[{file_name}]:::{classes}\n"));
             }
 
             node_ids.insert(file.clone(), node_id);
@@ -128,7 +129,7 @@ impl MermaidGenerator {
 
             let edge = (source_id.clone(), target_id.clone());
             if added_edges.insert(edge) {
-                output.push_str(&format!("    {} --> {}\n", source_id, target_id));
+                output.push_str(&format!("    {source_id} --> {target_id}\n"));
             }
         }
     }

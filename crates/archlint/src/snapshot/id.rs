@@ -3,6 +3,7 @@ use log::debug;
 use std::path::{Path, PathBuf};
 
 /// Generate stable, deterministic ID for a smell
+#[must_use]
 pub fn generate_smell_id(smell: &ArchSmell, project_root: &Path) -> String {
     match &smell.smell_type {
         SmellType::CyclicDependency | SmellType::CyclicDependencyCluster => {
@@ -42,31 +43,31 @@ pub fn generate_smell_id(smell: &ArchSmell, project_root: &Path) -> String {
         }),
 
         SmellType::HubDependency { package } => {
-            format!("hub_dep:{}", package)
+            format!("hub_dep:{package}")
         }
 
         SmellType::VendorCoupling { package } => {
-            format!("vendor:{}", package)
+            format!("vendor:{package}")
         }
 
         SmellType::SideEffectImport => with_line_hash_fallback(smell, |line| {
             let file = &smell.files[0];
             let relative = relative_path(file, project_root);
-            format!("sideeffect:{}:{}", relative, line)
+            format!("sideeffect:{relative}:{line}")
         }),
 
         SmellType::TestLeakage { test_file } => {
             let from = &smell.files[0];
             let from_rel = relative_path(from, project_root);
             let to_rel = relative_path(test_file, project_root);
-            format!("test_leak:{}:{}", from_rel, to_rel)
+            format!("test_leak:{from_rel}:{to_rel}")
         }
 
         SmellType::FeatureEnvy { most_envied_module } => {
             let from = &smell.files[0];
             let from_rel = relative_path(from, project_root);
             let to_rel = relative_path(most_envied_module, project_root);
-            format!("envy:{}:{}", from_rel, to_rel)
+            format!("envy:{from_rel}:{to_rel}")
         }
 
         SmellType::SharedMutableState { symbol } => with_line_hash_fallback(smell, |line| {
@@ -90,11 +91,11 @@ pub fn generate_smell_id(smell: &ArchSmell, project_root: &Path) -> String {
         }),
 
         SmellType::ScatteredConfiguration { env_var, .. } => {
-            format!("config:{}", env_var)
+            format!("config:{env_var}")
         }
 
         SmellType::CodeClone { clone_hash, .. } => {
-            format!("clone:{}", clone_hash)
+            format!("clone:{clone_hash}")
         }
 
         _ => {
@@ -112,13 +113,13 @@ where
     F: FnOnce(usize) -> String,
 {
     let location = smell.locations.first();
-    let line = location.map(|l| l.line).unwrap_or(0);
+    let line = location.map_or(0, |l| l.line);
     let mut id = f(line);
     if line == 0 {
         // Fallback: add hash of description (or full smell if no location) to avoid collisions
         let hash_input = match location {
             Some(l) => l.description.clone(),
-            None => format!("{:?}", smell),
+            None => format!("{smell:?}"),
         };
         id = format!("{}:{}", id, short_hash(&hash_input));
     }
@@ -127,7 +128,7 @@ where
 
 fn relative_path(path: &Path, project_root: &Path) -> String {
     let rel = path.strip_prefix(project_root).unwrap_or_else(|_| {
-        debug!("Failed to strip prefix {:?} from {:?}", project_root, path);
+        debug!("Failed to strip prefix {project_root:?} from {path:?}");
         path
     });
     // Normalise path separators and handle potential colons in paths (Windows)
@@ -147,7 +148,7 @@ fn id_for_cycle(files: &[PathBuf], project_root: &Path) -> String {
     let content = relative_paths.join("|");
     let hash = short_hash(&content);
 
-    format!("cycle:{}", hash)
+    format!("cycle:{hash}")
 }
 
 fn id_for_file_smell(file: &Path, prefix: &str, project_root: &Path) -> String {
@@ -157,7 +158,7 @@ fn id_for_file_smell(file: &Path, prefix: &str, project_root: &Path) -> String {
 
 fn id_for_layer_violation(from_file: &Path, to_layer: &str, project_root: &Path) -> String {
     let relative = relative_path(from_file, project_root);
-    format!("layer:{}:{}", relative, to_layer)
+    format!("layer:{relative}:{to_layer}")
 }
 
 fn id_for_symbol_smell(
@@ -168,7 +169,7 @@ fn id_for_symbol_smell(
     project_root: &Path,
 ) -> String {
     let relative = relative_path(file, project_root);
-    format!("{}:{}:{}:{}", prefix, relative, symbol_name, line)
+    format!("{prefix}:{relative}:{symbol_name}:{line}")
 }
 
 fn id_generic(smell_type: &str, files: &[PathBuf], extra: &str, project_root: &Path) -> String {
@@ -195,7 +196,7 @@ fn short_hash(content: &str) -> String {
     let result = hasher.finalize();
 
     // Take first 8 hex chars for better stability/collision resistance than 6
-    format!("{:x}", result)[..8].to_string()
+    format!("{result:x}")[..8].to_string()
 }
 
 #[cfg(test)]
@@ -269,7 +270,7 @@ mod tests {
             severity: Severity::Low,
             files: vec![file.clone()],
             metrics: vec![],
-            locations: vec![LocationDetail::new(file.clone(), 0, "Desc 2".to_string())],
+            locations: vec![LocationDetail::new(file, 0, "Desc 2".to_string())],
             cluster: None,
         };
 
@@ -299,11 +300,7 @@ mod tests {
             severity: Severity::Low,
             files: vec![file.clone()],
             metrics: vec![],
-            locations: vec![LocationDetail::new(
-                file.clone(),
-                10,
-                "Some desc".to_string(),
-            )],
+            locations: vec![LocationDetail::new(file, 10, "Some desc".to_string())],
             cluster: None,
         };
 
@@ -326,14 +323,14 @@ mod tests {
                 kind: "function".to_string(),
             },
             severity: Severity::Low,
-            files: vec![file.clone()],
+            files: vec![file],
             metrics: vec![],
             locations: vec![], // Empty locations
             cluster: None,
         };
 
         let id = generate_smell_id(&smell, root);
-        let expected_hash = short_hash(&format!("{:?}", smell));
+        let expected_hash = short_hash(&format!("{smell:?}"));
         assert!(id.contains(&expected_hash));
     }
 
@@ -349,11 +346,7 @@ mod tests {
             severity: Severity::Low,
             files: vec![file.clone()],
             metrics: vec![],
-            locations: vec![LocationDetail::new(
-                file.clone(),
-                0,
-                "Side effect".to_string(),
-            )],
+            locations: vec![LocationDetail::new(file, 0, "Side effect".to_string())],
             cluster: None,
         };
 
@@ -374,11 +367,7 @@ mod tests {
             severity: Severity::Low,
             files: vec![file.clone()],
             metrics: vec![],
-            locations: vec![LocationDetail::new(
-                file.clone(),
-                10,
-                "Side effect".to_string(),
-            )],
+            locations: vec![LocationDetail::new(file, 10, "Side effect".to_string())],
             cluster: None,
         };
 

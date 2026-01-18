@@ -86,7 +86,7 @@ impl FileScanner {
 
         // Exclude only hard-coded system directories that should NEVER be scanned
         for def in DEFAULT_EXCLUSIONS {
-            override_builder.add(&format!("!{}", def))?;
+            override_builder.add(&format!("!{def}"))?;
         }
 
         walker.overrides(override_builder.build()?);
@@ -100,7 +100,7 @@ impl FileScanner {
         let entry = entry.ok()?;
         let path = entry.path();
 
-        if !entry.file_type().map(|ft| ft.is_file()).unwrap_or(false) {
+        if !entry.file_type().is_some_and(|ft| ft.is_file()) {
             return None;
         }
 
@@ -113,7 +113,7 @@ impl FileScanner {
             return match path.canonicalize() {
                 Ok(canonical) => Some(canonical),
                 Err(e) => {
-                    debug!("Failed to canonicalize path {:?}: {}", path, e);
+                    debug!("Failed to canonicalize path {path:?}: {e}");
                     None
                 }
             };

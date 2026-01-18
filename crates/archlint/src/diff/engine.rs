@@ -21,22 +21,29 @@ impl Default for DiffEngine {
     }
 }
 
+type SmellMap<'a> = HashMap<&'a str, &'a SnapshotSmell>;
+type SmellIdSet<'a> = HashSet<&'a str>;
+
 impl DiffEngine {
+    #[must_use]
     pub fn new() -> Self {
         Self::default()
     }
 
-    pub fn with_threshold(mut self, percent: f64) -> Self {
+    #[must_use]
+    pub const fn with_threshold(mut self, percent: f64) -> Self {
         self.metric_threshold_percent = percent;
         self
     }
 
-    pub fn with_line_tolerance(mut self, lines: usize) -> Self {
+    #[must_use]
+    pub const fn with_line_tolerance(mut self, lines: usize) -> Self {
         self.line_tolerance = lines;
         self
     }
 
     /// Add explanations to all regressions
+    #[must_use]
     pub fn diff_with_explain(
         &self,
         baseline: &Snapshot,
@@ -52,19 +59,10 @@ impl DiffEngine {
         result
     }
 
+    #[must_use]
     pub fn diff(&self, baseline: &Snapshot, current: &Snapshot) -> DiffResult {
-        // Build ID -> smell maps
-        let baseline_map: HashMap<&str, &SnapshotSmell> =
-            baseline.smells.iter().map(|s| (s.id.as_str(), s)).collect();
-
-        let current_map: HashMap<&str, &SnapshotSmell> =
-            current.smells.iter().map(|s| (s.id.as_str(), s)).collect();
-
-        let baseline_ids: HashSet<&str> = baseline_map.keys().copied().collect();
-        let current_ids: HashSet<&str> = current_map.keys().copied().collect();
-
-        let mut regressions = Vec::new();
-        let mut improvements = Vec::new();
+        let (baseline_map, current_map, baseline_ids, current_ids) =
+            Self::build_smell_maps(baseline, current);
 
         debug!(
             "Diffing baseline ({} smells) with current ({} smells)",
@@ -72,30 +70,76 @@ impl DiffEngine {
             current_ids.len()
         );
 
-        // Collect orphaned smells (not matched by exact ID)
+        let (orphaned_baseline, orphaned_current) =
+            Self::find_orphaned_smells(&baseline_map, &current_map, &baseline_ids, &current_ids);
+
+        let (matched_baseline_ids, matched_current_ids) =
+            self.apply_fuzzy_matching(&orphaned_baseline, &orphaned_current);
+
+        let mut regressions = Self::collect_new_smells(&orphaned_current, &matched_current_ids);
+        let mut improvements =
+            Self::collect_fixed_smells(&orphaned_baseline, &matched_baseline_ids);
+
+        self.check_existing_smells(
+            &baseline_ids,
+            &current_ids,
+            &baseline_map,
+            &current_map,
+            &mut regressions,
+            &mut improvements,
+        );
+
+        Self::sort_results(&mut regressions, &mut improvements);
+
+        let summary = Self::build_summary(&regressions, &improvements);
+
+        DiffResult {
+            has_regressions: !regressions.is_empty(),
+            regressions,
+            improvements,
+            summary,
+            baseline_commit: baseline.commit.clone(),
+            current_commit: current.commit.clone(),
+        }
+    }
+
+    fn build_smell_maps<'a>(
+        baseline: &'a Snapshot,
+        current: &'a Snapshot,
+    ) -> (SmellMap<'a>, SmellMap<'a>, SmellIdSet<'a>, SmellIdSet<'a>) {
+        let baseline_map: HashMap<&str, &SnapshotSmell> =
+            baseline.smells.iter().map(|s| (s.id.as_str(), s)).collect();
+        let current_map: HashMap<&str, &SnapshotSmell> =
+            current.smells.iter().map(|s| (s.id.as_str(), s)).collect();
+        let baseline_ids: HashSet<&str> = baseline_map.keys().copied().collect();
+        let current_ids: HashSet<&str> = current_map.keys().copied().collect();
+        (baseline_map, current_map, baseline_ids, current_ids)
+    }
+
+    fn find_orphaned_smells<'a>(
+        baseline_map: &'a HashMap<&str, &SnapshotSmell>,
+        current_map: &'a HashMap<&str, &SnapshotSmell>,
+        baseline_ids: &'a HashSet<&str>,
+        current_ids: &'a HashSet<&str>,
+    ) -> (Vec<&'a SnapshotSmell>, Vec<&'a SnapshotSmell>) {
         let orphaned_baseline: Vec<&SnapshotSmell> = baseline_ids
-            .difference(&current_ids)
+            .difference(current_ids)
             .map(|id| baseline_map[id])
             .collect();
-
         let orphaned_current: Vec<&SnapshotSmell> = current_ids
-            .difference(&baseline_ids)
+            .difference(baseline_ids)
             .map(|id| current_map[id])
             .collect();
+        (orphaned_baseline, orphaned_current)
+    }
 
-        // Apply fuzzy matching to find shifted smells
+    fn apply_fuzzy_matching(
+        &self,
+        orphaned_baseline: &[&SnapshotSmell],
+        orphaned_current: &[&SnapshotSmell],
+    ) -> (HashSet<String>, HashSet<String>) {
         let fuzzy = FuzzyMatcher::new(self.line_tolerance);
-        let matched_pairs = fuzzy.match_orphans(&orphaned_baseline, &orphaned_current);
-
-        // Build sets of matched IDs to exclude from new/fixed
-        let matched_baseline_ids: HashSet<&str> = matched_pairs
-            .iter()
-            .map(|p| p.baseline.id.as_str())
-            .collect();
-        let matched_current_ids: HashSet<&str> = matched_pairs
-            .iter()
-            .map(|p| p.current.id.as_str())
-            .collect();
+        let matched_pairs = fuzzy.match_orphans(orphaned_baseline, orphaned_current);
 
         debug!(
             "Fuzzy matching: {} pairs matched out of {} orphaned baseline, {} orphaned current",
@@ -104,9 +148,22 @@ impl DiffEngine {
             orphaned_current.len()
         );
 
-        // 1. New smells = regressions (excluding fuzzy-matched)
-        for smell in &orphaned_current {
-            if matched_current_ids.contains(smell.id.as_str()) {
+        let matched_baseline_ids: HashSet<String> = matched_pairs
+            .iter()
+            .map(|p| p.baseline.id.clone())
+            .collect();
+        let matched_current_ids: HashSet<String> =
+            matched_pairs.iter().map(|p| p.current.id.clone()).collect();
+        (matched_baseline_ids, matched_current_ids)
+    }
+
+    fn collect_new_smells(
+        orphaned_current: &[&SnapshotSmell],
+        matched_current_ids: &HashSet<String>,
+    ) -> Vec<Regression> {
+        let mut regressions = Vec::new();
+        for smell in orphaned_current {
+            if matched_current_ids.contains(&smell.id) {
                 debug!(
                     "Smell shifted (not new): {} ({})",
                     smell.id, smell.smell_type
@@ -126,10 +183,16 @@ impl DiffEngine {
                 explain: None,
             });
         }
+        regressions
+    }
 
-        // 2. Fixed smells = improvements (excluding fuzzy-matched)
-        for smell in &orphaned_baseline {
-            if matched_baseline_ids.contains(smell.id.as_str()) {
+    fn collect_fixed_smells(
+        orphaned_baseline: &[&SnapshotSmell],
+        matched_baseline_ids: &HashSet<String>,
+    ) -> Vec<Improvement> {
+        let mut improvements = Vec::new();
+        for smell in orphaned_baseline {
+            if matched_baseline_ids.contains(&smell.id) {
                 debug!(
                     "Smell shifted (not fixed): {} ({})",
                     smell.id, smell.smell_type
@@ -147,18 +210,26 @@ impl DiffEngine {
                 ),
             });
         }
+        improvements
+    }
 
-        // 3. Check existing smells for worsening/improvement
-        for id in baseline_ids.intersection(&current_ids) {
+    fn check_existing_smells(
+        &self,
+        baseline_ids: &HashSet<&str>,
+        current_ids: &HashSet<&str>,
+        baseline_map: &HashMap<&str, &SnapshotSmell>,
+        current_map: &HashMap<&str, &SnapshotSmell>,
+        regressions: &mut Vec<Regression>,
+        improvements: &mut Vec<Improvement>,
+    ) {
+        for id in baseline_ids.intersection(current_ids) {
             let baseline_smell = baseline_map[id];
             let current_smell = current_map[id];
 
-            // Check severity change
             if let Some(reg) = self.check_severity_change(id, baseline_smell, current_smell) {
                 regressions.push(reg);
             }
 
-            // Check metric worsening
             let comparator = MetricComparator::new(self.metric_threshold_percent);
             let (metric_regressions, metric_improvements) =
                 comparator.compare(id, baseline_smell, current_smell);
@@ -166,23 +237,24 @@ impl DiffEngine {
             regressions.extend(metric_regressions);
             improvements.extend(metric_improvements);
         }
+    }
 
-        // Sort regressions by severity (Critical > High > Medium > Low)
+    fn sort_results(regressions: &mut [Regression], improvements: &mut [Improvement]) {
         regressions.sort_by(|a, b| {
             let score_a = Self::severity_score(&a.smell.severity);
             let score_b = Self::severity_score(&b.smell.severity);
-            score_b.cmp(&score_a) // Higher severity first
+            score_b.cmp(&score_a)
         });
 
-        // Sort improvements by type priority (Fixed > SeverityDecrease > MetricImprovement)
         improvements.sort_by(|a, b| {
             let priority_a = Self::improvement_priority(&a.improvement_type);
             let priority_b = Self::improvement_priority(&b.improvement_type);
-            priority_a.cmp(&priority_b) // Higher priority first
+            priority_a.cmp(&priority_b)
         });
+    }
 
-        // Build summary
-        let summary = DiffSummary {
+    fn build_summary(regressions: &[Regression], improvements: &[Improvement]) -> DiffSummary {
+        DiffSummary {
             new_smells: regressions
                 .iter()
                 .filter(|r| matches!(r.regression_type, RegressionType::NewSmell))
@@ -201,15 +273,6 @@ impl DiffEngine {
                 .count(),
             total_regressions: regressions.len(),
             total_improvements: improvements.len(),
-        };
-
-        DiffResult {
-            has_regressions: !regressions.is_empty(),
-            regressions,
-            improvements,
-            summary,
-            baseline_commit: baseline.commit.clone(),
-            current_commit: current.commit.clone(),
         }
     }
 
@@ -261,7 +324,7 @@ impl DiffEngine {
     }
 
     /// Get priority for improvement type (higher = more important)
-    fn improvement_priority(improvement_type: &ImprovementType) -> u8 {
+    const fn improvement_priority(improvement_type: &ImprovementType) -> u8 {
         match improvement_type {
             ImprovementType::Fixed => 3,
             ImprovementType::SeverityDecrease { .. } => 2,

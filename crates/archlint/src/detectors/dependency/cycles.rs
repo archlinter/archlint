@@ -12,13 +12,14 @@ use std::path::{Path, PathBuf};
 
 /// Initializes the detector module.
 /// This function is used for module registration side-effects.
-pub fn init() {}
+pub const fn init() {}
 
 #[detector(SmellType::CyclicDependency)]
 pub struct CycleDetector;
 
 impl CycleDetector {
-    pub fn new_default(_config: &crate::config::Config) -> Self {
+    #[must_use]
+    pub const fn new_default(_config: &crate::config::Config) -> Self {
         Self
     }
 
@@ -91,7 +92,7 @@ impl CycleDetector {
         ));
         for file in files {
             let formatted_path = ExplainEngine::format_file_path(file);
-            output.push_str(&format!("- `{}`\n", formatted_path));
+            output.push_str(&format!("- `{formatted_path}`\n"));
         }
         output.push_str("\n</details>\n\n");
     }
@@ -121,7 +122,15 @@ impl CycleDetector {
         for (i, (smell, explanation)) in cycles.iter().enumerate() {
             output.push_str(&format!("### Cycle {}\n\n", i + 1));
 
-            if !smell.locations.is_empty() {
+            if smell.locations.is_empty() {
+                let cycle_path = smell
+                    .files
+                    .iter()
+                    .map(|p| format!("`{}`", ExplainEngine::format_file_path(p)))
+                    .collect::<Vec<_>>()
+                    .join(" → ");
+                output.push_str(&format!("**Path:** {cycle_path}\n\n"));
+            } else {
                 output.push_str("**Cycle Details:**\n\n");
                 output.push_str("| Location | Import |\n");
                 output.push_str("|----------|--------|\n");
@@ -130,20 +139,13 @@ impl CycleDetector {
                     output.push_str(&format!("| `{}` | {} |\n", location, loc.description));
                 }
                 output.push('\n');
-            } else {
-                let cycle_path = smell
-                    .files
-                    .iter()
-                    .map(|p| format!("`{}`", ExplainEngine::format_file_path(p)))
-                    .collect::<Vec<_>>()
-                    .join(" → ");
-                output.push_str(&format!("**Path:** {}\n\n", cycle_path));
             }
 
             crate::report::markdown::common::append_explanation(output, explanation);
         }
     }
 
+    #[must_use]
     pub fn detect_graph(graph: &DependencyGraph) -> Vec<ArchSmell> {
         let sccs = tarjan_scc(graph.graph());
 
@@ -387,7 +389,9 @@ impl Detector for CycleDetector {
             let mut body = String::new();
             let total_files: usize = cycle_clusters.iter().map(|(s, _)| s.files.len()).sum();
 
-            if !cycle_clusters.is_empty() {
+            if cycle_clusters.is_empty() {
+                Self::generate_legacy_cycles_report(&mut body, &cycles);
+            } else {
                 body.push_str(&format!(
                     "(Found {} clusters, {} files)\n\n",
                     cycle_clusters.len(),
@@ -405,8 +409,6 @@ impl Detector for CycleDetector {
                         );
                     }
                 }
-            } else {
-                Self::generate_legacy_cycles_report(&mut body, &cycles);
             }
             body
         })

@@ -6,13 +6,14 @@ use std::path::PathBuf;
 
 /// Initializes the detector module.
 /// This function is used for module registration side-effects.
-pub fn init() {}
+pub const fn init() {}
 
 #[detector(SmellType::HubDependency, default_enabled = false)]
 pub struct HubDependencyDetector;
 
 impl HubDependencyDetector {
-    pub fn new_default(_config: &crate::config::Config) -> Self {
+    #[must_use]
+    pub const fn new_default(_config: &crate::config::Config) -> Self {
         Self
     }
 
@@ -51,7 +52,7 @@ impl Detector for HubDependencyDetector {
                 } else {
                     "unknown"
                 };
-                format!("Hub Dependency: Too many files ({}) depend on package `{}`", count, package)
+                format!("Hub Dependency: Too many files ({count}) depend on package `{package}`")
             },
             reason: "The package is used by many different files in the project. This makes it a critical dependency that is hard to replace or update.",
             risks: [

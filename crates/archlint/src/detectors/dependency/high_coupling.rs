@@ -3,13 +3,14 @@ use crate::engine::AnalysisContext;
 
 /// Initializes the detector module.
 /// This function is used for module registration side-effects.
-pub fn init() {}
+pub const fn init() {}
 
 #[detector(SmellType::HighCoupling, default_enabled = false)]
 pub struct HighCouplingDetector;
 
 impl HighCouplingDetector {
-    pub fn new_default(_config: &crate::config::Config) -> Self {
+    #[must_use]
+    pub const fn new_default(_config: &crate::config::Config) -> Self {
         Self
     }
 }
@@ -23,7 +24,7 @@ impl Detector for HighCouplingDetector {
                 } else {
                     0
                 };
-                format!("High Coupling (CBO): {}", cbo)
+                format!("High Coupling (CBO): {cbo}")
             },
             reason: "Module has too many incoming and outgoing dependencies (Coupling Between Objects). High coupling makes code difficult to change and test in isolation.",
             risks: [

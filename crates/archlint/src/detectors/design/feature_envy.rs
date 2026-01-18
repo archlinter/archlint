@@ -5,13 +5,14 @@ use std::path::{Path, PathBuf};
 
 /// Initializes the detector module.
 /// This function is used for module registration side-effects.
-pub fn init() {}
+pub const fn init() {}
 
 #[detector(SmellType::FeatureEnvy, default_enabled = false)]
 pub struct FeatureEnvyDetector;
 
 impl FeatureEnvyDetector {
-    pub fn new_default(_config: &crate::config::Config) -> Self {
+    #[must_use]
+    pub const fn new_default(_config: &crate::config::Config) -> Self {
         Self
     }
 

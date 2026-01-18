@@ -49,8 +49,7 @@ impl<'a> UnifiedVisitor {
         let name = it
             .key
             .name()
-            .map(|c| CompactString::new(&c))
-            .unwrap_or_else(|| interned::ANONYMOUS.clone());
+            .map_or_else(|| interned::ANONYMOUS.clone(), |c| CompactString::new(&c));
 
         let old_method = self.current_method.take();
         if self.config.collect_classes {
@@ -163,7 +162,7 @@ impl<'a> UnifiedVisitor {
             .unwrap_or_else(|| interned::ANONYMOUS.clone());
 
         if let Some(class_name) = &self.current_class {
-            name = CompactString::new(format!("{}.{}", class_name, name));
+            name = CompactString::new(format!("{class_name}.{name}"));
         }
         name
     }
@@ -210,14 +209,13 @@ impl<'a> UnifiedVisitor {
                 param
                     .type_annotation
                     .as_ref()
-                    .map(|a| Self::is_primitive_type(&a.type_annotation))
-                    .unwrap_or(true)
+                    .is_none_or(|a| Self::is_primitive_type(&a.type_annotation))
             })
             .count()
     }
 
     #[inline]
-    fn is_primitive_type(ts_type: &TSType<'_>) -> bool {
+    const fn is_primitive_type(ts_type: &TSType<'_>) -> bool {
         matches!(
             ts_type,
             TSType::TSStringKeyword(_)
@@ -240,11 +238,10 @@ impl<'a> UnifiedVisitor {
         SmallVec<[MethodSymbol; 8]>,
         Option<SymbolName>,
     ) {
-        let class_name = it
-            .id
-            .as_ref()
-            .map(|id| Self::atom_to_compact(&id.name))
-            .unwrap_or_else(|| interned::ANONYMOUS.clone());
+        let class_name = it.id.as_ref().map_or_else(
+            || interned::ANONYMOUS.clone(),
+            |id| Self::atom_to_compact(&id.name),
+        );
 
         let old_class = self.current_class.replace(class_name.clone());
         let old_fields = std::mem::take(&mut self.temp_fields);

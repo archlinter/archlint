@@ -61,12 +61,12 @@ pub(crate) fn format_location(path: &Path, line: usize, col: Option<usize>) -> S
         return formatted_path;
     }
     match col {
-        Some(c) => format!("{}:{}:{}", formatted_path, line, c),
-        None => format!("{}:{}", formatted_path, line),
+        Some(c) => format!("{formatted_path}:{line}:{c}"),
+        None => format!("{formatted_path}:{line}"),
     }
 }
 
-/// Formats a LocationDetail as `path:line[:col] (message)`
+/// Formats a `LocationDetail` as `path:line[:col] (message)`
 pub(crate) fn format_location_detail(loc: &LocationDetail) -> String {
     format_location_parts(
         &loc.file,
@@ -103,15 +103,15 @@ pub(crate) fn format_location_parts(
         let is_multi_line = range.is_some_and(|r| r.start_line != r.end_line);
 
         match column {
-            Some(c) if !is_multi_line => format!("{}:{}:{}", formatted_path, line_str, c),
-            _ => format!("{}:{}", formatted_path, line_str),
+            Some(c) if !is_multi_line => format!("{formatted_path}:{line_str}:{c}"),
+            _ => format!("{formatted_path}:{line_str}"),
         }
     };
 
     if description.is_empty() {
         base
     } else {
-        format!("{} ({})", base, description)
+        format!("{base} ({description})")
     }
 }
 
@@ -168,67 +168,80 @@ pub struct AnalysisReport {
 }
 
 impl AnalysisReport {
-    pub fn files_analyzed(&self) -> usize {
+    #[must_use]
+    pub const fn files_analyzed(&self) -> usize {
         self.files_analyzed
     }
 
-    pub fn cyclic_dependencies(&self) -> usize {
+    #[must_use]
+    pub const fn cyclic_dependencies(&self) -> usize {
         self.cyclic_dependencies
     }
 
-    pub fn god_modules(&self) -> usize {
+    #[must_use]
+    pub const fn god_modules(&self) -> usize {
         self.god_modules
     }
 
-    pub fn dead_code(&self) -> usize {
+    #[must_use]
+    pub const fn dead_code(&self) -> usize {
         self.dead_code
     }
 
-    pub fn dead_symbols(&self) -> usize {
+    #[must_use]
+    pub const fn dead_symbols(&self) -> usize {
         self.dead_symbols
     }
 
-    pub fn high_cyclomatic_complexity_functions(&self) -> usize {
+    #[must_use]
+    pub const fn high_cyclomatic_complexity_functions(&self) -> usize {
         self.high_cyclomatic_complexity_functions
     }
 
-    pub fn high_cognitive_complexity_functions(&self) -> usize {
+    #[must_use]
+    pub const fn high_cognitive_complexity_functions(&self) -> usize {
         self.high_cognitive_complexity_functions
     }
 
-    pub fn large_files(&self) -> usize {
+    #[must_use]
+    pub const fn large_files(&self) -> usize {
         self.large_files
     }
 
-    pub fn unstable_interfaces(&self) -> usize {
+    #[must_use]
+    pub const fn unstable_interfaces(&self) -> usize {
         self.unstable_interfaces
     }
 
-    pub fn feature_envy(&self) -> usize {
+    #[must_use]
+    pub const fn feature_envy(&self) -> usize {
         self.feature_envy
     }
 
-    pub fn shotgun_surgery(&self) -> usize {
+    #[must_use]
+    pub const fn shotgun_surgery(&self) -> usize {
         self.shotgun_surgery
     }
 
-    pub fn hub_dependencies(&self) -> usize {
+    #[must_use]
+    pub const fn hub_dependencies(&self) -> usize {
         self.hub_dependencies
     }
 
-    pub fn code_clones(&self) -> usize {
+    #[must_use]
+    pub const fn code_clones(&self) -> usize {
         self.code_clones
     }
 
-    pub fn set_min_severity(&mut self, severity: Severity) {
+    pub const fn set_min_severity(&mut self, severity: Severity) {
         self.min_severity = Some(severity);
     }
 
-    pub fn set_min_score(&mut self, score: u32) {
+    pub const fn set_min_score(&mut self, score: u32) {
         self.min_score = Some(score);
     }
 
-    pub fn set_files_analyzed(&mut self, count: usize) {
+    pub const fn set_files_analyzed(&mut self, count: usize) {
         self.files_analyzed = count;
     }
 
@@ -288,10 +301,10 @@ impl AnalysisReport {
                 SmellType::DeadCode => self.dead_code += 1,
                 SmellType::DeadSymbol { .. } => self.dead_symbols += 1,
                 SmellType::HighCyclomaticComplexity { .. } => {
-                    self.high_cyclomatic_complexity_functions += 1
+                    self.high_cyclomatic_complexity_functions += 1;
                 }
                 SmellType::HighCognitiveComplexity { .. } => {
-                    self.high_cognitive_complexity_functions += 1
+                    self.high_cognitive_complexity_functions += 1;
                 }
                 SmellType::LargeFile => self.large_files += 1,
                 SmellType::UnstableInterface => self.unstable_interfaces += 1,
@@ -324,6 +337,7 @@ impl AnalysisReport {
         }
     }
 
+    #[must_use]
     pub fn total_score(&self, config: &SeverityConfig) -> u32 {
         self.smells
             .iter()
@@ -331,6 +345,7 @@ impl AnalysisReport {
             .sum()
     }
 
+    #[must_use]
     pub fn grade(&self, config: &SeverityConfig) -> ArchitectureGrade {
         let total_score = self.total_score(config) as f32;
         let files_analyzed = if self.files_analyzed == 0 {
@@ -353,22 +368,22 @@ impl AnalysisReport {
         } else if density <= thresholds.fair {
             let range = thresholds.fair - thresholds.good;
             let offset = density - thresholds.good;
-            let s = 8.0 - (offset / range * 2.0);
+            let s = (offset / range).mul_add(-2.0, 8.0);
             (s.max(6.0), GradeLevel::Fair)
         } else if density <= thresholds.moderate {
             let range = thresholds.moderate - thresholds.fair;
             let offset = density - thresholds.fair;
-            let s = 6.0 - (offset / range * 2.0);
+            let s = (offset / range).mul_add(-2.0, 6.0);
             (s.max(4.0), GradeLevel::Moderate)
         } else if density <= thresholds.poor {
             let range = thresholds.poor - thresholds.moderate;
             let offset = density - thresholds.moderate;
-            let s = 4.0 - (offset / range * 2.0);
+            let s = (offset / range).mul_add(-2.0, 4.0);
             (s.max(2.0), GradeLevel::Poor)
         } else {
             let range = thresholds.poor;
             let offset = density - thresholds.poor;
-            let s = 2.0 - (offset / range * 2.0);
+            let s = (offset / range).mul_add(-2.0, 2.0);
             (s.max(0.0), GradeLevel::Critical)
         };
 
@@ -399,7 +414,7 @@ impl AnalysisReport {
                         !no_diagram,
                         severity_config,
                     );
-                    println!("{}", output);
+                    println!("{output}");
                     Ok(())
                 }
             }
@@ -453,7 +468,15 @@ impl AnalysisReport {
         for (smell, _explanation) in sorted_smells {
             let severity_cell = Self::format_severity_cell(&smell.severity);
             let smell_type_str = Self::format_smell_type(&smell.smell_type);
-            let locations_str = Self::format_file_paths(&smell, &canonical_scan_root);
+            let mut locations_str = Self::format_file_paths(&smell, canonical_scan_root.as_ref());
+
+            // Add lines and threshold info for LargeFile
+            if smell.smell_type == SmellType::LargeFile {
+                let lines = smell.lines().unwrap_or(0);
+                let threshold = smell.threshold().unwrap_or(1000);
+                locations_str = format!("{locations_str}\n({lines} lines, limit: {threshold})");
+            }
+
             let score = severity_config.weights.score(&smell.severity);
 
             table.add_row(vec![
@@ -499,7 +522,7 @@ impl AnalysisReport {
         scan_root.and_then(|p| {
             let canonical = p.canonicalize().ok()?;
             if canonical.is_file() {
-                canonical.parent().map(|p| p.to_path_buf())
+                canonical.parent().map(std::path::Path::to_path_buf)
             } else {
                 Some(canonical)
             }
@@ -528,27 +551,27 @@ impl AnalysisReport {
             SmellType::GodModule => "God Module".to_string(),
             SmellType::DeadCode => "Dead Code".to_string(),
             SmellType::DeadSymbol { name, .. } => {
-                format!("Dead Symbol\n({})", name)
+                format!("Dead Symbol\n({name})")
             }
             SmellType::HighCyclomaticComplexity {
                 name, complexity, ..
             } => {
-                format!("Cyclomatic Complexity\n({}: {})", name, complexity)
+                format!("Cyclomatic Complexity\n({name}: {complexity})")
             }
             SmellType::HighCognitiveComplexity {
                 name, complexity, ..
             } => {
-                format!("Cognitive Complexity\n({}: {})", name, complexity)
+                format!("Cognitive Complexity\n({name}: {complexity})")
             }
             SmellType::LargeFile => "Large File".to_string(),
             SmellType::UnstableInterface => "Unstable Interface".to_string(),
             SmellType::FeatureEnvy { .. } => "Feature Envy".to_string(),
             SmellType::ShotgunSurgery => "Shotgun Surgery".to_string(),
             SmellType::HubDependency { package } => {
-                format!("Hub Dependency\n({})", package)
+                format!("Hub Dependency\n({package})")
             }
             SmellType::OrphanType { name } => {
-                format!("Orphan Type\n({})", name)
+                format!("Orphan Type\n({name})")
             }
             SmellType::TestLeakage { test_file } => {
                 format!("Test Leakage\n({})", test_file.display())
@@ -557,42 +580,42 @@ impl AnalysisReport {
                 from_layer,
                 to_layer,
             } => {
-                format!("Layer Violation\n({} -> {})", from_layer, to_layer)
+                format!("Layer Violation\n({from_layer} -> {to_layer})")
             }
             SmellType::SdpViolation => "SDP Violation".to_string(),
             SmellType::BarrelFileAbuse => "Barrel File Abuse".to_string(),
             SmellType::VendorCoupling { package } => {
-                format!("Vendor Coupling\n({})", package)
+                format!("Vendor Coupling\n({package})")
             }
             SmellType::SideEffectImport => "Side-Effect Import".to_string(),
             SmellType::HubModule => "Hub Module".to_string(),
             SmellType::LowCohesion { lcom, .. } => {
-                format!("Low Cohesion\n(LCOM: {})", lcom)
+                format!("Low Cohesion\n(LCOM: {lcom})")
             }
             SmellType::ScatteredModule { components } => {
-                format!("Scattered Module\n({} components)", components)
+                format!("Scattered Module\n({components} components)")
             }
             SmellType::HighCoupling { cbo } => {
-                format!("High Coupling\n(CBO: {})", cbo)
+                format!("High Coupling\n(CBO: {cbo})")
             }
             SmellType::PackageCycle { packages } => {
                 format!("Package Cycle\n({} packages)", packages.len())
             }
             SmellType::SharedMutableState { symbol } => {
-                format!("Shared Mutable State\n({})", symbol)
+                format!("Shared Mutable State\n({symbol})")
             }
             SmellType::DeepNesting {
                 name,
                 depth,
                 line: _,
             } => {
-                format!("Deep Nesting\n({}: depth {})", name, depth)
+                format!("Deep Nesting\n({name}: depth {depth})")
             }
             SmellType::LongParameterList { count, name } => {
-                format!("Long Parameter List\n({}: {} params)", name, count)
+                format!("Long Parameter List\n({name}: {count} params)")
             }
             SmellType::PrimitiveObsession { primitives, name } => {
-                format!("Primitive Obsession\n({}: {} primitives)", name, primitives)
+                format!("Primitive Obsession\n({name}: {primitives} primitives)")
             }
             SmellType::CircularTypeDependency => "Circular Type Dependency".to_string(),
             SmellType::AbstractnessViolation => "Abstractness Violation".to_string(),
@@ -600,30 +623,27 @@ impl AnalysisReport {
                 env_var,
                 files_count,
             } => {
-                format!(
-                    "Scattered Configuration\n({}: {} files)",
-                    env_var, files_count
-                )
+                format!("Scattered Configuration\n({env_var}: {files_count} files)")
             }
             SmellType::CodeClone { .. } => "Code Clone".to_string(),
-            SmellType::Unknown { raw_type } => format!("Unknown Smell ({})", raw_type),
+            SmellType::Unknown { raw_type } => format!("Unknown Smell ({raw_type})"),
         }
     }
 
     fn format_file_paths(
         smell: &crate::detectors::ArchSmell,
-        canonical_scan_root: &Option<PathBuf>,
+        canonical_scan_root: Option<&PathBuf>,
     ) -> String {
-        if !smell.locations.is_empty() {
-            Self::format_location_paths(&smell.locations, canonical_scan_root)
-        } else {
+        if smell.locations.is_empty() {
             Self::format_simple_file_paths(&smell.files, canonical_scan_root)
+        } else {
+            Self::format_location_paths(&smell.locations, canonical_scan_root)
         }
     }
 
     fn format_location_paths(
         locations: &[crate::detectors::LocationDetail],
-        canonical_scan_root: &Option<PathBuf>,
+        canonical_scan_root: Option<&PathBuf>,
     ) -> String {
         locations
             .iter()
@@ -635,8 +655,7 @@ impl AnalysisReport {
                             loc_clone.file = loc
                                 .file
                                 .file_name()
-                                .map(PathBuf::from)
-                                .unwrap_or_else(|| loc.file.clone());
+                                .map_or_else(|| loc.file.clone(), PathBuf::from);
                         } else {
                             loc_clone.file = rel.to_path_buf();
                         }
@@ -650,7 +669,7 @@ impl AnalysisReport {
 
     fn format_simple_file_paths(
         files: &[PathBuf],
-        canonical_scan_root: &Option<PathBuf>,
+        canonical_scan_root: Option<&PathBuf>,
     ) -> String {
         files
             .iter()
@@ -659,10 +678,7 @@ impl AnalysisReport {
                 if let Some(ref root) = canonical_scan_root {
                     if let Ok(rel) = f.strip_prefix(root) {
                         if rel.as_os_str().is_empty() {
-                            display_path = f
-                                .file_name()
-                                .map(PathBuf::from)
-                                .unwrap_or_else(|| f.clone());
+                            display_path = f.file_name().map_or_else(|| f.clone(), PathBuf::from);
                         } else {
                             display_path = rel.to_path_buf();
                         }
@@ -689,7 +705,7 @@ impl AnalysisReport {
     }
 }
 
-/// Builder for AnalysisReport to improve ergonomics
+/// Builder for `AnalysisReport` to improve ergonomics
 #[derive(Default)]
 pub struct AnalysisReportBuilder {
     smells: Vec<ArchSmell>,
@@ -705,30 +721,36 @@ pub struct AnalysisReportBuilder {
 }
 
 impl AnalysisReportBuilder {
+    #[must_use]
     pub fn new() -> Self {
         Self::default()
     }
 
+    #[must_use]
     pub fn with_smells(mut self, smells: Vec<ArchSmell>) -> Self {
         self.smells = smells;
         self
     }
 
+    #[must_use]
     pub fn with_graph(mut self, graph: Option<DependencyGraph>) -> Self {
         self.graph = graph;
         self
     }
 
+    #[must_use]
     pub fn with_symbols(mut self, symbols: HashMap<PathBuf, FileSymbols>) -> Self {
         self.file_symbols = symbols;
         self
     }
 
+    #[must_use]
     pub fn with_metrics(mut self, metrics: HashMap<PathBuf, FileMetrics>) -> Self {
         self.file_metrics = metrics;
         self
     }
 
+    #[must_use]
     pub fn with_complexity(
         mut self,
         complexity: HashMap<PathBuf, Vec<FunctionComplexity>>,
@@ -737,31 +759,37 @@ impl AnalysisReportBuilder {
         self
     }
 
+    #[must_use]
     pub fn with_ignored_lines(mut self, ignored_lines: FileIgnoredLines) -> Self {
         self.ignored_lines = ignored_lines;
         self
     }
 
+    #[must_use]
     pub fn with_churn(mut self, churn_map: HashMap<PathBuf, usize>) -> Self {
         self.churn_map = churn_map;
         self
     }
 
+    #[must_use]
     pub fn with_presets(mut self, presets: Vec<FrameworkPreset>) -> Self {
         self.presets = presets;
         self
     }
 
+    #[must_use]
     pub fn with_config(mut self, config: crate::config::Config) -> Self {
         self.config = Some(config);
         self
     }
 
-    pub fn with_files_analyzed(mut self, count: usize) -> Self {
+    #[must_use]
+    pub const fn with_files_analyzed(mut self, count: usize) -> Self {
         self.files_analyzed = count;
         self
     }
 
+    #[must_use]
     pub fn build(self) -> AnalysisReport {
         let config = self.config.unwrap_or_default();
         let smells_with_explanations = self

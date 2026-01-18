@@ -131,7 +131,7 @@ fn format_log_record(
             record.args()
         ),
         log::Level::Debug => writeln!(buf, "{} {}", style("debug:").magenta(), record.args()),
-        _ => writeln!(buf, "{:5} {}", record.level(), record.args()),
+        log::Level::Trace => writeln!(buf, "{:5} {}", record.level(), record.args()),
     }
 }
 
@@ -148,10 +148,8 @@ fn determine_exit_code(report: &report::AnalysisReport) -> i32 {
 
     if has_critical {
         2 // Critical issues found
-    } else if has_high {
-        1 // High severity issues found
     } else {
-        0 // Only medium/low or no issues
+        i32::from(has_high)
     }
 }
 
@@ -169,8 +167,7 @@ fn resolve_scan_args(args: ScanArgs) -> Result<ScanArgs> {
 
         if expansion.files.is_empty() {
             return Err(AnalysisError::PathResolution(format!(
-                "No files found matching pattern: {}",
-                path_str
+                "No files found matching pattern: {path_str}"
             )));
         }
 
@@ -183,8 +180,7 @@ fn resolve_scan_args(args: ScanArgs) -> Result<ScanArgs> {
 
     // Otherwise error out
     Err(AnalysisError::PathResolution(format!(
-        "Path does not exist: {}",
-        path_str
+        "Path does not exist: {path_str}"
     )))
 }
 
@@ -238,10 +234,10 @@ fn handle_watch_command(args: cli::WatchArgs) -> Result<()> {
     let engine = engine::AnalysisEngine::new_with_args(args.scan.clone())?;
     let config = engine.config.clone();
 
-    let debounce_ms = if args.debounce != 300 {
-        args.debounce
-    } else {
+    let debounce_ms = if args.debounce == 300 {
         config.watch.debounce_ms
+    } else {
+        args.debounce
     };
 
     let clear_screen = if args.clear {
@@ -250,7 +246,7 @@ fn handle_watch_command(args: cli::WatchArgs) -> Result<()> {
         config.watch.clear_screen
     };
 
-    let mut ignore_patterns = config.watch.ignore.clone();
+    let mut ignore_patterns = config.watch.ignore;
     ignore_patterns.extend(args.ignore.clone());
 
     let extensions = archlint::args::SUPPORTED_EXTENSIONS
@@ -264,7 +260,7 @@ fn handle_watch_command(args: cli::WatchArgs) -> Result<()> {
         clear_screen,
         extensions,
     };
-    let watcher = watch::FileWatcher::new(args.scan.path.clone(), watch_config);
+    let watcher = watch::FileWatcher::new(args.scan.path, watch_config);
     let mut runner = watch::runner::WatchRunner::new(engine, clear_screen);
 
     runner.run(watcher)
@@ -447,14 +443,14 @@ fn handle_completions_command(args: cli::CompletionsArgs) -> Result<()> {
 fn handle_init_command(args: cli::InitArgs) -> Result<()> {
     #[cfg(feature = "cli")]
     cliclack::intro(style(" Archlint Initialization ").on_cyan().black().bold())
-        .map_err(|e| anyhow::anyhow!("UI error: {}", e))?;
+        .map_err(|e| anyhow::anyhow!("UI error: {e}"))?;
 
     let config_path = Path::new(".archlint.yaml");
 
     if config_path.exists() && !args.force {
         let msg = "Config already exists. Use --force to overwrite.";
         #[cfg(feature = "cli")]
-        cliclack::outro_cancel(msg).map_err(|e| anyhow::anyhow!("UI error: {}", e))?;
+        cliclack::outro_cancel(msg).map_err(|e| anyhow::anyhow!("UI error: {e}"))?;
         return Err(anyhow::anyhow!(msg).into());
     }
 
@@ -462,36 +458,35 @@ fn handle_init_command(args: cli::InitArgs) -> Result<()> {
     let mut config = config::Config::default();
 
     // 1. Determine frameworks
-    let selected_presets = if !args.presets.is_empty() {
-        args.presets.clone()
-    } else {
+    let selected_presets = if args.presets.is_empty() {
         let detected = FrameworkDetector::detect(&cwd);
         if args.no_interactive {
             detected
                 .iter()
-                .map(|f| f.as_preset_name().to_string())
+                .map(archlint::Framework::as_preset_name)
                 .collect()
         } else {
             prompt_framework_selection(detected)?
         }
+    } else {
+        args.presets
     };
 
     // 2. Apply presets (set extends only, merge happens at runtime)
     if !selected_presets.is_empty() {
-        config.extends = Some(selected_presets.clone());
+        config.extends = Some(selected_presets);
     }
 
     // 3. Write config
     let yaml = serde_yaml::to_string(&config)?;
     let yaml_with_schema = format!(
-        "# yaml-language-server: $schema=https://raw.githubusercontent.com/archlinter/archlint/main/resources/archlint.schema.json\n{}",
-        yaml
+        "# yaml-language-server: $schema=https://raw.githubusercontent.com/archlinter/archlint/main/resources/archlint.schema.json\n{yaml}"
     );
     std::fs::write(config_path, yaml_with_schema)?;
 
     let success_msg = format!("Created {}", style(".archlint.yaml").bold());
     #[cfg(feature = "cli")]
-    cliclack::outro(style(&success_msg).green()).map_err(|e| anyhow::anyhow!("UI error: {}", e))?;
+    cliclack::outro(style(&success_msg).green()).map_err(|e| anyhow::anyhow!("UI error: {e}"))?;
     #[cfg(not(feature = "cli"))]
     println!("✓ {}", success_msg);
 
@@ -503,7 +498,10 @@ fn prompt_framework_selection(detected: Vec<Framework>) -> Result<Vec<String>> {
     {
         use archlint::framework::preset_loader::PresetLoader;
 
-        let detected_names: Vec<String> = detected.iter().map(|f| f.as_preset_name()).collect();
+        let detected_names: Vec<String> = detected
+            .iter()
+            .map(archlint::Framework::as_preset_name)
+            .collect();
 
         let mut options: Vec<(&str, String)> = Vec::new();
         for name in PresetLoader::get_all_builtin_names() {
@@ -525,12 +523,20 @@ fn prompt_framework_selection(detected: Vec<Framework>) -> Result<Vec<String>> {
         }
 
         let selected: Vec<&str> = multiselect
-            .initial_values(detected_names.iter().map(|s| s.as_str()).collect())
+            .initial_values(
+                detected_names
+                    .iter()
+                    .map(std::string::String::as_str)
+                    .collect(),
+            )
             .required(false)
             .interact()
-            .map_err(|e| anyhow::anyhow!("Interaction error: {}", e))?;
+            .map_err(|e| anyhow::anyhow!("Interaction error: {e}"))?;
 
-        Ok(selected.into_iter().map(|s| s.to_string()).collect())
+        Ok(selected
+            .into_iter()
+            .map(std::string::ToString::to_string)
+            .collect())
     }
     #[cfg(not(feature = "cli"))]
     {

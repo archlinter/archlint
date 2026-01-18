@@ -7,13 +7,14 @@ use std::path::{Path, PathBuf};
 
 /// Initializes the detector module.
 /// This function is used for module registration side-effects.
-pub fn init() {}
+pub const fn init() {}
 
 #[detector(SmellType::CircularTypeDependency, default_enabled = false)]
 pub struct CircularTypeDepsDetector;
 
 impl CircularTypeDepsDetector {
-    pub fn new_default(_config: &crate::config::Config) -> Self {
+    #[must_use]
+    pub const fn new_default(_config: &crate::config::Config) -> Self {
         Self
     }
 
@@ -111,9 +112,7 @@ impl CircularTypeDepsDetector {
         let mut current_target = target_path;
         for part in source_parts.iter().rev() {
             let matches_part = match current_target.file_name().and_then(|n| n.to_str()) {
-                Some(file_name) => {
-                    file_name == *part || file_name.starts_with(&format!("{}.", part))
-                }
+                Some(file_name) => file_name == *part || file_name.starts_with(&format!("{part}.")),
                 None => false,
             };
 

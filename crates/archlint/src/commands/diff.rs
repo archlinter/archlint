@@ -39,7 +39,7 @@ pub fn run_diff(
         print_diff_result(&result, explain);
     }
 
-    Ok(if should_fail(&result, &fail_on) { 1 } else { 0 })
+    Ok(i32::from(should_fail(&result, &fail_on)))
 }
 
 fn load_baseline(

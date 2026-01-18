@@ -24,7 +24,8 @@ impl Default for ComplexityVisitor {
 }
 
 impl ComplexityVisitor {
-    pub fn new() -> Self {
+    #[must_use]
+    pub const fn new() -> Self {
         Self {
             cyclomatic: 1,
             cognitive: 0,
@@ -249,7 +250,7 @@ mod tests {
 
     #[test]
     fn test_cyclomatic_basics() {
-        let code = r#"
+        let code = r"
             function test(a, b) {
                 if (a) { // +1
                     while (b) { // +1
@@ -257,7 +258,7 @@ mod tests {
                     }
                 }
             }
-        "#;
+        ";
         let metrics = parse_function(code);
         assert_eq!(metrics.cyclomatic, 3);
         assert_eq!(metrics.cognitive, 3); // if (+1), while (+2)
@@ -266,7 +267,7 @@ mod tests {
 
     #[test]
     fn test_cognitive_nesting() {
-        let code = r#"
+        let code = r"
             function test(a, b, c) {
                 if (a) { // +1
                     if (b) { // +2
@@ -276,7 +277,7 @@ mod tests {
                     }
                 }
             }
-        "#;
+        ";
         let metrics = parse_function(code);
         assert_eq!(metrics.cyclomatic, 4);
         assert_eq!(metrics.cognitive, 6); // 1 + 2 + 3
@@ -284,7 +285,7 @@ mod tests {
 
     #[test]
     fn test_else_if_logic() {
-        let code = r#"
+        let code = r"
             function test(a, b) {
                 if (a) { // +1
                     return 1;
@@ -294,7 +295,7 @@ mod tests {
                     return 3;
                 }
             }
-        "#;
+        ";
         let metrics = parse_function(code);
         assert_eq!(metrics.cyclomatic, 3);
         assert_eq!(metrics.cognitive, 3); // if (+1), else if (+1), else (+1)
@@ -302,24 +303,24 @@ mod tests {
 
     #[test]
     fn test_logical_operator_sequences() {
-        let code = r#"
+        let code = r"
             function test(a, b, c) {
                 if (a && b && c) { // cc: +3 (if + 2 logical), cog: +1 (if) +1 (sequence)
                     return 1;
                 }
             }
-        "#;
+        ";
         let metrics = parse_function(code);
         assert_eq!(metrics.cyclomatic, 4); // 1 (function) + 1 (if) + 2 (&&) = 4
         assert_eq!(metrics.cognitive, 2); // 1 (if) + 1 (&& sequence) = 2
 
-        let code_mixed = r#"
+        let code_mixed = r"
             function test(a, b, c) {
                 if (a && b || c) {
                     return 1;
                 }
             }
-        "#;
+        ";
         let metrics_mixed = parse_function(code_mixed);
         assert_eq!(metrics_mixed.cyclomatic, 4);
         assert_eq!(metrics_mixed.cognitive, 3); // 1 (if) + 1 (&&) + 1 (|| is new sequence) = 3
@@ -327,11 +328,11 @@ mod tests {
 
     #[test]
     fn test_nested_ternaries() {
-        let code = r#"
+        let code = r"
             function test(a, b, c) {
                 return a ? (b ? 1 : 2) : 3;
             }
-        "#;
+        ";
         let metrics = parse_function(code);
         assert_eq!(metrics.cyclomatic, 3); // 1 (function) + 2 (ternaries)
         assert_eq!(metrics.cognitive, 3); // 1 (first ternary) + 2 (nested ternary: 1 + 1 nesting)
@@ -339,7 +340,7 @@ mod tests {
 
     #[test]
     fn test_labeled_break_continue() {
-        let code = r#"
+        let code = r"
             function test(a, b) {
                 outer: while (a) {
                     while (b) {
@@ -347,7 +348,7 @@ mod tests {
                     }
                 }
             }
-        "#;
+        ";
         let metrics = parse_function(code);
         assert_eq!(metrics.cyclomatic, 3);
         assert_eq!(metrics.cognitive, 4); // while (1), while (1 + 1 nesting), break outer (+1)
@@ -355,12 +356,12 @@ mod tests {
 
     #[test]
     fn test_logical_assignment_operators() {
-        let code = r#"
+        let code = r"
             function test(a, b) {
                 a &&= b;
                 a ||= b;
             }
-        "#;
+        ";
         let metrics = parse_function(code);
         assert_eq!(metrics.cyclomatic, 3); // 1 (function) + 2 (logical assignments)
         assert_eq!(metrics.cognitive, 2); // 1 (&&=) + 1 (||=)

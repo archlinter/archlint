@@ -1,19 +1,35 @@
 use crate::detectors::ArchSmell;
 pub use crate::detectors::Explanation;
 use crate::snapshot::SnapshotSmell;
+use std::convert::TryFrom;
 use std::path::Path;
 
 pub struct ExplainEngine;
 
 impl ExplainEngine {
+    #[must_use]
     pub fn explain_snapshot_smell(
         smell: &SnapshotSmell,
         config: &crate::config::Config,
     ) -> Explanation {
-        let arch_smell = ArchSmell::from(smell);
+        let arch_smell = ArchSmell::try_from(smell).unwrap_or_else(|_| {
+            // Fallback to a minimal ArchSmell if conversion fails
+            // This should rarely happen in practice
+            ArchSmell {
+                smell_type: crate::detectors::SmellType::Unknown {
+                    raw_type: smell.smell_type.clone(),
+                },
+                severity: crate::detectors::Severity::Medium,
+                files: smell.files.iter().map(std::path::PathBuf::from).collect(),
+                metrics: vec![],
+                locations: vec![],
+                cluster: None,
+            }
+        });
         Self::explain(&arch_smell, config)
     }
 
+    #[must_use]
     pub fn explain(
         smell: &crate::detectors::ArchSmell,
         config: &crate::config::Config,
@@ -37,6 +53,7 @@ impl ExplainEngine {
         }
     }
 
+    #[must_use]
     pub fn format_file_path(path: &Path) -> String {
         path.to_string_lossy().to_string()
     }

@@ -4,13 +4,14 @@ use std::path::PathBuf;
 
 /// Initializes the detector module.
 /// This function is used for module registration side-effects.
-pub fn init() {}
+pub const fn init() {}
 
 #[detector(SmellType::HubModule, default_enabled = false)]
 pub struct HubModuleDetector;
 
 impl HubModuleDetector {
-    pub fn new_default(_config: &crate::config::Config) -> Self {
+    #[must_use]
+    pub const fn new_default(_config: &crate::config::Config) -> Self {
         Self
     }
 
@@ -47,16 +48,13 @@ impl HubModuleDetector {
     }
 
     fn get_max_complexity(ctx: &AnalysisContext, path: &PathBuf) -> usize {
-        ctx.function_complexity
-            .get(path)
-            .map(|functions| {
-                functions
-                    .iter()
-                    .map(|func| func.cyclomatic_complexity)
-                    .max()
-                    .unwrap_or(0)
-            })
-            .unwrap_or(0)
+        ctx.function_complexity.get(path).map_or(0, |functions| {
+            functions
+                .iter()
+                .map(|func| func.cyclomatic_complexity)
+                .max()
+                .unwrap_or(0)
+        })
     }
 }
 

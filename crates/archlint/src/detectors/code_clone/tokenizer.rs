@@ -10,6 +10,7 @@ use std::sync::Arc;
 ///
 /// Only files with at least `min_tokens` are included in the results.
 /// This function handles file reading, rule resolution, and exclusion checks.
+#[must_use]
 pub fn tokenize_files(
     ctx: &AnalysisContext,
     min_tokens: usize,

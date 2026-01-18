@@ -4,6 +4,7 @@ use std::path::PathBuf;
 
 impl IncrementalState {
     /// Get all files affected by changes (transitive importers)
+    #[must_use]
     pub fn get_affected_files(&self, changed: &[PathBuf]) -> HashSet<PathBuf> {
         let mut affected = HashSet::new();
         let mut queue: VecDeque<PathBuf> = changed.iter().cloned().collect();

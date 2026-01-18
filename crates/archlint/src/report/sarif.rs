@@ -104,7 +104,7 @@ struct SarifRegion {
     end_column: Option<usize>,
 }
 
-/// Generates a SARIF JSON value from an AnalysisReport.
+/// Generates a SARIF JSON value from an `AnalysisReport`.
 ///
 /// # Arguments
 /// * `report` - The analysis report containing detected smells and explanations.
@@ -155,7 +155,7 @@ pub fn generate_sarif(
     })?)
 }
 
-fn map_severity(severity: &Severity) -> &'static str {
+const fn map_severity(severity: &Severity) -> &'static str {
     match severity {
         Severity::Low => "note",
         Severity::Medium => "warning",
@@ -204,7 +204,13 @@ fn create_sarif_location(
 }
 
 fn map_locations(smell: &ArchSmell, scan_root: Option<&Path>) -> Vec<SarifLocation> {
-    if !smell.locations.is_empty() {
+    if smell.locations.is_empty() {
+        smell
+            .files
+            .iter()
+            .map(|file| create_sarif_location(file, 1, None, None, scan_root))
+            .collect()
+    } else {
         smell
             .locations
             .iter()
@@ -218,12 +224,6 @@ fn map_locations(smell: &ArchSmell, scan_root: Option<&Path>) -> Vec<SarifLocati
                 )
             })
             .collect()
-    } else {
-        smell
-            .files
-            .iter()
-            .map(|file| create_sarif_location(file, 1, None, None, scan_root))
-            .collect()
     }
 }
 
@@ -235,8 +235,7 @@ fn create_rule(category: SmellKind) -> SarifRule {
             text: category.display_name().to_string(),
         },
         help_uri: Some(format!(
-            "https://archlinter.github.io/archlint/detectors/{}.html",
-            rule_id
+            "https://archlinter.github.io/archlint/detectors/{rule_id}.html"
         )),
     }
 }
@@ -309,7 +308,7 @@ mod tests {
         let smell = ArchSmell {
             smell_type: SmellType::GodModule,
             severity: Severity::Medium,
-            files: vec![file_path.clone()],
+            files: vec![file_path],
             metrics: vec![],
             locations: vec![],
             cluster: None,

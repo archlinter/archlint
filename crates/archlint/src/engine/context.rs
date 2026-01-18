@@ -46,11 +46,13 @@ pub struct AnalysisContext {
 
 impl AnalysisContext {
     /// Resolve a rule configuration for a specific detector and optional file path.
+    #[must_use]
     pub fn resolve_rule(&self, detector_id: &str, file_path: Option<&Path>) -> ResolvedRuleConfig {
         ResolvedRuleConfig::resolve(&self.config, detector_id, file_path)
     }
 
     /// Check if a path should be excluded based on the provided patterns.
+    #[must_use]
     pub fn is_excluded(&self, path: &Path, exclude_patterns: &[String]) -> bool {
         if exclude_patterns.is_empty() {
             return false;
@@ -72,6 +74,7 @@ impl AnalysisContext {
         false
     }
 
+    #[must_use]
     pub fn get_rule_for_file(&self, detector_id: &str, path: &Path) -> Option<ResolvedRuleConfig> {
         let rule = self.resolve_rule(detector_id, Some(path));
         if !rule.enabled || self.is_excluded(path, &rule.exclude) {
@@ -81,15 +84,17 @@ impl AnalysisContext {
         }
     }
 
+    #[must_use]
     pub fn get_rule(&self, detector_id: &str) -> Option<ResolvedRuleConfig> {
         let rule = self.resolve_rule(detector_id, None);
-        if !rule.enabled {
-            None
-        } else {
+        if rule.enabled {
             Some(rule)
+        } else {
+            None
         }
     }
 
+    #[must_use]
     pub fn default_for_test() -> Self {
         Self {
             project_path: PathBuf::new(),

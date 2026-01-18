@@ -24,7 +24,7 @@ pub fn run_snapshot(
     let scan_result = analyzer.scan()?;
 
     // Generate snapshot
-    let generator = SnapshotGenerator::new(project_path.clone()).with_commit(include_commit);
+    let generator = SnapshotGenerator::new(project_path).with_commit(include_commit);
     let snapshot = generator.generate(&scan_result);
 
     // Write to file

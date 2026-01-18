@@ -1,16 +1,48 @@
 use crate::detectors::{detector, ArchSmell, Detector};
 use crate::engine::AnalysisContext;
+use std::fs;
 
 /// Initializes the detector module.
 /// This function is used for module registration side-effects.
-pub fn init() {}
+pub const fn init() {}
 
 #[detector(SmellType::LargeFile)]
 pub struct LargeFileDetector;
 
 impl LargeFileDetector {
-    pub fn new_default(_config: &crate::config::Config) -> Self {
+    #[must_use]
+    pub const fn new_default(_config: &crate::config::Config) -> Self {
         Self
+    }
+
+    /// Check if file contains auto-generated markers in the first few lines
+    fn is_auto_generated(&self, path: &std::path::Path) -> bool {
+        const CHECK_LINES: usize = 20; // Check first 20 lines
+        const AUTO_GEN_PATTERNS: &[&str] = &[
+            "auto-generated",
+            "auto generated",
+            "This file was auto-generated",
+            "This file was automatically generated",
+            "generated automatically",
+            "DO NOT EDIT",
+            "do not edit",
+            "@generated",
+            "# generated",
+            "// generated",
+            "/* generated",
+        ];
+
+        if let Ok(content) = fs::read_to_string(path) {
+            let lines: Vec<&str> = content.lines().take(CHECK_LINES).collect();
+            let content_start = lines.join("\n").to_lowercase();
+
+            for pattern in AUTO_GEN_PATTERNS {
+                if content_start.contains(&pattern.to_lowercase()) {
+                    return true;
+                }
+            }
+        }
+        false
     }
 }
 
@@ -46,6 +78,11 @@ impl Detector for LargeFileDetector {
 
         for node in ctx.graph.nodes() {
             if let Some(path) = ctx.graph.get_file_path(node) {
+                // Skip auto-generated files
+                if self.is_auto_generated(path) {
+                    continue;
+                }
+
                 let rule = match ctx.get_rule_for_file("large_file", path) {
                     Some(r) => r,
                     None => continue,
@@ -58,7 +95,8 @@ impl Detector for LargeFileDetector {
 
                 if let Some(metrics) = ctx.file_metrics.get(path) {
                     if metrics.lines > threshold {
-                        let mut smell = ArchSmell::new_large_file(path.clone(), metrics.lines);
+                        let mut smell =
+                            ArchSmell::new_large_file(path.clone(), metrics.lines, threshold);
                         smell.severity = rule.severity;
                         smells.push(smell);
                     }

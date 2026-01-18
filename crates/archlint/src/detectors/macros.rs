@@ -211,7 +211,7 @@ macro_rules! define_report_section {
 
 /// Helper macro to render a markdown table.
 ///
-/// NOTE: The $row_gen closure MUST return a Vec<String> with the same
+/// NOTE: The $`row_gen` closure MUST return a Vec<String> with the same
 /// length as the $headers vector.
 #[macro_export]
 macro_rules! render_table {
@@ -250,7 +250,7 @@ macro_rules! impl_complexity_detector {
         pub struct $struct_name;
 
         impl $struct_name {
-            pub fn new_default(_config: &$crate::config::Config) -> Self {
+            pub const fn new_default(_config: &$crate::config::Config) -> Self {
                 Self
             }
         }

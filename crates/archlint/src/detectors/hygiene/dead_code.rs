@@ -6,7 +6,7 @@ use std::path::{Path, PathBuf};
 
 /// Initializes the detector module.
 /// This function is used for module registration side-effects.
-pub fn init() {}
+pub const fn init() {}
 
 #[detector(SmellType::DeadCode)]
 pub struct DeadCodeDetector {
@@ -41,9 +41,7 @@ impl Detector for DeadCodeDetector {
             row: DeadCode { } (smell, location, pts) => [
                 location,
                 smell.files.first()
-                    .and_then(|file_path| file_path.parent())
-                    .map(|p| p.to_string_lossy().to_string())
-                    .unwrap_or_else(|| ".".into()),
+                    .and_then(|file_path| file_path.parent()).map_or_else(|| ".".into(), |p| p.to_string_lossy().to_string()),
                 pts
             ]
         }
@@ -55,7 +53,7 @@ impl Detector for DeadCodeDetector {
             None => return Vec::new(),
         };
 
-        let detector = DeadCodeDetector::new(
+        let detector = Self::new(
             &ctx.config,
             ctx.script_entry_points.clone(),
             ctx.dynamic_load_patterns.clone(),
@@ -148,21 +146,23 @@ impl DeadCodeDetector {
         &self,
         path: &Path,
         fan_in: usize,
-        _ctx: &AnalysisContext,
+        ctx: &AnalysisContext,
         symbol_imports: &HashMap<(PathBuf, String), HashSet<PathBuf>>,
         reexport_map: &HashMap<PathBuf, HashSet<PathBuf>>,
     ) -> bool {
         fan_in == 0
             && !self.is_entry_point(path)
             && !self.matches_dynamic_load_pattern(path)
-            && !self.has_used_exports(path, _ctx.file_symbols.as_ref(), symbol_imports)
-            && !self.is_reexported(path, _ctx.file_symbols.as_ref(), reexport_map)
+            && !self.has_used_exports(path, ctx.file_symbols.as_ref(), symbol_imports)
+            && !self.is_reexported(path, ctx.file_symbols.as_ref(), reexport_map)
     }
 
+    #[must_use]
     pub fn new_default(config: &Config) -> Self {
         Self::new(config, HashSet::new(), Vec::new())
     }
 
+    #[must_use]
     pub fn new(
         config: &Config,
         explicit_entry_points: HashSet<PathBuf>,
@@ -279,8 +279,7 @@ impl DeadCodeDetector {
                     && export
                         .source
                         .as_ref()
-                        .map(|source| source == path_str || source.ends_with(file_name))
-                        .unwrap_or(false)
+                        .is_some_and(|source| source == path_str || source.ends_with(file_name))
             })
         })
     }
@@ -378,8 +377,7 @@ impl DeadCodeDetector {
                 && export
                     .source
                     .as_ref()
-                    .map(|source| source == path_str || source.ends_with(file_name))
-                    .unwrap_or(false)
+                    .is_some_and(|source| source == path_str || source.ends_with(file_name))
         })
     }
 
@@ -415,6 +413,7 @@ impl DeadCodeDetector {
         pattern_parts.iter().all(|part| path.contains(part))
     }
 
+    #[must_use]
     pub fn is_entry_point(&self, path: &Path) -> bool {
         if self.explicit_entry_points.contains(path) {
             return true;

@@ -60,7 +60,7 @@ pub struct Config {
     pub diff: DiffConfig,
 }
 
-fn is_true(v: &bool) -> bool {
+const fn is_true(v: &bool) -> bool {
     *v
 }
 
@@ -72,11 +72,12 @@ fn is_default_watch(v: &WatchConfig) -> bool {
     *v == WatchConfig::default()
 }
 
-fn is_default_tsconfig(v: &Option<TsConfigConfig>) -> bool {
+#[allow(clippy::ref_option)]
+const fn is_default_tsconfig(v: &Option<TsConfigConfig>) -> bool {
     matches!(v, Some(TsConfigConfig::Boolean(true)))
 }
 
-fn is_default_max_file_size(v: &u64) -> bool {
+const fn is_default_max_file_size(v: &u64) -> bool {
     *v == default_max_file_size()
 }
 
@@ -108,16 +109,16 @@ impl Default for DiffConfig {
     }
 }
 
-fn default_metric_threshold() -> f64 {
+const fn default_metric_threshold() -> f64 {
     5.0
 }
 
-fn default_line_tolerance() -> usize {
+const fn default_line_tolerance() -> usize {
     3
 }
 
 /// Configuration options for TypeScript integration.
-#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, JsonSchema)]
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq, JsonSchema)]
 #[serde(untagged)]
 pub enum TsConfigConfig {
     /// Enable or disable automatic tsconfig discovery.
@@ -128,7 +129,7 @@ pub enum TsConfigConfig {
 
 impl Default for TsConfigConfig {
     fn default() -> Self {
-        TsConfigConfig::Boolean(true)
+        Self::Boolean(true)
     }
 }
 
@@ -137,7 +138,7 @@ pub(crate) fn default_tsconfig_config() -> Option<TsConfigConfig> {
 }
 
 /// Configuration for Git-based analysis features.
-#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, JsonSchema)]
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq, JsonSchema)]
 pub struct GitConfig {
     /// Whether to enable Git analysis (e.g., for calculating churn).
     #[serde(default = "default_true")]
@@ -160,11 +161,11 @@ pub(crate) fn default_history_period() -> String {
     "1y".to_string()
 }
 
-pub(crate) fn default_true() -> bool {
+pub(crate) const fn default_true() -> bool {
     true
 }
 
-pub(crate) fn default_max_file_size() -> u64 {
+pub(crate) const fn default_max_file_size() -> u64 {
     1024 * 1024 // 1MB
 }
 
@@ -200,7 +201,7 @@ pub enum RuleSeverity {
 }
 
 /// Flexible configuration for a single rule.
-#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, JsonSchema)]
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq, JsonSchema)]
 #[serde(untagged)]
 pub enum RuleConfig {
     /// Short form: just the severity level.
@@ -210,7 +211,7 @@ pub enum RuleConfig {
 }
 
 /// Detailed configuration for a single rule.
-#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Default, JsonSchema)]
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq, Default, JsonSchema)]
 pub struct RuleFullConfig {
     /// Override the default severity for this rule.
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -246,7 +247,7 @@ fn is_empty_yaml_value(v: &serde_yaml::Value) -> bool {
 }
 
 /// Configuration overrides for specific file patterns.
-#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, JsonSchema)]
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq, JsonSchema)]
 pub struct Override {
     /// Files or directories to apply these overrides to (glob patterns).
     pub files: Vec<String>,
@@ -276,7 +277,8 @@ where
     }
 }
 
-fn is_none_or_empty_vec(opt: &Option<Vec<String>>) -> bool {
+#[allow(clippy::ref_option)]
+const fn is_none_or_empty_vec(opt: &Option<Vec<String>>) -> bool {
     match opt {
         None => true,
         Some(v) => v.is_empty(),
@@ -284,7 +286,7 @@ fn is_none_or_empty_vec(opt: &Option<Vec<String>>) -> bool {
 }
 
 /// Configuration for the file watcher (watch mode).
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, JsonSchema)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, JsonSchema)]
 pub struct WatchConfig {
     /// Delay in milliseconds before triggering a re-scan after a change.
     #[serde(default = "default_debounce_ms")]
@@ -299,11 +301,11 @@ pub struct WatchConfig {
     pub ignore: Vec<String>,
 }
 
-fn default_debounce_ms() -> u64 {
+const fn default_debounce_ms() -> u64 {
     300
 }
 
-fn default_clear_screen() -> bool {
+const fn default_clear_screen() -> bool {
     false
 }
 
@@ -348,12 +350,12 @@ impl Default for SeverityConfig {
     }
 }
 
-fn default_min_severity() -> Option<Severity> {
+const fn default_min_severity() -> Option<Severity> {
     Some(Severity::Low)
 }
 
 /// Weights assigned to each severity level for score calculation.
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, JsonSchema)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, JsonSchema)]
 pub struct SeverityWeights {
     /// Score weight for Critical issues.
     pub critical: u32,
@@ -392,7 +394,7 @@ impl Default for GradeThresholds {
     }
 }
 
-fn default_weights() -> SeverityWeights {
+const fn default_weights() -> SeverityWeights {
     SeverityWeights {
         critical: 100,
         high: 50,
@@ -402,7 +404,8 @@ fn default_weights() -> SeverityWeights {
 }
 
 impl SeverityWeights {
-    pub fn score(&self, severity: &Severity) -> u32 {
+    #[must_use]
+    pub const fn score(&self, severity: &Severity) -> u32 {
         match severity {
             Severity::Critical => self.critical,
             Severity::High => self.high,

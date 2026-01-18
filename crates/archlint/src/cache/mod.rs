@@ -111,6 +111,7 @@ impl AnalysisCache {
         }
     }
 
+    #[must_use]
     pub fn get(&self, path: &Path, content_hash: &str) -> Option<&ParsedFile> {
         self.data.entries.get(path).and_then(|entry| {
             if entry.content_hash == content_hash {
@@ -132,6 +133,7 @@ impl AnalysisCache {
         self.is_dirty = true;
     }
 
+    #[must_use]
     pub fn get_churn_map(&self) -> Option<&HashMap<PathBuf, usize>> {
         if self.data.churn_map.is_empty() {
             None
@@ -155,7 +157,7 @@ impl AnalysisCache {
         }
 
         let bytes = encode_to_vec(&self.data, config::standard()).map_err(|e| {
-            crate::AnalysisError::Storage(format!("Failed to serialize cache: {}", e))
+            crate::AnalysisError::Storage(format!("Failed to serialize cache: {e}"))
         })?;
         fs::write(&self.cache_file, bytes)?;
         Ok(())

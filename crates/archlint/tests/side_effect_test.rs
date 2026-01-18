@@ -38,7 +38,7 @@ fn test_normal_import_ok() {
     assert!(smells.is_empty(), "Expected normal named import to be ok");
 }
 
-/// Test for issue #23: dynamic import() should NOT be flagged as side-effect import
+/// Test for issue #23: dynamic `import()` should NOT be flagged as side-effect import
 /// Vue Router / React lazy loading pattern
 #[test]
 fn test_dynamic_import_ok() {

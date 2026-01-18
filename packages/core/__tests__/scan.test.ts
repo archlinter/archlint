@@ -32,7 +32,7 @@ describe('getDetectors', () => {
     const detectors = getDetectors();
 
     expect(detectors.length).toBeGreaterThan(20);
-    expect(detectors.find((d) => d.id === 'cycles')).toBeDefined();
+    expect(detectors.find((d) => d.id === 'cyclic_dependency')).toBeDefined();
   });
 });
 

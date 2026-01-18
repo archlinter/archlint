@@ -21,7 +21,8 @@ pub struct EngineBuilder<'a> {
 }
 
 impl<'a> EngineBuilder<'a> {
-    pub fn new(project_root: &'a Path, config: &'a Config) -> Self {
+    #[must_use]
+    pub const fn new(project_root: &'a Path, config: &'a Config) -> Self {
         Self {
             project_root,
             config,
@@ -120,6 +121,7 @@ impl<'a> EngineBuilder<'a> {
         Ok(count)
     }
 
+    #[must_use]
     pub fn resolve_symbols(
         &self,
         file_symbols: HashMap<PathBuf, FileSymbols>,
@@ -162,8 +164,8 @@ impl<'a> EngineBuilder<'a> {
     ) -> FileSymbols {
         for import in &mut symbols.imports {
             match resolver.resolve(import.source.as_str(), &file) {
-                Ok(Some(resolved)) => {
-                    import.source = resolved.to_string_lossy().to_string().into();
+                Ok(Some(resolved_path)) => {
+                    import.source = resolved_path.to_string_lossy().to_string().into();
                 }
                 Ok(None) => {
                     log::trace!("Could not resolve import '{}' in {:?}", import.source, file);
@@ -181,19 +183,14 @@ impl<'a> EngineBuilder<'a> {
         for export in &mut symbols.exports {
             if let Some(ref source) = export.source {
                 match resolver.resolve(source.as_str(), &file) {
-                    Ok(Some(resolved)) => {
-                        export.source = Some(resolved.to_string_lossy().to_string().into());
+                    Ok(Some(resolved_path)) => {
+                        export.source = Some(resolved_path.to_string_lossy().to_string().into());
                     }
                     Ok(None) => {
-                        log::trace!("Could not resolve re-export '{}' in {:?}", source, file);
+                        log::trace!("Could not resolve re-export '{source}' in {file:?}");
                     }
                     Err(e) => {
-                        log::debug!(
-                            "Error resolving re-export '{}' in {:?}: {}",
-                            source,
-                            file,
-                            e
-                        );
+                        log::debug!("Error resolving re-export '{source}' in {file:?}: {e}");
                     }
                 }
             }

@@ -1,7 +1,7 @@
 use crate::detectors::detector;
 
 /// Initializes the detector module.
-pub fn init() {}
+pub const fn init() {}
 
 impl_complexity_detector! {
     struct: CognitiveComplexityDetector,

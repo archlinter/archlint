@@ -35,7 +35,7 @@ pub use metrics::{
 
 /// Ensures all detectors are registered.
 /// This is needed to force the linker to include all modules when using the `inventory` crate.
-pub fn init() {
+pub const fn init() {
     metrics::init();
     dependency::init();
     design::init();

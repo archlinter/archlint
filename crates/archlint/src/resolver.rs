@@ -45,7 +45,7 @@ impl PathResolver {
 
     fn resolve_relative(&self, import_path: &str, from_file: &Path) -> Result<Option<PathBuf>> {
         let from_dir = from_file.parent().ok_or_else(|| {
-            AnalysisError::PathResolution(format!("Invalid file path: {:?}", from_file))
+            AnalysisError::PathResolution(format!("Invalid file path: {from_file:?}"))
         })?;
 
         let candidate = from_dir.join(import_path);
@@ -112,7 +112,7 @@ impl PathResolver {
         let base_str = base.to_string_lossy();
         // Try adding extensions (don't use with_extension as it replaces existing ones like .service)
         for ext in SUPPORTED_EXTENSIONS {
-            let with_ext = PathBuf::from(format!("{}.{}", base_str, ext));
+            let with_ext = PathBuf::from(format!("{base_str}.{ext}"));
             if with_ext.is_file() {
                 return Some(self.canonicalize_path(with_ext));
             }
@@ -123,7 +123,7 @@ impl PathResolver {
     fn resolve_index_file(&self, base: &Path) -> Option<PathBuf> {
         if base.is_dir() {
             for ext in SUPPORTED_EXTENSIONS {
-                let index = base.join(format!("index.{}", ext));
+                let index = base.join(format!("index.{ext}"));
                 if index.is_file() {
                     return Some(self.canonicalize_path(index));
                 }

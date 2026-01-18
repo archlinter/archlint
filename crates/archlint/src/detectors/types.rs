@@ -8,13 +8,13 @@ use crate::detectors::ArchSmell;
 /// Category for incremental analysis optimization
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum DetectorCategory {
-    /// Only analyzes file contents (complexity, deep_nesting, long_params, etc.)
+    /// Only analyzes file contents (complexity, `deep_nesting`, `long_params`, etc.)
     FileLocal,
-    /// Analyzes file imports (layer_violation, vendor_coupling, etc.)
+    /// Analyzes file imports (`layer_violation`, `vendor_coupling`, etc.)
     ImportBased,
-    /// Analyzes dependency subgraph (cycles, hub_module, etc.)
+    /// Analyzes dependency subgraph (cycles, `hub_module`, etc.)
     GraphBased,
-    /// Requires full graph analysis (dead_code, god_module, etc.)
+    /// Requires full graph analysis (`dead_code`, `god_module`, etc.)
     Global,
 }
 
@@ -481,14 +481,17 @@ pub enum SmellType {
 }
 
 impl SmellKind {
+    #[must_use]
     pub fn to_id(&self) -> &'static str {
         self.into()
     }
 
+    #[must_use]
     pub fn display_name(&self) -> &'static str {
         self.get_message().unwrap_or_default()
     }
 
+    #[must_use]
     pub fn default_category(&self) -> DetectorCategory {
         use EnumProperty;
         match self.get_str("category") {
@@ -508,6 +511,7 @@ impl std::fmt::Display for SmellKind {
 }
 
 impl SmellType {
+    #[must_use]
     pub fn category(&self) -> SmellKind {
         SmellKind::from(self)
     }
@@ -520,39 +524,37 @@ impl From<&SnapshotSmell> for SmellType {
         }
 
         match smell.smell_type.as_str() {
-            "CyclicDependency" | "Cycles" => SmellType::CyclicDependency,
-            "CyclicDependencyCluster" => SmellType::CyclicDependencyCluster,
-            "GodModule" => SmellType::GodModule,
-            "DeadCode" => SmellType::DeadCode,
-            "SdpViolation" => SmellType::SdpViolation,
-            "LargeFile" => SmellType::LargeFile,
-            "UnstableInterface" => SmellType::UnstableInterface,
-            "BarrelFileAbuse" => SmellType::BarrelFileAbuse,
-            "SideEffectImport" => SmellType::SideEffectImport,
-            "HubModule" => SmellType::HubModule,
-            "CircularTypeDependency" => SmellType::CircularTypeDependency,
-            "AbstractnessViolation" => SmellType::AbstractnessViolation,
-            "ShotgunSurgery" => SmellType::ShotgunSurgery,
+            "CyclicDependency" | "Cycles" => Self::CyclicDependency,
+            "CyclicDependencyCluster" => Self::CyclicDependencyCluster,
+            "GodModule" => Self::GodModule,
+            "DeadCode" => Self::DeadCode,
+            "SdpViolation" => Self::SdpViolation,
+            "LargeFile" => Self::LargeFile,
+            "UnstableInterface" => Self::UnstableInterface,
+            "BarrelFileAbuse" => Self::BarrelFileAbuse,
+            "SideEffectImport" => Self::SideEffectImport,
+            "HubModule" => Self::HubModule,
+            "CircularTypeDependency" => Self::CircularTypeDependency,
+            "AbstractnessViolation" => Self::AbstractnessViolation,
+            "ShotgunSurgery" => Self::ShotgunSurgery,
             "HighComplexity"
             | "Complexity"
             | "HighCyclomaticComplexity"
             | "CyclomaticComplexity" => {
-                SmellType::HighCyclomaticComplexity {
+                Self::HighCyclomaticComplexity {
                     name: String::new(), // Will be filled by details if present
                     line: 0,
                     complexity: 0,
                 }
             }
-            "HighCognitiveComplexity" | "CognitiveComplexity" => {
-                SmellType::HighCognitiveComplexity {
-                    name: String::new(),
-                    line: 0,
-                    complexity: 0,
-                }
-            }
+            "HighCognitiveComplexity" | "CognitiveComplexity" => Self::HighCognitiveComplexity {
+                name: String::new(),
+                line: 0,
+                complexity: 0,
+            },
             unknown => {
-                log::warn!("Missing details for complex smell type: {}", unknown);
-                SmellType::Unknown {
+                log::warn!("Missing details for complex smell type: {unknown}");
+                Self::Unknown {
                     raw_type: unknown.to_string(),
                 }
             }
@@ -596,7 +598,7 @@ mod tests {
                 assert_eq!(line, 10);
                 assert_eq!(complexity, 20);
             }
-            _ => panic!("Expected HighCyclomaticComplexity, got {:?}", smell_type),
+            _ => panic!("Expected HighCyclomaticComplexity, got {smell_type:?}"),
         }
     }
 
@@ -619,7 +621,7 @@ mod tests {
             SmellType::HubDependency { package } => {
                 assert_eq!(package, "axios");
             }
-            _ => panic!("Expected HubDependency, got {:?}", smell_type),
+            _ => panic!("Expected HubDependency, got {smell_type:?}"),
         }
     }
 
@@ -640,7 +642,7 @@ mod tests {
             SmellType::Unknown { raw_type } => {
                 assert_eq!(raw_type, "NewMagicSmell");
             }
-            _ => panic!("Expected Unknown, got {:?}", smell_type),
+            _ => panic!("Expected Unknown, got {smell_type:?}"),
         }
     }
 
@@ -755,4 +757,5 @@ pub enum SmellMetric {
     FilesCount(usize),
     InternalRefs(usize),
     ExternalRefs(usize),
+    Threshold(usize),
 }

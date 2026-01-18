@@ -2,6 +2,7 @@ use std::path::{Path, PathBuf};
 
 /// Detects the project root by searching upwards for project markers.
 /// If no marker is found, returns the start directory.
+#[must_use]
 pub fn detect_project_root(target: &Path) -> PathBuf {
     let start = if target.is_file() {
         target.parent().unwrap_or(target)

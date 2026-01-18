@@ -11,6 +11,7 @@ pub struct FrameworkPreset {
     pub overrides: Vec<Override>,
 }
 
+#[must_use]
 pub fn get_presets(frameworks: &[Framework]) -> Vec<FrameworkPreset> {
     frameworks
         .iter()

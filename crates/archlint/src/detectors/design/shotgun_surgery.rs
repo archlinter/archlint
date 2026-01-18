@@ -6,7 +6,7 @@ use std::path::{Path, PathBuf};
 
 /// Initializes the detector module.
 /// This function is used for module registration side-effects.
-pub fn init() {}
+pub const fn init() {}
 
 #[detector(SmellType::ShotgunSurgery, default_enabled = false, is_deep = true)]
 pub struct ShotgunSurgeryDetector;
@@ -18,7 +18,8 @@ struct CoChangeStats {
 }
 
 impl ShotgunSurgeryDetector {
-    pub fn new_default(_config: &crate::config::Config) -> Self {
+    #[must_use]
+    pub const fn new_default(_config: &crate::config::Config) -> Self {
         Self
     }
 
@@ -150,8 +151,7 @@ impl Detector for ShotgunSurgeryDetector {
                     .and_then(|n| n.to_str())
                     .unwrap_or("this file");
                 format!(
-                    "Shotgun Surgery: {} is highly coupled with {} other files (avg: {:.1} files per change)",
-                    primary_file, dependent_count, avg_co_changes
+                    "Shotgun Surgery: {primary_file} is highly coupled with {dependent_count} other files (avg: {avg_co_changes:.1} files per change)"
                 )
             },
             reason: {
@@ -162,8 +162,7 @@ impl Detector for ShotgunSurgeryDetector {
                     .and_then(|n| n.to_str())
                     .unwrap_or("this file");
                 format!(
-                    "When {} is modified, it usually requires simultaneous changes in many other files. This 'shotgun' effect suggests that a single logical responsibility is fragmented across the codebase.",
-                    primary_file
+                    "When {primary_file} is modified, it usually requires simultaneous changes in many other files. This 'shotgun' effect suggests that a single logical responsibility is fragmented across the codebase."
                 )
             },
             risks: [
@@ -179,7 +178,7 @@ impl Detector for ShotgunSurgeryDetector {
                         .and_then(|f| f.file_name())
                         .and_then(|n| n.to_str())
                         .unwrap_or("this file");
-                    format!("Consolidate the related logic from coupled files into {} or a new shared module", primary_file)
+                    format!("Consolidate the related logic from coupled files into {primary_file} or a new shared module")
                 },
                 "Apply the 'Move Method' or 'Move Field' refactoring to bring related parts together",
                 "Consider if the coupling is due to shared data structures that could be abstracted"
@@ -195,7 +194,7 @@ impl Detector for ShotgunSurgeryDetector {
                     let file_path = smell.files.first().unwrap();
                     smell.locations.iter().filter(|l| &l.file != file_path).map(|l| {
                         let path = crate::explain::ExplainEngine::format_file_path(&l.file);
-                        if l.description.is_empty() { format!("`{}`", path) } else { format!("`{}` ({})", path, l.description) }
+                        if l.description.is_empty() { format!("`{path}`") } else { format!("`{}` ({})", path, l.description) }
                     }).collect::<Vec<_>>().join(", ")
                 },
                 pts

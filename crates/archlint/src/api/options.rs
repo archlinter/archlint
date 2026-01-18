@@ -4,14 +4,14 @@ use crate::detectors::Severity;
 use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
 
-/// Options for scanning a project (library-friendly version of ScanArgs)
+/// Options for scanning a project (library-friendly version of `ScanArgs`)
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ScanOptions {
     /// Path to config file
     pub config_path: Option<PathBuf>,
 
-    /// Inline config (takes precedence over config_path)
+    /// Inline config (takes precedence over `config_path`)
     pub config: Option<Config>,
 
     /// Only run these detectors (by ID)
@@ -40,6 +40,7 @@ pub struct ScanOptions {
 }
 
 impl ScanOptions {
+    #[must_use]
     pub fn new() -> Self {
         Self {
             enable_cache: true,
@@ -48,6 +49,7 @@ impl ScanOptions {
         }
     }
 
+    #[must_use]
     pub fn to_scan_args(&self, path: &Path) -> ScanArgs {
         ScanArgs {
             path: path.to_path_buf(),
@@ -65,7 +67,7 @@ impl ScanOptions {
             },
             quiet: true,
             verbose: false,
-            min_severity: self.min_severity.map(|s| format!("{:?}", s).to_lowercase()),
+            min_severity: self.min_severity.map(|s| format!("{s:?}").to_lowercase()),
             min_score: self.min_score,
             severity: None,
             no_cache: !self.enable_cache,

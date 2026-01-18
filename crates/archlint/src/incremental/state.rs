@@ -36,11 +36,12 @@ pub struct IncrementalState {
     pub script_entry_points: HashSet<PathBuf>,
     pub dynamic_load_patterns: Vec<String>,
 
-    /// Cache for file-local detector results: (detector_id, file_path) -> smells
+    /// Cache for file-local detector results: (`detector_id`, `file_path`) -> smells
     pub file_local_cache: HashMap<(String, PathBuf), Vec<ArchSmell>>,
 }
 
 impl IncrementalState {
+    #[must_use]
     pub fn new(project_root: PathBuf, config_hash: String) -> Self {
         Self {
             graph: Arc::new(DependencyGraph::new()),
@@ -80,27 +81,27 @@ impl IncrementalState {
         self.file_local_cache.clear();
     }
 
-    /// Get mutable access to graph via Arc::make_mut (copy-on-write)
+    /// Get mutable access to graph via `Arc::make_mut` (copy-on-write)
     pub fn graph_mut(&mut self) -> &mut DependencyGraph {
         Arc::make_mut(&mut self.graph)
     }
 
-    /// Get mutable access to file_symbols via Arc::make_mut (copy-on-write)
+    /// Get mutable access to `file_symbols` via `Arc::make_mut` (copy-on-write)
     pub fn file_symbols_mut(&mut self) -> &mut HashMap<PathBuf, FileSymbols> {
         Arc::make_mut(&mut self.file_symbols)
     }
 
-    /// Get mutable access to file_metrics via Arc::make_mut (copy-on-write)
+    /// Get mutable access to `file_metrics` via `Arc::make_mut` (copy-on-write)
     pub fn file_metrics_mut(&mut self) -> &mut HashMap<PathBuf, FileMetrics> {
         Arc::make_mut(&mut self.file_metrics)
     }
 
-    /// Get mutable access to function_complexity via Arc::make_mut (copy-on-write)
+    /// Get mutable access to `function_complexity` via `Arc::make_mut` (copy-on-write)
     pub fn function_complexity_mut(&mut self) -> &mut HashMap<PathBuf, Vec<FunctionComplexity>> {
         Arc::make_mut(&mut self.function_complexity)
     }
 
-    /// Get mutable access to ignored_lines via Arc::make_mut (copy-on-write)
+    /// Get mutable access to `ignored_lines` via `Arc::make_mut` (copy-on-write)
     pub fn ignored_lines_mut(&mut self) -> &mut FileIgnoredLines {
         Arc::make_mut(&mut self.ignored_lines)
     }

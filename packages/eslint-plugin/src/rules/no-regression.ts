@@ -97,8 +97,8 @@ function ensureDiffResult(
 
   try {
     const result = runDiff({
-      baselinePath: absoluteBaseline,
-      projectPath: projectRoot,
+      baseline: absoluteBaseline,
+      project: projectRoot,
     });
     diffCache.set(projectRoot, result);
     return true;

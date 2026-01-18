@@ -4,13 +4,14 @@ use crate::parser::SymbolKind;
 
 /// Initializes the detector module.
 /// This function is used for module registration side-effects.
-pub fn init() {}
+pub const fn init() {}
 
 #[detector(SmellType::SharedMutableState, default_enabled = false)]
 pub struct SharedMutableStateDetector;
 
 impl SharedMutableStateDetector {
-    pub fn new_default(_config: &crate::config::Config) -> Self {
+    #[must_use]
+    pub const fn new_default(_config: &crate::config::Config) -> Self {
         Self
     }
 }
@@ -20,7 +21,7 @@ impl Detector for SharedMutableStateDetector {
         explain: smell => (
             problem: {
                 if let crate::detectors::SmellType::SharedMutableState { symbol } = &smell.smell_type {
-                    format!("Shared Mutable State: `{}`", symbol)
+                    format!("Shared Mutable State: `{symbol}`")
                 } else {
                     "Shared Mutable State".into()
                 }

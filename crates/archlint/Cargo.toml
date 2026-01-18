@@ -5,6 +5,9 @@ edition.workspace = true
 license.workspace = true
 description = "Fast, AST-based architecture smell detector for TypeScript/JavaScript"
 
+[lints]
+workspace = true
+
 [[bin]]
 name = "archlint"
 path = "src/main.rs"
@@ -16,7 +19,14 @@ path = "src/lib.rs"
 
 [features]
 default = ["cli"]
-cli = ["dep:clap", "dep:clap_complete", "dep:indicatif", "dep:console", "dep:comfy-table", "dep:cliclack"]
+cli = [
+  "dep:clap",
+  "dep:clap_complete",
+  "dep:indicatif",
+  "dep:console",
+  "dep:comfy-table",
+  "dep:cliclack",
+]
 
 [dependencies]
 clap = { workspace = true, optional = true }

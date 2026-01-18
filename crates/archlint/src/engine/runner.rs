@@ -89,7 +89,8 @@ impl AnalysisEngine {
         let parser_config = ParserConfig::from_active_detectors(&active_ids);
 
         let mut cache = self.load_cache()?;
-        let parsed_files = self.parse_files(&files, &parser_config, use_progress, &cache)?;
+        let parsed_files =
+            self.parse_files(&files, &parser_config, use_progress, cache.as_ref())?;
         self.update_cache(&mut cache, &parsed_files)?;
 
         let (file_symbols, function_complexity, file_metrics, ignored_lines) =
@@ -207,30 +208,22 @@ impl AnalysisEngine {
                 match PresetLoader::load_any(preset_name) {
                     Ok(p) => presets.push(p),
                     Err(e) => {
-                        return Err(anyhow::anyhow!(
-                            "Failed to load preset '{}': {}",
-                            preset_name,
-                            e
-                        )
-                        .into());
+                        return Err(
+                            anyhow::anyhow!("Failed to load preset '{preset_name}': {e}").into(),
+                        );
                     }
                 }
             }
         }
 
         if let Some(ref fw) = self.config.framework {
-            let already_loaded = self
-                .config
-                .extends
-                .as_ref()
-                .map(|e| e.contains(fw))
-                .unwrap_or(false);
+            let already_loaded = self.config.extends.as_ref().is_some_and(|e| e.contains(fw));
 
             if !already_loaded {
                 match PresetLoader::load_any(fw) {
                     Ok(p) => presets.push(p),
                     Err(e) => {
-                        log::warn!("Failed to load framework preset '{}': {}", fw, e);
+                        log::warn!("Failed to load framework preset '{fw}': {e}");
                     }
                 }
             }
@@ -255,7 +248,7 @@ impl AnalysisEngine {
             style(
                 detected
                     .iter()
-                    .map(|f| f.to_string())
+                    .map(std::string::ToString::to_string)
                     .collect::<Vec<_>>()
                     .join(", ")
             )
@@ -267,8 +260,7 @@ impl AnalysisEngine {
                 .config
                 .extends
                 .as_ref()
-                .map(|e| e.contains(&fw.0))
-                .unwrap_or(false);
+                .is_some_and(|e| e.contains(&fw.0));
 
             if !already_loaded {
                 if let Ok(p) = PresetLoader::load_builtin(&fw.0) {
@@ -357,6 +349,7 @@ impl AnalysisEngine {
         })
     }
 
+    #[must_use]
     pub fn apply_presets(&self, presets: &[FrameworkPreset]) -> Config {
         let mut final_config = self.config.clone();
         for preset in presets {
@@ -366,11 +359,11 @@ impl AnalysisEngine {
     }
 
     fn load_cache(&self) -> Result<Option<AnalysisCache>> {
-        if !self.args.no_cache {
+        if self.args.no_cache {
+            Ok(None)
+        } else {
             debug!("Loading cache...");
             Ok(Some(AnalysisCache::load(&self.project_root, &self.config)?))
-        } else {
-            Ok(None)
         }
     }
 
@@ -379,7 +372,7 @@ impl AnalysisEngine {
         files: &[PathBuf],
         config: &ParserConfig,
         use_progress: bool,
-        cache: &Option<AnalysisCache>,
+        cache: Option<&AnalysisCache>,
     ) -> Result<HashMap<PathBuf, ParsedFile>> {
         let parser = ImportParser::new()?;
         let pb = if use_progress {
@@ -396,7 +389,7 @@ impl AnalysisEngine {
             .par_iter()
             .map(|file| {
                 let hash = file_content_hash(file)?;
-                if let Some(ref c) = cache {
+                if let Some(c) = cache {
                     if let Some(cached) = c.get(file, &hash) {
                         if let Some(ref pb) = pb {
                             pb.inc(1);
@@ -544,16 +537,13 @@ impl AnalysisEngine {
                         map
                     }
                     Err(e) => {
-                        debug!("Git history cache calculation failed: {}, skipping", e);
+                        debug!("Git history cache calculation failed: {e}, skipping");
                         HashMap::new()
                     }
                 }
             }
             Err(e) => {
-                debug!(
-                    "Failed to open git history cache: {}, skipping churn calculation",
-                    e
-                );
+                debug!("Failed to open git history cache: {e}, skipping churn calculation");
                 HashMap::new()
             }
         }

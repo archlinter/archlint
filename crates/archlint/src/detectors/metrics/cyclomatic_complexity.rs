@@ -2,7 +2,7 @@ use crate::detectors::detector;
 
 /// Initializes the detector module.
 /// This function is used for module registration side-effects.
-pub fn init() {}
+pub const fn init() {}
 
 impl_complexity_detector! {
     struct: CyclomaticComplexityDetector,

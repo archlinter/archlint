@@ -51,12 +51,14 @@ impl DetectorRegistry {
         Self { factories }
     }
 
+    #[must_use]
     pub fn list_all(&self) -> Vec<DetectorInfo> {
         let mut infos: Vec<_> = self.factories.values().map(|f| f.info()).collect();
         infos.sort_by_key(|i| i.id);
         infos
     }
 
+    #[must_use]
     pub fn get_enabled(
         &self,
         config: &Config,
@@ -65,6 +67,7 @@ impl DetectorRegistry {
         self.get_enabled_with_presets(config, &[], all_detectors)
     }
 
+    #[must_use]
     pub fn get_enabled_with_presets(
         &self,
         config: &Config,
@@ -75,6 +78,7 @@ impl DetectorRegistry {
         (enabled.into_iter().map(|(_, d)| d).collect(), needs_deep)
     }
 
+    #[must_use]
     pub fn get_enabled_full(
         &self,
         config: &Config,
@@ -134,10 +138,12 @@ impl DetectorRegistry {
         info.default_enabled
     }
 
+    #[must_use]
     pub fn get_info(&self, id: &str) -> Option<DetectorInfo> {
         self.factories.get(id).map(|f| f.info())
     }
 
+    #[must_use]
     pub fn create_detector(&self, id: &str, config: &Config) -> Option<Box<dyn Detector>> {
         self.factories.get(id).map(|f| f.create(config))
     }

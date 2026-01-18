@@ -20,7 +20,8 @@ pub struct DetectorRunner<'a> {
 }
 
 impl<'a> DetectorRunner<'a> {
-    pub fn new(args: &'a ScanArgs) -> Self {
+    #[must_use]
+    pub const fn new(args: &'a ScanArgs) -> Self {
         Self { args }
     }
 
@@ -36,12 +37,9 @@ impl<'a> DetectorRunner<'a> {
 
         let final_detectors = self.filter_detectors(enabled_detectors, |(id, _)| id);
 
-        let needs_deep = final_detectors.iter().any(|(id, _)| {
-            registry
-                .get_info(id)
-                .map(|info| info.is_deep)
-                .unwrap_or(false)
-        });
+        let needs_deep = final_detectors
+            .iter()
+            .any(|(id, _)| registry.get_info(id).is_some_and(|info| info.is_deep));
 
         info!(
             "{} Detecting architectural smells...{}",
@@ -49,7 +47,7 @@ impl<'a> DetectorRunner<'a> {
             if needs_deep {
                 style(" (deep analysis enabled)").dim().to_string()
             } else {
-                "".to_string()
+                String::new()
             }
         );
 
@@ -89,7 +87,7 @@ impl<'a> DetectorRunner<'a> {
                 pb.println(status);
                 pb.inc(1);
             } else {
-                info!("{}", status);
+                info!("{status}");
             }
             all_smells.extend(smells);
         }
@@ -100,6 +98,7 @@ impl<'a> DetectorRunner<'a> {
         Ok(all_smells)
     }
 
+    #[must_use]
     pub fn get_active_detectors(
         &self,
         config: &Config,
@@ -118,9 +117,24 @@ impl<'a> DetectorRunner<'a> {
         detectors: impl IntoIterator<Item = T>,
         id_extractor: F,
     ) -> Vec<T> {
-        let include = self.parse_detector_id_set(&self.args.detectors);
+        let include = self.args.detectors.as_ref().map(|s| {
+            s.split(',')
+                .map(str::trim)
+                .filter(|id| !id.is_empty())
+                .map(std::string::ToString::to_string)
+                .collect::<HashSet<_>>()
+        });
         let exclude = self
-            .parse_detector_id_set(&self.args.exclude_detectors)
+            .args
+            .exclude_detectors
+            .as_ref()
+            .map(|s| {
+                s.split(',')
+                    .map(str::trim)
+                    .filter(|id| !id.is_empty())
+                    .map(std::string::ToString::to_string)
+                    .collect::<HashSet<_>>()
+            })
             .unwrap_or_default();
 
         detectors
@@ -132,26 +146,16 @@ impl<'a> DetectorRunner<'a> {
             .filter(|d| !exclude.contains(id_extractor(d)))
             .collect()
     }
-
-    fn parse_detector_id_set(&self, ids: &Option<String>) -> Option<HashSet<String>> {
-        ids.as_ref().map(|s| {
-            s.split(',')
-                .map(|id| id.trim())
-                .filter(|id| !id.is_empty())
-                .map(|id| id.to_string())
-                .collect::<HashSet<_>>()
-        })
-    }
 }
 
 pub fn apply_arg_overrides(args: &ScanArgs, config: &mut Config) {
     if let Some(ref detectors) = args.detectors {
-        for id in detectors.split(',').map(|s| s.trim()) {
+        for id in detectors.split(',').map(str::trim) {
             override_rule(config, id, RuleSeverity::High, true);
         }
     }
     if let Some(ref exclude) = args.exclude_detectors {
-        for id in exclude.split(',').map(|s| s.trim()) {
+        for id in exclude.split(',').map(str::trim) {
             override_rule(config, id, RuleSeverity::Off, false);
         }
     }

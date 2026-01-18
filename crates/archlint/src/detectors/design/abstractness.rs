@@ -6,13 +6,14 @@ use petgraph::graph::NodeIndex;
 
 /// Initializes the detector module.
 /// This function is used for module registration side-effects.
-pub fn init() {}
+pub const fn init() {}
 
 #[detector(SmellType::AbstractnessViolation, default_enabled = false)]
 pub struct AbstractnessViolationDetector;
 
 impl AbstractnessViolationDetector {
-    pub fn new_default(_config: &crate::config::Config) -> Self {
+    #[must_use]
+    pub const fn new_default(_config: &crate::config::Config) -> Self {
         Self
     }
 
@@ -41,7 +42,7 @@ impl AbstractnessViolationDetector {
             }
         }
 
-        abstract_usages as f64 / incoming_edges.len() as f64
+        f64::from(abstract_usages) / incoming_edges.len() as f64
     }
 
     fn calculate_fallback_abstractness(
@@ -196,8 +197,7 @@ impl Detector for AbstractnessViolationDetector {
             Explanation {
                 problem: "Abstractness Violation".to_string(),
                 reason: format!(
-                    "Module distance from the 'Main Sequence' is {:.2}. It is in the {}. Current Abstractness: {:.2}, Instability: {:.2}.",
-                    distance, zone, abstractness, instability
+                    "Module distance from the 'Main Sequence' is {distance:.2}. It is in the {zone}. Current Abstractness: {abstractness:.2}, Instability: {instability:.2}."
                 ),
                 risks: vec![
                     "Rigid code that is hard to change (if in Zone of Pain)".to_string(),

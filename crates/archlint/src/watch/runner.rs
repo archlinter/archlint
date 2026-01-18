@@ -14,6 +14,7 @@ pub struct WatchRunner {
 }
 
 impl WatchRunner {
+    #[must_use]
     pub fn new(engine: AnalysisEngine, clear_screen: bool) -> Self {
         Self {
             engine,

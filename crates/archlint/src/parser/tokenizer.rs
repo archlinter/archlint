@@ -40,6 +40,7 @@ pub struct TokenCollector {
 }
 
 impl TokenCollector {
+    #[must_use]
     pub fn new(source: Arc<str>) -> Self {
         Self {
             tokens: Vec::new(),
@@ -308,6 +309,7 @@ impl<'a> Visit<'a> for TokenCollector {
     }
 }
 
+#[must_use]
 pub fn tokenize_and_normalize(source: Arc<str>, source_type: SourceType) -> Vec<NormalizedToken> {
     let allocator = Allocator::default();
     let parser = Parser::new(&allocator, &source, source_type);

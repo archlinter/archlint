@@ -17,11 +17,13 @@ impl std::fmt::Display for Framework {
 }
 
 impl Framework {
+    #[must_use]
     pub fn as_preset_name(&self) -> String {
         self.0.clone()
     }
 
     /// Returns true if this framework has a built-in preset.
+    #[must_use]
     pub fn has_builtin_preset(&self) -> bool {
         preset_loader::PresetLoader::get_all_builtin_names().contains(&self.0.as_str())
     }

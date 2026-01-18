@@ -2,6 +2,7 @@ use super::types::{ExplainBlock, Regression, RegressionType};
 use crate::explain::{ExplainEngine, Explanation};
 use crate::snapshot::SnapshotSmell;
 
+#[must_use]
 pub fn generate_explain(regression: &Regression, config: &crate::config::Config) -> ExplainBlock {
     match &regression.regression_type {
         RegressionType::NewSmell => explain_for_smell_type(&regression.smell, config),
@@ -17,6 +18,7 @@ pub fn generate_explain(regression: &Regression, config: &crate::config::Config)
     }
 }
 
+#[must_use]
 pub fn explain_for_smell_type(
     smell: &SnapshotSmell,
     config: &crate::config::Config,
@@ -25,6 +27,7 @@ pub fn explain_for_smell_type(
     ExplanationConverter::to_explain_block(explanation)
 }
 
+#[must_use]
 pub fn explain_severity_increase(
     smell: &SnapshotSmell,
     from: &str,
@@ -49,6 +52,7 @@ pub fn explain_severity_increase(
     }
 }
 
+#[must_use]
 pub fn explain_metric_worsening(
     smell: &SnapshotSmell,
     metric: &str,
@@ -77,9 +81,8 @@ pub fn explain_metric_worsening(
             metric, smell.smell_type
         ),
         how_to_fix: format!(
-            "Review recent changes to understand why {} increased. \
-            Consider refactoring to reduce coupling.",
-            metric
+            "Review recent changes to understand why {metric} increased. \
+            Consider refactoring to reduce coupling."
         ),
     }
 }

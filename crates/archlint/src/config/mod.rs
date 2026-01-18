@@ -57,15 +57,15 @@ impl Config {
             (user_options.as_mapping_mut(), preset_options.as_mapping())
         {
             for (key, preset_val) in preset_map {
-                if !user_map.contains_key(key) {
-                    user_map.insert(key.clone(), preset_val.clone());
-                } else {
+                if user_map.contains_key(key) {
                     let user_val = user_map.get_mut(key).unwrap();
                     if user_val.is_mapping() && preset_val.is_mapping() {
                         Self::merge_options(user_val, preset_val);
                     } else {
                         Self::merge_sequences(user_val, preset_val);
                     }
+                } else {
+                    user_map.insert(key.clone(), preset_val.clone());
                 }
             }
         }
@@ -84,7 +84,7 @@ impl Config {
     }
     pub fn load<P: AsRef<Path>>(path: P) -> Result<Self> {
         let contents = fs::read_to_string(path)?;
-        let mut config: Config = serde_yaml::from_str(&contents)?;
+        let mut config: Self = serde_yaml::from_str(&contents)?;
 
         // If extends is explicitly set (even as empty array), disable auto_detect_framework
         if config.extends.is_some() {
@@ -108,8 +108,7 @@ impl Config {
             let mut found_config = None;
             for filename in filenames {
                 let p = project_root
-                    .map(|root| root.join(filename))
-                    .unwrap_or_else(|| PathBuf::from(filename));
+                    .map_or_else(|| PathBuf::from(filename), |root| root.join(filename));
 
                 if p.exists() {
                     found_config = Some(Self::load(p)?);
@@ -142,7 +141,7 @@ impl Config {
         let tsconfig = match TsConfig::find_and_load(project_root, explicit_path) {
             Ok(config) => config,
             Err(e) => {
-                log::warn!("Failed to load tsconfig.json: {}. Path aliases and excludes from tsconfig will not be applied.", e);
+                log::warn!("Failed to load tsconfig.json: {e}. Path aliases and excludes from tsconfig will not be applied.");
                 None
             }
         };
@@ -169,13 +168,13 @@ impl Config {
                 (self.aliases.entry(alias.clone()), targets.first())
             {
                 let actual_path = if base_url.is_empty() {
-                    if target.starts_with("./") || target.starts_with("/") {
+                    if target.starts_with("./") || target.starts_with('/') {
                         target.clone()
                     } else {
-                        format!("./{}", target)
+                        format!("./{target}")
                     }
                 } else {
-                    format!("{}/{}", base_url, target)
+                    format!("{base_url}/{target}")
                 };
                 e.insert(actual_path);
             }
@@ -210,7 +209,7 @@ impl Config {
         let pattern = if path.contains('*') {
             path.to_string()
         } else {
-            format!("**/{}/**", path)
+            format!("**/{path}/**")
         };
 
         if !self.ignore.contains(&pattern) {

@@ -18,15 +18,15 @@ impl TsConfig {
     /// Internal implementation of `load` with cycle detection.
     /// Recursively follows `extends` fields and merges the configurations.
     fn load_internal(path: &Path, visited: &mut HashSet<PathBuf>) -> Result<Self> {
-        let canonical_path = path.canonicalize().map_err(|e| {
-            anyhow::anyhow!("Failed to canonicalize tsconfig path {:?}: {}", path, e)
-        })?;
+        let canonical_path = path
+            .canonicalize()
+            .map_err(|e| anyhow::anyhow!("Failed to canonicalize tsconfig path {path:?}: {e}"))?;
         if !visited.insert(canonical_path) {
-            return Err(anyhow::anyhow!("Circular extends detected: {:?}", path).into());
+            return Err(anyhow::anyhow!("Circular extends detected: {path:?}").into());
         }
 
         let contents = fs::read_to_string(path)?;
-        let mut config: TsConfig = json5::from_str(&contents)?;
+        let mut config: Self = json5::from_str(&contents)?;
 
         if let Some(extends) = &config.extends {
             let base_dir = path.parent().unwrap_or_else(|| Path::new("."));
@@ -59,7 +59,7 @@ impl TsConfig {
         Ok(None)
     }
 
-    /// Resolves a tsconfig path from node_modules by searching upwards.
+    /// Resolves a tsconfig path from `node_modules` by searching upwards.
     fn resolve_path_with_fallbacks(path: PathBuf) -> Option<PathBuf> {
         if path.is_file() {
             return Some(path);
@@ -83,7 +83,7 @@ impl TsConfig {
         } else {
             Self::resolve_node_modules_path(base_dir, extends)
         }
-        .ok_or_else(|| anyhow::anyhow!("Could not resolve tsconfig extends: {}", extends).into())
+        .ok_or_else(|| anyhow::anyhow!("Could not resolve tsconfig extends: {extends}").into())
     }
 
     fn resolve_node_modules_path(base_dir: &Path, specifier: &str) -> Option<PathBuf> {
@@ -91,11 +91,7 @@ impl TsConfig {
             resolver::TsConfigResolver::parse_package_specifier(specifier);
 
         log::trace!(
-            "Resolving tsconfig extends: {} (package: {}, subpath: {:?}) from {:?}",
-            specifier,
-            package_name,
-            subpath,
-            base_dir
+            "Resolving tsconfig extends: {specifier} (package: {package_name}, subpath: {subpath:?}) from {base_dir:?}"
         );
 
         base_dir.ancestors().find_map(|dir| {
@@ -137,7 +133,7 @@ impl TsConfig {
 
     /// Merges a parent `TsConfig` into this one (the child config).
     /// This configuration's values take precedence over the parent's values.
-    fn merge_with_parent(mut self, parent: TsConfig) -> Self {
+    fn merge_with_parent(mut self, parent: Self) -> Self {
         if let Some(parent_opts) = parent.compiler_options {
             self.compiler_options
                 .get_or_insert_with(CompilerOptions::default)

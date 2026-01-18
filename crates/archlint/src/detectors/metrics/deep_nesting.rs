@@ -3,13 +3,14 @@ use crate::engine::AnalysisContext;
 
 /// Initializes the detector module.
 /// This function is used for module registration side-effects.
-pub fn init() {}
+pub const fn init() {}
 
 #[detector(SmellType::DeepNesting)]
 pub struct DeepNestingDetector;
 
 impl DeepNestingDetector {
-    pub fn new_default(_config: &crate::config::Config) -> Self {
+    #[must_use]
+    pub const fn new_default(_config: &crate::config::Config) -> Self {
         Self
     }
 }
@@ -19,7 +20,7 @@ impl Detector for DeepNestingDetector {
         explain: smell => (
             problem: {
                 if let crate::detectors::SmellType::DeepNesting { name, depth, .. } = &smell.smell_type {
-                    format!("Function `{}` is too deeply nested (depth: {})", name, depth)
+                    format!("Function `{name}` is too deeply nested (depth: {depth})")
                 } else {
                     "Too deeply nested".into()
                 }

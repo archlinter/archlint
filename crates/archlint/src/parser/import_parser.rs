@@ -15,7 +15,7 @@ pub struct ImportParser;
 
 impl ImportParser {
     #[inline]
-    pub fn new() -> Result<Self> {
+    pub const fn new() -> Result<Self> {
         Ok(Self)
     }
 
@@ -269,11 +269,13 @@ impl ImportParser {
     }
 
     #[inline]
+    #[must_use]
     pub fn is_relative_import(import: &str) -> bool {
         import.starts_with("./") || import.starts_with("../")
     }
 
     #[inline]
+    #[must_use]
     pub fn is_alias_import(import: &str) -> bool {
         import.starts_with('@') || import.starts_with('~')
     }

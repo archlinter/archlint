@@ -10,10 +10,10 @@ fn test_code_clones_detected_exact() {
         "clones/exact",
         "code_clone",
         Some(
-            r#"
+            r"
             min_tokens: 20
             min_lines: 3
-            "#,
+            ",
         ),
     );
 
@@ -22,8 +22,7 @@ fn test_code_clones_detected_exact() {
 
     assert!(
         !smells.is_empty(),
-        "Expected to detect code clones, got {:?}",
-        smells
+        "Expected to detect code clones, got {smells:?}"
     );
 }
 
@@ -33,10 +32,10 @@ fn test_code_clones_in_exported_class() {
         "clones/exported",
         "code_clone",
         Some(
-            r#"
+            r"
             min_tokens: 20
             min_lines: 3
-            "#,
+            ",
         ),
     );
 
@@ -45,7 +44,6 @@ fn test_code_clones_in_exported_class() {
 
     assert!(
         !smells.is_empty(),
-        "Expected to detect code clones in exported class, got {:?}",
-        smells
+        "Expected to detect code clones in exported class, got {smells:?}"
     );
 }

@@ -18,6 +18,7 @@ impl Default for WatchUI {
 }
 
 impl WatchUI {
+    #[must_use]
     pub fn new() -> Self {
         Self {
             spinner: None,

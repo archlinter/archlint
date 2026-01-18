@@ -6,13 +6,14 @@ use std::path::{Path, PathBuf};
 
 /// Initializes the detector module.
 /// This function is used for module registration side-effects.
-pub fn init() {}
+pub const fn init() {}
 
 #[detector(SmellType::LayerViolation, default_enabled = false)]
 pub struct LayerViolationDetector;
 
 impl LayerViolationDetector {
-    pub fn new_default(_config: &crate::config::Config) -> Self {
+    #[must_use]
+    pub const fn new_default(_config: &crate::config::Config) -> Self {
         Self
     }
 
@@ -101,9 +102,8 @@ impl LayerViolationDetector {
 
         if from_layer.name != to_layer.name && !from_layer.allowed_imports.contains(&to_layer.name)
         {
-            let (import_line, import_range) = edge_data
-                .map(|e| (e.import_line, e.import_range))
-                .unwrap_or((0, None));
+            let (import_line, import_range) =
+                edge_data.map_or((0, None), |e| (e.import_line, e.import_range));
 
             Some(ArchSmell::new_layer_violation(
                 from_path.clone(),
@@ -128,7 +128,7 @@ impl Detector for LayerViolationDetector {
                 } else {
                     ("unknown", "unknown")
                 };
-                format!("Layer Architecture Violation: {} → {}", from, to)
+                format!("Layer Architecture Violation: {from} → {to}")
             },
             reason: "A module in one layer imports a module from a layer it shouldn't know about (e.g., domain depending on infrastructure).",
             risks: [

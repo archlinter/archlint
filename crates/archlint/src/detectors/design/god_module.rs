@@ -3,26 +3,27 @@ use crate::engine::AnalysisContext;
 
 /// Initializes the detector module.
 /// This function is used for module registration side-effects.
-pub fn init() {}
+pub const fn init() {}
 
 #[detector(SmellType::GodModule)]
 pub struct GodModuleDetector;
 
 impl GodModuleDetector {
-    pub fn new_default(_config: &crate::config::Config) -> Self {
+    #[must_use]
+    pub const fn new_default(_config: &crate::config::Config) -> Self {
         Self
     }
 
     fn generate_metrics_report(output: &mut String, smell: &crate::detectors::ArchSmell) {
         output.push_str("**Metrics:**\n");
         if let Some(fan_in) = smell.fan_in() {
-            output.push_str(&format!("- Fan-in: {}\n", fan_in));
+            output.push_str(&format!("- Fan-in: {fan_in}\n"));
         }
         if let Some(fan_out) = smell.fan_out() {
-            output.push_str(&format!("- Fan-out: {}\n", fan_out));
+            output.push_str(&format!("- Fan-out: {fan_out}\n"));
         }
         if let Some(churn) = smell.churn() {
-            output.push_str(&format!("- Churn: {} commits\n", churn));
+            output.push_str(&format!("- Churn: {churn} commits\n"));
         }
         output.push('\n');
     }
@@ -50,7 +51,7 @@ impl GodModuleDetector {
             incoming.sort();
             output.push_str("**Used by:**\n");
             for p in incoming.iter().take(15) {
-                output.push_str(&format!("- `{}`\n", p));
+                output.push_str(&format!("- `{p}`\n"));
             }
             if incoming.len() > 15 {
                 output.push_str(&format!("- ... and {} more\n", incoming.len() - 15));
@@ -68,7 +69,7 @@ impl GodModuleDetector {
             outgoing.sort();
             output.push_str("**Depends on:**\n");
             for p in outgoing.iter().take(15) {
-                output.push_str(&format!("- `{}`\n", p));
+                output.push_str(&format!("- `{p}`\n"));
             }
             if outgoing.len() > 15 {
                 output.push_str(&format!("- ... and {} more\n", outgoing.len() - 15));
@@ -128,7 +129,7 @@ impl Detector for GodModuleDetector {
                 let formatted_path = ExplainEngine::format_file_path(&file_path);
                 let score = smell.score(severity_config);
 
-                body.push_str(&format!("### {} ({} pts)\n\n", formatted_path, score));
+                body.push_str(&format!("### {formatted_path} ({score} pts)\n\n"));
 
                 Self::generate_metrics_report(&mut body, smell);
                 Self::generate_dependencies_report(&mut body, &file_path, graph);

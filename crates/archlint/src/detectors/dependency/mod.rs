@@ -7,7 +7,7 @@ pub mod layer_violation;
 pub mod package_cycle;
 pub mod vendor_coupling;
 
-pub fn init() {
+pub const fn init() {
     circular_type_deps::init();
     cycles::init();
     high_coupling::init();

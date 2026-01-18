@@ -6,13 +6,14 @@ use std::path::Path;
 
 /// Initializes the detector module.
 /// This function is used for module registration side-effects.
-pub fn init() {}
+pub const fn init() {}
 
 #[detector(SmellType::PackageCycle, default_enabled = false)]
 pub struct PackageCycleDetector;
 
 impl PackageCycleDetector {
-    pub fn new_default(_config: &crate::config::Config) -> Self {
+    #[must_use]
+    pub const fn new_default(_config: &crate::config::Config) -> Self {
         Self
     }
 

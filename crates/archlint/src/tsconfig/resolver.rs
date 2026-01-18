@@ -6,6 +6,7 @@ pub struct TsConfigResolver;
 
 impl TsConfigResolver {
     /// Parses a package specifier into a package name and an optional subpath.
+    #[must_use]
     pub fn parse_package_specifier(specifier: &str) -> (String, Option<&str>) {
         if specifier.starts_with('@') {
             let parts: Vec<&str> = specifier.splitn(3, '/').collect();
@@ -31,6 +32,7 @@ impl TsConfigResolver {
     }
 
     /// Attempts to resolve a tsconfig path through the "tsconfig" field in package.json.
+    #[must_use]
     pub fn resolve_via_package_json_field(pkg_dir: &Path) -> Option<PathBuf> {
         let pkg_json_path = pkg_dir.join("package.json");
         let content = fs::read_to_string(pkg_json_path).ok()?;
@@ -43,13 +45,14 @@ impl TsConfigResolver {
     }
 
     /// Attempts to resolve a tsconfig path through the "exports" field in package.json.
+    #[must_use]
     pub fn resolve_via_exports(pkg_dir: &Path, subpath: &str) -> Option<PathBuf> {
         let pkg_json_path = pkg_dir.join("package.json");
         let content = fs::read_to_string(pkg_json_path).ok()?;
         let pkg_json: Value = serde_json::from_str(&content).ok()?;
 
         let exports = pkg_json.get("exports")?.as_object()?;
-        let sub_with_dot = format!("./{}", subpath);
+        let sub_with_dot = format!("./{subpath}");
 
         let target = exports.get(&sub_with_dot)?;
         Self::resolve_conditional_export(target).map(|s| pkg_dir.join(s))

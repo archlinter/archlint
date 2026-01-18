@@ -6,13 +6,14 @@ use std::path::Path;
 
 /// Initializes the detector module.
 /// This function is used for module registration side-effects.
-pub fn init() {}
+pub const fn init() {}
 
 #[detector(SmellType::ScatteredModule, default_enabled = false)]
 pub struct ScatteredModuleDetector;
 
 impl ScatteredModuleDetector {
-    pub fn new_default(_config: &crate::config::Config) -> Self {
+    #[must_use]
+    pub const fn new_default(_config: &crate::config::Config) -> Self {
         Self
     }
 
@@ -20,8 +21,7 @@ impl ScatteredModuleDetector {
         let is_index = path
             .file_name()
             .and_then(|n| n.to_str())
-            .map(|s| s.starts_with("index."))
-            .unwrap_or(false);
+            .is_some_and(|s| s.starts_with("index."));
 
         let only_reexports = symbols.exports.iter().all(|e| e.source.is_some());
 

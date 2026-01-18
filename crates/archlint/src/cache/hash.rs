@@ -9,6 +9,7 @@ pub fn file_content_hash(path: &Path) -> Result<String> {
     Ok(content_hash_bytes(&content))
 }
 
+#[must_use]
 pub fn content_hash(content: &str) -> String {
     content_hash_bytes(content.as_bytes())
 }
@@ -19,6 +20,7 @@ fn content_hash_bytes(bytes: &[u8]) -> String {
     format!("{:x}", hasher.finalize())
 }
 
+#[must_use]
 pub fn config_hash(config: &Config) -> String {
     let serialized = serde_json::to_string(config).unwrap_or_default();
     let mut hasher = Sha256::new();
@@ -26,6 +28,7 @@ pub fn config_hash(config: &Config) -> String {
     format!("{:x}", hasher.finalize())
 }
 
+#[must_use]
 pub fn get_git_head(project_root: &Path) -> Option<String> {
     let repo = git2::Repository::discover(project_root).ok()?;
     let head = repo.head().ok()?;

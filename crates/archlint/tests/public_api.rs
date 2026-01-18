@@ -94,7 +94,7 @@ fn test_file_info_details() {
 
     // Check import
     let import = &file_a.imports[0];
-    assert!(import.source.contains("b"));
+    assert!(import.source.contains('b'));
 }
 
 #[test]

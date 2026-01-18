@@ -22,7 +22,8 @@ pub struct EdgeData {
 
 impl EdgeData {
     /// Create new edge data with only the line number.
-    pub fn new(import_line: usize) -> Self {
+    #[must_use]
+    pub const fn new(import_line: usize) -> Self {
         Self {
             import_line,
             import_range: None,
@@ -31,7 +32,8 @@ impl EdgeData {
     }
 
     /// Create edge data with line number and range.
-    pub fn with_range(import_line: usize, range: CodeRange) -> Self {
+    #[must_use]
+    pub const fn with_range(import_line: usize, range: CodeRange) -> Self {
         Self {
             import_line,
             import_range: Some(range),
@@ -40,7 +42,8 @@ impl EdgeData {
     }
 
     /// Create edge data with line number and imported symbols.
-    pub fn with_symbols(import_line: usize, imported_symbols: Vec<String>) -> Self {
+    #[must_use]
+    pub const fn with_symbols(import_line: usize, imported_symbols: Vec<String>) -> Self {
         Self {
             import_line,
             import_range: None,
@@ -49,7 +52,12 @@ impl EdgeData {
     }
 
     /// Create edge data with all available information.
-    pub fn with_all(import_line: usize, range: CodeRange, imported_symbols: Vec<String>) -> Self {
+    #[must_use]
+    pub const fn with_all(
+        import_line: usize,
+        range: CodeRange,
+        imported_symbols: Vec<String>,
+    ) -> Self {
         Self {
             import_line,
             import_range: Some(range),
@@ -67,6 +75,7 @@ pub struct DependencyGraph {
 
 impl DependencyGraph {
     /// Create a new empty dependency graph.
+    #[must_use]
     pub fn new() -> Self {
         Self {
             graph: DiGraph::new(),
@@ -106,36 +115,43 @@ impl DependencyGraph {
         }
     }
 
+    #[must_use]
     pub fn get_edge_data(&self, from: NodeIndex, to: NodeIndex) -> Option<&EdgeData> {
         self.graph
             .find_edge(from, to)
             .and_then(|edge_idx| self.graph.edge_weight(edge_idx))
     }
 
+    #[must_use]
     pub fn get_node(&self, path: &Path) -> Option<NodeIndex> {
         self.path_to_node.get(path).copied()
     }
 
+    #[must_use]
     pub fn node_count(&self) -> usize {
         self.graph.node_count()
     }
 
+    #[must_use]
     pub fn edge_count(&self) -> usize {
         self.graph.edge_count()
     }
 
+    #[must_use]
     pub fn fan_in(&self, node: NodeIndex) -> usize {
         self.graph
             .neighbors_directed(node, petgraph::Direction::Incoming)
             .count()
     }
 
+    #[must_use]
     pub fn fan_out(&self, node: NodeIndex) -> usize {
         self.graph
             .neighbors_directed(node, petgraph::Direction::Outgoing)
             .count()
     }
 
+    #[must_use]
     pub fn get_file_path(&self, node: NodeIndex) -> Option<&PathBuf> {
         self.graph.node_weight(node).map(|n| &n.path)
     }
@@ -150,7 +166,8 @@ impl DependencyGraph {
             .map(|e| self.graph.edge_endpoints(e).unwrap())
     }
 
-    pub fn graph(&self) -> &DiGraph<FileNode, EdgeData> {
+    #[must_use]
+    pub const fn graph(&self) -> &DiGraph<FileNode, EdgeData> {
         &self.graph
     }
 

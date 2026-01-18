@@ -24,56 +24,71 @@ pub mod console {
     }
 
     impl<T> MockStyled<T> {
-        pub fn red(self) -> Self {
+        #[must_use]
+        pub const fn red(self) -> Self {
             self
         }
-        pub fn green(self) -> Self {
+        #[must_use]
+        pub const fn green(self) -> Self {
             self
         }
-        pub fn yellow(self) -> Self {
+        #[must_use]
+        pub const fn yellow(self) -> Self {
             self
         }
-        pub fn blue(self) -> Self {
+        #[must_use]
+        pub const fn blue(self) -> Self {
             self
         }
-        pub fn magenta(self) -> Self {
+        #[must_use]
+        pub const fn magenta(self) -> Self {
             self
         }
-        pub fn cyan(self) -> Self {
+        #[must_use]
+        pub const fn cyan(self) -> Self {
             self
         }
-        pub fn white(self) -> Self {
+        #[must_use]
+        pub const fn white(self) -> Self {
             self
         }
-        pub fn attr(self, _: Attribute) -> Self {
+        #[must_use]
+        pub const fn attr(self, _: Attribute) -> Self {
             self
         }
-        pub fn fg(self, _: Color) -> Self {
+        #[must_use]
+        pub const fn fg(self, _: Color) -> Self {
             self
         }
-        pub fn for_stderr(self) -> Self {
+        #[must_use]
+        pub const fn for_stderr(self) -> Self {
             self
         }
-        pub fn dim(self) -> Self {
+        #[must_use]
+        pub const fn dim(self) -> Self {
             self
         }
-        pub fn bold(self) -> Self {
+        #[must_use]
+        pub const fn bold(self) -> Self {
             self
         }
-        pub fn underlined(self) -> Self {
+        #[must_use]
+        pub const fn underlined(self) -> Self {
             self
         }
     }
-    pub fn style<T>(t: T) -> MockStyled<T> {
+    pub const fn style<T>(t: T) -> MockStyled<T> {
         MockStyled(t)
     }
 
     pub struct Term;
     impl Term {
-        pub fn stdout() -> Self {
+        #[must_use]
+        pub const fn stdout() -> Self {
             Self
         }
-        pub fn is_term(&self) -> bool {
+        #[must_use]
+        pub const fn is_term(&self) -> bool {
             false
         }
     }
@@ -83,41 +98,46 @@ pub mod console {
 pub mod indicatif {
     pub struct ProgressBar;
     impl ProgressBar {
-        pub fn new(_: u64) -> Self {
+        #[must_use]
+        pub const fn new(_: u64) -> Self {
             Self
         }
-        pub fn new_spinner() -> Self {
+        #[must_use]
+        pub const fn new_spinner() -> Self {
             Self
         }
-        pub fn set_style(&self, _: ProgressStyle) -> &Self {
-            self
-        }
-        pub fn inc(&self, _: u64) {}
-        pub fn finish_and_clear(&self) {}
+        pub const fn set_style(&self, _: ProgressStyle) {}
+        pub const fn inc(&self, _: u64) {}
+        pub const fn finish_and_clear(&self) {}
         pub fn set_message<S: Into<std::borrow::Cow<'static, str>>>(&self, _: S) {}
         pub fn println<T: std::fmt::Display>(&self, s: T) {
-            log::info!("{}", s);
+            log::info!("{s}");
         }
-        pub fn enable_steady_tick(&self, _: std::time::Duration) {}
+        pub const fn enable_steady_tick(&self, _: std::time::Duration) {}
     }
     pub struct ProgressStyle;
     impl ProgressStyle {
-        pub fn default_bar() -> Self {
+        #[must_use]
+        pub const fn default_bar() -> Self {
             Self
         }
-        pub fn default_spinner() -> Self {
+        #[must_use]
+        pub const fn default_spinner() -> Self {
             Self
         }
-        pub fn template(self, _: &str) -> Result<Self, String> {
+        pub const fn template(self, _: &str) -> Result<Self, String> {
             Ok(self)
         }
-        pub fn progress_chars(self, _: &str) -> Self {
+        #[must_use]
+        pub const fn progress_chars(self, _: &str) -> Self {
             self
         }
-        pub fn tick_chars(self, _: &str) -> Self {
+        #[must_use]
+        pub const fn tick_chars(self, _: &str) -> Self {
             self
         }
-        pub fn unwrap(self) -> Self {
+        #[must_use]
+        pub const fn unwrap(self) -> Self {
             self
         }
     }
@@ -132,16 +152,17 @@ pub mod comfy_table {
         }
     }
     impl Table {
-        pub fn new() -> Self {
+        #[must_use]
+        pub const fn new() -> Self {
             Self
         }
-        pub fn load_preset(&mut self, _: ()) -> &mut Self {
+        pub const fn load_preset(&mut self, (): ()) -> &mut Self {
             self
         }
-        pub fn apply_modifier(&mut self, _: ()) -> &mut Self {
+        pub const fn apply_modifier(&mut self, (): ()) -> &mut Self {
             self
         }
-        pub fn set_content_arrangement(&mut self, _: ContentArrangement) -> &mut Self {
+        pub const fn set_content_arrangement(&mut self, _: ContentArrangement) -> &mut Self {
             self
         }
         pub fn set_header<T>(&mut self, _: T) -> &mut Self {
@@ -164,13 +185,16 @@ pub mod comfy_table {
     }
     pub struct Cell;
     impl Cell {
+        #[must_use]
         pub fn new<T: std::fmt::Display>(_: T) -> Self {
             Self
         }
-        pub fn add_attribute(self, _: Attribute) -> Self {
+        #[must_use]
+        pub const fn add_attribute(self, _: Attribute) -> Self {
             self
         }
-        pub fn fg(self, _: Color) -> Self {
+        #[must_use]
+        pub const fn fg(self, _: Color) -> Self {
             self
         }
     }

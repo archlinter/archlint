@@ -3,13 +3,14 @@ use crate::engine::AnalysisContext;
 
 /// Initializes the detector module.
 /// This function is used for module registration side-effects.
-pub fn init() {}
+pub const fn init() {}
 
 #[detector(SmellType::LongParameterList)]
 pub struct LongParameterListDetector;
 
 impl LongParameterListDetector {
-    pub fn new_default(_config: &crate::config::Config) -> Self {
+    #[must_use]
+    pub const fn new_default(_config: &crate::config::Config) -> Self {
         Self
     }
 }
@@ -18,7 +19,7 @@ impl Detector for LongParameterListDetector {
     crate::impl_detector_report!(
         explain: smell => (
             problem: if let crate::detectors::SmellType::LongParameterList { count, name } = &smell.smell_type {
-                format!("Function `{}` has too many parameters ({})", name, count)
+                format!("Function `{name}` has too many parameters ({count})")
             } else {
                 "Too many parameters".into()
             },

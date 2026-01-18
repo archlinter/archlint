@@ -11,7 +11,7 @@ pub mod shared_mutable_state;
 pub mod shotgun_surgery;
 pub mod unstable_interface;
 
-pub fn init() {
+pub const fn init() {
     abstractness::init();
     barrel_abuse::init();
     feature_envy::init();

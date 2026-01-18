@@ -14,32 +14,32 @@ static BUILTIN_NAMES: OnceLock<Vec<&'static str>> = OnceLock::new();
 impl PresetLoader {
     pub fn load_builtin(name: &str) -> Result<FrameworkPreset> {
         let content = Self::get_builtin_content(name)
-            .ok_or_else(|| anyhow!("Built-in preset not found: {}", name))?;
+            .ok_or_else(|| anyhow!("Built-in preset not found: {name}"))?;
 
         let yaml: PresetYaml = serde_yaml::from_str(content)
-            .map_err(|e| anyhow!("Failed to parse built-in preset '{}': {}", name, e))?;
+            .map_err(|e| anyhow!("Failed to parse built-in preset '{name}': {e}"))?;
         Ok(Self::convert(yaml))
     }
 
     fn get_builtin_content(name: &str) -> Option<&'static str> {
         PRESETS_DIR
-            .get_file(format!("{}.yaml", name))
-            .or_else(|| PRESETS_DIR.get_file(format!("{}.yml", name)))
+            .get_file(format!("{name}.yaml"))
+            .or_else(|| PRESETS_DIR.get_file(format!("{name}.yml")))
             .and_then(|f| f.contents_utf8())
     }
 
     pub fn load_file<P: AsRef<Path>>(path: P) -> Result<FrameworkPreset> {
         let path_ref = path.as_ref();
         let content = fs::read_to_string(path_ref)
-            .map_err(|e| anyhow!("Failed to read preset file '{:?}': {}", path_ref, e))?;
+            .map_err(|e| anyhow!("Failed to read preset file '{path_ref:?}': {e}"))?;
         let yaml: PresetYaml = serde_yaml::from_str(&content)
-            .map_err(|e| anyhow!("Failed to parse preset file '{:?}': {}", path_ref, e))?;
+            .map_err(|e| anyhow!("Failed to parse preset file '{path_ref:?}': {e}"))?;
         Ok(Self::convert(yaml))
     }
 
     pub fn load_url(url: &str) -> Result<FrameworkPreset> {
         let parsed_url =
-            reqwest::Url::parse(url).map_err(|e| anyhow!("Invalid URL '{}': {}", url, e))?;
+            reqwest::Url::parse(url).map_err(|e| anyhow!("Invalid URL '{url}': {e}"))?;
 
         if parsed_url.scheme() != "http" && parsed_url.scheme() != "https" {
             return Err(anyhow!(
@@ -58,12 +58,12 @@ impl PresetLoader {
         let client = reqwest::blocking::Client::builder()
             .timeout(std::time::Duration::from_secs(30))
             .build()
-            .map_err(|e| anyhow!("Failed to create HTTP client: {}", e))?;
+            .map_err(|e| anyhow!("Failed to create HTTP client: {e}"))?;
 
         let response = client
             .get(url)
             .send()
-            .map_err(|e| anyhow!("Failed to fetch preset from URL '{}': {}", url, e))?;
+            .map_err(|e| anyhow!("Failed to fetch preset from URL '{url}': {e}"))?;
 
         if !response.status().is_success() {
             return Err(anyhow!(
@@ -78,10 +78,7 @@ impl PresetLoader {
         if let Some(content_length) = response.content_length() {
             if content_length > MAX_PRESET_SIZE {
                 return Err(anyhow!(
-                    "Preset file from URL '{}' is too large: {} bytes (max: {} bytes)",
-                    url,
-                    content_length,
-                    MAX_PRESET_SIZE
+                    "Preset file from URL '{url}' is too large: {content_length} bytes (max: {MAX_PRESET_SIZE} bytes)"
                 ));
             }
         }
@@ -91,18 +88,16 @@ impl PresetLoader {
         response
             .take(MAX_PRESET_SIZE + 1)
             .read_to_string(&mut content)
-            .map_err(|e| anyhow!("Failed to read response body from URL '{}': {}", url, e))?;
+            .map_err(|e| anyhow!("Failed to read response body from URL '{url}': {e}"))?;
 
         if content.len() > MAX_PRESET_SIZE as usize {
             return Err(anyhow!(
-                "Preset file from URL '{}' exceeded size limit of {} bytes",
-                url,
-                MAX_PRESET_SIZE
+                "Preset file from URL '{url}' exceeded size limit of {MAX_PRESET_SIZE} bytes"
             ));
         }
 
         let yaml: PresetYaml = serde_yaml::from_str(&content)
-            .map_err(|e| anyhow!("Failed to parse preset from URL '{}': {}", url, e))?;
+            .map_err(|e| anyhow!("Failed to parse preset from URL '{url}': {e}"))?;
         Ok(Self::convert(yaml))
     }
 
@@ -165,6 +160,7 @@ impl PresetLoader {
         }
     }
 
+    #[must_use]
     pub fn get_builtin_yaml(name: &str) -> Option<PresetYaml> {
         let content = Self::get_builtin_content(name)?;
         serde_yaml::from_str(content).ok()
@@ -236,20 +232,35 @@ rules:
     }
 
     #[test]
-    fn test_is_blocked_host() {
+    fn test_is_blocked_host_localhost() {
         assert!(PresetLoader::is_blocked_host("localhost"));
         assert!(PresetLoader::is_blocked_host("127.0.0.1"));
         assert!(PresetLoader::is_blocked_host("::1"));
+        assert!(PresetLoader::is_blocked_host("::ffff:127.0.0.1"));
+    }
+
+    #[test]
+    fn test_is_blocked_host_private_ipv4() {
         assert!(PresetLoader::is_blocked_host("10.0.0.1"));
         assert!(PresetLoader::is_blocked_host("192.168.1.1"));
         assert!(PresetLoader::is_blocked_host("172.16.0.1"));
         assert!(PresetLoader::is_blocked_host("172.31.255.255"));
+    }
+
+    #[test]
+    fn test_is_blocked_host_link_local() {
         assert!(PresetLoader::is_blocked_host("169.254.1.1"));
         assert!(PresetLoader::is_blocked_host("100.64.0.1"));
+    }
+
+    #[test]
+    fn test_is_blocked_host_ipv6_private() {
         assert!(PresetLoader::is_blocked_host("fe80::1"));
         assert!(PresetLoader::is_blocked_host("fc00::1"));
-        assert!(PresetLoader::is_blocked_host("::ffff:127.0.0.1"));
+    }
 
+    #[test]
+    fn test_is_blocked_host_public() {
         assert!(!PresetLoader::is_blocked_host("google.com"));
         assert!(!PresetLoader::is_blocked_host("8.8.8.8"));
         assert!(!PresetLoader::is_blocked_host("172.15.255.255"));

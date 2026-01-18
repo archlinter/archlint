@@ -77,7 +77,7 @@ pub struct Summary {
     pub high_cyclomatic_complexity_functions: usize,
     /// Number of functions with high cognitive complexity.
     pub high_cognitive_complexity_functions: usize,
-    /// @deprecated use high_cyclomatic_complexity_functions or high_cognitive_complexity_functions
+    /// @deprecated use `high_cyclomatic_complexity_functions` or `high_cognitive_complexity_functions`
     #[deprecated(
         since = "0.16.0",
         note = "Use high_cyclomatic_complexity_functions or high_cognitive_complexity_functions"
@@ -97,6 +97,7 @@ pub struct Summary {
 
 impl ScanResult {
     /// Create a `ScanResult` from an `AnalysisReport` and additional metadata.
+    #[must_use]
     pub fn from_report(
         report: AnalysisReport,
         files: Vec<FileInfo>,

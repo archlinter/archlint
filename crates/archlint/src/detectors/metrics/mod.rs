@@ -11,7 +11,7 @@ pub mod large_file;
 pub mod lcom;
 pub mod long_params;
 
-pub fn init() {
+pub const fn init() {
     cognitive_complexity::init();
     cyclomatic_complexity::init();
     deep_nesting::init();
@@ -21,6 +21,7 @@ pub fn init() {
 }
 
 /// Common detection logic for both cyclomatic and cognitive complexity.
+#[must_use]
 pub fn detect_complexity_smells(
     ctx: &AnalysisContext,
     detector_id: &str,

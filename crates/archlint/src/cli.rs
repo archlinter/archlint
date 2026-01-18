@@ -83,7 +83,8 @@ pub struct Cli {
 }
 
 impl Cli {
-    /// Convert Cli to ScanArgs when no command is specified (default scan)
+    /// Convert Cli to `ScanArgs` when no command is specified (default scan)
+    #[must_use]
     pub fn to_scan_args(&self) -> ScanArgs {
         let format = if self.json {
             OutputFormat::Json

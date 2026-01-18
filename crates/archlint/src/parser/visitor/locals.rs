@@ -27,10 +27,10 @@ impl<'a> UnifiedVisitor {
     pub(crate) fn handle_member_expression(&mut self, it: &oxc_ast::ast::MemberExpression<'a>) {
         match it {
             oxc_ast::ast::MemberExpression::StaticMemberExpression(s) => {
-                self.handle_static_member(s)
+                self.handle_static_member(s);
             }
             oxc_ast::ast::MemberExpression::ComputedMemberExpression(c) => {
-                self.handle_computed_member(c)
+                self.handle_computed_member(c);
             }
             oxc_ast::ast::MemberExpression::PrivateFieldExpression(_) => {}
         }
@@ -137,7 +137,7 @@ impl<'a> UnifiedVisitor {
                 }
             }
             if let Some(idx) = self.current_top_level_export {
-                self.exports[idx].used_symbols.insert(name.clone());
+                self.exports[idx].used_symbols.insert(name);
             }
         }
     }

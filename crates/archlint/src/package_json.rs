@@ -130,7 +130,7 @@ impl PackageJsonParser {
                 candidates.push(package_dir.join(PathBuf::from(&src_path).with_extension("ts")));
             } else {
                 candidates.push(package_dir.join(&src_path));
-                candidates.push(package_dir.join(format!("{}.ts", src_path)));
+                candidates.push(package_dir.join(format!("{src_path}.ts")));
             }
         }
 

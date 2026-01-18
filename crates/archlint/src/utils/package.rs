@@ -1,6 +1,7 @@
 pub struct PackageUtils;
 
 impl PackageUtils {
+    #[must_use]
     pub fn extract_package_name(source: &str) -> String {
         // "lodash/get" -> "lodash"
         // "@scope/pkg/utils" -> "@scope/pkg"
@@ -11,10 +12,12 @@ impl PackageUtils {
         }
     }
 
+    #[must_use]
     pub fn is_external_package(source: &str) -> bool {
         !source.starts_with('.') && !source.starts_with('/')
     }
 
+    #[must_use]
     pub fn matches_ignore_pattern(pkg: &str, pattern_str: &str) -> bool {
         if pattern_str.ends_with("/*") {
             let prefix = &pattern_str[..pattern_str.len() - 1];
@@ -28,6 +31,7 @@ impl PackageUtils {
         }
     }
 
+    #[must_use]
     pub fn is_builtin_package(name: &str) -> bool {
         if name.starts_with("node:") {
             return true;
@@ -84,6 +88,7 @@ impl PackageUtils {
         builtins.contains(&name)
     }
 
+    #[must_use]
     pub fn should_ignore_package(package: &str, ignore_packages: &[String]) -> bool {
         if Self::is_builtin_package(package) {
             return true;

@@ -8,6 +8,7 @@ pub struct ReportDiff {
 }
 
 impl ReportDiff {
+    #[must_use]
     pub fn calculate(old: &AnalysisReport, new: &AnalysisReport) -> Self {
         let old_smells: Vec<&ArchSmell> = old.smells.iter().map(|(s, _)| s).collect();
         let new_smells: Vec<&ArchSmell> = new.smells.iter().map(|(s, _)| s).collect();
