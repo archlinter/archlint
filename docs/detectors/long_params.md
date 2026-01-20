@@ -2,7 +2,7 @@
 
 **ID:** `long_params` | **Severity:** Low (default)
 
-Identifies functions that ask for way too much information at once.
+Identifies functions that require excessive information at once.
 
 ## Why this is a smell
 

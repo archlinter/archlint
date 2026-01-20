@@ -2,7 +2,7 @@
 
 **ID:** `cycles` | **Severidad:** Crítica (por defecto)
 
-Las dependencias circulares ocurren cuando dos o más módulos dependen entre sí, ya sea directa o indirectamente. Es el clásico problema de "¿qué fue primero: el huevo o la gallina?" aplicado al software.
+Las dependencias circulares ocurren cuando dos o más módulos dependen entre sí, ya sea directa o indirectamente. Es el clásico problema de "¿Qué fue primero, el huevo o la gallina?" aplicado al software.
 
 ## Por qué esto es un problema
 

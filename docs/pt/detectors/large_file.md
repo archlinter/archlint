@@ -2,7 +2,7 @@
 
 **ID:** `large_file` | **Gravidade:** Medium (default)
 
-Identifica arquivos que cresceram tanto que provavelmente merecem seu próprio CEP.
+Identifica arquivos que cresceram tanto que provavelmente merecem seu próprio módulo separado.
 
 ## Por que isso é um smell
 

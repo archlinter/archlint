@@ -2,7 +2,7 @@
 
 **ID:** `dead_code` | **Severity:** Low (default)
 
-Dead code is exactly what it sounds like: functions, classes, or variables that are "alive" in your codebase but don't actually do anything because nobody is using them.
+Dead code is what it sounds like: functions, classes, or variables that are "alive" in your codebase but don't actually do anything because nobody is using them.
 
 ## Why this is a smell
 

@@ -2,7 +2,7 @@
 
 **ID:** `dead_code` | **Severidad:** Baja (por defecto)
 
-El código muerto es exactamente lo que parece: funciones, clases o variables que están "vivas" en tu código pero que no hacen nada porque nadie las usa.
+El código muerto es exactamente lo que parece: funciones, clases o variables que están "vivas" en tu código, pero que no hacen nada porque nadie las usa.
 
 ## Por qué esto es un problema
 

@@ -2,7 +2,7 @@
 
 **ID:** `unstable_interface` | **Severidad:** Medium (default)
 
-Identifica módulos que son un "blanco móvil"—cambian su API pública constantemente mientras todos los demás intentan construir sobre ellos.
+Identifica módulos que son un "blanco móvil" y cambian su API pública constantemente mientras todos los demás intentan construir sobre ellos.
 
 ## Por qué esto es un problema
 

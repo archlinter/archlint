@@ -2,7 +2,7 @@
 
 **ID:** `layer_violation` | **Severidad:** High (default)
 
-La violación de capa ocurre cuando tu "arquitectura limpia" empieza a tener goteras. Es cuando tu lógica de negocio de alto nivel (Domain) empieza a preguntar sobre tablas de base de datos o endpoints de API (Infrastructure).
+La violación de capa ocurre cuando tu "arquitectura limpia" empieza a tener goteras. Es cuando tu lógica de negocio de alto nivel (Domain) empieza a preguntar sobre tablas de la base de datos o endpoints de API (Infrastructure).
 
 ## Por qué esto es un problema
 

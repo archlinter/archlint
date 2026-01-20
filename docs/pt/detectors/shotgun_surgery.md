@@ -7,7 +7,7 @@ A cirurgia por difusão é aquela situação chata onde uma mudança "simples" e
 ## Por que isso é um smell
 
 - **Alta fricção**: Cada pequena mudança de requisito se torna uma operação grande.
-- **Fácil de esquecer um lugar**: Quando a lógica está espalhada por todo lado, é quase certo que você vai esquecer de atualizar um desses arquivos, levando a "bugs fantasma".
+- **Fácil de esquecer um lugar**: Quando a lógica está espalhada por todo lado, é quase certo que você vai esquecer de atualizar um desses arquivos, levando a "bugs fantasmas".
 - **Encapsulamento quebrado**: É sinal de que uma única responsabilidade escapou do seu módulo e agora está escondida em cada canto do seu código.
 
 ## Como corrigir

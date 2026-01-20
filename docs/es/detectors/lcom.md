@@ -8,7 +8,7 @@ La cohesión mide si los métodos y campos de tu clase realmente pertenecen junt
 
 - **Violación del SRP**: Tu clase probablemente está usando demasiados sombreros e intentando hacer tres trabajos diferentes a la vez.
 - **Fragilidad**: Cambias un método relacionado con "avatares de usuario" y de alguna manera rompes la lógica de "hashing de contraseñas" porque comparten la misma clase inflada.
-- **Difícil de Reutilizar**: Si solo necesitas la lógica de "avatar", estás obligado a llevar también toda la maquinaria de "contraseñas".
+- **Difícil de reutilizar**: Si solo necesitas la lógica de "avatar", estás obligado a llevar también toda la maquinaria de "contraseñas".
 
 ## Cómo solucionarlo
 
