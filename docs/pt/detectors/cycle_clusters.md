@@ -1,8 +1,15 @@
 # Clusters de Dependência Cíclica
 
-**ID:** `cycle_clusters` | **Severity:** Critical (default)
+**ID:** `cycle_clusters` | **Gravidade:** Dinâmica (padrão)
 
-Um cluster de dependência cíclica é o que acontece quando dependências circulares começam a se reproduzir. Não é apenas um loop simples "A depende de B, B depende de A"—é uma rede complexa onde uma dúzia de módulos estão todos emaranhados.
+Um cluster de dependência cíclica é o que acontece quando dependências circulares começam a se reproduzir. Não é apenas um loop simples "A depende de B, B depende de A"—é uma rede complexa onde múltiplos módulos estão todos emaranhados.
+
+Por padrão, a gravidade é determinada pelo tamanho do cluster:
+
+- **0–5 arquivos**: Baixa
+- **6–15 arquivos**: Média
+- **16–30 arquivos**: Alta
+- **31+ arquivos**: Crítica
 
 ## Por que isso é um problema
 
@@ -26,7 +33,8 @@ Os módulos devem ser organizados em uma hierarquia ou com um desacoplamento cla
 ```yaml
 rules:
   cycle_clusters:
-    severity: high
+    # Opcional: sobrescrever a gravidade dinâmica
+    severity: critical
     max_cluster_size: 5
 ```
 

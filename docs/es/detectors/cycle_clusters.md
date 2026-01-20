@@ -1,8 +1,15 @@
 # Clústeres de Dependencias Cíclicas
 
-**ID:** `cycle_clusters` | **Severity:** Critical (default)
+**ID:** `cycle_clusters` | **Severidad:** Dinámica (por defecto)
 
-Un clúster de dependencias cíclicas es lo que ocurre cuando las dependencias circulares comienzan a reproducirse. No es solo un simple bucle "A depende de B, B depende de A"—es una red compleja donde una docena de módulos están todos enredados juntos.
+Un clúster de dependencias cíclicas es lo que ocurre cuando las dependencias circulares comienzan a reproducirse. No es solo un simple bucle "A depende de B, B depende de A"—es una red compleja donde múltiples módulos están todos enredados juntos.
+
+Por defecto, la severidad se determina por el tamaño del clúster:
+
+- **0–5 archivos**: Baja
+- **6–15 archivos**: Media
+- **16–30 archivos**: Alta
+- **31+ archivos**: Crítica
 
 ## Por qué esto es un problema
 
@@ -26,6 +33,7 @@ Los módulos deben organizarse en una jerarquía o con un desacoplamiento claro 
 ```yaml
 rules:
   cycle_clusters:
+    # Opcional: sobrescribir la severidad dinámica
     severity: critical
     max_cluster_size: 5
 ```

@@ -2,7 +2,7 @@
 
 **ID:** `cycle_clusters` | **Severity:** Dynamic (default)
 
-A cyclic dependency cluster is what happens when circular dependencies start breeding. It’s not just a simple "A depends on B, B depends on A" loop—it's a complex web where a dozen modules are all tangled up together.
+A cyclic dependency cluster is what happens when circular dependencies start breeding. It’s not just a simple "A depends on B, B depends on A" loop—it's a complex web where multiple modules are all tangled up together.
 
 By default, the severity is determined by the size of the cluster:
 
