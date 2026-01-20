@@ -57,7 +57,7 @@ export const processPayment = (order: Order) => {
 ```yaml
 rules:
   cycles:
-    severity: high
+    severity: critical
     exclude: ['**/*.test.ts']
 ```
 

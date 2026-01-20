@@ -1,8 +1,15 @@
 # Cyclic Dependency Cluster
 
-**ID:** `cycle_clusters` | **Severity:** Critical (default)
+**ID:** `cycle_clusters` | **Severity:** Dynamic (default)
 
 A cyclic dependency cluster is what happens when circular dependencies start breeding. It’s not just a simple "A depends on B, B depends on A" loop—it's a complex web where a dozen modules are all tangled up together.
+
+By default, the severity is determined by the size of the cluster:
+
+- **0–5 files**: Low
+- **6–15 files**: Medium
+- **16–30 files**: High
+- **31+ files**: Critical
 
 ## Why this is a smell
 
@@ -26,6 +33,7 @@ Modules should be organized in a hierarchy or with clear interface-based decoupl
 ```yaml
 rules:
   cycle_clusters:
+    # Optional: override dynamic severity
     severity: critical
     max_cluster_size: 5
 ```
