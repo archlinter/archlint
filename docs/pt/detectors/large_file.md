@@ -6,7 +6,7 @@ Identifica arquivos que cresceram tanto que provavelmente merecem seu próprio m
 
 ## Por que isso é um smell
 
-Arquivos extremamente grandes são um pesadelo para navegar. Você passa mais tempo scrollando e procurando símbolos do que realmente escrevendo código. Geralmente, um arquivo de 2000 linhas é só três ou quatro módulos lógicos menores disfarçados de um só. Viola o Princípio da Responsabilidade Única e quase garante conflitos de merge.
+Arquivos extremamente grandes são um pesadelo para navegar. Você passa mais tempo rolando a página e procurando símbolos do que realmente escrevendo código. Geralmente, um arquivo de 2000 linhas é só três ou quatro módulos lógicos menores disfarçados de um só. Viola o Princípio da Responsabilidade Única e quase garante conflitos de merge.
 
 ## Como corrigir
 

@@ -26,7 +26,7 @@ Modules should be organized in a hierarchy or with clear interface-based decoupl
 ```yaml
 rules:
   cycle_clusters:
-    severity: high
+    severity: critical
     max_cluster_size: 5
 ```
 

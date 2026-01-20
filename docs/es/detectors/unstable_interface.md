@@ -7,7 +7,7 @@ Identifica módulos que son un "blanco móvil" y cambian su API pública constan
 ## Por qué esto es un problema
 
 - **El efecto dominó**: Cada vez que cambias un export público en un módulo inestable, potencialmente estás rompiendo una docena de otros archivos que dependen de él.
-- **Trabajo innecesario**: Los desarrolladores pasan más tiempo arreglando imports y ajustándose a cambios de API que construyendo features.
+- **Trabajo innecesario**: Los desarrolladores pasan más tiempo arreglando imports y ajustándose a cambios de API que construyendo funcionalidades.
 - **Frustración**: Es difícil confiar en un módulo que rompe sus promesas cada dos semanas.
 
 ## Cómo corregir

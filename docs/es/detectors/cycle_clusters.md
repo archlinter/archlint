@@ -26,7 +26,7 @@ Los módulos deben organizarse en una jerarquía o con un desacoplamiento claro 
 ```yaml
 rules:
   cycle_clusters:
-    severity: high
+    severity: critical
     max_cluster_size: 5
 ```
 
