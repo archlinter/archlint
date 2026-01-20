@@ -2,13 +2,13 @@
 
 **ID:** `dead_code` | **Severidad:** Baja (por defecto)
 
-El código muerto se refiere a funciones, clases o variables exportadas que no se importan ni se utilizan en ningún otro lugar del proyecto.
+El código muerto es exactamente lo que parece: funciones, clases o variables que están "vivas" en tu código pero que no hacen nada porque nadie las usa.
 
 ## Por qué esto es un problema
 
-- **Carga de Mantenimiento**: Los desarrolladores podrían dedicar tiempo a actualizar o refactorizar código que ni siquiera se utiliza.
-- **Tamaño del Bundle**: Aumenta el tamaño final de la aplicación (aunque muchos bundlers realizan tree-shaking).
-- **Confusión**: Hace que la API de un módulo parezca más grande y compleja de lo que realmente es.
+- **Gasto de energía mental**: Los desarrolladores no deberían tener que refactorizar o intentar entender código que ni siquiera se está ejecutando.
+- **Falsa complejidad**: Hace que la API de tus módulos parezca más grande y aterradora de lo que realmente es.
+- **Fantasmas en la máquina**: Puede provocar momentos de "pensé que habíamos eliminado esto" durante la depuración.
 
 ## Ejemplos
 

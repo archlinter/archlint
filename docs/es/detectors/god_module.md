@@ -2,14 +2,14 @@
 
 **ID:** `god_module` | **Severidad:** High (default)
 
-Un "Módulo Dios" (God Module) es un archivo que ha crecido demasiado y ha asumido demasiadas responsabilidades.
+Un "Módulo Dios" es ese archivo en tu proyecto que todos temen tocar porque lo hace absolutamente todo. Suele empezar como un simple ayudante y termina convirtiéndose en un monstruo que maneja la autenticación, las consultas a la base de datos y el estado de la UI al mismo tiempo.
 
 ## Por qué esto es un problema
 
-- **Viola el Principio de Responsabilidad Única**: El módulo hace demasiadas cosas.
-- **Conflictos de Fusión**: Los cambios frecuentes de diferentes desarrolladores provocan conflictos constantes.
-- **Fragilidad**: Los cambios en una parte del módulo pueden romper inesperadamente otra parte.
-- **Difícil de Probar**: Requiere una configuración compleja para probar varias funcionalidades no relacionadas.
+- **Pesadilla de responsabilidad única**: Cuando un módulo hace de todo, cualquier cambio —por pequeño que sea— se siente como jugar al Jenga con tu arquitectura.
+- **Imán de conflictos**: Como es el "centro del universo", todos los desarrolladores del equipo están tocándolo constantemente, lo que garantiza conflictos infinitos al hacer merge.
+- **Fragilidad**: Los cambios en una esquina del módulo pueden romper algo inesperadamente en la otra porque todo está conectado de forma implícita.
+- **Dolor de cabeza al testear**: No deberías tener que simular una base de datos y un servicio de email solo para probar un simple formateador de texto.
 
 ## Criterios de Detección
 

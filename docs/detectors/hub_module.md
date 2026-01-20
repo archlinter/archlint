@@ -2,11 +2,11 @@
 
 **ID:** `hub_module` | **Severity:** Medium (default)
 
-A "Hub Module" is a central point in the dependency graph, characterized by both high Fan-in (many dependents) and high Fan-out (many dependencies), while containing relatively little internal logic.
+A "Hub Module" is like a busy traffic intersection with no lights. It’s a module that everyone depends on, and it also depends on everyone else, but it doesn't actually _do_ much logic itself.
 
 ## Why this is a smell
 
-Hub modules represent dangerous "single points of failure" in your architecture. Because they sit at the center of many paths, they become extremely fragile. A minor change in a hub module can trigger a massive ripple effect across the entire codebase, making them difficult and risky to refactor.
+Hub modules are dangerous single points of failure. Because they sit at the center of everything, they are incredibly fragile. A tiny change to a hub can break unrelated parts of your app, making it the most terrifying file to refactor in your entire codebase. It’s the ultimate "bottleneck" for your architecture.
 
 ## Examples
 

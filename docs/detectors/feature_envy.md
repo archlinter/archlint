@@ -2,11 +2,11 @@
 
 **ID:** `feature_envy` | **Severity:** Medium (default)
 
-Feature envy occurs when a method in one class seems more interested in the data of another class than in the data of its own class.
+Feature envy is like that nosy neighbor who knows more about what's going on in your house than you do. It happens when a method seems way more interested in another class's data than its own.
 
 ## Why this is a smell
 
-It indicates a violation of encapsulation. The logic is likely in the wrong place.
+It’s a classic sign of misplaced logic. If a method is constantly reaching into another object to pull out data and do calculations, that logic probably belongs inside the other object. It breaks encapsulation and makes your classes tightly coupled.
 
 ## How to fix
 

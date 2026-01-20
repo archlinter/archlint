@@ -2,13 +2,13 @@
 
 **ID:** `cognitive_complexity` | **Severity:** Medium (default)
 
-This detector identifies functions with high Cognitive Complexity. Cognitive Complexity measures how difficult code is to understand, rather than just how many paths it has.
+Cognitive complexity isn't just about how many branches your code has; it’s about how much effort it takes for a human brain to actually understand it. It’s the difference between "technically correct" and "readable".
 
 ## Why this is a smell
 
-- **High Mental Load**: Deeply nested logic and complex boolean expressions make it hard for developers to keep the state in their head.
-- **Maintenance Risk**: Code that is hard to understand is prone to bugs during modification.
-- **Hidden Bugs**: Logic errors often hide in deeply nested structures.
+- **Mental stack overflow**: Humans aren't good at keeping track of five levels of nested logic and complex boolean algebra at the same time. When the mental load gets too high, we start making mistakes.
+- **Invisible bugs**: Bugs love to hide in the shadows of deeply nested `if` statements and ternary operators.
+- **Review friction**: If it takes a senior dev 20 minutes to understand a 30-line function during a PR review, it’s too complex.
 
 ## How it's calculated
 

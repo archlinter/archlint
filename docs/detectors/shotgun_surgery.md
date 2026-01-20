@@ -2,13 +2,13 @@
 
 **ID:** `shotgun_surgery` | **Severity:** Medium (default)
 
-Shotgun Surgery occurs when a single change in requirements forces you to make many small changes across many different modules. archlint detects this by analyzing git history to find files that frequently change together (high co-change frequency).
+Shotgun Surgery is that annoying situation where a "simple" change requires you to touch 15 different files. It's like trying to fix a leak by patching a hundred tiny holes instead of replacing the pipe.
 
 ## Why this is a smell
 
-- **High Maintenance Cost**: Every feature or bug fix requires touching multiple parts of the system.
-- **Error Prone**: It's easy to miss one of the many required changes, leading to bugs.
-- **Poor Encapsulation**: It indicates that a single responsibility is fragmented across the codebase rather than being encapsulated in one place.
+- **High friction**: Every small requirement change becomes a major operation.
+- **Easy to miss a spot**: When logic is scattered everywhere, it’s almost certain you’ll forget to update one of those files, leading to "ghost bugs".
+- **Broken encapsulation**: It’s a sign that a single responsibility has escaped its module and is now hiding in every corner of your codebase.
 
 ## How to fix
 

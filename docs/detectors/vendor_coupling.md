@@ -2,11 +2,13 @@
 
 **ID:** `vendor_coupling` | **Severity:** Medium (default)
 
-Identifies modules that are too tightly coupled to a specific external library or framework.
+Identifies modules that have become "married" to a specific external library or framework.
 
 ## Why this is a smell
 
-If you decide to switch the library in the future, you'll have to change code in many places. It also makes testing harder because you have to mock the external library everywhere.
+- **Vendor lock-in**: If that library becomes deprecated or you decide to switch to a better alternative, you'll have to rewrite half your codebase.
+- **Testing friction**: You can't test your business logic without also pulling in the heavy external library and its mocks.
+- **Hard to upgrade**: You're stuck on whatever version the library supports because it's woven into every file.
 
 ## How to fix
 

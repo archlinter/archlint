@@ -2,11 +2,11 @@
 
 **ID:** `large_file` | **Severity:** Medium (default)
 
-Identifies source files that exceed a certain number of lines.
+Identifies source files that have grown so large they should probably have their own zip code.
 
 ## Why this is a smell
 
-Extremely large files are hard to navigate, understand, and maintain. They usually indicate a violation of the Single Responsibility Principle.
+Extremely large files are a nightmare to navigate. You spend more time scrolling and searching for symbols than actually writing code. Usually, a 2000-line file is just three or four smaller, logical modules wearing a trench coat. It violates the Single Responsibility Principle and makes merge conflicts almost guaranteed.
 
 ## How to fix
 

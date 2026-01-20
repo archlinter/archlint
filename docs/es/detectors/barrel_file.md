@@ -2,13 +2,13 @@
 
 **ID:** `barrel_file` | **Severidad:** Media (por defecto)
 
-Los archivos barrel (por ejemplo, archivos `index.ts` que solo reexportan otros archivos) pueden volverse problemáticos cuando crecen demasiado o incluyen demasiadas exportaciones no relacionadas.
+Los archivos barrel (como un `index.ts` que simplemente reexporta todo) están pensados para simplificar los imports, pero a menudo se convierten en un agujero negro arquitectónico.
 
 ## Por qué esto es un problema
 
-- **Dependencias Circulares**: Los archivos barrel grandes son una causa común de dependencias circulares indirectas.
-- **Acoplamiento Innecesario**: Importar una sola cosa de un archivo barrel grande puede hacer que el bundler incluya muchos módulos no relacionados.
-- **Rendimiento**: Puede ralentizar tanto el desarrollo (indexación del IDE) como la producción (tamaño del bundle/tiempo de carga).
+- **Fábrica de dependencias circulares**: Los barrels gigantes son la causa #1 de esas molestas dependencias circulares indirectas que son imposibles de rastrear.
+- **Importar el mundo entero**: Cuando importas una pequeña constante de un barrel masivo, el bundler suele terminar arrastrando cada módulo que ese barrel referencia.
+- **Te frena**: Hacen que la indexación del IDE se arrastre y pueden inflar tu bundle de producción si el tree-shaking no es perfecto.
 
 ## Configuración
 

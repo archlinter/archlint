@@ -2,14 +2,14 @@
 
 **ID:** `god_module` | **Severity:** High (default)
 
-A "God Module" is a file that has grown too large and taken on too many responsibilities.
+A "God Module" is that one file in your project everyone is afraid to touch because it does everything. It usually starts as a simple utility and somehow grows into a monster that handles auth, database queries, and UI state all at once.
 
 ## Why this is a smell
 
-- **Violates Single Responsibility Principle**: The module does too many things.
-- **Merge Conflicts**: Frequent changes by different developers lead to constant conflicts.
-- **Fragility**: Changes in one part of the module might unexpectedly break another part.
-- **Hard to Test**: Requires complex setup to test various unrelated functionalities.
+- **It's a Single Responsibility nightmare**: When one module does everything, any change—no matter how small—feels like you're playing Jenga with your architecture.
+- **Merge conflict magnet**: Since it's the center of the universe, every developer on the team is constantly fighting over it in git.
+- **Fragility**: Changes in one part of the module might unexpectedly break another part because everything is implicitly connected.
+- **Testing headache**: You shouldn't have to mock a database and an email service just to test a simple string formatter.
 
 ## Detection Criteria
 

@@ -2,14 +2,14 @@
 
 **ID:** `god_module` | **Gravidade:** High (default)
 
-Um "Módulo Deus" (God Module) é um arquivo que cresceu demais e assumiu muitas responsabilidades.
+Um "Módulo Deus" é aquele arquivo no seu projeto que todo mundo tem medo de mexer porque ele faz absolutamente tudo. Ele geralmente começa como um simples utilitário e acaba virando um monstro que cuida da autenticação, das consultas ao banco de dados e do estado da UI ao mesmo tempo.
 
 ## Por que isso é um smell
 
-- **Viola o Princípio da Responsabilidade Única**: O módulo faz coisas demais.
-- **Conflitos de Merge**: Mudanças frequentes por diferentes desenvolvedores levam a conflitos constantes.
-- **Fragilidade**: Mudanças em uma parte do módulo podem quebrar inesperadamente outra parte.
-- **Difícil de Testar**: Requer uma configuração complexa para testar várias funcionalidades não relacionadas.
+- **Pesadelo da Responsabilidade Única**: Quando um módulo faz de tudo, qualquer mudança — por menor que seja — parece um jogo de Jenga com a sua arquitetura.
+- **Ímã de conflitos**: Como é o "centro do universo", todos os desenvolvedores do time estão mexendo nele constantemente, o que garante conflitos infinitos de merge.
+- **Fragilidade**: Mudanças em um canto do módulo podem quebrar algo inesperadamente do outro lado, porque tudo está implicitamente conectado.
+- **Dor de cabeça para testar**: Você não deveria ter que simular um banco de dados e um serviço de e-mail só para testar um simples formatador de texto.
 
 ## Critérios de Detecção
 

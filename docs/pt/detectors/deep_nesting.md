@@ -2,11 +2,11 @@
 
 **ID:** `deep_nesting` | **Gravidade:** Low (default)
 
-Identifica blocos de código (if, for, while, etc.) que estão aninhados muito profundamente.
+Identifica blocos de código (if, for, while, etc.) que estão aninhados tão profundamente que começam a parecer uma pirâmide.
 
 ## Por que isso é um smell
 
-Código profundamente aninhado é exponencialmente mais difícil de ler e entender. Muitas vezes é um sinal de que uma função está fazendo demais ou que a lógica pode ser simplificada.
+Ler código com aninhamento profundo é como ler uma frase com parênteses (dentro de (outros parênteses)). É mentalmente exaustivo e geralmente é um sinal de que sua função está tentando lidar com casos especiais demais ao mesmo tempo. É melhor falhar rápido ou extrair a lógica.
 
 ## Como corrigir
 

@@ -2,11 +2,13 @@
 
 **ID:** `shared_mutable_state` | **Severity:** Medium (default)
 
-Identifies exported variables that are mutable (e.g., `export let ...` or `export var ...`).
+Identifies exported variables that are mutable. It’s when you see an `export let` or `export var` that any file can reach in and change at any time.
 
 ## Why this is a smell
 
-Global or shared mutable state is a common source of bugs that are extremely hard to track down. It makes the behavior of a module unpredictable and dependent on the order of execution.
+- **The "Who changed this?" mystery**: Global mutable state is a classic source of bugs that are nearly impossible to track down. You’ll spend hours in your debugger wondering why a value is `null`, only to find out a module on the other side of your app changed it three seconds ago.
+- **Race conditions**: It makes your app’s behavior dependent on the exact order in which things happen. If one file imports your state slightly later, everything breaks.
+- **Unpredictability**: Your modules are no longer predictable; they’re all secretly sharing a messy, global scratchpad.
 
 ## How to fix
 

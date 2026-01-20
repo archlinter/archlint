@@ -2,13 +2,13 @@
 
 **ID:** `lcom` | **Severidad:** Medium (default)
 
-La cohesión mide qué tan estrechamente relacionados están los métodos y campos de una clase. `archlint` utiliza la métrica **LCOM4** (Lack of Cohesion of Methods).
+La cohesión mide si los métodos y campos de tu clase realmente pertenecen juntos. Si no lo hacen, probablemente tienes una clase "Frankenstein".
 
 ## Por qué esto es un problema
 
-- **Violación del SRP**: Es probable que la clase esté haciendo dos o más cosas no relacionadas.
-- **Fragilidad**: Cambiar una parte de la clase podría afectar a partes no relacionadas.
-- **Difícil de Reutilizar**: No puedes usar una parte de la clase sin arrastrar lógica no relacionada.
+- **Violación del SRP**: Tu clase probablemente está usando demasiados sombreros e intentando hacer tres trabajos diferentes a la vez.
+- **Fragilidad**: Cambias un método relacionado con "avatares de usuario" y de alguna manera rompes la lógica de "hashing de contraseñas" porque comparten la misma clase inflada.
+- **Difícil de Reutilizar**: Si solo necesitas la lógica de "avatar", estás obligado a llevar también toda la maquinaria de "contraseñas".
 
 ## Cómo solucionarlo
 

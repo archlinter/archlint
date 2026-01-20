@@ -2,13 +2,13 @@
 
 **ID:** `cyclomatic_complexity` | **Gravidade:** Média (padrão)
 
-Este detector identifica funções com alta Complexidade Ciclomática.
+A complexidade ciclomática mede quantos caminhos diferentes a execução do seu código pode seguir. Pense nela como o fator "espaguete" dos seus `if-else` e `switch`.
 
 ## Por que isso é um smell
 
-- **Difícil de Entender**: Muitos caminhos de ramificação tornam o código difícil de seguir.
-- **Propenso a Bugs**: Maior chance de esquecer casos de borda durante os testes.
-- **Pesadelo de Manutenção**: Pequenas mudanças podem ter efeitos imprevisíveis devido à lógica complexa.
+- **Labirinto mental**: Cada `if`, `else` e `case` adiciona uma nova curva ao labirinto. Se uma função tem 20 caminhos, você pode apostar que um desenvolvedor acabará se perdendo mais cedo ou mais tarde.
+- **Pesadelo para testes**: Para testar de verdade uma função complexa, você precisaria de um caso de teste para cada caminho possível. No mundo real, isso geralmente significa que alguns ramos nunca chegam a ser testados.
+- **Efeito Borboleta**: Em funções muito complexas, mudar uma única linha de código pode ter consequências estranhas e imprevisíveis a cinco ramos de distância.
 
 ## Como corrigir
 

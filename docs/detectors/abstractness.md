@@ -4,14 +4,16 @@
 
 ## What this rule detects (TL;DR)
 
-This rule flags modules that are:
+This rule flags modules that are breaking the fundamental law of clean architecture: **Stable parts of your system should be abstract.**
 
-- **Too concrete and too stable** — many files depend on a concrete class (hard to change safely).
-- **Too abstract and too unstable** — abstractions that nobody depends on (overengineering/YAGNI).
+It catches two specific architectural traps:
+
+- **The Zone of Pain**: A module that is "too concrete and too stable." Everyone depends on it, but it’s hard to change without breaking the world.
+- **The Zone of Uselessness**: A module that is "too abstract and too unstable." You built a beautiful interface, but nobody is using it. (Classic overengineering).
 
 In short:  
-👉 **Stable modules** (the foundation) should be **abstract**.  
-👉 **Unstable modules** (the leaves) should be **concrete**.
+👉 **Foundations** should be **abstract** (interfaces/types).  
+👉 **Leaves** should be **concrete** (implementations).
 
 ---
 

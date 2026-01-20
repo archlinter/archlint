@@ -2,14 +2,14 @@
 
 **ID:** `cycles` | **Severidad:** Crítica (por defecto)
 
-Las dependencias circulares ocurren cuando dos o más módulos dependen entre sí, ya sea directa o indirectamente.
+Las dependencias circulares ocurren cuando dos o más módulos dependen entre sí, ya sea directa o indirectamente. Es el clásico problema de "¿qué fue primero: el huevo o la gallina?" aplicado al software.
 
 ## Por qué esto es un problema
 
-- **Acoplamiento Fuerte**: Los módulos son inseparables, lo que dificulta su reutilización independiente.
-- **Problemas de Inicialización**: Pueden dar lugar a importaciones "undefined" en tiempo de ejecución si el bundler no las maneja con cuidado.
-- **Dificultad en las Pruebas**: Es difícil simular (mock) o aislar un módulo sin incluir todo el ciclo.
-- **Carga Cognitiva**: Es más difícil para los desarrolladores entender el flujo de datos y de control.
+- **Acoplamiento inseparable**: No puedes simplemente tomar un módulo y usarlo en otro lugar; te obliga a llevarte a toda su "familia" de dependencias contigo.
+- **Trampas de inicialización**: Dependiendo de tu empaquetador (bundler), podrías terminar con importaciones "undefined" en tiempo de ejecución porque el ciclo no se pudo resolver a tiempo.
+- **Pesadilla de testing**: Buena suerte intentando simular una parte del ciclo sin que toda la estructura colapse como un castillo de naipes.
+- **Sobrecarga cognitiva**: Intentar seguir el flujo de datos en un ciclo es como leer un libro de "elige tu propia aventura" donde cada página te lleva de vuelta al inicio.
 
 ## Ejemplos
 

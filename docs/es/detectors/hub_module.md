@@ -2,11 +2,11 @@
 
 **ID:** `hub_module` | **Severidad:** Medium (default)
 
-Un "Módulo Hub" (Hub Module) es un punto central en el grafo de dependencias, caracterizado tanto por un alto Fan-in (muchos dependientes) como un alto Fan-out (muchas dependencias), mientras contiene relativamente poca lógica interna.
+Un "Módulo Hub" es como una intersección de tráfico concurrida sin semáforos. Es un módulo del que todos dependen, y que también depende de todos los demás, pero en realidad no _hace_ mucha lógica por sí mismo.
 
 ## Por qué esto es un problema
 
-Los módulos hub representan peligrosos "puntos únicos de falla" en tu arquitectura. Debido a que se encuentran en el centro de muchas rutas, se vuelven extremadamente frágiles. Un cambio menor en un módulo hub puede desencadenar un efecto dominó masivo en toda la base de código, haciéndolos difíciles y arriesgados de refactorizar.
+Los módulos hub son peligrosos puntos únicos de fallo. Como están en el centro de todo, son increíblemente frágiles. Un cambio minúsculo en un hub puede romper partes no relacionadas de tu app, convirtiéndolo en el archivo más aterrador de refactorizar en toda tu base de código. Es el "cuello de botella" definitivo para tu arquitectura.
 
 ## Ejemplos
 

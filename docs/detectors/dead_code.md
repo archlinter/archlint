@@ -2,13 +2,13 @@
 
 **ID:** `dead_code` | **Severity:** Low (default)
 
-Dead code refers to exported functions, classes, or variables that are not imported or used anywhere else in the project.
+Dead code is exactly what it sounds like: functions, classes, or variables that are "alive" in your codebase but don't actually do anything because nobody is using them.
 
 ## Why this is a smell
 
-- **Maintenance Burden**: Developers might spend time updating or refactoring code that isn't even used.
-- **Bundle Size**: Increases the final application size (though many bundlers do tree-shaking).
-- **Confusion**: Makes the API of a module appear larger and more complex than it actually is.
+- **Wasted mental energy**: Developers shouldn't have to refactor or understand code that isn't even running.
+- **False complexity**: It makes your API look bigger and scarier than it really is.
+- **Ghost in the machine**: It can lead to "I thought we removed this" moments during debugging.
 
 ## Examples
 

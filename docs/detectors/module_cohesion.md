@@ -2,11 +2,11 @@
 
 **ID:** `module_cohesion` | **Severity:** Medium (default)
 
-Identifies a "module" (typically a file or logical group) where the internal elements (functions, classes) are not well-connected. This indicates that the module lacks a cohesive purpose and is likely a collection of unrelated code.
+Identifies a "junk drawer" file—a module where the internal parts (functions, classes) have absolutely nothing to do with each other.
 
 ## Why this is a smell
 
-A module should be cohesive, following the principle that "things that change together should stay together." If a module's internal parts don't interact with each other, it's not a true module—it's just a folder or file used as a random storage bin. This makes the code harder to find and increases cognitive load.
+A good module should follow the rule: "things that change together, stay together." If your file is just a collection of random helpers that never interact, it's not a module—it's a storage bin. This makes your code harder to find and increases the mental effort needed to understand why these things are even in the same file.
 
 ## Examples
 

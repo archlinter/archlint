@@ -2,13 +2,13 @@
 
 **ID:** `barrel_file` | **Severity:** Medium (default)
 
-Barrel files (e.g., `index.ts` files that only re-export other files) can become problematic when they grow too large or include too many unrelated exports.
+Barrel files (like an `index.ts` that just re-exports everything) are meant to simplify imports, but they often turn into an architectural black hole.
 
 ## Why this is a smell
 
-- **Circular Dependencies**: Large barrel files are a common cause of indirect circular dependencies.
-- **Unnecessary Coupling**: Importing one thing from a large barrel file can cause the bundler to pull in many unrelated modules.
-- **Performance**: Can slow down both development (IDE indexing) and production (bundle size/loading time).
+- **Circular dependency factory**: Large barrels are the #1 cause of those annoying indirect circular dependencies that are impossible to trace.
+- **Importing the whole world**: When you import one tiny constant from a massive barrel, the bundler often ends up pulling in every single module that barrel references.
+- **Slows you down**: They make IDE indexing crawl and can bloat your production bundle if tree-shaking isn't perfect.
 
 ## Configuration
 

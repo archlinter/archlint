@@ -2,13 +2,13 @@
 
 **ID:** `cognitive_complexity` | **Gravidade:** Média (padrão)
 
-Este detector identifica funções com alta Complexidade Cognitiva. A Complexidade Cognitiva mede o quão difícil é entender o código, em vez de apenas quantos caminhos ele possui.
+A complexidade cognitiva não trata apenas de quantos caminhos o seu código tem; trata de quanto esforço o cérebro humano precisa fazer para realmente entendê-lo. É a diferença entre um código "tecnicamente correto" e um código "legível".
 
-## Por que isso é um problema
+## Por que isso é um smell
 
-- **Alta Carga Mental**: Lógica profundamente aninhada e expressões booleanas complexas tornam difícil para os desenvolvedores manterem o estado em suas cabeças.
-- **Risco de Manutenção**: Código difícil de entender é propenso a erros durante a modificação.
-- **Bugs Ocultos**: Erros de lógica frequentemente se escondem em estruturas profundamente aninhadas.
+- **Estouro de pilha mental**: Humanos não são bons em manter o fio da meada em cinco níveis de lógica aninhada e álgebra booleana complexa ao mesmo tempo. Quando a carga mental é muito alta, começamos a cometer erros.
+- **Bugs invisíveis**: Bugs adoram se esconder nas sombras de `if`s aninhados e operadores ternários infinitos.
+- **Atrito no review**: Se um dev sênior leva 20 minutos para entender uma função de 30 linhas durante um review de PR, ela está complexa demais.
 
 ## Como é calculado
 

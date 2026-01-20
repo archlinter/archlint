@@ -2,13 +2,13 @@
 
 **ID:** `shotgun_surgery` | **Severidad:** Medium (default)
 
-La Cirugía de Escopeta ocurre cuando un solo cambio en los requisitos te obliga a hacer muchos pequeños cambios en muchos módulos diferentes. `archlint` detecta esto analizando el historial de git para encontrar archivos que cambian frecuentemente juntos (alta frecuencia de co-cambio).
+La Cirugía de Escopeta es esa situación molesta donde un cambio "simple" requiere que toques 15 archivos diferentes. Es como intentar arreglar una fuga parcheando cien agujeros pequeños en lugar de reemplazar la tubería.
 
 ## Por qué esto es un problema
 
-- **Alto Costo de Mantenimiento**: Cada funcionalidad o corrección de errores requiere tocar múltiples partes del sistema.
-- **Propenso a Errores**: Es fácil olvidar uno de los muchos cambios requeridos, lo que lleva a bugs.
-- **Encapsulación Deficiente**: Indica que una única responsabilidad está fragmentada a través de la base de código en lugar de estar encapsulada en un solo lugar.
+- **Alta fricción**: Cada pequeño cambio de requisitos se convierte en una operación mayor.
+- **Fácil de olvidar un lugar**: Cuando la lógica está dispersa por todas partes, es casi seguro que olvides actualizar uno de esos archivos, llevando a "bugs fantasma".
+- **Encapsulación rota**: Es señal de que una única responsabilidad ha escapado de su módulo y ahora se esconde en cada rincón de tu código.
 
 ## Cómo corregir
 

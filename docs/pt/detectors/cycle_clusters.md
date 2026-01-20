@@ -2,14 +2,14 @@
 
 **ID:** `cycle_clusters` | **Severity:** Critical (default)
 
-Um cluster de dependência cíclica é um conjunto de dependências circulares interconectadas, formando uma teia complexa de dependências. Ao contrário de ciclos simples (A -> B -> A), os clusters envolvem múltiplos ciclos que se sobrepõem (por exemplo, A -> B -> C -> A e B -> D -> C -> B).
+Um cluster de dependência cíclica é o que acontece quando dependências circulares começam a se reproduzir. Não é apenas um loop simples "A depende de B, B depende de A"—é uma rede complexa onde uma dúzia de módulos estão todos emaranhados.
 
 ## Por que isso é um problema
 
-- **Degradação Arquitetural**: Clusters geralmente indicam a falta de limites claros entre múltiplos componentes.
-- **Acoplamento Extremo**: Todo o cluster deve ser tratado como uma única unidade monolítica.
-- **Isolamento Impossível**: É quase impossível alterar ou testar um módulo no cluster sem afetar todos os outros.
-- **Pesadelo de Manutenção**: Alterações em qualquer parte do cluster podem ter efeitos imprevisíveis em todos os módulos envolvidos.
+- **Deterioração Arquitetural**: É sinal de que seus limites de módulos entraram em colapso completo.
+- **O efeito "Monolito"**: Você não pode simplesmente pegar um módulo do cluster; você tem que arrastar toda a bagunça emaranhada. É um pacote completo que você não pediu.
+- **Isolamento Impossível**: Quer testar uma única função? Sem sorte, você está agora mockando metade do seu código porque tudo está interconectado.
+- **Pesadelo de Manutenção**: Mudar um módulo no cluster pode disparar um efeito borboleta imprevisível que quebra algo do outro lado da rede.
 
 ## Exemplos
 

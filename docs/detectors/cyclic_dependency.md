@@ -2,14 +2,14 @@
 
 **ID:** `cyclic_dependency` | **Severity:** Critical (default)
 
-Circular dependencies occur when two or more modules depend on each other, either directly or indirectly.
+Circular dependencies occur when two or more modules depend on each other, either directly or indirectly. It's the "chicken or the egg" problem of software engineering.
 
 ## Why this is a smell
 
-- **Tight Coupling**: Modules are inseparable, making it hard to reuse them independently.
-- **Initialization Issues**: Can lead to "undefined" imports at runtime if not handled carefully by the bundler.
-- **Testing Difficulty**: Hard to mock or isolate one module without bringing in the entire cycle.
-- **Cognitive Load**: Harder for developers to understand the flow of data and control.
+- **Inseparable coupling**: You can't just take one module and use it elsewhere; it brings the whole family of dependencies with it.
+- **Initialization traps**: Depending on your bundler, you might end up with "undefined" imports at runtime because the cycle couldn't be resolved in time.
+- **Testing nightmare**: Good luck mocking one part of the cycle without the whole thing collapsing like a house of cards.
+- **Cognitive overload**: Trying to follow the data flow in a cycle is like reading a "choose your own adventure" book where every page leads back to the start.
 
 ## Examples
 

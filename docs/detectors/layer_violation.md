@@ -2,13 +2,13 @@
 
 **ID:** `layer_violation` | **Severity:** High (default)
 
-Layer violation occurs when code in one architectural layer imports code from a layer it shouldn't know about (e.g., Domain layer importing from Infrastructure).
+Layer violation happens when your clean architecture starts leaking. It’s when your high-level business logic (Domain) starts asking about your database tables or API endpoints (Infrastructure).
 
 ## Why this is a smell
 
-- **Breaks Abstraction**: Internal implementation details leak into high-level business logic.
-- **Testing Difficulty**: Business logic becomes hard to test without mocks for infrastructure (DB, API, etc.).
-- **Rigidity**: Changing a database or external library requires changing the core business logic.
+- **Leaky abstractions**: Your business logic shouldn't care if you're using Postgres or a JSON file. When layers leak, you lose that freedom.
+- **Brittle tests**: You shouldn't need to spin up a mock database just to test a simple business rule.
+- **Change friction**: Want to swap your logging library? Too bad, you've imported it directly into your core domain, and now you have to refactor everything.
 
 ## Configuration
 

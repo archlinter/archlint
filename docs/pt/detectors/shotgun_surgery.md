@@ -2,13 +2,13 @@
 
 **ID:** `shotgun_surgery` | **Gravidade:** Medium (default)
 
-A cirurgia por difusão ocorre quando uma única mudança em seus requisitos exige que você faça muitas pequenas alterações em muitos módulos diferentes. O `archlint` detecta isso analisando o histórico do git para encontrar arquivos que mudam frequentemente juntos (alta frequência de co-mudança).
+A cirurgia por difusão é aquela situação chata onde uma mudança "simples" exige que você toque em 15 arquivos diferentes. É como tentar consertar um vazamento tampando cem buraquinhos em vez de trocar o cano.
 
 ## Por que isso é um smell
 
-- **Alto Custo de Manutenção**: Cada feature ou correção de bug requer tocar em múltiplas partes do sistema.
-- **Propenso a Erros**: É fácil esquecer uma das muitas mudanças necessárias, levando a bugs.
-- **Encapsulamento Deficiente**: Indica que uma única responsabilidade está fragmentada pela base de código ao invés de estar encapsulada em um só lugar.
+- **Alta fricção**: Cada pequena mudança de requisito se torna uma operação grande.
+- **Fácil de esquecer um lugar**: Quando a lógica está espalhada por todo lado, é quase certo que você vai esquecer de atualizar um desses arquivos, levando a "bugs fantasma".
+- **Encapsulamento quebrado**: É sinal de que uma única responsabilidade escapou do seu módulo e agora está escondida em cada canto do seu código.
 
 ## Como corrigir
 

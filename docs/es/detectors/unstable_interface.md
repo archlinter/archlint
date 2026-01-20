@@ -2,11 +2,13 @@
 
 **ID:** `unstable_interface` | **Severidad:** Medium (default)
 
-Identifica módulos cuya API pública (exports) cambia frecuentemente según el historial de git, mientras que muchos otros módulos dependen de ella.
+Identifica módulos que son un "blanco móvil"—cambian su API pública constantemente mientras todos los demás intentan construir sobre ellos.
 
 ## Por qué esto es un problema
 
-Una interfaz inestable causa un efecto dominó. Cada vez que la interfaz cambia, todos sus dependientes podrían necesitar ser actualizados, lo que lleva a mucho trabajo innecesario y posibles errores.
+- **El efecto dominó**: Cada vez que cambias un export público en un módulo inestable, potencialmente estás rompiendo una docena de otros archivos que dependen de él.
+- **Trabajo innecesario**: Los desarrolladores pasan más tiempo arreglando imports y ajustándose a cambios de API que construyendo features.
+- **Frustración**: Es difícil confiar en un módulo que rompe sus promesas cada dos semanas.
 
 ## Cómo corregir
 

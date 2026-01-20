@@ -2,13 +2,13 @@
 
 **ID:** `dead_code` | **Gravidade:** Baixa (padrão)
 
-Código morto refere-se a funções, classes ou variáveis exportadas que não são importadas ou usadas em nenhum outro lugar do projeto.
+Código morto é exatamente o que parece: funções, classes ou variáveis que estão "vivas" no seu código, mas que não fazem nada porque ninguém as usa.
 
 ## Por que isso é um smell
 
-- **Custo de Manutenção**: Desenvolvedores podem gastar tempo atualizando ou refatorando código que nem sequer é usado.
-- **Tamanho do Bundle**: Aumenta o tamanho final da aplicação (embora muitos bundlers façam tree-shaking).
-- **Confusão**: Faz com que a API de um módulo pareça maior e mais complexa do que realmente é.
+- **Desperdício de energia mental**: Os desenvolvedores não deveriam ter que refatorar ou tentar entender código que nem sequer está rodando.
+- **Falsa complexidade**: Faz com que a API dos seus módulos pareça maior e mais assustadora do que realmente é.
+- **Fantasmas no código**: Pode causar momentos de "eu pensei que já tínhamos removido isso" durante a depuração.
 
 ## Exemplos
 

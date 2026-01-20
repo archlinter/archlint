@@ -2,11 +2,11 @@
 
 **ID:** `deep_nesting` | **Severity:** Low (default)
 
-Identifies code blocks (if, for, while, etc.) that are nested too deeply.
+Identifies code blocks (if, for, while, etc.) that are nested so deep they start looking like a pyramid.
 
 ## Why this is a smell
 
-Deeply nested code is exponentially harder to read and understand. It's often a sign that a function is doing too much or that the logic can be simplified.
+Reading deeply nested code is like reading a sentence with too many (parentheticals (inside (other parentheticals))). It's mentally exhausting and usually a sign that your function is trying to handle too many edge cases at once. It’s better to fail fast or extract the logic.
 
 ## How to fix
 

@@ -2,13 +2,13 @@
 
 **ID:** `code_clone` | **Severity:** Medium (default)
 
-This detector identifies duplicated code blocks across your project. It uses AST-based tokenization to find exact matches while ignoring differences in formatting and comments.
+This detector finds where someone took the "copy-paste" shortcut. It looks for identical logic that’s been duplicated across your project.
 
 ## Why this is a smell
 
-- **Maintenance Overhead**: Fixing a bug or making a change in one place requires updating all duplicates.
-- **Violation of DRY**: Duplication is a clear sign that abstraction or reuse is missing.
-- **Inconsistent Evolution**: Over time, duplicates may drift apart, leading to subtle bugs and harder refactoring.
+- **Bugs multiply**: If you find a bug in one copy, you have to remember to fix it in the other four. Spoilers: you usually forget one.
+- **Maintenance overhead**: Every time you want to change how a specific logic works, you're doing the same work over and over.
+- **Inconsistent evolution**: Eventually, one copy gets updated while another doesn't, and suddenly your "identical" logic behaves differently in different parts of the app.
 
 ## How to fix
 

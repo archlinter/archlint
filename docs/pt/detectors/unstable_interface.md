@@ -2,11 +2,13 @@
 
 **ID:** `unstable_interface` | **Gravidade:** Medium (default)
 
-Identifica módulos cuja API pública (exports) muda frequentemente de acordo com o histórico do git, enquanto muitos outros módulos dependem dela.
+Identifica módulos que são um "alvo móvel"—mudam sua API pública constantemente enquanto todo mundo está tentando construir em cima deles.
 
 ## Por que isso é um smell
 
-Uma interface instável causa um efeito dominó. Cada vez que a interface muda, todos os seus dependentes podem precisar ser atualizados, levando a muito trabalho desnecessário e possíveis bugs.
+- **O efeito dominó**: Toda vez que você muda um export público em um módulo instável, você está potencialmente quebrando uma dúzia de outros arquivos que dependem dele.
+- **Trabalho desnecessário**: Desenvolvedores passam mais tempo consertando imports e se ajustando a mudanças de API do que construindo features.
+- **Frustração**: É difícil confiar em um módulo que quebra suas promessas a cada duas semanas.
 
 ## Como corrigir
 

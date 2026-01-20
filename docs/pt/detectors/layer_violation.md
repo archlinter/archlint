@@ -2,13 +2,13 @@
 
 **ID:** `layer_violation` | **Gravidade:** High (default)
 
-A violação de camada (Layer violation) ocorre quando o código em uma camada arquitetural importa código de uma camada que não deveria conhecer (por exemplo, a camada Domain importando da Infrastructure).
+A violação de camada acontece quando sua "arquitetura limpa" começa a ter goteiras. É quando sua lógica de negócio de alto nível (Domain) começa a perguntar sobre tabelas de banco de dados ou endpoints de API (Infrastructure).
 
 ## Por que isso é um smell
 
-- **Quebra a Abstração**: Detalhes de implementação interna vazam para a lógica de negócio de alto nível.
-- **Dificuldade de Teste**: A lógica de negócio torna-se difícil de testar sem mocks para a infraestrutura (BD, API, etc.).
-- **Rigidez**: Alterar um banco de dados ou biblioteca externa requer a alteração da lógica de negócio principal.
+- **Abstrações com goteiras**: Sua lógica de negócio não deveria se importar se você usa Postgres ou um arquivo JSON. Quando as camadas vazam, você perde essa liberdade.
+- **Testes frágeis**: Você não deveria precisar levantar um mock de banco de dados só para testar uma simples regra de negócio.
+- **Fricção ao mudar**: Quer trocar sua biblioteca de logging? Azar o seu, você a importou diretamente no núcleo do seu domínio e agora tem que refatorar tudo.
 
 ## Configuração
 

@@ -2,11 +2,13 @@
 
 **ID:** `vendor_coupling` | **Gravidade:** Medium (default)
 
-Identifica módulos que estão muito fortemente acoplados a uma biblioteca ou framework externo específico.
+Identifica módulos que ficaram "casados" com uma biblioteca ou framework externo específico.
 
 ## Por que isso é um smell
 
-Se você decidir trocar a biblioteca no futuro, terá que mudar o código em muitos lugares. Também torna os testes mais difíceis porque você tem que simular (mock) a biblioteca externa em todos os lugares.
+- **Vendor lock-in**: Se aquela biblioteca ficar depreciada ou você decidir trocar para uma alternativa melhor, vai ter que reescrever metade do seu código.
+- **Fricção nos testes**: Você não consegue testar sua lógica de negócio sem também puxar a biblioteca externa pesada e seus mocks.
+- **Difícil de atualizar**: Você fica preso na versão que a biblioteca suporta porque ela está entrelaçada em cada arquivo.
 
 ## Como corrigir
 

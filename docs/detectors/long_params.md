@@ -2,11 +2,11 @@
 
 **ID:** `long_params` | **Severity:** Low (default)
 
-Identifies functions or methods that have too many parameters.
+Identifies functions that ask for way too much information at once.
 
 ## Why this is a smell
 
-Functions with many parameters are hard to use and hard to read. They often indicate that the function is doing too much or that some parameters should be grouped into an object.
+Functions with 10 parameters are confusing to call and even more confusing to read. Was the third argument the `userId` or the `orderId`? When you have a long list of arguments, it's a sign that the function is either doing too much or that those parameters belong together in a single object.
 
 ## How to fix
 

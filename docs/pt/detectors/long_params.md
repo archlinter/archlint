@@ -2,11 +2,11 @@
 
 **ID:** `long_params` | **Gravidade:** Low (default)
 
-Identifica funções ou métodos que possuem parâmetros demais.
+Identifica funções que pedem informação demais de uma vez só.
 
 ## Por que isso é um smell
 
-Funções com muitos parâmetros são difíceis de usar e de ler. Elas geralmente indicam que a função está fazendo demais ou que alguns parâmetros deveriam ser agrupados em um objeto.
+Funções com 10 parâmetros são confusas de chamar e ainda mais confusas de ler. O terceiro argumento era o `userId` ou o `orderId`? Quando você tem uma lista longa de argumentos, é sinal de que a função está fazendo demais ou que esses parâmetros pertencem juntos em um único objeto.
 
 ## Como consertar
 

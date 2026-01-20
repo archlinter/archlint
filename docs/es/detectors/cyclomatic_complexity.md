@@ -2,13 +2,13 @@
 
 **ID:** `cyclomatic_complexity` | **Severidad:** Media (por defecto)
 
-Este detector identifica funciones con una alta complejidad ciclomática.
+La complejidad ciclomática mide cuántos caminos diferentes puede tomar la ejecución de tu código. Piénsalo como el factor "espagueti" de tus `if-else` y `switch`.
 
 ## Por qué esto es un problema
 
-- **Difícil de Entender**: Demasiadas ramificaciones hacen que el código sea difícil de seguir.
-- **Propenso a Errores**: Mayor probabilidad de pasar por alto casos borde durante las pruebas.
-- **Pesadilla de Mantenimiento**: Pequeños cambios pueden tener efectos impredecibles debido a la lógica compleja.
+- **Laberinto mental**: Cada `if`, `else` y `case` añade un nuevo giro al laberinto. Si una función tiene 20 caminos, puedes apostar que un desarrollador acabará perdiéndose tarde o temprano.
+- **Pesadilla de testing**: Para probar de verdad una función compleja, necesitarías un caso de prueba para cada camino posible. En el mundo real, eso suele significar que algunas ramas nunca se llegan a probar.
+- **El "Efecto Mariposa"**: En funciones muy complejas, cambiar una sola línea de código puede tener consecuencias extrañas e impredecibles a cinco ramas de distancia.
 
 ## Cómo solucionarlo
 

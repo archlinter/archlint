@@ -2,11 +2,11 @@
 
 **ID:** `feature_envy` | **Severidad:** Medium (default)
 
-La envidia de funcionalidades (Feature envy) ocurre cuando un método en una clase parece más interesado en los datos de otra clase que en los datos de su propia clase.
+La envidia de funcionalidades es como ese vecino entrometido que sabe más sobre lo que pasa en tu casa que tú mismo. Sucede cuando un método parece mucho más interesado en los datos de otra clase que en los suyos propios.
 
 ## Por qué esto es un problema
 
-Indica una violación de la encapsulación. Es probable que la lógica esté en el lugar equivocado.
+Es una señal clásica de lógica mal ubicada. Si un método está constantemente hurgando en otro objeto para sacar datos y hacer cálculos, esa lógica probablemente pertenece dentro del otro objeto. Rompe el encapsulamiento y hace que tus clases estén fuertemente acopladas.
 
 ## Cómo solucionar
 

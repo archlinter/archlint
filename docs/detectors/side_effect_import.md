@@ -2,11 +2,13 @@
 
 **ID:** `side_effect_import` | **Severity:** Low (default)
 
-Identifies imports that are performed only for their side effects (e.g., `import './globals';`), which often modify global state or prototypes.
+Identifies imports that happen purely for their "magic" side effects—like an import that modifies a global prototype or sets up a global state without actually exporting anything.
 
 ## Why this is a smell
 
-Side-effect imports make the dependency graph less explicit and can lead to non-deterministic behavior depending on the import order. They are often "hidden" dependencies that are hard to track.
+- **Hidden surprises**: Side-effect imports make your app’s behavior feel like magic. You look at a file and can't figure out where a specific behavior is coming from until you find a "ghost" import in your `main.ts`.
+- **Order matters (too much)**: If you accidentally swap the order of two side-effect imports, your app might behave differently or break entirely.
+- **Hard to trace**: Because nothing is explicitly called or returned, these dependencies are invisible to many static analysis tools and even harder for human developers to keep in their heads.
 
 ## Excluded Patterns
 

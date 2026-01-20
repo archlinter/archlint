@@ -2,11 +2,13 @@
 
 **ID:** `unstable_interface` | **Severity:** Medium (default)
 
-Identifies modules whose public API (exports) changes frequently according to git history, while many other modules depend on it.
+Identifies modules that are a "moving target"—they change their public API constantly while everyone else is trying to build on top of them.
 
 ## Why this is a smell
 
-An unstable interface causes a ripple effect. Every time the interface changes, all its dependents might need to be updated, leading to a lot of busywork and potential bugs.
+- **The ripple effect**: Every time you change a public export in an unstable module, you're potentially breaking a dozen other files that depend on it.
+- **Busywork**: Developers spend more time fixing imports and adjusting to API changes than actually building features.
+- **Frustration**: It’s hard to trust a module that breaks its promises every other week.
 
 ## How to fix
 

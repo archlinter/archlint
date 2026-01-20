@@ -2,11 +2,11 @@
 
 **ID:** `deep_nesting` | **Severidad:** Low (default)
 
-Identifica bloques de código (if, for, while, etc.) que están anidados con demasiada profundidad.
+Identifica bloques de código (if, for, while, etc.) que están anidados con tanta profundidad que empiezan a parecer una pirámide.
 
 ## Por qué esto es un problema
 
-El código profundamente anidado es exponencialmente más difícil de leer y comprender. A menudo es una señal de que una función está haciendo demasiado o que la lógica puede simplificarse.
+Leer código con un anidamiento profundo es como leer una frase con demasiados (paréntesis (dentro de (otros paréntesis))). Es mentalmente agotador y suele ser una señal de que tu función está intentando manejar demasiados casos especiales a la vez. Es mejor fallar rápido o extraer la lógica.
 
 ## Cómo solucionar
 

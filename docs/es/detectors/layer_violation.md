@@ -2,13 +2,13 @@
 
 **ID:** `layer_violation` | **Severidad:** High (default)
 
-La violación de capa (Layer violation) ocurre cuando el código en una capa arquitectónica importa código de una capa que no debería conocer (por ejemplo, la capa Domain importando de Infrastructure).
+La violación de capa ocurre cuando tu "arquitectura limpia" empieza a tener goteras. Es cuando tu lógica de negocio de alto nivel (Domain) empieza a preguntar sobre tablas de base de datos o endpoints de API (Infrastructure).
 
 ## Por qué esto es un problema
 
-- **Rompe la Abstracción**: Los detalles de la implementación interna se filtran en la lógica de negocio de alto nivel.
-- **Dificultad de Prueba**: La lógica de negocio se vuelve difícil de probar sin mocks para la infraestructura (BD, API, etc.).
-- **Rigidez**: Cambiar una base de datos o una biblioteca externa requiere cambiar la lógica de negocio principal.
+- **Abstracciones con goteras**: A tu lógica de negocio no debería importarle si usas Postgres o un archivo JSON. Cuando las capas gotean, pierdes esa libertad.
+- **Tests frágiles**: No deberías necesitar levantar un mock de base de datos solo para probar una simple regla de negocio.
+- **Fricción al cambiar**: ¿Quieres cambiar tu librería de logging? Lástima, la has importado directamente en el núcleo de tu dominio y ahora tienes que refactorizarlo todo.
 
 ## Configuración
 

@@ -2,13 +2,13 @@
 
 **ID:** `code_clone` | **Severidad:** Media (por defecto)
 
-Este detector identifica bloques de código duplicados en su proyecto. Utiliza la tokenización basada en AST para encontrar coincidencias exactas, ignorando las diferencias en el formato y los comentarios.
+Este detector encuentra dónde alguien tomó el atajo del "copiar-pegar". Busca lógica idéntica que ha sido duplicada en todo tu proyecto.
 
 ## Por qué es un problema
 
-- **Sobrecarga de mantenimiento**: Corregir un error o realizar un cambio en un lugar requiere actualizar todos los duplicados.
-- **Violación de DRY**: La duplicación es una señal clara de que falta abstracción o reutilización.
-- **Evolución inconsistente**: Con el tiempo, los duplicados pueden divergir, lo que provoca errores sutiles y dificulta la refactorización.
+- **Los bugs se multiplican**: Si encuentras un bug en una copia, tienes que recordar arreglarlo en las otras cuatro. Spoiler: normalmente olvidas una.
+- **Sobrecarga de mantenimiento**: Cada vez que quieres cambiar cómo funciona una lógica específica, estás haciendo el mismo trabajo una y otra vez.
+- **Evolución inconsistente**: Con el tiempo, una copia se actualiza mientras otra no, y de repente tu lógica "idéntica" se comporta distinto en diferentes partes de la app.
 
 ## Cómo solucionar
 

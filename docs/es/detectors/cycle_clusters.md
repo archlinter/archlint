@@ -2,14 +2,14 @@
 
 **ID:** `cycle_clusters` | **Severity:** Critical (default)
 
-Un clúster de dependencias cíclicas es un conjunto de dependencias circulares interconectadas que forman una red compleja de dependencias. A diferencia de los ciclos simples (A -> B -> A), los clústeres involucran múltiples ciclos que se superponen (por ejemplo, A -> B -> C -> A y B -> D -> C -> B).
+Un clúster de dependencias cíclicas es lo que ocurre cuando las dependencias circulares comienzan a reproducirse. No es solo un simple bucle "A depende de B, B depende de A"—es una red compleja donde una docena de módulos están todos enredados juntos.
 
 ## Por qué esto es un problema
 
-- **Degradación Arquitectónica**: Los clústeres a menudo indican una falta de límites claros entre múltiples componentes.
-- **Acoplamiento Extremo**: Todo el clúster debe ser tratado como una única unidad monolítica.
-- **Imposibilidad de Aislamiento**: Es casi imposible cambiar o probar un módulo en el clúster sin afectar a todos los demás.
-- **Pesadilla de Mantenimiento**: Los cambios en cualquier parte del clúster pueden tener efectos impredecibles en todos los módulos involucrados.
+- **Degradación Arquitectónica**: Es señal de que tus límites de módulos se han derrumbado completamente.
+- **El efecto "Monolito"**: No puedes simplemente tomar un módulo del clúster; tienes que arrastrar todo el lío enredado. Es un paquete completo que no pediste.
+- **Imposibilidad de Aislamiento**: ¿Quieres testear una sola función? Mala suerte, ahora estás mockeando la mitad de tu código porque todo está interconectado.
+- **Pesadilla de Mantenimiento**: Cambiar un módulo en el clúster puede desencadenar un efecto mariposa impredecible que rompe algo al otro lado de la red.
 
 ## Ejemplos
 

@@ -2,13 +2,13 @@
 
 **ID:** `lcom` | **Severity:** Medium (default)
 
-Cohesion measures how closely related the methods and fields of a class are. archlint uses the **LCOM4** (Lack of Cohesion of Methods) metric.
+Cohesion measures whether the methods and fields in your class actually belong together. If they don't, you probably have a "Frankenstein's monster" class.
 
 ## Why this is a smell
 
-- **Violation of SRP**: The class is likely doing two or more unrelated things.
-- **Fragility**: Changing one part of the class might affect unrelated parts.
-- **Hard to Reuse**: You can't use one part of the class without pulling in unrelated logic.
+- **SRP Violation**: Your class is likely wearing too many hats and trying to do three different jobs at once.
+- **Fragility**: You change a method related to "user avatars" and somehow break the "password hashing" logic because they’re sharing the same bloated class.
+- **Hard to Reuse**: If you just need the "avatar" logic, you're forced to bring along the whole "password" machinery too.
 
 ## How to fix
 

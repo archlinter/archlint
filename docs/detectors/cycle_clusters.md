@@ -2,14 +2,14 @@
 
 **ID:** `cycle_clusters` | **Severity:** Critical (default)
 
-A cyclic dependency cluster is a set of circular dependencies that are interconnected, forming a complex web of dependencies. Unlike simple cycles (A -> B -> A), clusters involve multiple cycles that overlap (e.g., A -> B -> C -> A and B -> D -> C -> B).
+A cyclic dependency cluster is what happens when circular dependencies start breeding. It’s not just a simple "A depends on B, B depends on A" loop—it's a complex web where a dozen modules are all tangled up together.
 
 ## Why this is a smell
 
-- **Architectural Rot**: Clusters often indicate a lack of clear boundaries between multiple components.
-- **Extreme Coupling**: The entire cluster must be treated as a single monolithic unit.
-- **Impossible Isolation**: It is nearly impossible to change or test one module in the cluster without affecting all others.
-- **Maintenance Nightmare**: Changes in any part of the cluster can have unpredictable effects across all modules involved.
+- **Architectural Rot**: It’s a sign that your module boundaries have completely collapsed.
+- **The "Monolith" effect**: You can't just borrow one module from the cluster; you have to pull in the whole tangled mess. It’s a package deal you didn't ask for.
+- **Impossible Isolation**: Want to test a single function? Too bad, you're now mocking half your codebase because everything is interconnected.
+- **Maintenance Nightmare**: Changing one module in the cluster can trigger an unpredictable ripple effect that breaks something on the other side of the web.
 
 ## Examples
 
