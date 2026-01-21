@@ -1,3 +1,8 @@
+---
+title: MCP Server
+description: "使用模型上下文协议 (MCP) 将 archlint 连接到 Claude 或 Cursor 等 AI 编程助手，实现 AI 驱动的架构重构。"
+---
+
 # MCP Server
 
 archlint 提供了一个 MCP (Model Context Protocol) 服务，允许像 Claude 或 Cursor 这样的 AI 编程助手理解并改进您的架构。

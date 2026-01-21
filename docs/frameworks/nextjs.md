@@ -1,3 +1,8 @@
+---
+title: Next.js Support
+description: "Understand Next.js file-based routing, recognize pages/app directories as entry points, and relax barrel file rules for common patterns."
+---
+
 # Next.js Support
 
 Next.js projects have unique file-based routing and bundling patterns that archlint understands.

@@ -1,3 +1,8 @@
+---
+title: 循环依赖集群
+description: "识别形成复杂网络的相互关联的循环依赖集合，这些集合表明架构腐化和极端耦合。"
+---
+
 # 循环依赖集群
 
 **ID:** `cycle_clusters` | **Severity:** Critical (default)

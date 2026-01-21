@@ -1,3 +1,8 @@
+---
+title: Configuración Dispersa
+description: "Identifica configuración distribuida en muchos archivos en lugar de estar centralizada, haciendo más difícil su gestión y comprensión."
+---
+
 # Configuración Dispersa
 
 **ID:** `scattered_config` | **Severidad:** Low (default)

@@ -1,3 +1,8 @@
+---
+title: Feature Envy
+description: "Detect methods that are more interested in another class's data than their own, indicating a violation of encapsulation."
+---
+
 # Feature Envy
 
 **ID:** `feature_envy` | **Severity:** Medium (default)

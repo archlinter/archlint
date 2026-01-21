@@ -1,3 +1,8 @@
+---
+title: scan
+description: "Realiza un análisis arquitectónico completo de tu proyecto con el comando archlint scan, compatible con múltiples formatos de salida como JSON, Markdown y SARIF."
+---
+
 # archlint scan
 
 El comando `scan` realiza un análisis arquitectónico completo de tu proyecto.

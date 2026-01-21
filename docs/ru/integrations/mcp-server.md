@@ -1,3 +1,8 @@
+---
+title: MCP-сервер
+description: "Подключите archlint к ИИ-помощникам для программирования, таким как Claude или Cursor, используя Model Context Protocol (MCP) для архитектурного рефакторинга с помощью ИИ."
+---
+
 # MCP-сервер
 
 archlint предоставляет сервер MCP (Model Context Protocol), позволяющий ИИ-помощникам, таким как Claude или Cursor, понимать и улучшать вашу архитектуру.

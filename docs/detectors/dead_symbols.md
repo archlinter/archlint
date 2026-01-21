@@ -1,3 +1,8 @@
+---
+title: Dead Symbols
+description: "Find functions, variables, or classes defined but never used locally, reducing code clutter and improving maintainability."
+---
+
 # Dead Symbols
 
 **ID:** `dead_symbols` | **Severity:** Low (default)

@@ -1,6 +1,6 @@
 ---
 title: 配置
-description: 了解如何使用 .archlint.yaml 配置 archlint，定义架构层，并为检测器设置规则。
+description: "了解如何使用 .archlint.yaml 配置 archlint，定义架构层，并为检测器设置规则。"
 ---
 
 # 配置

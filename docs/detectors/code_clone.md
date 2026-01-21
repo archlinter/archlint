@@ -1,3 +1,8 @@
+---
+title: Code Clone
+description: "Identify duplicated code blocks across your project using AST-based tokenization to find exact matches regardless of formatting."
+---
+
 # Code Clone
 
 **ID:** `code_clone` | **Severity:** Medium (default)

@@ -1,3 +1,8 @@
+---
+title: Dead Code
+description: "Detect exported functions, classes, or variables that are not used anywhere in the project to reduce maintenance burden and confusion."
+---
+
 # Dead Code
 
 **ID:** `dead_code` | **Severity:** Low (default)

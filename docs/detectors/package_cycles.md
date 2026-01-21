@@ -1,3 +1,8 @@
+---
+title: Package Cycles
+description: "Detect circular dependencies between entire packages that prevent proper versioning and indicate serious modularity flaws."
+---
+
 # Package Cycles
 
 **ID:** `package_cycles` | **Severity:** High (default)

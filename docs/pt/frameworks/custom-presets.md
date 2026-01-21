@@ -1,3 +1,8 @@
+---
+title: Presets de Framework
+description: "Aprenda como criar presets personalizados baseados em YAML para entender padrões específicos de frameworks e reduzir falsos positivos na análise do archlint."
+---
+
 # Presets de Framework
 
 O archlint usa presets baseados em YAML para entender padrões específicos de frameworks e reduzir falsos positivos.

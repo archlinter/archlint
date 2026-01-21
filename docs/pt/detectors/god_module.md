@@ -1,3 +1,8 @@
+---
+title: Módulo Deus
+description: "Um Módulo Deus é um arquivo que cresceu muito e assumiu muitas responsabilidades, violando o Princípio da Responsabilidade Única."
+---
+
 # Módulo Deus
 
 **ID:** `god_module` | **Gravidade:** High (default)

@@ -1,3 +1,8 @@
+---
+title: Clone de Código
+description: "Identifica blocos de código duplicados em todo o seu projeto usando tokenização baseada em AST para encontrar correspondências exatas independentemente da formatação."
+---
+
 # Clone de Código
 
 **ID:** `code_clone` | **Gravidade:** Média (padrão)

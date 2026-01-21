@@ -1,6 +1,6 @@
 ---
 title: Integração com ESLint
-description: Receba feedback arquitetural em tempo real no seu editor usando @archlinter/eslint-plugin. Suporta Flat Config e .eslintrc legado.
+description: "Receba feedback arquitetural em tempo real no seu editor usando @archlinter/eslint-plugin. Suporta Flat Config e .eslintrc legado."
 ---
 
 # Integração com ESLint

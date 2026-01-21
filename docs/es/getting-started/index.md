@@ -1,6 +1,6 @@
 ---
 title: Primeros Pasos
-description: Conoce la filosofía y las características clave de archlint, un detector de code smells de arquitectura basado en AST para TypeScript y JavaScript.
+description: "Conoce la filosofía y las características clave de archlint, un detector de code smells de arquitectura basado en AST para TypeScript y JavaScript."
 ---
 
 # Introducción

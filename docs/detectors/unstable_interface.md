@@ -1,3 +1,8 @@
+---
+title: Unstable Interface
+description: "Identify modules whose public API changes frequently while many modules depend on them, causing ripple effects across the codebase."
+---
+
 # Unstable Interface
 
 **ID:** `unstable_interface` | **Severity:** Medium (default)

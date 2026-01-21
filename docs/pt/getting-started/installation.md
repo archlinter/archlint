@@ -1,3 +1,8 @@
+---
+title: Instalação
+description: "Instale o archlint como uma ferramenta CLI via npx ou npm, ou use-o como um plugin ESLint para feedback em tempo real no seu editor."
+---
+
 # Instalação
 
 archlint pode ser usado como uma ferramenta CLI ou como um plugin ESLint.

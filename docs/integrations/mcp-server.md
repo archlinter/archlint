@@ -1,3 +1,8 @@
+---
+title: MCP Server
+description: "Connect archlint to AI coding assistants like Claude or Cursor using the Model Context Protocol (MCP) for AI-powered architectural refactoring."
+---
+
 # MCP Server
 
 archlint provides an MCP (Model Context Protocol) server, allowing AI coding assistants like Claude or Cursor to understand and improve your architecture.

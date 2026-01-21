@@ -1,3 +1,8 @@
+---
+title: First Scan
+description: "Learn how to run your first architectural scan with archlint, interpret results, and configure the tool for your project."
+---
+
 # First Scan
 
 Once installed, running your first scan is simple.

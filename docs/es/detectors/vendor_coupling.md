@@ -1,3 +1,8 @@
+---
+title: Acoplamiento de Proveedor
+description: "Detecta módulos demasiado acoplados a bibliotecas externas específicas, haciendo las migraciones futuras difíciles y las pruebas más complicadas."
+---
+
 # Acoplamiento de Proveedor (Vendor Coupling)
 
 **ID:** `vendor_coupling` | **Severidad:** Medium (default)

@@ -1,6 +1,6 @@
 ---
 title: CLI 参考
-description: archlint CLI 命令的完整参考，包括 scan、diff、snapshot 和 watch。
+description: "archlint CLI 命令的完整参考，包括 scan、diff、snapshot 和 watch。"
 ---
 
 # CLI 参考

@@ -1,3 +1,8 @@
+---
+title: init
+description: "通过生成具有合理默认值的配置文件，快速在新项目中设置 archlint。"
+---
+
 # archlint init
 
 `init` 命令通过生成配置文件，帮助您在现有项目中快速设置 archlint。

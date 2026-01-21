@@ -1,3 +1,8 @@
+---
+title: Tipos Huérfanos
+description: "Encuentra tipos o interfaces que están definidos pero nunca se usan, añadiendo desorden y aumentando la carga cognitiva sin beneficio."
+---
+
 # Tipos Huérfanos
 
 **ID:** `orphan_types` | **Severidad:** Low (default)

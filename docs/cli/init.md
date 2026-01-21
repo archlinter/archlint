@@ -1,3 +1,8 @@
+---
+title: init
+description: "Quickly set up archlint in a new project by generating a configuration file with sensible defaults."
+---
+
 # archlint init
 
 The `init` command helps you quickly set up archlint in a new project by generating a configuration file.

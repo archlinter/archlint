@@ -1,3 +1,8 @@
+---
+title: High Coupling
+description: "Identify modules that depend on too many other modules, creating rigidity and fragility in your codebase."
+---
+
 # High Coupling
 
 **ID:** `high_coupling` | **Severity:** Medium (default)

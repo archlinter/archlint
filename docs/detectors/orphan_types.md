@@ -1,3 +1,8 @@
+---
+title: Orphan Types
+description: "Find types or interfaces that are defined but never used, adding clutter and increasing cognitive load without benefit."
+---
+
 # Orphan Types
 
 **ID:** `orphan_types` | **Severity:** Low (default)

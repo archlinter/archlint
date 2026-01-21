@@ -1,3 +1,8 @@
+---
+title: Importações com Efeito Colateral
+description: "Identifica importações realizadas apenas por seus efeitos colaterais que modificam estado global, tornando dependências menos explícitas e comportamento não determinístico."
+---
+
 # Importações com Efeito Colateral
 
 **ID:** `side_effect_import` | **Gravidade:** Low (default)

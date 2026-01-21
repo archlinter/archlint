@@ -1,3 +1,8 @@
+---
+title: 循環依存クラスター
+description: "複雑な依存関係の網を形成する、相互に関連する循環依存のセットを特定し、アーキテクチャの腐敗と極端な結合を示します。"
+---
+
 # 循環依存クラスター
 
 **ID:** `cycle_clusters` | **Severity:** Critical (default)

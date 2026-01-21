@@ -1,3 +1,8 @@
+---
+title: watch
+description: "Execute o archlint no modo watch para reanalisar automaticamente seu projeto sempre que os arquivos mudarem, fornecendo feedback contínuo."
+---
+
 # archlint watch
 
 O comando `watch` executa o archlint em segundo plano e reanalisa seu projeto toda vez que um arquivo muda.

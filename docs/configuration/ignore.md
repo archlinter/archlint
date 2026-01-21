@@ -1,3 +1,8 @@
+---
+title: Ignoring Files
+description: "Learn how to exclude files or directories from archlint analysis using global ignore, gitignore, rule-specific excludes, and inline comments."
+---
+
 # Ignoring Files
 
 archlint provides several ways to exclude files or directories from analysis.

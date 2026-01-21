@@ -1,3 +1,8 @@
+---
+title: Framework Support
+description: "Learn how archlint understands architectural patterns of popular frameworks like NestJS, Next.js, React, and adjusts analysis accordingly."
+---
+
 # Framework Support
 
 archlint is not just a generic linter; it understands the architectural patterns of popular frameworks and adjusts its analysis accordingly.

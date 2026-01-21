@@ -1,6 +1,6 @@
 ---
 title: Visão Geral dos Detectores
-description: Explore mais de 28 detectores de code smells de arquitetura no `archlint`, incluindo dependências cíclicas, violações de camadas, módulos deus e muito mais.
+description: "Explore mais de 28 detectores de code smells de arquitetura no `archlint`, incluindo dependências cíclicas, violações de camadas, módulos deus e muito mais."
 ---
 
 # Visão Geral dos Detectores

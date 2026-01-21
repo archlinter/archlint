@@ -1,6 +1,6 @@
 ---
 title: Справочник CLI
-description: Полное руководство по командам CLI archlint, включая scan, diff, snapshot и watch.
+description: "Полное руководство по командам CLI archlint, включая scan, diff, snapshot и watch."
 ---
 
 # Справочник CLI

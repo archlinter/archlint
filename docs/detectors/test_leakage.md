@@ -1,3 +1,8 @@
+---
+title: Test Leakage
+description: "Detect production code that imports from test files, which can lead to increased bundle size, security risks, and broken builds."
+---
+
 # Test Leakage
 
 **ID:** `test_leakage` | **Severity:** High (default)

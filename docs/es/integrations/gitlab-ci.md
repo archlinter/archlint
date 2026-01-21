@@ -1,3 +1,8 @@
+---
+title: GitLab CI
+description: "Aplica reglas arquitectónicas en tus Merge Requests de GitLab usando archlint en tu pipeline de CI/CD."
+---
+
 # GitLab CI
 
 Aplica reglas arquitectónicas en tus Merge Requests de GitLab.

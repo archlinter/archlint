@@ -1,3 +1,8 @@
+---
+title: Fuga de Pruebas
+description: "Detecta código de producción que importa desde archivos de prueba, lo que puede llevar a un aumento del tamaño del bundle, riesgos de seguridad y builds rotos."
+---
+
 # Fuga de Pruebas (Test Leakage)
 
 **ID:** `test_leakage` | **Severidad:** High (default)

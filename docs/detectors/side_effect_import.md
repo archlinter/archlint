@@ -1,3 +1,8 @@
+---
+title: Side-Effect Imports
+description: "Identify imports performed only for their side effects that modify global state, making dependencies less explicit and behavior non-deterministic."
+---
+
 # Side-Effect Imports
 
 **ID:** `side_effect_import` | **Severity:** Low (default)

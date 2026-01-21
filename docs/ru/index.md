@@ -1,7 +1,7 @@
 ---
 layout: home
-title: Остановите деградацию архитектуры
-description: Быстрый детектор архитектурных проблем на основе AST для TypeScript/JavaScript. 28+ детекторов и молниеносный анализ.
+title: Archlint — Линтер архитектуры для TypeScript & JavaScript
+description: "Быстрый детектор архитектурных проблем на основе AST для TypeScript/JavaScript. 28+ детекторов и молниеносный анализ."
 
 hero:
   name: 'archlint'

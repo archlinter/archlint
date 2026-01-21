@@ -1,3 +1,8 @@
+---
+title: Shotgun Surgery
+description: "Detect files that frequently change together, indicating that a single requirement change forces many small changes across multiple modules."
+---
+
 # Shotgun Surgery
 
 **ID:** `shotgun_surgery` | **Severity:** Medium (default)

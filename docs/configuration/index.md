@@ -1,6 +1,6 @@
 ---
 title: Configuration
-description: Learn how to configure archlint using .archlint.yaml, define architectural layers, and configure rules for detectors.
+description: "Learn how to configure archlint using .archlint.yaml, define architectural layers, and configure rules for detectors."
 ---
 
 # Configuration

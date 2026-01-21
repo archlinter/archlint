@@ -1,3 +1,8 @@
+---
+title: 安装
+description: "通过 npx 或 npm 将 archlint 安装为 CLI 工具，或将其用作 ESLint 插件以在编辑器中获得实时反馈。"
+---
+
 # 安装
 
 archlint 可以作为 CLI 工具或 ESLint 插件使用。

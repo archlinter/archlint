@@ -1,3 +1,8 @@
+---
+title: Layers
+description: "Define niveles arquitectónicos en tu proyecto y aplica reglas estrictas de dependencias para mantener una arquitectura limpia y prevenir el acoplamiento."
+---
+
 # Capas
 
 La configuración de capas le permite definir niveles arquitectónicos en su proyecto y hacer cumplir las reglas de dependencia entre ellos.

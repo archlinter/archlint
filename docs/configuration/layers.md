@@ -1,3 +1,8 @@
+---
+title: Layers
+description: "Define architectural levels in your project and enforce strict dependency rules to maintain a clean architecture and prevent coupling."
+---
+
 # Layers
 
 Layer configuration allows you to define architectural levels of your project and enforce dependency rules between them.

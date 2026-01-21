@@ -1,6 +1,6 @@
 ---
 title: Resumen de Detectores
-description: Explora los más de 28 detectores de code smells de arquitectura en `archlint`, incluyendo dependencias cíclicas, violaciones de capas, módulos Dios y más.
+description: "Explora los más de 28 detectores de code smells de arquitectura en `archlint`, incluyendo dependencias cíclicas, violaciones de capas, módulos Dios y más."
 ---
 
 # Resumen de detectores

@@ -1,3 +1,8 @@
+---
+title: Low Cohesion (LCOM4)
+description: "Measure how closely related methods and fields of a class are using the LCOM4 metric to detect violations of Single Responsibility Principle."
+---
+
 # Low Cohesion (LCOM4)
 
 **ID:** `lcom` | **Severity:** Medium (default)

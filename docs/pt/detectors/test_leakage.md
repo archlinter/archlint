@@ -1,3 +1,8 @@
+---
+title: Vazamento de Teste
+description: "Detecta código de produção que importa de arquivos de teste, o que pode levar a aumento do tamanho do bundle, riscos de segurança e builds quebrados."
+---
+
 # Vazamento de Teste (Test Leakage)
 
 **ID:** `test_leakage` | **Gravidade:** High (default)

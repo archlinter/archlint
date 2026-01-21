@@ -1,3 +1,8 @@
+---
+title: Código Muerto
+description: "Detecta funciones, clases o variables exportadas que no se usan en ninguna parte del proyecto para reducir la carga de mantenimiento y la confusión."
+---
+
 # Código Muerto (Dead Code)
 
 **ID:** `dead_code` | **Severidad:** Baja (por defecto)

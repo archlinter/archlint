@@ -1,3 +1,8 @@
+---
+title: Dependencias Cíclicas
+description: "Las dependencias circulares ocurren cuando dos o más módulos dependen entre sí, directa o indirectamente. Esto crea un acoplamiento estrecho y dificultades para las pruebas."
+---
+
 # Dependencias Cíclicas
 
 **ID:** `cycles` | **Severidad:** Crítica (por defecto)

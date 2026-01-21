@@ -1,6 +1,6 @@
 ---
 title: はじめに
-description: TypeScriptとJavaScriptのためのASTベースのアーキテクチャ・スメル検出器であるarchlintの哲学と主な機能について学びましょう。
+description: "TypeScriptとJavaScriptのためのASTベースのアーキテクチャ・スメル検出器であるarchlintの哲学と主な機能について学びましょう。"
 ---
 
 # イントロダクション

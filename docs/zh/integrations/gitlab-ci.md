@@ -1,3 +1,8 @@
+---
+title: GitLab CI
+description: "在 GitLab Merge Request 中使用 archlint 在 CI/CD 流水线中强制执行架构规则。"
+---
+
 # GitLab CI
 
 在 GitLab Merge Request 中强制执行架构规则。

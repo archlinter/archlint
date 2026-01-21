@@ -1,3 +1,8 @@
+---
+title: React Support
+description: "Specialized analysis for React components, recognizing naming patterns, disabling LCOM for components, and understanding custom hooks as entry points."
+---
+
 # React Support
 
 React components have different architectural characteristics than traditional classes or modules.

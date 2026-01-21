@@ -1,3 +1,8 @@
+---
+title: Abuso de Barrel Files
+description: "Arquivos barrel (index.ts) podem causar dependências circulares indiretas e problemas de desempenho se crescerem muito."
+---
+
 # Abuso de Barrel Files (Barrel Abuse)
 
 **ID:** `barrel_file` | **Gravidade:** Média (padrão)

@@ -1,3 +1,8 @@
+---
+title: ベンダー結合
+description: "特定の外部ライブラリに密結合しすぎているモジュールを検出し、将来の移行を困難にし、テストを困難にします。"
+---
+
 # ベンダー結合 (Vendor Coupling)
 
 **ID:** `vendor_coupling` | **重要度:** Medium (default)

@@ -1,3 +1,8 @@
+---
+title: Layer Violation
+description: "Detect when code in one architectural layer incorrectly imports code from another layer, breaking abstractions and the Single Responsibility Principle."
+---
+
 # Layer Violation
 
 **ID:** `layer_violation` | **Severity:** High (default)

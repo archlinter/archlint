@@ -1,3 +1,8 @@
+---
+title: Deep Nesting
+description: "Identify code blocks nested too deeply, making code exponentially harder to read and indicating functions doing too much."
+---
+
 # Deep Nesting
 
 **ID:** `deep_nesting` | **Severity:** Low (default)

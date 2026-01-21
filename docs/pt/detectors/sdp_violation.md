@@ -1,3 +1,8 @@
+---
+title: Princípio de Dependências Estáveis (SDP)
+description: "Garante que as dependências fluam em direção à estabilidade—módulos estáveis não devem depender de instáveis, medido por Fan-in vs Fan-out."
+---
+
 # Princípio de Dependências Estáveis (SDP)
 
 **ID:** `sdp_violation` | **Gravidade:** Medium (default)

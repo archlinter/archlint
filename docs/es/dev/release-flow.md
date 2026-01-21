@@ -1,3 +1,8 @@
+---
+title: Flujo de Lanzamiento
+description: "Este documento describe el proceso de lanzamiento de archlint."
+---
+
 # Flujo de Lanzamiento (Release Flow)
 
 Este documento describe el proceso de lanzamiento de archlint.

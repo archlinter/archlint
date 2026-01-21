@@ -1,7 +1,7 @@
 ---
 layout: home
-title: アーキテクチャの劣化を止める
-description: TypeScript/JavaScriptプロジェクト向けの高速でASTベースのアーキテクチャの問題検出器。28以上の検出器と驚異的な速さの分析でアーキテクチャの劣化を阻止します。
+title: Archlint — TypeScript & JavaScript 向けアーキテクチャリンター
+description: "TypeScript/JavaScriptプロジェクト向けの高速でASTベースのアーキテクチャの問題検出器。28以上の検出器と驚異的な速さの分析でアーキテクチャの劣化を阻止します。"
 
 hero:
   name: 'archlint'

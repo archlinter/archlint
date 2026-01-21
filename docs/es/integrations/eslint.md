@@ -1,6 +1,6 @@
 ---
 title: Integración con ESLint
-description: Obtén retroalimentación arquitectónica en tiempo real en tu editor usando @archlinter/eslint-plugin. Soporta Flat Config y el formato heredado .eslintrc.
+description: "Obtén retroalimentación arquitectónica en tiempo real en tu editor usando @archlinter/eslint-plugin. Soporta Flat Config y el formato heredado .eslintrc."
 ---
 
 # Integración con ESLint

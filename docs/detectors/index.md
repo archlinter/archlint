@@ -1,6 +1,6 @@
 ---
 title: Detectors Overview
-description: Explore 28+ architecture smell detectors in archlint, including cyclic dependencies, layer violations, god modules, and more.
+description: "Explore 28+ architecture smell detectors in archlint, including cyclic dependencies, layer violations, god modules, and more."
 ---
 
 # Detectors Overview

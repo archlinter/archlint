@@ -1,3 +1,8 @@
+---
+title: 副作用を伴うインポート
+description: "グローバル状態を変更する副作用のためにのみ実行されるインポートを特定し、依存関係をより明示的にし、動作を非決定論的にします。"
+---
+
 # 副作用を伴うインポート (Side-Effect Imports)
 
 **ID:** `side_effect_import` | **重要度:** Low (default)

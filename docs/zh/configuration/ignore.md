@@ -1,3 +1,8 @@
+---
+title: 忽略文件
+description: "了解如何使用全局忽略、gitignore、特定规则排除和内联注释从 archlint 分析中排除文件或目录。"
+---
+
 # 忽略文件
 
 archlint 提供了几种从分析中排除文件或目录的方法。

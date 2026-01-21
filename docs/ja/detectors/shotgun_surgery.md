@@ -1,3 +1,8 @@
+---
+title: 散弾銃の手術
+description: "頻繁に一緒に変更されるファイルを検出し、単一の要件変更が複数のモジュールにわたって多くの小さな変更を強制することを示します。"
+---
+
 # 散弾銃の手術 (Shotgun Surgery)
 
 **ID:** `shotgun_surgery` | **重要度:** Medium (default)

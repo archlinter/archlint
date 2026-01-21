@@ -1,7 +1,7 @@
 ---
 layout: home
-title: 阻止架构恶化
-description: 快速、基于 AST 的 TypeScript/JavaScript 项目架构问题检测器。通过 28+ 个检测器和极速分析阻止架构恶化。
+title: Archlint — TypeScript & JavaScript 架构检查器
+description: "快速、基于 AST 的 TypeScript/JavaScript 项目架构问题检测器。通过 28+ 个检测器和极速分析阻止架构恶化。"
 
 hero:
   name: 'archlint'

@@ -1,3 +1,8 @@
+---
+title: Módulo Hub
+description: "Identifica módulos centrais com alto fan-in e fan-out que atuam como pontos únicos de falha perigosos na sua arquitetura."
+---
+
 # Módulo Hub
 
 **ID:** `hub_module` | **Gravidade:** Medium (default)

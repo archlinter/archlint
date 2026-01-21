@@ -1,3 +1,8 @@
+---
+title: Lista de Parámetros Larga
+description: "Detecta funciones con demasiados parámetros que son difíciles de usar y leer, indicando funciones que hacen demasiado."
+---
+
 # Lista de Parámetros Larga
 
 **ID:** `long_params` | **Severidad:** Low (default)

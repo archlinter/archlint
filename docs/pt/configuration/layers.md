@@ -1,3 +1,8 @@
+---
+title: Camadas
+description: "Defina níveis arquiteturais no seu projeto e imponha regras de dependência estritas para manter uma arquitetura limpa e prevenir acoplamento."
+---
+
 # Camadas
 
 A configuração de camadas permite definir níveis arquiteturais do seu projeto e impor regras de dependência entre eles.

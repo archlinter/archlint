@@ -1,3 +1,8 @@
+---
+title: Barrel 文件滥用
+description: "Barrel 文件（index.ts）如果变得过大，可能会导致间接循环依赖和性能问题。"
+---
+
 # Barrel 文件滥用 (Barrel Abuse)
 
 **ID:** `barrel_file` | **严重程度:** 中 (默认)

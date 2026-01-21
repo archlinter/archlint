@@ -1,3 +1,8 @@
+---
+title: Hub Module
+description: "Identify central modules with both high fan-in and fan-out that act as dangerous single points of failure in your architecture."
+---
+
 # Hub Module
 
 **ID:** `hub_module` | **Severity:** Medium (default)

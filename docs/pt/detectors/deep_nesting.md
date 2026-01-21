@@ -1,3 +1,8 @@
+---
+title: Aninhamento Profundo
+description: "Identifica blocos de código aninhados muito profundamente, tornando o código exponencialmente mais difícil de ler e indicando funções que fazem demais."
+---
+
 # Aninhamento Profundo
 
 **ID:** `deep_nesting` | **Gravidade:** Low (default)

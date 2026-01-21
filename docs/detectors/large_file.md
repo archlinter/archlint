@@ -1,3 +1,8 @@
+---
+title: Large File
+description: "Identify source files that exceed a certain number of lines, indicating violations of the Single Responsibility Principle."
+---
+
 # Large File
 
 **ID:** `large_file` | **Severity:** Medium (default)

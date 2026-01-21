@@ -1,3 +1,8 @@
+---
+title: Baixa Coesão (LCOM4)
+description: "Mede o quão relacionados estão os métodos e campos de uma classe usando a métrica LCOM4 para detectar violações do Princípio da Responsabilidade Única."
+---
+
 # Baixa Coesão (LCOM4)
 
 **ID:** `lcom` | **Gravidade:** Medium (default)

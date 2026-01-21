@@ -1,6 +1,6 @@
 ---
 title: Getting Started
-description: Learn the philosophy and key features of archlint, an AST-based architecture smell detector for TypeScript and JavaScript.
+description: "Learn the philosophy and key features of archlint, an AST-based architecture smell detector for TypeScript and JavaScript."
 ---
 
 # Introduction

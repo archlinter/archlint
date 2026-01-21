@@ -1,3 +1,8 @@
+---
+title: GitLab CI
+description: "Обеспечьте соблюдение архитектурных правил в ваших GitLab Merge Requests, используя archlint в вашем CI/CD пайплайне."
+---
+
 # GitLab CI
 
 Обеспечьте соблюдение архитектурных правил в ваших GitLab Merge Requests.

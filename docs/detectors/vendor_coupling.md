@@ -1,3 +1,8 @@
+---
+title: Vendor Coupling
+description: "Detect modules too tightly coupled to specific external libraries, making future migrations difficult and testing harder."
+---
+
 # Vendor Coupling
 
 **ID:** `vendor_coupling` | **Severity:** Medium (default)

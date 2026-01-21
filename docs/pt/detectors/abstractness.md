@@ -1,3 +1,8 @@
+---
+title: Violação de Abstração
+description: "Detecta módulos que são muito concretos e estáveis (difíceis de mudar) ou muito abstratos e instáveis (sobreengenharia), violando o Princípio de Abstrações Estáveis."
+---
+
 # Violação de Abstração (Abstractness Violation)
 
 **ID:** `abstractness` | **Gravidade:** Média (padrão)
@@ -9,8 +14,8 @@ Esta regra marca módulos que são:
 - **Muito concretos e muito estáveis** — muitos arquivos dependem de uma classe concreta (difícil de mudar com segurança).
 - **Muito abstratos e muito instáveis** — abstrações das quais ninguém depende (sobreengenharia/YAGNI).
 
-Em resumo:  
-👉 **Módulos estáveis** (a base) devem ser **abstratos**.  
+Em resumo:
+👉 **Módulos estáveis** (a base) devem ser **abstratos**.
 👉 **Módulos instáveis** (as folhas) devem ser **concretos**.
 
 ---

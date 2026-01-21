@@ -1,6 +1,6 @@
 ---
 title: 設定
-description: .archlint.yaml を使用して archlint を設定し、アーキテクチャレイヤーを定義し、検出器のルールを設定する方法について説明します。
+description: ".archlint.yaml を使用して archlint を設定し、アーキテクチャレイヤーを定義し、検出器のルールを設定する方法について説明します。"
 ---
 
 # 設定

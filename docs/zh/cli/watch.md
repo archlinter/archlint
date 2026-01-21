@@ -1,3 +1,8 @@
+---
+title: watch
+description: "在监视模式下运行 archlint，在文件更改时自动重新分析项目，提供持续反馈。"
+---
+
 # archlint watch
 
 `watch` 命令在后台运行 archlint，并在每次文件更改时重新分析您的项目。

@@ -1,3 +1,8 @@
+---
+title: Archivo Grande
+description: "Identifica archivos fuente que exceden un cierto número de líneas, indicando violaciones del Principio de Responsabilidad Única."
+---
+
 # Archivo Grande
 
 **ID:** `large_file` | **Severidad:** Medium (default)

@@ -1,3 +1,8 @@
+---
+title: Long Parameter List
+description: "Detect functions with too many parameters that are hard to use and read, indicating functions doing too much."
+---
+
 # Long Parameter List
 
 **ID:** `long_params` | **Severity:** Low (default)

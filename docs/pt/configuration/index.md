@@ -1,6 +1,6 @@
 ---
 title: Configuração
-description: Aprenda como configurar o archlint usando .archlint.yaml, definir camadas arquiteturais e configurar regras para detectores.
+description: "Aprenda como configurar o archlint usando .archlint.yaml, definir camadas arquiteturais e configurar regras para detectores."
 ---
 
 # Configuração

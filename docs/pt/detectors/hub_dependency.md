@@ -1,3 +1,8 @@
+---
+title: Dependência Hub
+description: "Detecta pacotes externos importados por muitos arquivos, criando pontos centrais de falha e dificultando atualizações."
+---
+
 # Dependência Hub
 
 **ID:** `hub_dependency` | **Gravidade:** Média (padrão)

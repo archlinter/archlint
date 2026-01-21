@@ -1,3 +1,8 @@
+---
+title: 循環的複雑度
+description: "分岐が多すぎて理解、テスト、保守が困難な関数を検出し、バグのリスクを高めます。"
+---
+
 # 循環的複雑度 (Cyclomatic Complexity)
 
 **ID:** `cyclomatic_complexity` | **重要度:** 中 (デフォルト)

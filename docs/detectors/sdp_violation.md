@@ -1,3 +1,8 @@
+---
+title: Stable Dependencies Principle (SDP)
+description: "Ensure dependencies flow toward stability—stable modules should not depend on unstable ones, measured by Fan-in vs Fan-out."
+---
+
 # Stable Dependencies Principle (SDP)
 
 **ID:** `sdp_violation` | **Severity:** Medium (default)

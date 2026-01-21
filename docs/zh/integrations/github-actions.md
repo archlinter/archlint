@@ -1,3 +1,8 @@
+---
+title: GitHub Actions
+description: "将 archlint 集成到您的 GitHub 工作流中，通过自动评论和注解防止 Pull Request 中的架构退化。"
+---
+
 # GitHub Actions
 
 将 archlint 集成到您的 GitHub 工作流中，通过精美的评论和注解防止每个 Pull Request 中的架构退化。

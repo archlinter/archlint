@@ -1,3 +1,8 @@
+---
+title: 枢纽依赖
+description: "检测被过多文件导入的外部包，这会创建单点故障并使升级变得困难。"
+---
+
 # 枢纽依赖 (Hub Dependency)
 
 **ID:** `hub_dependency` | **严重程度:** 中 (默认)

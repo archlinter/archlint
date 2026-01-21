@@ -1,3 +1,8 @@
+---
+title: 框架支持
+description: "了解 archlint 如何理解 NestJS、Next.js、React 等流行框架的架构模式，并相应地调整分析。"
+---
+
 # 框架支持
 
 archlint 不仅仅是一个通用的 linter；它理解流行框架的架构模式，并据此调整其分析。

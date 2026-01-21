@@ -1,3 +1,8 @@
+---
+title: diff
+description: "Compara tu base de código actual con una referencia para detectar nuevas regresiones arquitectónicas y problemas empeorados, compatible con la filosofía Ratchet."
+---
+
 # archlint diff
 
 El comando `diff` es la funcionalidad clave que implementa el enfoque Ratchet (mejora progresiva). Compara tu base de código actual con una instantánea (snapshot) guardada previamente o con otra rama/commit de git.

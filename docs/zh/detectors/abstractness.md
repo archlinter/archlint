@@ -1,3 +1,8 @@
+---
+title: 抽象度违规
+description: "检测过于具体且稳定（难以更改）或过于抽象且不稳定（过度工程化）的模块，违反稳定抽象原则。"
+---
+
 # 抽象度违规 (Abstractness Violation)
 
 **ID:** `abstractness` | **严重程度:** 中 (默认)

@@ -1,6 +1,6 @@
 ---
-title: Referencia de CLI
-description: Referencia completa de los comandos de la CLI de archlint, incluyendo scan, diff, snapshot y watch.
+title: CLI Reference
+description: "Referencia completa de los comandos de la CLI de archlint, incluyendo scan, diff, snapshot y watch."
 ---
 
 # Referencia de CLI

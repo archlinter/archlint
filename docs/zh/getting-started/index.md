@@ -1,6 +1,6 @@
 ---
 title: 开始使用
-description: 了解 archlint 的哲学和核心功能，这是一款针对 TypeScript 和 JavaScript 的基于 AST 的架构异味检测器。
+description: "了解 archlint 的哲学和核心功能，这是一款针对 TypeScript 和 JavaScript 的基于 AST 的架构异味检测器。"
 ---
 
 # 简介

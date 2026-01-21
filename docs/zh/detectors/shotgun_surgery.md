@@ -1,3 +1,8 @@
+---
+title: 霰弹式修改
+description: "检测频繁一起更改的文件，表明单个需求变更迫使在多个模块中进行许多小的更改。"
+---
+
 # 霰弹式修改 (Shotgun Surgery)
 
 **ID:** `shotgun_surgery` | **严重程度:** 中 (默认)

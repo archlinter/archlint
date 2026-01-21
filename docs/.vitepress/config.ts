@@ -158,11 +158,40 @@ const enSidebar: DefaultTheme.Sidebar = {
 
 export default defineConfig({
   base: '/archlint/',
-  title: "archlint",
+  title: "Archlint",
   description: "Stop architecture degradation",
   lastUpdated: true,
   sitemap: {
     hostname: 'https://archlinter.github.io/archlint/'
+  },
+  transformHead: ({ pageData }) => {
+    const canonicalBase = 'https://archlinter.github.io/archlint/'
+    const withoutExt = pageData.relativePath.replace(/\.md$/, '')
+    const normalizedPath = withoutExt === 'index'
+      ? ''
+      : withoutExt.endsWith('/index')
+        ? withoutExt.slice(0, -'/index'.length)
+        : withoutExt
+    const canonicalUrl = `${canonicalBase}${normalizedPath ? `${normalizedPath}/` : ''}`
+
+    const title = pageData.title && !pageData.title.includes('Archlint')
+      ? `${pageData.title} | Archlint`
+      : pageData.title || 'Archlint'
+
+    const description = pageData.description || 
+      (pageData.title && pageData.title !== 'Archlint' 
+        ? `${pageData.title} — architecture detector for TypeScript & JavaScript.`
+        : 'Stop architecture degradation')
+
+    return [
+      ['link', { rel: 'canonical', href: canonicalUrl }],
+      ['meta', { property: 'og:url', content: canonicalUrl }],
+      ['meta', { property: 'og:title', content: title }],
+      ['meta', { property: 'og:description', content: description }],
+      ['meta', { name: 'description', content: description }],
+      ['meta', { name: 'twitter:title', content: title }],
+      ['meta', { name: 'twitter:description', content: description }],
+    ]
   },
   head: [
     ['link', { rel: 'icon', type: 'image/svg+xml', href: '/archlint/logo.svg' }],
@@ -170,13 +199,9 @@ export default defineConfig({
     ['link', { rel: 'icon', href: '/archlint/favicon.ico' }],
     ['meta', { name: 'theme-color', content: '#6366F1' }],
     ['meta', { property: 'og:type', content: 'website' }],
-    ['meta', { property: 'og:title', content: 'archlint | Stop architecture degradation' }],
     ['meta', { property: 'og:site_name', content: 'archlint' }],
     ['meta', { property: 'og:image', content: 'https://archlinter.github.io/archlint/logo.png' }],
-    ['meta', { property: 'og:url', content: 'https://archlinter.github.io/archlint/' }],
     ['meta', { name: 'twitter:card', content: 'summary_large_image' }],
-    ['meta', { name: 'twitter:title', content: 'archlint | Stop architecture degradation' }],
-    ['meta', { name: 'twitter:description', content: 'Fast, AST-based architecture smell detector for TypeScript/JavaScript projects.' }],
     ['meta', { name: 'twitter:image', content: 'https://archlinter.github.io/archlint/logo.png' }],
     ['meta', { name: 'google-site-verification', content: '_ToxudSDZbgPUnzyrbazpdEJvrDYv4ZVZQ6xzS9jzIo' }],
   ],
@@ -186,6 +211,7 @@ export default defineConfig({
       label: 'English',
       lang: 'en',
       themeConfig: {
+        siteTitle: 'Archlint',
         nav: enNav,
         sidebar: enSidebar
       }
@@ -193,9 +219,10 @@ export default defineConfig({
     ru: {
       label: 'Русский',
       lang: 'ru',
-      title: 'archlint',
-      description: 'Остановите деградацию архитектуры',
+      title: 'Archlint',
+      description: 'Stop architecture degradation',
       themeConfig: {
+        siteTitle: 'Archlint',
         nav: [
           { text: 'Начало работы', link: '/ru/getting-started/' },
           { text: 'Детекторы', link: '/ru/detectors/' },
@@ -349,9 +376,10 @@ export default defineConfig({
     zh: {
       label: '简体中文',
       lang: 'zh-CN',
-      title: 'archlint',
-      description: '阻止架构恶化',
+      title: 'Archlint',
+      description: 'Stop architecture degradation',
       themeConfig: {
+        siteTitle: 'Archlint',
         nav: [
           { text: '开始使用', link: '/zh/getting-started/' },
           { text: '检测器', link: '/zh/detectors/' },
@@ -505,9 +533,10 @@ export default defineConfig({
     pt: {
       label: 'Português',
       lang: 'pt-BR',
-      title: 'archlint',
-      description: 'Impedir a degradação da arquitetura',
+      title: 'Archlint',
+      description: 'Stop architecture degradation',
       themeConfig: {
+        siteTitle: 'Archlint',
         nav: [
           { text: 'Primeiros Passos', link: '/pt/getting-started/' },
           { text: 'Detectores', link: '/pt/detectors/' },
@@ -661,9 +690,10 @@ export default defineConfig({
     es: {
       label: 'Español',
       lang: 'es-ES',
-      title: 'archlint',
-      description: 'Detener la degradación de la arquitectura',
+      title: 'Archlint',
+      description: 'Stop architecture degradation',
       themeConfig: {
+        siteTitle: 'Archlint',
         nav: [
           { text: 'Primeros Pasos', link: '/es/getting-started/' },
           { text: 'Detectores', link: '/es/detectors/' },
@@ -817,9 +847,10 @@ export default defineConfig({
     ja: {
       label: '日本語',
       lang: 'ja-JP',
-      title: 'archlint',
-      description: 'アーキテクチャの劣化を止める',
+      title: 'Archlint',
+      description: 'Stop architecture degradation',
       themeConfig: {
+        siteTitle: 'Archlint',
         nav: [
           { text: 'はじめに', link: '/ja/getting-started/' },
           { text: '検出器', link: '/ja/detectors/' },
@@ -983,6 +1014,7 @@ export default defineConfig({
     ],
   },
   themeConfig: {
+    siteTitle: 'Archlint',
     logo: '/logo.svg',
     socialLinks: [
       { icon: 'github', link: 'https://github.com/archlinter/archlint' }

@@ -1,3 +1,8 @@
+---
+title: インストール
+description: "npxまたはnpm経由でCLIツールとしてarchlintをインストールするか、エディタでリアルタイムフィードバックのためにESLintプラグインとして使用します。"
+---
+
 # インストール
 
 archlint は、CLI ツールまたは ESLint プラグインとして使用できます。

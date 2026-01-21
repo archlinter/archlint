@@ -1,3 +1,8 @@
+---
+title: 厂商耦合
+description: "检测与特定外部库耦合过于紧密的模块，这会使未来的迁移变得困难并增加测试难度。"
+---
+
 # 厂商耦合 (Vendor Coupling)
 
 **ID:** `vendor_coupling` | **严重程度:** 中 (默认)

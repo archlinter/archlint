@@ -1,3 +1,8 @@
+---
+title: Complexidade Cognitiva
+description: "Detecta funções que são difíceis de entender devido ao aninhamento profundo e lógica complexa, ajudando a reduzir a carga mental e o risco de manutenção."
+---
+
 # Complexidade Cognitiva
 
 **ID:** `cognitive_complexity` | **Gravidade:** Média (padrão)

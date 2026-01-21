@@ -1,3 +1,8 @@
+---
+title: oclif Support
+description: "Built-in support for oclif CLI framework, recognizing command files as entry points and providing architectural presets."
+---
+
 # oclif Support
 
 archlint provides built-in support for [oclif](https://oclif.io/), the Open CLI Framework.

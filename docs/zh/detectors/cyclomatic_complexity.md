@@ -1,3 +1,8 @@
+---
+title: 圈复杂度
+description: "检测具有过多分支路径的函数，这些函数难以理解、测试和维护，增加了出现 bug 的风险。"
+---
+
 # 圈复杂度 (Cyclomatic Complexity)
 
 **ID:** `cyclomatic_complexity` | **严重程度:** 中 (默认)

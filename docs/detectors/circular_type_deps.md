@@ -1,3 +1,8 @@
+---
+title: Type Cycles
+description: "Detect circular dependencies in type-only imports that indicate tight architectural coupling, even though they don't cause runtime issues."
+---
+
 # Type Cycles
 
 **ID:** `circular_type_deps` | **Severity:** Medium (default)

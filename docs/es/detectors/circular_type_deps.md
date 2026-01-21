@@ -1,3 +1,8 @@
+---
+title: Ciclos de Tipos
+description: "Detecta dependencias circulares en importaciones solo de tipos que indican un acoplamiento arquitectónico estrecho, aunque no causen problemas en tiempo de ejecución."
+---
+
 # Ciclos de Tipos
 
 **ID:** `circular_type_deps` | **Severidad:** Media (por defecto)

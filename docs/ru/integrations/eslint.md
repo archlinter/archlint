@@ -1,6 +1,6 @@
 ---
 title: Интеграция с ESLint
-description: Получайте архитектурную обратную связь в реальном времени прямо в редакторе с помощью @archlinter/eslint-plugin. Поддерживает Flat Config и классический .eslintrc.
+description: "Получайте архитектурную обратную связь в реальном времени прямо в редакторе с помощью @archlinter/eslint-plugin. Поддерживает Flat Config и классический .eslintrc."
 ---
 
 # Интеграция с ESLint

@@ -1,3 +1,8 @@
+---
+title: scan
+description: "archlint scanコマンドを使用してプロジェクトの完全なアーキテクチャ分析を実行します。JSON、Markdown、SARIFなどの複数の出力形式をサポートします。"
+---
+
 # archlint scan
 
 `scan`コマンドは、プロジェクトの完全なアーキテクチャ分析を実行します。

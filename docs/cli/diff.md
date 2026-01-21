@@ -1,3 +1,8 @@
+---
+title: diff
+description: "Compare your current codebase against a baseline to detect new architectural regressions and worsened smells, supporting the Ratchet philosophy."
+---
+
 # archlint diff
 
 The `diff` command is the heart of the "Ratchet" approach. It compares your current codebase against a previously saved snapshot or another git branch/commit.

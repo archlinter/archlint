@@ -1,3 +1,8 @@
+---
+title: Cyclic Dependency Cluster
+description: "Identify interconnected sets of circular dependencies forming complex webs that indicate architectural rot and extreme coupling."
+---
+
 # Cyclic Dependency Cluster
 
 **ID:** `cycle_clusters` | **Severity:** Critical (default)

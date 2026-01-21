@@ -1,3 +1,8 @@
+---
+title: Cognitive Complexity
+description: "Detect functions that are difficult to understand due to deep nesting and complex logic, helping to reduce mental load and maintenance risk."
+---
+
 # Cognitive Complexity
 
 **ID:** `cognitive_complexity` | **Severity:** Medium (default)

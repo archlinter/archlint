@@ -1,3 +1,8 @@
+---
+title: Servidor MCP
+description: "Conecta archlint a asistentes de codificación por IA como Claude o Cursor usando el Protocolo de Contexto de Modelo (MCP) para refactorización arquitectónica impulsada por IA."
+---
+
 # Servidor MCP
 
 archlint proporciona un servidor MCP (Model Context Protocol), lo que permite que los asistentes de codificación por IA como Claude o Cursor comprendan y mejoren tu arquitectura.

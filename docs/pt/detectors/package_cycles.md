@@ -1,3 +1,8 @@
+---
+title: Ciclos de Pacotes
+description: "Detecta dependências circulares entre pacotes inteiros que impedem versionamento adequado e indicam falhas sérias de modularidade."
+---
+
 # Ciclos de Pacotes
 
 **ID:** `package_cycles` | **Gravidade:** High (default)

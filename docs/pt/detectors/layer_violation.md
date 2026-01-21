@@ -1,3 +1,8 @@
+---
+title: Violação de Camada
+description: "Detecta quando código em uma camada arquitetural importa incorretamente código de outra camada, quebrando abstrações e o Princípio da Responsabilidade Única."
+---
+
 # Violação de Camada
 
 **ID:** `layer_violation` | **Gravidade:** High (default)

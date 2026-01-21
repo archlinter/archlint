@@ -1,3 +1,8 @@
+---
+title: Suporte ao NestJS
+description: "Análise especializada para a arquitetura modular do NestJS, reconhecendo decoradores @Module, Controllers, Providers e imposição de camadas."
+---
+
 # Suporte ao NestJS
 
 O archlint entende a arquitetura modular do NestJS e fornece análise especializada para ele.

@@ -1,3 +1,8 @@
+---
+title: Complejidad Cognitiva
+description: "Detecta funciones que son difíciles de entender debido a anidamiento profundo y lógica compleja, ayudando a reducir la carga mental y el riesgo de mantenimiento."
+---
+
 # Complejidad cognitiva
 
 **ID:** `cognitive_complexity` | **Severidad:** Media (por defecto)

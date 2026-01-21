@@ -1,3 +1,8 @@
+---
+title: Interfaz Inestable
+description: "Identifica módulos cuya API pública cambia frecuentemente mientras muchos módulos dependen de ellos, causando efectos en cascada en toda la base de código."
+---
+
 # Interfaz Inestable
 
 **ID:** `unstable_interface` | **Severidad:** Medium (default)

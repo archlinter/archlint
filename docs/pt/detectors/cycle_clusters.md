@@ -1,3 +1,8 @@
+---
+title: Cluster de Dependências Cíclicas
+description: "Identifica conjuntos interconectados de dependências circulares formando redes complexas que indicam degradação arquitetural e acoplamento extremo."
+---
+
 # Clusters de Dependência Cíclica
 
 **ID:** `cycle_clusters` | **Severity:** Critical (default)

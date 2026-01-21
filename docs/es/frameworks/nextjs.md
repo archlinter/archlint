@@ -1,3 +1,8 @@
+---
+title: Soporte para Next.js
+description: "Comprende el enrutamiento basado en archivos de Next.js, reconoce los directorios pages/app como puntos de entrada y relaja las reglas de archivos barrel para patrones comunes."
+---
+
 # Soporte para Next.js
 
 Los proyectos de Next.js tienen patrones de enrutamiento basados en archivos y de empaquetado únicos que archlint comprende.

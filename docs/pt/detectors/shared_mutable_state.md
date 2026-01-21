@@ -1,3 +1,8 @@
+---
+title: Estado Mutável Compartilhado
+description: "Detecta variáveis mutáveis exportadas que criam comportamento imprevisível e são uma fonte comum de bugs difíceis de rastrear."
+---
+
 # Estado Mutável Compartilhado
 
 **ID:** `shared_state` | **Gravidade:** Medium (default)

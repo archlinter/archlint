@@ -1,3 +1,8 @@
+---
+title: Violación de Capa
+description: "Detecta cuando el código en una capa arquitectónica importa incorrectamente código de otra capa, rompiendo abstracciones y el Principio de Responsabilidad Única."
+---
+
 # Violación de Capa
 
 **ID:** `layer_violation` | **Severidad:** High (default)

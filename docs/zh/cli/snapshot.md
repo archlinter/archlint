@@ -1,3 +1,8 @@
+---
+title: snapshot
+description: "捕获项目架构的当前状态并将其保存到 JSON 文件中，以供 diff 命令使用。"
+---
+
 # archlint snapshot
 
 `snapshot` 命令捕获项目架构的当前状态并将其保存到 JSON 文件中。此文件随后可与 `diff` 命令配合使用。

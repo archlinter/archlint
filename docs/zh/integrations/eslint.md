@@ -1,6 +1,6 @@
 ---
 title: ESLint 集成
-description: 使用 @archlinter/eslint-plugin 在编辑器中获取实时架构反馈。支持 Flat Config 和旧版 .eslintrc。
+description: "使用 @archlinter/eslint-plugin 在编辑器中获取实时架构反馈。支持 Flat Config 和旧版 .eslintrc。"
 ---
 
 # ESLint 集成
