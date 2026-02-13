@@ -26,6 +26,30 @@ fn create_dead_symbols_config(count_test_imports: bool) -> Config {
     Config {
         rules,
         entry_points: vec!["main.ts".to_string()],
+        // Override default_ignore_patterns to ensure test files are present in the
+        // dependency graph; the detector's own TEST_FILE_PATTERNS handle exclusion.
+        ignore: Vec::new(),
+        ..Default::default()
+    }
+}
+
+fn create_dead_symbols_config_default() -> Config {
+    let mut rules = HashMap::new();
+    rules.insert(
+        "dead_symbols".to_string(),
+        RuleConfig::Full(RuleFullConfig {
+            enabled: Some(true),
+            exclude: Vec::new(),
+            severity: None,
+            options: serde_yaml::Value::Mapping(serde_yaml::Mapping::new()),
+        }),
+    );
+
+    Config {
+        rules,
+        entry_points: vec!["main.ts".to_string()],
+        // Override default_ignore_patterns to ensure test files are present in the
+        // dependency graph; the detector's own TEST_FILE_PATTERNS handle exclusion.
         ignore: Vec::new(),
         ..Default::default()
     }
@@ -88,5 +112,21 @@ fn test_barrel_with_test_imports_counted() {
     assert!(
         !is_dead_symbol(&smells, "testHelper"),
         "testHelper should NOT be flagged when count_test_imports=true"
+    );
+}
+
+#[test]
+fn test_barrel_default_flags_test_only_usage() {
+    // Default behavior (no explicit count_test_imports option) should use false,
+    // meaning testHelper re-exported through barrel but only used in tests is dead.
+    let config = create_dead_symbols_config_default();
+    let ctx = analyze_fixture_with_config("dead_symbols_barrel", config);
+
+    let detector = archlint::detectors::dead_symbols::DeadSymbolsDetector;
+    let smells = detector.detect(&ctx);
+
+    assert!(
+        is_dead_symbol(&smells, "testHelper"),
+        "testHelper should be flagged by default (unwrap_or(false)): only imported by test file"
     );
 }
