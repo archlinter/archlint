@@ -3,15 +3,17 @@ use crate::detectors::{detector, ArchSmell, Detector};
 use crate::engine::AnalysisContext;
 use crate::parser::{FileSymbols, MethodAccessibility, SymbolKind};
 use log::{debug, trace};
+use once_cell::sync::Lazy;
 use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
-use std::sync::LazyLock;
 
 /// Initializes the detector module.
 /// This function is used for module registration side-effects.
 pub const fn init() {}
 
-static COMPILED_TEST_PATTERNS: LazyLock<Vec<glob::Pattern>> = LazyLock::new(|| {
+// Use once_cell for MSRV 1.75 compatibility (LazyLock requires Rust 1.80+)
+#[allow(clippy::non_std_lazy_statics)]
+static COMPILED_TEST_PATTERNS: Lazy<Vec<glob::Pattern>> = Lazy::new(|| {
     TEST_FILE_PATTERNS
         .iter()
         .filter_map(|p| glob::Pattern::new(p).ok())
