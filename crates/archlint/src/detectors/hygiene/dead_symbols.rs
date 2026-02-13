@@ -1,3 +1,4 @@
+use crate::config::types::TEST_FILE_PATTERNS;
 use crate::detectors::{detector, ArchSmell, Detector};
 use crate::engine::AnalysisContext;
 use crate::parser::{FileSymbols, MethodAccessibility, SymbolKind};
@@ -25,26 +26,6 @@ struct MethodCheckContext<'a> {
     inheritance_ctx: &'a InheritanceContext,
     entry_points: &'a HashSet<PathBuf>,
 }
-
-const TEST_FILE_PATTERNS: &[&str] = &[
-    "**/*.test.ts",
-    "**/*.test.js",
-    "**/*.test.tsx",
-    "**/*.test.jsx",
-    "**/*.spec.ts",
-    "**/*.spec.js",
-    "**/*.spec.tsx",
-    "**/*.spec.jsx",
-    "**/*.e2e-spec.ts",
-    "**/*.e2e-spec.js",
-    "**/__tests__/**",
-    "**/__mocks__/**",
-    "**/test/**",
-    "**/tests/**",
-    "**/__fixtures__/**",
-    "**/*.mock.ts",
-    "**/*.mock.js",
-];
 
 impl DeadSymbolsDetector {
     #[must_use]
@@ -131,6 +112,7 @@ impl DeadSymbolsDetector {
         all_smells.extend(Self::check_dead_local_symbols(
             file_symbols,
             &all_project_usages,
+            &test_excluded,
         ));
         all_smells.extend(Self::check_dead_methods(
             file_symbols,
@@ -382,10 +364,16 @@ impl DeadSymbolsDetector {
     fn check_dead_local_symbols(
         file_symbols: &HashMap<PathBuf, FileSymbols>,
         all_project_usages: &HashSet<String>,
+        test_excluded: &HashSet<PathBuf>,
     ) -> Vec<ArchSmell> {
         let mut smells = Vec::new();
 
         for (file_path, symbols) in file_symbols {
+            // Skip test files if they're excluded from usage counting to avoid
+            // false positives for local symbols used within the same test file
+            if test_excluded.contains(file_path) {
+                continue;
+            }
             for local_def in &symbols.local_definitions {
                 let is_exported = symbols
                     .exports

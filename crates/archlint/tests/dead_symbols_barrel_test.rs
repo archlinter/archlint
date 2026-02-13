@@ -77,7 +77,7 @@ fn test_barrel_reexport_with_consumer_is_alive() {
 
 #[test]
 fn test_barrel_with_test_imports_counted() {
-    // With count_test_imports=true (default), testHelper should NOT be dead
+    // With count_test_imports=true, testHelper should NOT be dead
     // because the test file's import counts as usage.
     let config = create_dead_symbols_config(true);
     let ctx = analyze_fixture_with_config("dead_symbols_barrel", config);

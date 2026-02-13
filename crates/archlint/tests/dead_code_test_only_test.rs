@@ -5,7 +5,7 @@ use archlint::detectors::dead_code::DeadCodeDetector;
 use archlint::detectors::{ArchSmell, Detector};
 use archlint::engine::AnalysisContext;
 use common::analyze_fixture_with_config;
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 
 fn create_config_with_count_test_imports(count: bool) -> Config {
     let mut options = serde_yaml::Mapping::new();
@@ -28,6 +28,8 @@ fn create_config_with_count_test_imports(count: bool) -> Config {
     Config {
         rules,
         entry_points: vec!["main.ts".to_string()],
+        // Clear default ignore patterns so test files are included in the
+        // dependency graph; the detector's own TEST_FILE_PATTERNS handle exclusion.
         ignore: Vec::new(),
         ..Default::default()
     }
@@ -36,8 +38,8 @@ fn create_config_with_count_test_imports(count: bool) -> Config {
 fn detect_smells(ctx: &AnalysisContext) -> Vec<ArchSmell> {
     let detector = DeadCodeDetector::new(
         &ctx.config,
-        HashSet::new(),
-        Vec::new(),
+        ctx.script_entry_points.clone(),
+        ctx.dynamic_load_patterns.clone(),
         &[],
         ctx.project_path.clone(),
     );
