@@ -104,8 +104,8 @@ fn test_dead_code_keeps_test_only_usage_when_enabled() {
 }
 
 #[test]
-fn test_dead_code_default_keeps_test_imports() {
-    // Default behavior (no option set) should keep test imports counting
+fn test_dead_code_default_flags_test_only_usage() {
+    // Default behavior (no option set) should flag test-only code (count_test_imports=false)
     let mut rules = HashMap::new();
     rules.insert(
         "dead_code".to_string(),
@@ -131,11 +131,11 @@ fn test_dead_code_default_keeps_test_imports() {
     );
     let smells = detector.detect(&ctx);
 
-    // Default: test_only_util.ts should NOT be flagged
+    // Default: test_only_util.ts SHOULD be flagged (count_test_imports defaults to false)
     assert!(
-        !smells
+        smells
             .iter()
             .any(|s| s.files.iter().any(|f| f.ends_with("test_only_util.ts"))),
-        "Default behavior should count test imports (backward compat)"
+        "Default behavior should flag test-only code"
     );
 }

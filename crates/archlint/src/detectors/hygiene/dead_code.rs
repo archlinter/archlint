@@ -68,7 +68,7 @@ impl Detector for DeadCodeDetector {
 
         // When false, imports from test files are not counted as usage,
         // so code used only in tests is flagged as dead code.
-        let count_test_imports: bool = rule.get_option("count_test_imports").unwrap_or(true);
+        let count_test_imports: bool = rule.get_option("count_test_imports").unwrap_or(false);
         if !count_test_imports {
             combined_exclude.extend(Self::TEST_FILE_PATTERNS.iter().map(ToString::to_string));
         }

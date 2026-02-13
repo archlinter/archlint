@@ -81,7 +81,7 @@ impl DeadSymbolsDetector {
         ctx: &AnalysisContext,
     ) -> Vec<ArchSmell> {
         let rule = ctx.resolve_rule("dead_symbols", None);
-        let count_test_imports: bool = rule.get_option("count_test_imports").unwrap_or(true);
+        let count_test_imports: bool = rule.get_option("count_test_imports").unwrap_or(false);
 
         let test_excluded: HashSet<PathBuf> = if count_test_imports {
             HashSet::new()

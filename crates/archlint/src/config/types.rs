@@ -7,7 +7,10 @@ use std::collections::HashMap;
 /// Defines project settings, rules, and framework extensions.
 #[derive(Debug, Clone, Deserialize, Serialize, JsonSchema)]
 pub struct Config {
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    #[serde(
+        default = "default_ignore_patterns",
+        skip_serializing_if = "Vec::is_empty"
+    )]
     pub ignore: Vec<String>,
 
     #[serde(default, skip_serializing_if = "HashMap::is_empty")]
@@ -438,22 +441,26 @@ pub struct LayerConfig {
     pub allowed_imports: Vec<String>,
 }
 
+fn default_ignore_patterns() -> Vec<String> {
+    vec![
+        "**/*.test.ts".to_string(),
+        "**/*.test.js".to_string(),
+        "**/*.spec.ts".to_string(),
+        "**/*.spec.js".to_string(),
+        "**/__tests__/**".to_string(),
+        "**/__mocks__/**".to_string(),
+        "**/test/**".to_string(),
+        "**/tests/**".to_string(),
+        "**/__fixtures__/**".to_string(),
+        "**/*.mock.ts".to_string(),
+        "**/*.mock.js".to_string(),
+    ]
+}
+
 impl Default for Config {
     fn default() -> Self {
         Self {
-            ignore: vec![
-                "**/*.test.ts".to_string(),
-                "**/*.test.js".to_string(),
-                "**/*.spec.ts".to_string(),
-                "**/*.spec.js".to_string(),
-                "**/__tests__/**".to_string(),
-                "**/__mocks__/**".to_string(),
-                "**/test/**".to_string(),
-                "**/tests/**".to_string(),
-                "**/__fixtures__/**".to_string(),
-                "**/*.mock.ts".to_string(),
-                "**/*.mock.js".to_string(),
-            ],
+            ignore: default_ignore_patterns(),
             aliases: HashMap::new(),
             entry_points: Vec::new(),
             rules: HashMap::new(),
