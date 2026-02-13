@@ -35,6 +35,7 @@ pub struct IncrementalState {
     pub presets: Vec<FrameworkPreset>,
     pub script_entry_points: HashSet<PathBuf>,
     pub dynamic_load_patterns: Vec<String>,
+    pub package_json_dirs: HashSet<PathBuf>,
 
     /// Cache for file-local detector results: (`detector_id`, `file_path`) -> smells
     pub file_local_cache: HashMap<(String, PathBuf), Vec<ArchSmell>>,
@@ -60,6 +61,7 @@ impl IncrementalState {
             presets: Vec::new(),
             script_entry_points: HashSet::new(),
             dynamic_load_patterns: Vec::new(),
+            package_json_dirs: HashSet::new(),
             file_local_cache: HashMap::new(),
         }
     }
@@ -78,6 +80,7 @@ impl IncrementalState {
         self.presets.clear();
         self.script_entry_points.clear();
         self.dynamic_load_patterns.clear();
+        self.package_json_dirs.clear();
         self.file_local_cache.clear();
     }
 

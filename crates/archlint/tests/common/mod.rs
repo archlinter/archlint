@@ -83,9 +83,11 @@ pub fn analyze_fixture_with_config(name: &str, config: Config) -> AnalysisContex
         PackageJsonParser::parse(&root).unwrap_or(archlint::package_json::PackageConfig {
             entry_points: HashSet::new(),
             dynamic_load_patterns: Vec::new(),
+            package_json_dirs: HashSet::new(),
         });
     let script_entry_points = package_config.entry_points;
     let dynamic_load_patterns = package_config.dynamic_load_patterns;
+    let package_json_dirs = package_config.package_json_dirs;
 
     AnalysisContext {
         project_path: root,
@@ -100,6 +102,7 @@ pub fn analyze_fixture_with_config(name: &str, config: Config) -> AnalysisContex
         dynamic_load_patterns,
         detected_frameworks: Vec::new(),
         presets: Vec::new(),
+        package_json_dirs,
     }
 }
 

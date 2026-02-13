@@ -119,6 +119,7 @@ impl AnalysisEngine {
             dynamic_load_patterns: pkg_config.dynamic_load_patterns,
             detected_frameworks,
             presets: presets.clone(),
+            package_json_dirs: pkg_config.package_json_dirs,
         };
 
         let all_smells = detector_runner.run_detectors(&ctx, use_progress, &presets)?;

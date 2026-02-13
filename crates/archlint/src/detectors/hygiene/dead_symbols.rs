@@ -5,10 +5,18 @@ use crate::parser::{FileSymbols, MethodAccessibility, SymbolKind};
 use log::{debug, trace};
 use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
+use std::sync::LazyLock;
 
 /// Initializes the detector module.
 /// This function is used for module registration side-effects.
 pub const fn init() {}
+
+static COMPILED_TEST_PATTERNS: LazyLock<Vec<glob::Pattern>> = LazyLock::new(|| {
+    TEST_FILE_PATTERNS
+        .iter()
+        .filter_map(|p| glob::Pattern::new(p).ok())
+        .collect()
+});
 
 #[detector(SmellType::DeadSymbol, is_deep = true)]
 pub struct DeadSymbolsDetector;
@@ -36,10 +44,14 @@ impl DeadSymbolsDetector {
     /// Checks if an entry point belongs to the root project (vs a sub-package in a monorepo).
     /// Finds the nearest parent directory containing package.json and checks if it matches
     /// the project root. Root entry points represent the scanned project's public API.
-    fn is_root_entry_point(entry_point: &Path, project_root: &Path) -> bool {
+    fn is_root_entry_point(
+        entry_point: &Path,
+        project_root: &Path,
+        package_json_dirs: &HashSet<PathBuf>,
+    ) -> bool {
         let mut dir = entry_point.parent();
         while let Some(d) = dir {
-            if d.join("package.json").exists() {
+            if package_json_dirs.contains(d) {
                 return d == project_root;
             }
             if d == project_root || d.parent().is_none() {
@@ -55,11 +67,6 @@ impl DeadSymbolsDetector {
         file_symbols: &HashMap<PathBuf, FileSymbols>,
         project_root: &Path,
     ) -> HashSet<PathBuf> {
-        let compiled: Vec<glob::Pattern> = TEST_FILE_PATTERNS
-            .iter()
-            .filter_map(|p| glob::Pattern::new(p).ok())
-            .collect();
-
         file_symbols
             .keys()
             .filter(|path| {
@@ -68,7 +75,7 @@ impl DeadSymbolsDetector {
                     .unwrap_or(path)
                     .to_string_lossy()
                     .replace('\\', "/");
-                compiled.iter().any(|p| p.matches(&relative))
+                COMPILED_TEST_PATTERNS.iter().any(|p| p.matches(&relative))
             })
             .cloned()
             .collect()
@@ -98,7 +105,7 @@ impl DeadSymbolsDetector {
         // Sub-package entry points in a monorepo should be traced normally.
         let root_entry_points: HashSet<PathBuf> = entry_points
             .iter()
-            .filter(|ep| Self::is_root_entry_point(ep, &ctx.project_path))
+            .filter(|ep| Self::is_root_entry_point(ep, &ctx.project_path, &ctx.package_json_dirs))
             .cloned()
             .collect();
 

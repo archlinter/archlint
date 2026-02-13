@@ -41,7 +41,7 @@ fn configure_logger(builder: &mut env_logger::Builder, cli: &cli::Cli) {
     }
 }
 
-fn verbose_to_level(verbose: u8) -> log::LevelFilter {
+const fn verbose_to_level(verbose: u8) -> log::LevelFilter {
     match verbose {
         0 => log::LevelFilter::Info,
         1 => log::LevelFilter::Debug,
