@@ -128,6 +128,7 @@ impl DeadSymbolsDetector {
             &symbol_usages,
             &inheritance_ctx,
             entry_points,
+            &test_excluded,
             ctx,
         ));
         all_smells.extend(Self::check_dead_exports(
@@ -136,6 +137,7 @@ impl DeadSymbolsDetector {
             &root_entry_points,
             &symbol_usages,
             &all_project_usages,
+            &test_excluded,
         ));
 
         all_smells
@@ -408,6 +410,7 @@ impl DeadSymbolsDetector {
         symbol_usages: &HashMap<(PathBuf, String), HashSet<PathBuf>>,
         inheritance_ctx: &InheritanceContext,
         entry_points: &HashSet<PathBuf>,
+        test_excluded: &HashSet<PathBuf>,
         ctx: &AnalysisContext,
     ) -> Vec<ArchSmell> {
         let ignored_methods = Self::build_ignored_methods_set(ctx);
@@ -415,6 +418,10 @@ impl DeadSymbolsDetector {
         let mut smells = Vec::new();
 
         for (file_path, symbols) in file_symbols {
+            // Skip test files when count_test_imports=false
+            if test_excluded.contains(file_path) {
+                continue;
+            }
             for class in &symbols.classes {
                 let ctx = MethodCheckContext {
                     file_symbols,
@@ -667,10 +674,14 @@ impl DeadSymbolsDetector {
         root_entry_points: &HashSet<PathBuf>,
         symbol_usages: &HashMap<(PathBuf, String), HashSet<PathBuf>>,
         all_project_usages: &HashSet<String>,
+        test_excluded: &HashSet<PathBuf>,
     ) -> Vec<ArchSmell> {
         file_symbols
             .iter()
-            .filter(|(file_path, _)| !entry_points.contains(*file_path))
+            .filter(|(file_path, _)| {
+                // Skip entry points and test files when count_test_imports=false
+                !entry_points.contains(*file_path) && !test_excluded.contains(*file_path)
+            })
             .flat_map(|(file_path, symbols)| {
                 Self::check_file_exports(
                     file_path.as_path(),
