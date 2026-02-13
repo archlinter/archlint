@@ -263,7 +263,7 @@ impl DeadSymbolsDetector {
     fn is_symbol_consumed(
         symbol_usages: &HashMap<(PathBuf, String), HashSet<PathBuf>>,
         file_symbols: &HashMap<PathBuf, FileSymbols>,
-        entry_points: &HashSet<PathBuf>,
+        root_entry_points: &HashSet<PathBuf>,
         file_path: &Path,
         symbol_name: &str,
     ) -> bool {
@@ -271,7 +271,7 @@ impl DeadSymbolsDetector {
         Self::is_symbol_consumed_recursive(
             symbol_usages,
             file_symbols,
-            entry_points,
+            root_entry_points,
             file_path,
             symbol_name,
             &mut visited,
@@ -281,7 +281,7 @@ impl DeadSymbolsDetector {
     fn is_symbol_consumed_recursive(
         symbol_usages: &HashMap<(PathBuf, String), HashSet<PathBuf>>,
         file_symbols: &HashMap<PathBuf, FileSymbols>,
-        entry_points: &HashSet<PathBuf>,
+        root_entry_points: &HashSet<PathBuf>,
         file_path: &Path,
         symbol_name: &str,
         visited: &mut HashSet<PathBuf>,
@@ -308,7 +308,7 @@ impl DeadSymbolsDetector {
         Self::check_wildcard_importers(
             symbol_usages,
             file_symbols,
-            entry_points,
+            root_entry_points,
             file_path,
             symbol_name,
             visited,
@@ -318,7 +318,7 @@ impl DeadSymbolsDetector {
     fn check_wildcard_importers(
         symbol_usages: &HashMap<(PathBuf, String), HashSet<PathBuf>>,
         file_symbols: &HashMap<PathBuf, FileSymbols>,
-        entry_points: &HashSet<PathBuf>,
+        root_entry_points: &HashSet<PathBuf>,
         file_path: &Path,
         symbol_name: &str,
         visited: &mut HashSet<PathBuf>,
@@ -341,7 +341,7 @@ impl DeadSymbolsDetector {
 
             if is_reexport {
                 // Root entry point barrel → symbol is public API
-                if entry_points.contains(importer) {
+                if root_entry_points.contains(importer) {
                     trace!(
                         "[dead_symbols] trace: '{symbol_name}' from {file_name} — barrel {importer_name} is ROOT entry_point → alive"
                     );
@@ -354,7 +354,7 @@ impl DeadSymbolsDetector {
                 if Self::is_symbol_consumed_recursive(
                     symbol_usages,
                     file_symbols,
-                    entry_points,
+                    root_entry_points,
                     importer,
                     symbol_name,
                     visited,
@@ -699,7 +699,7 @@ impl DeadSymbolsDetector {
         file_path: &Path,
         symbols: &FileSymbols,
         file_symbols: &HashMap<PathBuf, FileSymbols>,
-        entry_points: &HashSet<PathBuf>,
+        root_entry_points: &HashSet<PathBuf>,
         symbol_usages: &HashMap<(PathBuf, String), HashSet<PathBuf>>,
         all_project_usages: &HashSet<String>,
     ) -> Vec<ArchSmell> {
@@ -712,7 +712,7 @@ impl DeadSymbolsDetector {
                     file_path,
                     export,
                     file_symbols,
-                    entry_points,
+                    root_entry_points,
                     symbol_usages,
                     all_project_usages,
                 )
@@ -724,14 +724,14 @@ impl DeadSymbolsDetector {
         file_path: &Path,
         export: &crate::parser::ExportedSymbol,
         file_symbols: &HashMap<PathBuf, FileSymbols>,
-        entry_points: &HashSet<PathBuf>,
+        root_entry_points: &HashSet<PathBuf>,
         symbol_usages: &HashMap<(PathBuf, String), HashSet<PathBuf>>,
         all_project_usages: &HashSet<String>,
     ) -> Option<ArchSmell> {
         let is_consumed = Self::is_symbol_consumed(
             symbol_usages,
             file_symbols,
-            entry_points,
+            root_entry_points,
             file_path,
             export.name.as_str(),
         );
