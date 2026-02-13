@@ -66,6 +66,13 @@ impl Detector for DeadCodeDetector {
         }
         combined_exclude.extend_from_slice(&ctx.config.ignore);
 
+        // When false, imports from test files are not counted as usage,
+        // so code used only in tests is flagged as dead code.
+        let count_test_imports: bool = rule.get_option("count_test_imports").unwrap_or(true);
+        if !count_test_imports {
+            combined_exclude.extend(Self::TEST_FILE_PATTERNS.iter().map(ToString::to_string));
+        }
+
         let project_root = if self.project_root.as_os_str().is_empty() {
             ctx.project_path.clone()
         } else {
@@ -98,6 +105,26 @@ impl Detector for DeadCodeDetector {
 }
 
 impl DeadCodeDetector {
+    const TEST_FILE_PATTERNS: &[&str] = &[
+        "**/*.test.ts",
+        "**/*.test.js",
+        "**/*.test.tsx",
+        "**/*.test.jsx",
+        "**/*.spec.ts",
+        "**/*.spec.js",
+        "**/*.spec.tsx",
+        "**/*.spec.jsx",
+        "**/*.e2e-spec.ts",
+        "**/*.e2e-spec.js",
+        "**/__tests__/**",
+        "**/__mocks__/**",
+        "**/test/**",
+        "**/tests/**",
+        "**/__fixtures__/**",
+        "**/*.mock.ts",
+        "**/*.mock.js",
+    ];
+
     fn build_symbol_imports_map(
         &self,
         file_symbols: &HashMap<PathBuf, crate::parser::FileSymbols>,
