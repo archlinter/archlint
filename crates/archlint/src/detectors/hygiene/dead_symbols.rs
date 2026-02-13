@@ -228,11 +228,37 @@ impl DeadSymbolsDetector {
         symbol_usages
     }
 
-    fn is_symbol_imported(
+    /// Checks whether a symbol is actually consumed (not just re-exported).
+    /// For wildcard re-exports (`export * from`), traces through barrel chains
+    /// to verify the symbol reaches an actual consumer.
+    fn is_symbol_consumed(
         symbol_usages: &HashMap<(PathBuf, String), HashSet<PathBuf>>,
+        file_symbols: &HashMap<PathBuf, FileSymbols>,
         file_path: &Path,
         symbol_name: &str,
     ) -> bool {
+        let mut visited = HashSet::new();
+        Self::is_symbol_consumed_recursive(
+            symbol_usages,
+            file_symbols,
+            file_path,
+            symbol_name,
+            &mut visited,
+        )
+    }
+
+    fn is_symbol_consumed_recursive(
+        symbol_usages: &HashMap<(PathBuf, String), HashSet<PathBuf>>,
+        file_symbols: &HashMap<PathBuf, FileSymbols>,
+        file_path: &Path,
+        symbol_name: &str,
+        visited: &mut HashSet<PathBuf>,
+    ) -> bool {
+        if !visited.insert(file_path.to_path_buf()) {
+            return false;
+        }
+
+        // Check 1: Direct named import of the symbol
         if let Some(importers) =
             symbol_usages.get(&(file_path.to_path_buf(), symbol_name.to_string()))
         {
@@ -241,9 +267,36 @@ impl DeadSymbolsDetector {
             }
         }
 
+        // Check 2: Wildcard imports — distinguish re-exports from actual usage
         if let Some(importers) = symbol_usages.get(&(file_path.to_path_buf(), "*".to_string())) {
-            if !importers.is_empty() {
-                return true;
+            for importer in importers {
+                let is_reexport = file_symbols.get(importer).is_some_and(|syms| {
+                    syms.imports.iter().any(|imp| {
+                        imp.name == "*"
+                            && imp.is_reexport
+                            && file_path == Path::new(imp.source.as_str())
+                    })
+                });
+
+                if is_reexport {
+                    // Barrel pass-through: trace further to see if symbol is consumed from barrel
+                    if Self::is_symbol_consumed_recursive(
+                        symbol_usages,
+                        file_symbols,
+                        importer,
+                        symbol_name,
+                        visited,
+                    ) {
+                        return true;
+                    }
+                } else {
+                    // Actual namespace import (import * as X): check if symbol name is used
+                    if let Some(syms) = file_symbols.get(importer) {
+                        if syms.local_usages.contains(symbol_name) {
+                            return true;
+                        }
+                    }
+                }
             }
         }
 
@@ -548,6 +601,7 @@ impl DeadSymbolsDetector {
                 Self::check_file_exports(
                     file_path.as_path(),
                     symbols,
+                    file_symbols,
                     symbol_usages,
                     all_project_usages,
                 )
@@ -558,6 +612,7 @@ impl DeadSymbolsDetector {
     fn check_file_exports(
         file_path: &Path,
         symbols: &FileSymbols,
+        file_symbols: &HashMap<PathBuf, FileSymbols>,
         symbol_usages: &HashMap<(PathBuf, String), HashSet<PathBuf>>,
         all_project_usages: &HashSet<String>,
     ) -> Vec<ArchSmell> {
@@ -566,7 +621,13 @@ impl DeadSymbolsDetector {
             .iter()
             .filter(|export| !export.is_reexport && export.name != "default" && export.name != "*")
             .filter_map(|export| {
-                Self::check_export_usage(file_path, export, symbol_usages, all_project_usages)
+                Self::check_export_usage(
+                    file_path,
+                    export,
+                    file_symbols,
+                    symbol_usages,
+                    all_project_usages,
+                )
             })
             .collect()
     }
@@ -574,13 +635,15 @@ impl DeadSymbolsDetector {
     fn check_export_usage(
         file_path: &Path,
         export: &crate::parser::ExportedSymbol,
+        file_symbols: &HashMap<PathBuf, FileSymbols>,
         symbol_usages: &HashMap<(PathBuf, String), HashSet<PathBuf>>,
         all_project_usages: &HashSet<String>,
     ) -> Option<ArchSmell> {
-        let is_imported = Self::is_symbol_imported(symbol_usages, file_path, export.name.as_str());
+        let is_consumed =
+            Self::is_symbol_consumed(symbol_usages, file_symbols, file_path, export.name.as_str());
         let is_used_by_name = all_project_usages.contains(export.name.as_str());
 
-        if is_imported || is_used_by_name {
+        if is_consumed || is_used_by_name {
             return None;
         }
 
