@@ -49,9 +49,9 @@ pub struct Cli {
     #[arg(short, long, action = clap::ArgAction::SetTrue)]
     pub quiet: bool,
 
-    /// Verbose output
-    #[arg(short, long, action = clap::ArgAction::SetTrue)]
-    pub verbose: bool,
+    /// Verbose output (-v debug, -vv trace)
+    #[arg(short, long, action = clap::ArgAction::Count)]
+    pub verbose: u8,
 
     /// Minimum severity to include in report (low, medium, high, critical)
     #[arg(short = 's', long, value_name = "SEVERITY")]
@@ -199,9 +199,9 @@ pub struct DiffArgs {
     #[arg(short, long)]
     pub path: Option<PathBuf>,
 
-    /// Verbose output
-    #[arg(short, long, action = clap::ArgAction::SetTrue)]
-    pub verbose: bool,
+    /// Verbose output (-v debug, -vv trace)
+    #[arg(short, long, action = clap::ArgAction::Count)]
+    pub verbose: u8,
 }
 
 #[derive(Parser, Debug)]

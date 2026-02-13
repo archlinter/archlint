@@ -55,9 +55,9 @@ pub struct ScanArgs {
     #[cfg_attr(feature = "cli", arg(short, long, default_value = "false"))]
     pub quiet: bool,
 
-    /// Verbose output
-    #[cfg_attr(feature = "cli", arg(short, long, default_value = "false"))]
-    pub verbose: bool,
+    /// Verbose output (-v debug, -vv trace)
+    #[cfg_attr(feature = "cli", arg(short, long, action = clap::ArgAction::Count))]
+    pub verbose: u8,
 
     /// Minimum severity to include in report (low, medium, high, critical)
     #[cfg_attr(feature = "cli", arg(short = 's', long, value_name = "SEVERITY"))]

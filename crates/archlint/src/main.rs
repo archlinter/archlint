@@ -41,26 +41,34 @@ fn configure_logger(builder: &mut env_logger::Builder, cli: &cli::Cli) {
     }
 }
 
+fn verbose_to_level(verbose: u8) -> log::LevelFilter {
+    match verbose {
+        0 => log::LevelFilter::Info,
+        1 => log::LevelFilter::Debug,
+        _ => log::LevelFilter::Trace,
+    }
+}
+
 fn set_initial_log_level(builder: &mut env_logger::Builder, cli: &cli::Cli) {
     match &cli.command {
         Some(cli::Command::Scan(args)) => {
-            if args.verbose {
-                builder.filter_level(log::LevelFilter::Debug);
+            if args.verbose > 0 {
+                builder.filter_level(verbose_to_level(args.verbose));
             } else if args.is_quiet() {
                 builder.filter_level(log::LevelFilter::Error);
             }
         }
         Some(cli::Command::Watch(args)) => {
-            if args.scan.verbose {
-                builder.filter_level(log::LevelFilter::Debug);
+            if args.scan.verbose > 0 {
+                builder.filter_level(verbose_to_level(args.scan.verbose));
             } else if args.scan.is_quiet() {
                 builder.filter_level(log::LevelFilter::Error);
             }
         }
         None => {
             let args = cli.to_scan_args();
-            if args.verbose {
-                builder.filter_level(log::LevelFilter::Debug);
+            if args.verbose > 0 {
+                builder.filter_level(verbose_to_level(args.verbose));
             } else if args.is_quiet() {
                 builder.filter_level(log::LevelFilter::Error);
             }
@@ -71,8 +79,8 @@ fn set_initial_log_level(builder: &mut env_logger::Builder, cli: &cli::Cli) {
         Some(cli::Command::Diff(args)) => {
             if args.json {
                 builder.filter_level(log::LevelFilter::Error);
-            } else if args.verbose {
-                builder.filter_level(log::LevelFilter::Debug);
+            } else if args.verbose > 0 {
+                builder.filter_level(verbose_to_level(args.verbose));
             }
         }
         _ => {}
@@ -84,21 +92,21 @@ fn set_final_log_level(builder: &mut env_logger::Builder, cli: &cli::Cli) {
         Some(cli::Command::Scan(args)) if args.is_quiet() => {
             builder.filter_level(log::LevelFilter::Error)
         }
-        Some(cli::Command::Scan(args)) if args.verbose => {
-            builder.filter_level(log::LevelFilter::Debug)
+        Some(cli::Command::Scan(args)) if args.verbose > 0 => {
+            builder.filter_level(verbose_to_level(args.verbose))
         }
         Some(cli::Command::Watch(args)) if args.scan.is_quiet() => {
             builder.filter_level(log::LevelFilter::Error)
         }
-        Some(cli::Command::Watch(args)) if args.scan.verbose => {
-            builder.filter_level(log::LevelFilter::Debug)
+        Some(cli::Command::Watch(args)) if args.scan.verbose > 0 => {
+            builder.filter_level(verbose_to_level(args.scan.verbose))
         }
         Some(cli::Command::Snapshot(_)) => builder.filter_level(log::LevelFilter::Info),
         Some(cli::Command::Diff(args)) => {
             if args.json {
                 builder.filter_level(log::LevelFilter::Error)
-            } else if args.verbose {
-                builder.filter_level(log::LevelFilter::Debug)
+            } else if args.verbose > 0 {
+                builder.filter_level(verbose_to_level(args.verbose))
             } else {
                 builder.filter_level(log::LevelFilter::Info)
             }
@@ -107,8 +115,8 @@ fn set_final_log_level(builder: &mut env_logger::Builder, cli: &cli::Cli) {
             let args = cli.to_scan_args();
             if args.is_quiet() {
                 builder.filter_level(log::LevelFilter::Error)
-            } else if args.verbose {
-                builder.filter_level(log::LevelFilter::Debug)
+            } else if args.verbose > 0 {
+                builder.filter_level(verbose_to_level(args.verbose))
             } else {
                 builder.filter_level(log::LevelFilter::Info)
             }
@@ -131,7 +139,7 @@ fn format_log_record(
             record.args()
         ),
         log::Level::Debug => writeln!(buf, "{} {}", style("debug:").magenta(), record.args()),
-        log::Level::Trace => writeln!(buf, "{:5} {}", record.level(), record.args()),
+        log::Level::Trace => writeln!(buf, "{} {}", style("trace:").dim(), record.args()),
     }
 }
 
