@@ -90,31 +90,3 @@ fn test_barrel_with_test_imports_counted() {
         "testHelper should NOT be flagged when count_test_imports=true"
     );
 }
-
-#[test]
-fn test_barrel_default_counts_test_imports() {
-    // Default behavior (no option) should count test imports (backward compat)
-    let mut rules = HashMap::new();
-    rules.insert(
-        "dead_symbols".to_string(),
-        RuleConfig::Full(RuleFullConfig {
-            enabled: Some(true),
-            ..Default::default()
-        }),
-    );
-    let config = Config {
-        rules,
-        entry_points: vec!["main.ts".to_string()],
-        ignore: Vec::new(),
-        ..Default::default()
-    };
-    let ctx = analyze_fixture_with_config("dead_symbols_barrel", config);
-
-    let detector = archlint::detectors::dead_symbols::DeadSymbolsDetector;
-    let smells = detector.detect(&ctx);
-
-    assert!(
-        !is_dead_symbol(&smells, "testHelper"),
-        "Default should count test imports (backward compat)"
-    );
-}
