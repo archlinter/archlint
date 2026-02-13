@@ -25,10 +25,53 @@ struct MethodCheckContext<'a> {
     entry_points: &'a HashSet<PathBuf>,
 }
 
+const TEST_FILE_PATTERNS: &[&str] = &[
+    "**/*.test.ts",
+    "**/*.test.js",
+    "**/*.test.tsx",
+    "**/*.test.jsx",
+    "**/*.spec.ts",
+    "**/*.spec.js",
+    "**/*.spec.tsx",
+    "**/*.spec.jsx",
+    "**/*.e2e-spec.ts",
+    "**/*.e2e-spec.js",
+    "**/__tests__/**",
+    "**/__mocks__/**",
+    "**/test/**",
+    "**/tests/**",
+    "**/__fixtures__/**",
+    "**/*.mock.ts",
+    "**/*.mock.js",
+];
+
 impl DeadSymbolsDetector {
     #[must_use]
     pub const fn new_default(_config: &crate::config::Config) -> Self {
         Self
+    }
+
+    fn find_test_files(
+        file_symbols: &HashMap<PathBuf, FileSymbols>,
+        project_root: &Path,
+    ) -> HashSet<PathBuf> {
+        let compiled: Vec<glob::Pattern> = TEST_FILE_PATTERNS
+            .iter()
+            .filter_map(|p| glob::Pattern::new(p).ok())
+            .collect();
+
+        file_symbols
+            .keys()
+            .filter(|path| {
+                let relative = path
+                    .strip_prefix(project_root)
+                    .unwrap_or(path)
+                    .to_string_lossy()
+                    .replace('\\', "/");
+                compiled.iter().any(|p| p.matches(&relative))
+            })
+            .cloned()
+            .collect()
     }
 
     #[must_use]
@@ -37,8 +80,17 @@ impl DeadSymbolsDetector {
         entry_points: &HashSet<PathBuf>,
         ctx: &AnalysisContext,
     ) -> Vec<ArchSmell> {
-        let all_project_usages = Self::collect_all_usages(file_symbols);
-        let symbol_usages = Self::build_symbol_imports_map(file_symbols);
+        let rule = ctx.resolve_rule("dead_symbols", None);
+        let count_test_imports: bool = rule.get_option("count_test_imports").unwrap_or(true);
+
+        let test_excluded: HashSet<PathBuf> = if count_test_imports {
+            HashSet::new()
+        } else {
+            Self::find_test_files(file_symbols, &ctx.project_path)
+        };
+
+        let all_project_usages = Self::collect_all_usages(file_symbols, &test_excluded);
+        let symbol_usages = Self::build_symbol_imports_map(file_symbols, &test_excluded);
         let inheritance_ctx = Self::build_inheritance_context(file_symbols);
 
         let mut all_smells = Vec::new();
@@ -141,20 +193,28 @@ impl DeadSymbolsDetector {
         None
     }
 
-    fn collect_all_usages(file_symbols: &HashMap<PathBuf, FileSymbols>) -> HashSet<String> {
+    fn collect_all_usages(
+        file_symbols: &HashMap<PathBuf, FileSymbols>,
+        excluded: &HashSet<PathBuf>,
+    ) -> HashSet<String> {
         file_symbols
-            .values()
-            .flat_map(|symbols| &symbols.local_usages)
-            .map(std::string::ToString::to_string)
+            .iter()
+            .filter(|(path, _)| !excluded.contains(*path))
+            .flat_map(|(_, symbols)| &symbols.local_usages)
+            .map(ToString::to_string)
             .collect()
     }
 
     fn build_symbol_imports_map(
         file_symbols: &HashMap<PathBuf, FileSymbols>,
+        excluded: &HashSet<PathBuf>,
     ) -> HashMap<(PathBuf, String), HashSet<PathBuf>> {
         let mut symbol_usages: HashMap<(PathBuf, String), HashSet<PathBuf>> = HashMap::new();
 
         for (importer_path, symbols) in file_symbols {
+            if excluded.contains(importer_path) {
+                continue;
+            }
             for import in &symbols.imports {
                 let source_path = PathBuf::from(import.source.as_str());
 
