@@ -51,7 +51,15 @@ pub fn analyze_fixture_with_config(name: &str, config: Config) -> AnalysisContex
         if let Ok(parsed) = parser.parse_file(file) {
             let from_node = graph.get_node(file).unwrap();
 
-            file_symbols.insert(file.clone(), parsed.symbols.clone());
+            // Resolve import sources to absolute paths (matching production EngineBuilder::resolve_symbols)
+            let mut symbols = parsed.symbols.clone();
+            for import in &mut symbols.imports {
+                if let Ok(Some(resolved)) = resolver.resolve(&import.source, file) {
+                    import.source = resolved.to_string_lossy().to_string().into();
+                }
+            }
+
+            file_symbols.insert(file.clone(), symbols.clone());
             function_complexity.insert(file.clone(), parsed.functions.clone());
             file_metrics.insert(
                 file.clone(),
@@ -63,9 +71,10 @@ pub fn analyze_fixture_with_config(name: &str, config: Config) -> AnalysisContex
                 ignored_lines.insert(file.clone(), parsed.ignored_lines.clone());
             }
 
-            for import in parsed.symbols.imports {
-                if let Ok(Some(resolved)) = resolver.resolve(&import.source, file) {
-                    let to_node = graph.add_file(&resolved);
+            for import in &symbols.imports {
+                let source_path = PathBuf::from(import.source.as_str());
+                if source_path.is_absolute() {
+                    let to_node = graph.add_file(&source_path);
                     graph.add_dependency(
                         from_node,
                         to_node,

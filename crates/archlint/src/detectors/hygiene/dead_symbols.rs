@@ -361,8 +361,11 @@ impl DeadSymbolsDetector {
                 ) {
                     return true;
                 }
-            } else if let Some(syms) = file_symbols.get(importer) {
-                // Actual namespace import (import * as X): check if symbol name is used
+            }
+
+            // Namespace import (import * as X): check if symbol name is used locally.
+            // Not exclusive with re-export — a file may both re-export and consume via namespace.
+            if let Some(syms) = file_symbols.get(importer) {
                 if syms.local_usages.contains(symbol_name) {
                     return true;
                 }

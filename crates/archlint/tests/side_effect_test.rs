@@ -14,10 +14,13 @@ fn test_side_effect_import_detected() {
     assert_eq!(smells.len(), 1);
 
     let smell = &smells[0];
-    assert!(smell
-        .locations
-        .iter()
-        .any(|l| l.description.contains("Side-effect import of './init'")));
+    assert!(
+        smell
+            .locations
+            .iter()
+            .any(|l| l.description.contains("Side-effect import of")
+                && l.description.contains("init"))
+    );
 }
 
 #[test]
