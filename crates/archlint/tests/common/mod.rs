@@ -48,44 +48,24 @@ pub fn analyze_fixture_with_config(name: &str, config: Config) -> AnalysisContex
     }
 
     for file in &files {
-        if let Ok(parsed) = parser.parse_file(file) {
-            let from_node = graph.get_node(file).unwrap();
+        let Ok(parsed) = parser.parse_file(file) else {
+            continue;
+        };
+        let symbols = resolve_imports(parsed.symbols.clone(), file, &resolver);
 
-            // Resolve import sources to absolute paths (matching production EngineBuilder::resolve_symbols)
-            let mut symbols = parsed.symbols.clone();
-            for import in &mut symbols.imports {
-                if let Ok(Some(resolved)) = resolver.resolve(&import.source, file) {
-                    import.source = resolved.to_string_lossy().to_string().into();
-                }
-            }
-
-            file_symbols.insert(file.clone(), symbols.clone());
-            function_complexity.insert(file.clone(), parsed.functions.clone());
-            file_metrics.insert(
-                file.clone(),
-                FileMetrics {
-                    lines: parsed.lines,
-                },
-            );
-            if !parsed.ignored_lines.is_empty() {
-                ignored_lines.insert(file.clone(), parsed.ignored_lines.clone());
-            }
-
-            for import in &symbols.imports {
-                let source_path = PathBuf::from(import.source.as_str());
-                if source_path.is_absolute() {
-                    let to_node = graph.add_file(&source_path);
-                    graph.add_dependency(
-                        from_node,
-                        to_node,
-                        archlint::graph::EdgeData::with_symbols(
-                            import.line,
-                            vec![import.name.to_string()],
-                        ),
-                    );
-                }
-            }
+        file_symbols.insert(file.clone(), symbols.clone());
+        function_complexity.insert(file.clone(), parsed.functions.clone());
+        file_metrics.insert(
+            file.clone(),
+            FileMetrics {
+                lines: parsed.lines,
+            },
+        );
+        if !parsed.ignored_lines.is_empty() {
+            ignored_lines.insert(file.clone(), parsed.ignored_lines.clone());
         }
+
+        add_graph_edges(&symbols, file, &mut graph);
     }
 
     let package_config =
@@ -94,9 +74,6 @@ pub fn analyze_fixture_with_config(name: &str, config: Config) -> AnalysisContex
             dynamic_load_patterns: Vec::new(),
             package_json_dirs: HashSet::new(),
         });
-    let script_entry_points = package_config.entry_points;
-    let dynamic_load_patterns = package_config.dynamic_load_patterns;
-    let package_json_dirs = package_config.package_json_dirs;
 
     AnalysisContext {
         project_path: root,
@@ -107,11 +84,43 @@ pub fn analyze_fixture_with_config(name: &str, config: Config) -> AnalysisContex
         ignored_lines: Arc::new(ignored_lines),
         churn_map: HashMap::new(),
         config,
-        script_entry_points,
-        dynamic_load_patterns,
+        script_entry_points: package_config.entry_points,
+        dynamic_load_patterns: package_config.dynamic_load_patterns,
         detected_frameworks: Vec::new(),
         presets: Vec::new(),
-        package_json_dirs,
+        package_json_dirs: package_config.package_json_dirs,
+    }
+}
+
+fn resolve_imports(
+    mut symbols: archlint::parser::FileSymbols,
+    file: &std::path::Path,
+    resolver: &PathResolver,
+) -> archlint::parser::FileSymbols {
+    for import in &mut symbols.imports {
+        if let Ok(Some(resolved)) = resolver.resolve(&import.source, file) {
+            import.source = resolved.to_string_lossy().to_string().into();
+        }
+    }
+    symbols
+}
+
+fn add_graph_edges(
+    symbols: &archlint::parser::FileSymbols,
+    file: &std::path::Path,
+    graph: &mut DependencyGraph,
+) {
+    let from_node = graph.get_node(file).unwrap();
+    for import in &symbols.imports {
+        let source_path = PathBuf::from(import.source.as_str());
+        if source_path.is_absolute() {
+            let to_node = graph.add_file(&source_path);
+            graph.add_dependency(
+                from_node,
+                to_node,
+                archlint::graph::EdgeData::with_symbols(import.line, vec![import.name.to_string()]),
+            );
+        }
     }
 }
 
