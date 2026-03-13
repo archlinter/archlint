@@ -1,6 +1,6 @@
 ---
 title: Layers
-description: "Define niveles arquitectónicos en tu proyecto y aplica reglas estrictas de dependencias para mantener una arquitectura limpia y prevenir el acoplamiento."
+description: 'Define niveles arquitectónicos en tu proyecto y aplica reglas estrictas de dependencias para mantener una arquitectura limpia y prevenir el acoplamiento.'
 ---
 
 # Capas

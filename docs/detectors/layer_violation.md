@@ -1,6 +1,6 @@
 ---
 title: Layer Violation
-description: "Detect when code in one architectural layer incorrectly imports code from another layer, breaking abstractions and the Single Responsibility Principle."
+description: 'Detect when code in one architectural layer incorrectly imports code from another layer, breaking abstractions and the Single Responsibility Principle.'
 ---
 
 # Layer Violation

@@ -1,6 +1,6 @@
 ---
 title: Ciclos de Paquetes
-description: "Detecta dependencias circulares entre paquetes completos que impiden el versionado adecuado e indican fallos serios de modularidad."
+description: 'Detecta dependencias circulares entre paquetes completos que impiden el versionado adecuado e indican fallos serios de modularidad.'
 ---
 
 # Ciclos de Paquetes

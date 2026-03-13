@@ -1,6 +1,6 @@
 ---
 title: Módulo Disperso
-description: "Identifica módulos donde los elementos internos no están bien conectados, indicando una falta de propósito cohesivo y violación de \"las cosas que cambian juntas deben permanecer juntas\"."
+description: 'Identifica módulos donde los elementos internos no están bien conectados, indicando una falta de propósito cohesivo y violación de "las cosas que cambian juntas deben permanecer juntas".'
 ---
 
 # Módulo Disperso

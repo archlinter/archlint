@@ -1,6 +1,6 @@
 ---
 title: Framework Presets
-description: "Learn how to create custom YAML-based presets to understand framework-specific patterns and reduce false positives in archlint analysis."
+description: 'Learn how to create custom YAML-based presets to understand framework-specific patterns and reduce false positives in archlint analysis.'
 ---
 
 # Framework Presets

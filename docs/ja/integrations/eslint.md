@@ -1,7 +1,8 @@
 ---
 title: ESLintとの統合
-description: "@archlinter/eslint-pluginを使用して、エディタでリアルタイムのアーキテクチャフィードバックを取得します。Flat Configおよびレガシーな.eslintrcをサポートしています。"
+description: '@archlinter/eslint-pluginを使用して、エディタでリアルタイムのアーキテクチャフィードバックを取得します。Flat Configおよびレガシーな.eslintrcをサポートしています。'
 ---
+
 ---
 
 # ESLintとの統合

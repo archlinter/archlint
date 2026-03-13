@@ -1,6 +1,6 @@
 ---
 title: Clon de Código
-description: "Identifica bloques de código duplicados en tu proyecto usando tokenización basada en AST para encontrar coincidencias exactas independientemente del formato."
+description: 'Identifica bloques de código duplicados en tu proyecto usando tokenización basada en AST para encontrar coincidencias exactas independientemente del formato.'
 ---
 
 # Clon de Código

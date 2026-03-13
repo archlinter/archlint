@@ -1,6 +1,6 @@
 ---
 title: Soporte para Next.js
-description: "Comprende el enrutamiento basado en archivos de Next.js, reconoce los directorios pages/app como puntos de entrada y relaja las reglas de archivos barrel para patrones comunes."
+description: 'Comprende el enrutamiento basado en archivos de Next.js, reconoce los directorios pages/app como puntos de entrada y relaja las reglas de archivos barrel para patrones comunes.'
 ---
 
 # Soporte para Next.js

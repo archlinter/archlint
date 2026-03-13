@@ -1,6 +1,6 @@
 ---
 title: Arquivo Grande
-description: "Identifica arquivos fonte que excedem um certo número de linhas, indicando violações do Princípio da Responsabilidade Única."
+description: 'Identifica arquivos fonte que excedem um certo número de linhas, indicando violações do Princípio da Responsabilidade Única.'
 ---
 
 # Arquivo Grande

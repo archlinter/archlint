@@ -1,6 +1,6 @@
 ---
 title: Suporte a Frameworks
-description: "Aprenda como o archlint entende os padrões arquiteturais de frameworks populares como NestJS, Next.js e React, e ajusta a análise de acordo."
+description: 'Aprenda como o archlint entende os padrões arquiteturais de frameworks populares como NestJS, Next.js e React, e ajusta a análise de acordo.'
 ---
 
 # Suporte a Frameworks

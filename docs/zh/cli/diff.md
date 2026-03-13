@@ -1,6 +1,6 @@
 ---
 title: diff
-description: "将当前代码库与基线进行比较，以检测新的架构回归和恶化的代码异味，支持棘轮（Ratchet）理念。"
+description: '将当前代码库与基线进行比较，以检测新的架构回归和恶化的代码异味，支持棘轮（Ratchet）理念。'
 ---
 
 # archlint diff

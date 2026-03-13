@@ -1,6 +1,6 @@
 ---
 title: Obsesión por los Primitivos
-description: "Detecta el uso excesivo de tipos primitivos para representar conceptos de dominio que deberían estar encapsulados en tipos o clases específicos."
+description: 'Detecta el uso excesivo de tipos primitivos para representar conceptos de dominio que deberían estar encapsulados en tipos o clases específicos.'
 ---
 
 # Obsesión por los Primitivos

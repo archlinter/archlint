@@ -1,6 +1,6 @@
 ---
 title: Soporte para Frameworks
-description: "Aprende cómo archlint comprende los patrones arquitectónicos de frameworks populares como NestJS, Next.js, React, y ajusta el análisis en consecuencia."
+description: 'Aprende cómo archlint comprende los patrones arquitectónicos de frameworks populares como NestJS, Next.js, React, y ajusta el análisis en consecuencia.'
 ---
 
 # Soporte para Frameworks

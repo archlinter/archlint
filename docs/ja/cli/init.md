@@ -1,6 +1,6 @@
 ---
 title: init
-description: "適切なデフォルト値を持つ設定ファイルを生成して、新しいプロジェクトにarchlintを素早くセットアップします。"
+description: '適切なデフォルト値を持つ設定ファイルを生成して、新しいプロジェクトにarchlintを素早くセットアップします。'
 ---
 
 # archlint init

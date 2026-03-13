@@ -1,6 +1,6 @@
 ---
 title: snapshot
-description: "プロジェクトのアーキテクチャの現在の状態をキャプチャし、diffコマンドで使用するためにJSONファイルに保存します。"
+description: 'プロジェクトのアーキテクチャの現在の状態をキャプチャし、diffコマンドで使用するためにJSONファイルに保存します。'
 ---
 
 # archlint snapshot

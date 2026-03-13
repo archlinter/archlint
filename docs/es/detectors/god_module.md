@@ -1,6 +1,6 @@
 ---
 title: Módulo Dios
-description: "Un Módulo Dios es un archivo que ha crecido demasiado y ha asumido demasiadas responsabilidades, violando el Principio de Responsabilidad Única."
+description: 'Un Módulo Dios es un archivo que ha crecido demasiado y ha asumido demasiadas responsabilidades, violando el Principio de Responsabilidad Única.'
 ---
 
 # Módulo Dios

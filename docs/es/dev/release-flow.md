@@ -1,6 +1,6 @@
 ---
 title: Flujo de Lanzamiento
-description: "Este documento describe el proceso de lanzamiento de archlint."
+description: 'Este documento describe el proceso de lanzamiento de archlint.'
 ---
 
 # Flujo de Lanzamiento (Release Flow)

@@ -1,6 +1,6 @@
 ---
 title: Anidamiento Profundo
-description: "Identifica bloques de código anidados demasiado profundamente, haciendo el código exponencialmente más difícil de leer e indicando funciones que hacen demasiado."
+description: 'Identifica bloques de código anidados demasiado profundamente, haciendo el código exponencialmente más difícil de leer e indicando funciones que hacen demasiado.'
 ---
 
 # Anidamiento Profundo

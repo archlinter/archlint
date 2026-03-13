@@ -1,6 +1,6 @@
 ---
 title: Alto Acoplamiento
-description: "Identifica módulos que dependen de demasiados otros módulos, creando rigidez y fragilidad en tu base de código."
+description: 'Identifica módulos que dependen de demasiados otros módulos, creando rigidez y fragilidad en tu base de código.'
 ---
 
 # Alto Acoplamiento

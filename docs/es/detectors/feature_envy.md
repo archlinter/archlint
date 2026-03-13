@@ -1,6 +1,6 @@
 ---
 title: Envidia de Funcionalidades
-description: "Detecta métodos que están más interesados en los datos de otra clase que en los suyos propios, indicando una violación de encapsulación."
+description: 'Detecta métodos que están más interesados en los datos de otra clase que en los suyos propios, indicando una violación de encapsulación.'
 ---
 
 # Envidia de Funcionalidades

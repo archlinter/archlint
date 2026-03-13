@@ -1,6 +1,6 @@
 ---
 title: Barrel Abuse
-description: "Barrel files (index.ts) can cause indirect circular dependencies and performance issues if they grow too large."
+description: 'Barrel files (index.ts) can cause indirect circular dependencies and performance issues if they grow too large.'
 ---
 
 # Barrel Abuse

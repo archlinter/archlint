@@ -1,6 +1,6 @@
 ---
 title: watch
-description: "Ejecuta archlint en modo watch para re-analizar automáticamente tu proyecto cada vez que cambien los archivos, proporcionando retroalimentación continua."
+description: 'Ejecuta archlint en modo watch para re-analizar automáticamente tu proyecto cada vez que cambien los archivos, proporcionando retroalimentación continua.'
 ---
 
 # archlint watch

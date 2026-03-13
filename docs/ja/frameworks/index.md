@@ -1,6 +1,6 @@
 ---
 title: フレームワークのサポート
-description: "archlintがNestJS、Next.js、Reactなどの人気フレームワークのアーキテクチャパターンを理解し、それに応じて分析を調整する方法を学びます。"
+description: 'archlintがNestJS、Next.js、Reactなどの人気フレームワークのアーキテクチャパターンを理解し、それに応じて分析を調整する方法を学びます。'
 ---
 
 # フレームワークのサポート

@@ -1,6 +1,6 @@
 ---
 title: Acoplamento de Fornecedor
-description: "Detecta módulos muito acoplados a bibliotecas externas específicas, dificultando migrações futuras e testes."
+description: 'Detecta módulos muito acoplados a bibliotecas externas específicas, dificultando migrações futuras e testes.'
 ---
 
 # Acoplamento de Fornecedor (Vendor Coupling)

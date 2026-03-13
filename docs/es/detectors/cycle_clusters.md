@@ -1,6 +1,6 @@
 ---
 title: Clústeres de Dependencias Cíclicas
-description: "Identifica conjuntos interconectados de dependencias circulares que forman redes complejas que indican degradación arquitectónica y acoplamiento extremo."
+description: 'Identifica conjuntos interconectados de dependencias circulares que forman redes complejas que indican degradación arquitectónica y acoplamiento extremo.'
 ---
 
 # Clústeres de Dependencias Cíclicas

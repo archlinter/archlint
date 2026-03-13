@@ -1,6 +1,6 @@
 ---
 title: リリースフロー
-description: "archlintのリリースプロセスについて説明します。"
+description: 'archlintのリリースプロセスについて説明します。'
 ---
 
 # リリースフロー

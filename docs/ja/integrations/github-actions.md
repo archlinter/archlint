@@ -1,6 +1,6 @@
 ---
 title: GitHub Actions
-description: "archlintをGitHubワークフローに統合して、自動コメントとアノテーションによりプルリクエストでアーキテクチャの回帰を防ぎます。"
+description: 'archlintをGitHubワークフローに統合して、自動コメントとアノテーションによりプルリクエストでアーキテクチャの回帰を防ぎます。'
 ---
 
 # GitHub Actions

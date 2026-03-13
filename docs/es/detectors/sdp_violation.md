@@ -1,6 +1,6 @@
 ---
 title: Principio de Dependencias Estables (SDP)
-description: "Asegura que las dependencias fluyan hacia la estabilidad: los módulos estables no deben depender de los inestables, medido por Fan-in vs Fan-out."
+description: 'Asegura que las dependencias fluyan hacia la estabilidad: los módulos estables no deben depender de los inestables, medido por Fan-in vs Fan-out.'
 ---
 
 # Principio de Dependencias Estables (SDP)

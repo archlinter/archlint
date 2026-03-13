@@ -1,6 +1,6 @@
 ---
 title: Inveja de Recursos
-description: "Detecta métodos que estão mais interessados nos dados de outra classe do que nos seus próprios, indicando uma violação de encapsulamento."
+description: 'Detecta métodos que estão mais interessados nos dados de outra classe do que nos seus próprios, indicando uma violação de encapsulamento.'
 ---
 
 # Inveja de Recursos

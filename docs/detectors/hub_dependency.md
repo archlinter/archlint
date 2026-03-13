@@ -1,6 +1,6 @@
 ---
 title: Hub Dependency
-description: "Detect external packages imported by too many files, creating central points of failure and making upgrades difficult."
+description: 'Detect external packages imported by too many files, creating central points of failure and making upgrades difficult.'
 ---
 
 # Hub Dependency

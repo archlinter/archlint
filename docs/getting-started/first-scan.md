@@ -1,6 +1,6 @@
 ---
 title: First Scan
-description: "Learn how to run your first architectural scan with archlint, interpret results, and configure the tool for your project."
+description: 'Learn how to run your first architectural scan with archlint, interpret results, and configure the tool for your project.'
 ---
 
 # First Scan

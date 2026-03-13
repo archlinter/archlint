@@ -1,6 +1,6 @@
 ---
 title: Primitive Obsession
-description: "Detect overuse of primitive types to represent domain concepts that should be encapsulated in specific types or classes."
+description: 'Detect overuse of primitive types to represent domain concepts that should be encapsulated in specific types or classes.'
 ---
 
 # Primitive Obsession

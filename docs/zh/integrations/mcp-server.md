@@ -1,6 +1,6 @@
 ---
 title: MCP Server
-description: "使用模型上下文协议 (MCP) 将 archlint 连接到 Claude 或 Cursor 等 AI 编程助手，实现 AI 驱动的架构重构。"
+description: '使用模型上下文协议 (MCP) 将 archlint 连接到 Claude 或 Cursor 等 AI 编程助手，实现 AI 驱动的架构重构。'
 ---
 
 # MCP Server

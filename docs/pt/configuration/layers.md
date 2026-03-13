@@ -1,6 +1,6 @@
 ---
 title: Camadas
-description: "Defina níveis arquiteturais no seu projeto e imponha regras de dependência estritas para manter uma arquitetura limpa e prevenir acoplamento."
+description: 'Defina níveis arquiteturais no seu projeto e imponha regras de dependência estritas para manter uma arquitetura limpa e prevenir acoplamento.'
 ---
 
 # Camadas

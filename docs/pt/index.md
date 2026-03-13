@@ -1,7 +1,7 @@
 ---
 layout: home
 title: Archlint — Linter de Arquitetura para TypeScript & JavaScript
-description: "Detector rápido de problemas arquiteturais baseado em AST para projetos TypeScript/JavaScript. Pare a degradação da arquitetura com mais de 28 detectores e análise extremamente rápida."
+description: 'Detector rápido de problemas arquiteturais baseado em AST para projetos TypeScript/JavaScript. Pare a degradação da arquitetura com mais de 28 detectores e análise extremamente rápida.'
 
 hero:
   name: 'archlint'

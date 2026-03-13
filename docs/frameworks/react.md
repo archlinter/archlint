@@ -1,6 +1,6 @@
 ---
 title: React Support
-description: "Specialized analysis for React components, recognizing naming patterns, disabling LCOM for components, and understanding custom hooks as entry points."
+description: 'Specialized analysis for React components, recognizing naming patterns, disabling LCOM for components, and understanding custom hooks as entry points.'
 ---
 
 # React Support

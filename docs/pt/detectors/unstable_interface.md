@@ -1,6 +1,6 @@
 ---
 title: Interface Instável
-description: "Identifica módulos cuja API pública muda frequentemente enquanto muitos módulos dependem deles, causando efeitos cascata em toda a base de código."
+description: 'Identifica módulos cuja API pública muda frequentemente enquanto muitos módulos dependem deles, causando efeitos cascata em toda a base de código.'
 ---
 
 # Interface Instável

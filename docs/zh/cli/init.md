@@ -1,6 +1,6 @@
 ---
 title: init
-description: "通过生成具有合理默认值的配置文件，快速在新项目中设置 archlint。"
+description: '通过生成具有合理默认值的配置文件，快速在新项目中设置 archlint。'
 ---
 
 # archlint init

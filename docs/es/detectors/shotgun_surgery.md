@@ -1,6 +1,6 @@
 ---
 title: Cirugía de Escopeta
-description: "Detecta archivos que cambian frecuentemente juntos, indicando que un solo cambio de requisito fuerza muchos cambios pequeños en múltiples módulos."
+description: 'Detecta archivos que cambian frecuentemente juntos, indicando que un solo cambio de requisito fuerza muchos cambios pequeños en múltiples módulos.'
 ---
 
 # Cirugía de Escopeta (Shotgun Surgery)

@@ -1,6 +1,6 @@
 ---
 title: Scattered Module
-description: "Identify modules where internal elements are not well-connected, indicating a lack of cohesive purpose and violation of \"things that change together should stay together.\""
+description: 'Identify modules where internal elements are not well-connected, indicating a lack of cohesive purpose and violation of "things that change together should stay together."'
 ---
 
 # Scattered Module

@@ -1,6 +1,6 @@
 ---
 title: Framework Support
-description: "Learn how archlint understands architectural patterns of popular frameworks like NestJS, Next.js, React, and adjusts analysis accordingly."
+description: 'Learn how archlint understands architectural patterns of popular frameworks like NestJS, Next.js, React, and adjusts analysis accordingly.'
 ---
 
 # Framework Support
