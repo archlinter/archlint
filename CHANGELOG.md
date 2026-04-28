@@ -1,3 +1,14 @@
+## [0.17.0](https://github.com/archlinter/archlint/compare/v0.16.0...v0.17.0) (2026-04-28)
+
+### Features
+
+- **dead_code,dead_symbols:** count_test_imports, barrel tracing & root entry points ([#36](https://github.com/archlinter/archlint/issues/36)) ([0fa05e9](https://github.com/archlinter/archlint/commit/0fa05e9b8982e74d3ad4a655b12c913bf2ef37ed)), closes [#35](https://github.com/archlinter/archlint/issues/35) [#37](https://github.com/archlinter/archlint/issues/37) [#37](https://github.com/archlinter/archlint/issues/37)
+- **dead_code:** add support for detector-specific ignore patterns ([#33](https://github.com/archlinter/archlint/issues/33)) ([58b8720](https://github.com/archlinter/archlint/commit/58b872047d11b09c9d31aac939fc594d800d08af))
+
+### Documentation
+
+- unify page titles to "Archlint — Architecture Linter for TS & JS" ([d93ab12](https://github.com/archlinter/archlint/commit/d93ab12f11ed5291e53e88bdf2d884d2c0d985bc))
+
 ## [0.16.0](https://github.com/archlinter/archlint/compare/v0.15.1...v0.16.0) (2026-01-16)
 
 ### Features
