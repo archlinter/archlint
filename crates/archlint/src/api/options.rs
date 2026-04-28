@@ -66,7 +66,7 @@ impl ScanOptions {
                 Some(self.exclude_detectors.join(","))
             },
             quiet: true,
-            verbose: false,
+            verbose: 0,
             min_severity: self.min_severity.map(|s| format!("{s:?}").to_lowercase()),
             min_score: self.min_score,
             severity: None,

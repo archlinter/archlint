@@ -5,6 +5,25 @@
   "type": "object",
   "properties": {
     "ignore": {
+      "default": [
+        "**/*.test.ts",
+        "**/*.test.js",
+        "**/*.test.tsx",
+        "**/*.test.jsx",
+        "**/*.spec.ts",
+        "**/*.spec.js",
+        "**/*.spec.tsx",
+        "**/*.spec.jsx",
+        "**/*.e2e-spec.ts",
+        "**/*.e2e-spec.js",
+        "**/__tests__/**",
+        "**/__mocks__/**",
+        "**/test/**",
+        "**/tests/**",
+        "**/__fixtures__/**",
+        "**/*.mock.ts",
+        "**/*.mock.js"
+      ],
       "type": "array",
       "items": {
         "type": "string"

@@ -1,6 +1,6 @@
 ---
 title: Suporte ao Next.js
-description: "Entenda o roteamento baseado em arquivos do Next.js, reconheça diretórios pages/app como pontos de entrada e relaxe regras de barrel files para padrões comuns."
+description: 'Entenda o roteamento baseado em arquivos do Next.js, reconheça diretórios pages/app como pontos de entrada e relaxe regras de barrel files para padrões comuns.'
 ---
 
 # Suporte ao Next.js

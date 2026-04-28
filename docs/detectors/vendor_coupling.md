@@ -1,6 +1,6 @@
 ---
 title: Vendor Coupling
-description: "Detect modules too tightly coupled to specific external libraries, making future migrations difficult and testing harder."
+description: 'Detect modules too tightly coupled to specific external libraries, making future migrations difficult and testing harder.'
 ---
 
 # Vendor Coupling

@@ -1,6 +1,6 @@
 ---
 title: Shared Mutable State
-description: "Detect exported mutable variables that create unpredictable behavior and are a common source of hard-to-track bugs."
+description: 'Detect exported mutable variables that create unpredictable behavior and are a common source of hard-to-track bugs.'
 ---
 
 # Shared Mutable State

@@ -1,6 +1,6 @@
 ---
 title: Código Morto
-description: "Detecta funções, classes ou variáveis exportadas que não são usadas em nenhum lugar do projeto para reduzir a carga de manutenção e confusão."
+description: 'Detecta funções, classes ou variáveis exportadas que não são usadas em nenhum lugar do projeto para reduzir a carga de manutenção e confusão.'
 ---
 
 # Código Morto (Dead Code)

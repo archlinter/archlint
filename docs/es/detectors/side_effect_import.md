@@ -1,6 +1,6 @@
 ---
 title: Importaciones con Efectos Secundarios
-description: "Identifica importaciones realizadas solo por sus efectos secundarios que modifican el estado global, haciendo las dependencias menos explícitas y el comportamiento no determinista."
+description: 'Identifica importaciones realizadas solo por sus efectos secundarios que modifican el estado global, haciendo las dependencias menos explícitas y el comportamiento no determinista.'
 ---
 
 # Importaciones con Efectos Secundarios

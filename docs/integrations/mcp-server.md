@@ -1,6 +1,6 @@
 ---
 title: MCP Server
-description: "Connect archlint to AI coding assistants like Claude or Cursor using the Model Context Protocol (MCP) for AI-powered architectural refactoring."
+description: 'Connect archlint to AI coding assistants like Claude or Cursor using the Model Context Protocol (MCP) for AI-powered architectural refactoring.'
 ---
 
 # MCP Server

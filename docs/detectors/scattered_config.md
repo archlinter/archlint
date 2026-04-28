@@ -1,6 +1,6 @@
 ---
 title: Scattered Configuration
-description: "Identify configuration spread across many files instead of being centralized, making it harder to manage and understand."
+description: 'Identify configuration spread across many files instead of being centralized, making it harder to manage and understand.'
 ---
 
 # Scattered Configuration

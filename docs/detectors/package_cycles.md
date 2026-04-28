@@ -1,6 +1,6 @@
 ---
 title: Package Cycles
-description: "Detect circular dependencies between entire packages that prevent proper versioning and indicate serious modularity flaws."
+description: 'Detect circular dependencies between entire packages that prevent proper versioning and indicate serious modularity flaws.'
 ---
 
 # Package Cycles

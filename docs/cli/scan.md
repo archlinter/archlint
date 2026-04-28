@@ -1,6 +1,6 @@
 ---
 title: scan
-description: "Perform a complete architectural analysis of your project with the archlint scan command, supporting multiple output formats like JSON, Markdown, and SARIF."
+description: 'Perform a complete architectural analysis of your project with the archlint scan command, supporting multiple output formats like JSON, Markdown, and SARIF.'
 ---
 
 # archlint scan

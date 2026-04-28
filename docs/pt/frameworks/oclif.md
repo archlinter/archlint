@@ -1,6 +1,6 @@
 ---
 title: Suporte ao oclif
-description: "Suporte integrado para o framework CLI oclif, reconhecendo arquivos de comando como pontos de entrada e fornecendo presets arquiteturais."
+description: 'Suporte integrado para o framework CLI oclif, reconhecendo arquivos de comando como pontos de entrada e fornecendo presets arquiteturais.'
 ---
 
 # Suporte ao oclif

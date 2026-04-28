@@ -1,6 +1,6 @@
 ---
 title: Símbolos Mortos
-description: "Encontre funções, variáveis ou classes definidas mas nunca usadas localmente, reduzindo a desordem do código e melhorando a manutenibilidade."
+description: 'Encontre funções, variáveis ou classes definidas mas nunca usadas localmente, reduzindo a desordem do código e melhorando a manutenibilidade.'
 ---
 
 # Símbolos Mortos (Dead Symbols)

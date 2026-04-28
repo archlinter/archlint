@@ -1,6 +1,6 @@
 ---
 title: Abuso de Archivos Barrel
-description: "Los archivos barrel (index.ts) pueden causar dependencias circulares indirectas y problemas de rendimiento si crecen demasiado."
+description: 'Los archivos barrel (index.ts) pueden causar dependencias circulares indirectas y problemas de rendimiento si crecen demasiado.'
 ---
 
 # Abuso de Archivos Barrel

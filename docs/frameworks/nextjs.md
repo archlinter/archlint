@@ -1,6 +1,6 @@
 ---
 title: Next.js Support
-description: "Understand Next.js file-based routing, recognize pages/app directories as entry points, and relax barrel file rules for common patterns."
+description: 'Understand Next.js file-based routing, recognize pages/app directories as entry points, and relax barrel file rules for common patterns.'
 ---
 
 # Next.js Support

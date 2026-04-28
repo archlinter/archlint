@@ -1,6 +1,6 @@
 ---
 title: God Module
-description: "A God Module is a file that has grown too large and taken on too many responsibilities, violating the Single Responsibility Principle."
+description: 'A God Module is a file that has grown too large and taken on too many responsibilities, violating the Single Responsibility Principle.'
 ---
 
 # God Module

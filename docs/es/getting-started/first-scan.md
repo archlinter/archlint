@@ -1,6 +1,6 @@
 ---
 title: Primer Escaneo
-description: "Aprende cómo ejecutar tu primer escaneo arquitectónico con archlint, interpretar resultados y configurar la herramienta para tu proyecto."
+description: 'Aprende cómo ejecutar tu primer escaneo arquitectónico con archlint, interpretar resultados y configurar la herramienta para tu proyecto.'
 ---
 
 # Primer Escaneo

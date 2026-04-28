@@ -1,6 +1,6 @@
 ---
 title: init
-description: "Configura rápidamente archlint en un nuevo proyecto generando un archivo de configuración con valores predeterminados sensatos."
+description: 'Configura rápidamente archlint en un nuevo proyecto generando un archivo de configuración con valores predeterminados sensatos.'
 ---
 
 # archlint init

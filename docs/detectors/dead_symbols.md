@@ -1,6 +1,6 @@
 ---
 title: Dead Symbols
-description: "Find functions, variables, or classes defined but never used locally, reducing code clutter and improving maintainability."
+description: 'Find functions, variables, or classes defined but never used locally, reducing code clutter and improving maintainability.'
 ---
 
 # Dead Symbols

@@ -1,6 +1,6 @@
 ---
 title: Soporte para React
-description: "Análisis especializado para componentes de React, reconociendo patrones de nombres, deshabilitando LCOM para componentes y entendiendo hooks personalizados como puntos de entrada."
+description: 'Análisis especializado para componentes de React, reconociendo patrones de nombres, deshabilitando LCOM para componentes y entendiendo hooks personalizados como puntos de entrada.'
 ---
 
 # Soporte para React

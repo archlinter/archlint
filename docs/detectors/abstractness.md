@@ -1,6 +1,6 @@
 ---
 title: Abstractness Violation
-description: "Detect modules that are too concrete and stable (hard to change) or too abstract and unstable (overengineering), violating the Stable Abstractions Principle."
+description: 'Detect modules that are too concrete and stable (hard to change) or too abstract and unstable (overengineering), violating the Stable Abstractions Principle.'
 ---
 
 # Abstractness Violation

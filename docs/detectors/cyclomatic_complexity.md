@@ -1,6 +1,6 @@
 ---
 title: Cyclomatic Complexity
-description: "Detect functions with too many branching paths that are hard to understand, test, and maintain, increasing the risk of bugs."
+description: 'Detect functions with too many branching paths that are hard to understand, test, and maintain, increasing the risk of bugs.'
 ---
 
 # Cyclomatic Complexity

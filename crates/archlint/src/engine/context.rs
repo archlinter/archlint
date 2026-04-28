@@ -42,6 +42,8 @@ pub struct AnalysisContext {
     pub detected_frameworks: Vec<Framework>,
     /// Active framework presets.
     pub presets: Vec<FrameworkPreset>,
+    /// Directories containing package.json files.
+    pub package_json_dirs: HashSet<PathBuf>,
 }
 
 impl AnalysisContext {
@@ -109,6 +111,7 @@ impl AnalysisContext {
             dynamic_load_patterns: Vec::new(),
             detected_frameworks: Vec::new(),
             presets: Vec::new(),
+            package_json_dirs: HashSet::new(),
         }
     }
 

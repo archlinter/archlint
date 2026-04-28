@@ -1,6 +1,6 @@
 ---
 title: Presets Personalizados
-description: "Aprende cómo crear presets personalizados basados en YAML para entender patrones específicos de frameworks y reducir falsos positivos en el análisis de archlint."
+description: 'Aprende cómo crear presets personalizados basados en YAML para entender patrones específicos de frameworks y reducir falsos positivos en el análisis de archlint.'
 ---
 
 # Presets de Frameworks

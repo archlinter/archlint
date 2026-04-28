@@ -1,6 +1,6 @@
 ---
 title: Cirurgia por Difusão
-description: "Detecta arquivos que mudam frequentemente juntos, indicando que uma única mudança de requisito força muitas pequenas mudanças em vários módulos."
+description: 'Detecta arquivos que mudam frequentemente juntos, indicando que uma única mudança de requisito força muitas pequenas mudanças em vários módulos.'
 ---
 
 # Cirurgia por Difusão (Shotgun Surgery)

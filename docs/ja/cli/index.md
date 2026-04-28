@@ -1,6 +1,6 @@
 ---
 title: CLIリファレンス
-description: "scan、diff、snapshot、watchを含む、archlint CLIコマンドの完全なリファレンス。"
+description: 'scan、diff、snapshot、watchを含む、archlint CLIコマンドの完全なリファレンス。'
 ---
 
 # CLIリファレンス

@@ -1,6 +1,6 @@
 ---
 title: scan
-description: "使用 archlint scan 命令对项目执行完整的架构分析，支持多种输出格式，如 JSON、Markdown 和 SARIF。"
+description: '使用 archlint scan 命令对项目执行完整的架构分析，支持多种输出格式，如 JSON、Markdown 和 SARIF。'
 ---
 
 # archlint scan

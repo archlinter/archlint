@@ -1,6 +1,6 @@
 ---
 title: GitHub Actions
-description: "Integre o archlint ao seu workflow do GitHub para evitar regressões arquiteturais em Pull Requests com comentários e anotações automatizados."
+description: 'Integre o archlint ao seu workflow do GitHub para evitar regressões arquiteturais em Pull Requests com comentários e anotações automatizados.'
 ---
 
 # GitHub Actions

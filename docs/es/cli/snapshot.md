@@ -1,6 +1,6 @@
 ---
 title: snapshot
-description: "Captura el estado actual de la arquitectura de tu proyecto y guárdalo en un archivo JSON para usar con el comando diff."
+description: 'Captura el estado actual de la arquitectura de tu proyecto y guárdalo en un archivo JSON para usar con el comando diff.'
 ---
 
 # archlint snapshot

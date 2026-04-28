@@ -1,4 +1,4 @@
-use crate::config::Config;
+use crate::config::{types::TEST_FILE_PATTERNS, Config};
 use crate::detectors::{detector, ArchSmell, Detector};
 use crate::engine::AnalysisContext;
 use std::collections::{HashMap, HashSet};
@@ -57,6 +57,10 @@ impl Detector for DeadCodeDetector {
         };
 
         // Combine rule-specific exclude and global config ignore.
+        // When false, imports from test files are not counted as usage,
+        // so code used only in tests is flagged as dead code.
+        let count_test_imports: bool = rule.get_option("count_test_imports").unwrap_or(false);
+
         // If the detector was manually constructed with its own exclude list, prefer that.
         let mut combined_exclude = Vec::new();
         if self.exclude.is_empty() {
@@ -64,7 +68,26 @@ impl Detector for DeadCodeDetector {
         } else {
             combined_exclude.extend_from_slice(&self.exclude);
         }
-        combined_exclude.extend_from_slice(&ctx.config.ignore);
+
+        // Add config.ignore patterns, but filter out test patterns if count_test_imports=true
+        // to avoid double-exclusion conflict.
+        if count_test_imports {
+            // Filter out test file patterns from config.ignore to allow counting test imports
+            let test_patterns_set: HashSet<&str> = TEST_FILE_PATTERNS.iter().copied().collect();
+            combined_exclude.extend(
+                ctx.config
+                    .ignore
+                    .iter()
+                    .filter(|p| !test_patterns_set.contains(p.as_str()))
+                    .cloned(),
+            );
+        } else {
+            // Include all ignore patterns
+            combined_exclude.extend_from_slice(&ctx.config.ignore);
+            // Explicitly add TEST_FILE_PATTERNS to ensure test files are always excluded
+            // when count_test_imports=false, even if config.ignore is empty
+            combined_exclude.extend(TEST_FILE_PATTERNS.iter().map(ToString::to_string));
+        }
 
         let project_root = if self.project_root.as_os_str().is_empty() {
             ctx.project_path.clone()

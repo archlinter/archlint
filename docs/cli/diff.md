@@ -1,6 +1,6 @@
 ---
 title: diff
-description: "Compare your current codebase against a baseline to detect new architectural regressions and worsened smells, supporting the Ratchet philosophy."
+description: 'Compare your current codebase against a baseline to detect new architectural regressions and worsened smells, supporting the Ratchet philosophy.'
 ---
 
 # archlint diff

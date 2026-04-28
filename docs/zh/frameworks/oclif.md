@@ -1,6 +1,6 @@
 ---
 title: oclif 支持
-description: "内置支持 oclif CLI 框架，将命令文件识别为入口点并提供架构预设。"
+description: '内置支持 oclif CLI 框架，将命令文件识别为入口点并提供架构预设。'
 ---
 
 # oclif 支持

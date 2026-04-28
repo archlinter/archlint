@@ -1,6 +1,6 @@
 ---
 title: diff
-description: "Compare sua base de código atual com uma linha de base para detectar novas regressões arquiteturais e problemas agravados, apoiando a filosofia Ratchet."
+description: 'Compare sua base de código atual com uma linha de base para detectar novas regressões arquiteturais e problemas agravados, apoiando a filosofia Ratchet.'
 ---
 
 # archlint diff

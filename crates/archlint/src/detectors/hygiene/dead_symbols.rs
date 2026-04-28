@@ -1,12 +1,24 @@
+use crate::config::types::TEST_FILE_PATTERNS;
 use crate::detectors::{detector, ArchSmell, Detector};
 use crate::engine::AnalysisContext;
 use crate::parser::{FileSymbols, MethodAccessibility, SymbolKind};
+use log::{debug, trace};
+use once_cell::sync::Lazy;
 use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
 
 /// Initializes the detector module.
 /// This function is used for module registration side-effects.
 pub const fn init() {}
+
+// Use once_cell for MSRV 1.75 compatibility (LazyLock requires Rust 1.80+)
+#[allow(clippy::non_std_lazy_statics)]
+static COMPILED_TEST_PATTERNS: Lazy<Vec<glob::Pattern>> = Lazy::new(|| {
+    TEST_FILE_PATTERNS
+        .iter()
+        .filter_map(|p| glob::Pattern::new(p).ok())
+        .collect()
+});
 
 #[detector(SmellType::DeadSymbol, is_deep = true)]
 pub struct DeadSymbolsDetector;
@@ -31,33 +43,101 @@ impl DeadSymbolsDetector {
         Self
     }
 
+    /// Checks if an entry point belongs to the root project (vs a sub-package in a monorepo).
+    /// Finds the nearest parent directory containing package.json and checks if it matches
+    /// the project root. Root entry points represent the scanned project's public API.
+    fn is_root_entry_point(
+        entry_point: &Path,
+        project_root: &Path,
+        package_json_dirs: &HashSet<PathBuf>,
+    ) -> bool {
+        let mut dir = entry_point.parent();
+        while let Some(d) = dir {
+            if package_json_dirs.contains(d) {
+                return d == project_root;
+            }
+            if d == project_root || d.parent().is_none() {
+                break;
+            }
+            dir = d.parent();
+        }
+        // If no package.json found, assume root
+        true
+    }
+
+    fn find_test_files(
+        file_symbols: &HashMap<PathBuf, FileSymbols>,
+        project_root: &Path,
+    ) -> HashSet<PathBuf> {
+        file_symbols
+            .keys()
+            .filter(|path| {
+                let relative = path
+                    .strip_prefix(project_root)
+                    .unwrap_or(path)
+                    .to_string_lossy()
+                    .replace('\\', "/");
+                COMPILED_TEST_PATTERNS.iter().any(|p| p.matches(&relative))
+            })
+            .cloned()
+            .collect()
+    }
+
     #[must_use]
     pub fn detect_symbols(
         file_symbols: &HashMap<PathBuf, FileSymbols>,
         entry_points: &HashSet<PathBuf>,
         ctx: &AnalysisContext,
     ) -> Vec<ArchSmell> {
-        let all_project_usages = Self::collect_all_usages(file_symbols);
-        let symbol_usages = Self::build_symbol_imports_map(file_symbols);
+        let rule = ctx.resolve_rule("dead_symbols", None);
+        let count_test_imports: bool = rule.get_option("count_test_imports").unwrap_or(false);
+
+        let test_excluded: HashSet<PathBuf> = if count_test_imports {
+            HashSet::new()
+        } else {
+            Self::find_test_files(file_symbols, &ctx.project_path)
+        };
+
+        let all_project_usages = Self::collect_all_usages(file_symbols, &test_excluded);
+        let symbol_usages = Self::build_symbol_imports_map(file_symbols, &test_excluded);
         let inheritance_ctx = Self::build_inheritance_context(file_symbols);
+
+        // Only root entry points (belonging to the scanned project's own package.json)
+        // should make re-exported symbols "alive" (public API).
+        // Sub-package entry points in a monorepo should be traced normally.
+        let root_entry_points: HashSet<PathBuf> = entry_points
+            .iter()
+            .filter(|ep| Self::is_root_entry_point(ep, &ctx.project_path, &ctx.package_json_dirs))
+            .cloned()
+            .collect();
+
+        debug!(
+            "[dead_symbols] entry_points: {}, root_entry_points: {}",
+            entry_points.len(),
+            root_entry_points.len()
+        );
 
         let mut all_smells = Vec::new();
         all_smells.extend(Self::check_dead_local_symbols(
             file_symbols,
             &all_project_usages,
+            &test_excluded,
         ));
         all_smells.extend(Self::check_dead_methods(
             file_symbols,
             &symbol_usages,
             &inheritance_ctx,
             entry_points,
+            &test_excluded,
             ctx,
         ));
         all_smells.extend(Self::check_dead_exports(
             file_symbols,
             entry_points,
+            &root_entry_points,
             &symbol_usages,
             &all_project_usages,
+            &test_excluded,
         ));
 
         all_smells
@@ -141,20 +221,28 @@ impl DeadSymbolsDetector {
         None
     }
 
-    fn collect_all_usages(file_symbols: &HashMap<PathBuf, FileSymbols>) -> HashSet<String> {
+    fn collect_all_usages(
+        file_symbols: &HashMap<PathBuf, FileSymbols>,
+        excluded: &HashSet<PathBuf>,
+    ) -> HashSet<String> {
         file_symbols
-            .values()
-            .flat_map(|symbols| &symbols.local_usages)
-            .map(std::string::ToString::to_string)
+            .iter()
+            .filter(|(path, _)| !excluded.contains(*path))
+            .flat_map(|(_, symbols)| &symbols.local_usages)
+            .map(ToString::to_string)
             .collect()
     }
 
     fn build_symbol_imports_map(
         file_symbols: &HashMap<PathBuf, FileSymbols>,
+        excluded: &HashSet<PathBuf>,
     ) -> HashMap<(PathBuf, String), HashSet<PathBuf>> {
         let mut symbol_usages: HashMap<(PathBuf, String), HashSet<PathBuf>> = HashMap::new();
 
         for (importer_path, symbols) in file_symbols {
+            if excluded.contains(importer_path) {
+                continue;
+            }
             for import in &symbols.imports {
                 let source_path = PathBuf::from(import.source.as_str());
 
@@ -168,22 +256,119 @@ impl DeadSymbolsDetector {
         symbol_usages
     }
 
-    fn is_symbol_imported(
+    /// Checks whether a symbol is actually consumed (not just re-exported).
+    /// For wildcard re-exports (`export * from`), traces through barrel chains
+    /// to verify the symbol reaches an actual consumer.
+    /// Symbols re-exported through an entry point are considered consumed (public API).
+    fn is_symbol_consumed(
         symbol_usages: &HashMap<(PathBuf, String), HashSet<PathBuf>>,
+        file_symbols: &HashMap<PathBuf, FileSymbols>,
+        root_entry_points: &HashSet<PathBuf>,
         file_path: &Path,
         symbol_name: &str,
     ) -> bool {
+        let mut visited = HashSet::new();
+        Self::is_symbol_consumed_recursive(
+            symbol_usages,
+            file_symbols,
+            root_entry_points,
+            file_path,
+            symbol_name,
+            &mut visited,
+        )
+    }
+
+    fn is_symbol_consumed_recursive(
+        symbol_usages: &HashMap<(PathBuf, String), HashSet<PathBuf>>,
+        file_symbols: &HashMap<PathBuf, FileSymbols>,
+        root_entry_points: &HashSet<PathBuf>,
+        file_path: &Path,
+        symbol_name: &str,
+        visited: &mut HashSet<PathBuf>,
+    ) -> bool {
+        if !visited.insert(file_path.to_path_buf()) {
+            return false;
+        }
+
+        // Check 1: Direct named import of the symbol
         if let Some(importers) =
             symbol_usages.get(&(file_path.to_path_buf(), symbol_name.to_string()))
         {
             if !importers.is_empty() {
+                let file_name = file_path.file_name().unwrap_or_default().to_string_lossy();
+                trace!(
+                    "[dead_symbols] trace: '{symbol_name}' from {file_name} — direct named import by {} file(s)",
+                    importers.len()
+                );
                 return true;
             }
         }
 
-        if let Some(importers) = symbol_usages.get(&(file_path.to_path_buf(), "*".to_string())) {
-            if !importers.is_empty() {
-                return true;
+        // Check 2: Wildcard imports — distinguish re-exports from actual usage
+        Self::check_wildcard_importers(
+            symbol_usages,
+            file_symbols,
+            root_entry_points,
+            file_path,
+            symbol_name,
+            visited,
+        )
+    }
+
+    fn check_wildcard_importers(
+        symbol_usages: &HashMap<(PathBuf, String), HashSet<PathBuf>>,
+        file_symbols: &HashMap<PathBuf, FileSymbols>,
+        root_entry_points: &HashSet<PathBuf>,
+        file_path: &Path,
+        symbol_name: &str,
+        visited: &mut HashSet<PathBuf>,
+    ) -> bool {
+        let Some(importers) = symbol_usages.get(&(file_path.to_path_buf(), "*".to_string())) else {
+            return false;
+        };
+
+        let file_name = file_path.file_name().unwrap_or_default().to_string_lossy();
+
+        for importer in importers {
+            let importer_name = importer.file_name().unwrap_or_default().to_string_lossy();
+            let is_reexport = file_symbols.get(importer).is_some_and(|syms| {
+                syms.imports.iter().any(|imp| {
+                    imp.name == "*"
+                        && imp.is_reexport
+                        && file_path == Path::new(imp.source.as_str())
+                })
+            });
+
+            if is_reexport {
+                // Root entry point barrel → symbol is public API
+                if root_entry_points.contains(importer) {
+                    trace!(
+                        "[dead_symbols] trace: '{symbol_name}' from {file_name} — barrel {importer_name} is ROOT entry_point → alive"
+                    );
+                    return true;
+                }
+                // Barrel pass-through: trace further
+                trace!(
+                    "[dead_symbols] trace: '{symbol_name}' from {file_name} — tracing through barrel {importer_name}"
+                );
+                if Self::is_symbol_consumed_recursive(
+                    symbol_usages,
+                    file_symbols,
+                    root_entry_points,
+                    importer,
+                    symbol_name,
+                    visited,
+                ) {
+                    return true;
+                }
+            }
+
+            // Namespace import (import * as X): check if symbol name is used locally.
+            // Not exclusive with re-export — a file may both re-export and consume via namespace.
+            if let Some(syms) = file_symbols.get(importer) {
+                if syms.local_usages.contains(symbol_name) {
+                    return true;
+                }
             }
         }
 
@@ -193,10 +378,16 @@ impl DeadSymbolsDetector {
     fn check_dead_local_symbols(
         file_symbols: &HashMap<PathBuf, FileSymbols>,
         all_project_usages: &HashSet<String>,
+        test_excluded: &HashSet<PathBuf>,
     ) -> Vec<ArchSmell> {
         let mut smells = Vec::new();
 
         for (file_path, symbols) in file_symbols {
+            // Skip test files if they're excluded from usage counting to avoid
+            // false positives for local symbols used within the same test file
+            if test_excluded.contains(file_path) {
+                continue;
+            }
             for local_def in &symbols.local_definitions {
                 let is_exported = symbols
                     .exports
@@ -222,6 +413,7 @@ impl DeadSymbolsDetector {
         symbol_usages: &HashMap<(PathBuf, String), HashSet<PathBuf>>,
         inheritance_ctx: &InheritanceContext,
         entry_points: &HashSet<PathBuf>,
+        test_excluded: &HashSet<PathBuf>,
         ctx: &AnalysisContext,
     ) -> Vec<ArchSmell> {
         let ignored_methods = Self::build_ignored_methods_set(ctx);
@@ -229,6 +421,10 @@ impl DeadSymbolsDetector {
         let mut smells = Vec::new();
 
         for (file_path, symbols) in file_symbols {
+            // Skip test files when count_test_imports=false
+            if test_excluded.contains(file_path) {
+                continue;
+            }
             for class in &symbols.classes {
                 let ctx = MethodCheckContext {
                     file_symbols,
@@ -478,16 +674,23 @@ impl DeadSymbolsDetector {
     fn check_dead_exports(
         file_symbols: &HashMap<PathBuf, FileSymbols>,
         entry_points: &HashSet<PathBuf>,
+        root_entry_points: &HashSet<PathBuf>,
         symbol_usages: &HashMap<(PathBuf, String), HashSet<PathBuf>>,
         all_project_usages: &HashSet<String>,
+        test_excluded: &HashSet<PathBuf>,
     ) -> Vec<ArchSmell> {
         file_symbols
             .iter()
-            .filter(|(file_path, _)| !entry_points.contains(*file_path))
+            .filter(|(file_path, _)| {
+                // Skip entry points and test files when count_test_imports=false
+                !entry_points.contains(*file_path) && !test_excluded.contains(*file_path)
+            })
             .flat_map(|(file_path, symbols)| {
                 Self::check_file_exports(
                     file_path.as_path(),
                     symbols,
+                    file_symbols,
+                    root_entry_points,
                     symbol_usages,
                     all_project_usages,
                 )
@@ -498,6 +701,8 @@ impl DeadSymbolsDetector {
     fn check_file_exports(
         file_path: &Path,
         symbols: &FileSymbols,
+        file_symbols: &HashMap<PathBuf, FileSymbols>,
+        root_entry_points: &HashSet<PathBuf>,
         symbol_usages: &HashMap<(PathBuf, String), HashSet<PathBuf>>,
         all_project_usages: &HashSet<String>,
     ) -> Vec<ArchSmell> {
@@ -506,7 +711,14 @@ impl DeadSymbolsDetector {
             .iter()
             .filter(|export| !export.is_reexport && export.name != "default" && export.name != "*")
             .filter_map(|export| {
-                Self::check_export_usage(file_path, export, symbol_usages, all_project_usages)
+                Self::check_export_usage(
+                    file_path,
+                    export,
+                    file_symbols,
+                    root_entry_points,
+                    symbol_usages,
+                    all_project_usages,
+                )
             })
             .collect()
     }
@@ -514,13 +726,28 @@ impl DeadSymbolsDetector {
     fn check_export_usage(
         file_path: &Path,
         export: &crate::parser::ExportedSymbol,
+        file_symbols: &HashMap<PathBuf, FileSymbols>,
+        root_entry_points: &HashSet<PathBuf>,
         symbol_usages: &HashMap<(PathBuf, String), HashSet<PathBuf>>,
         all_project_usages: &HashSet<String>,
     ) -> Option<ArchSmell> {
-        let is_imported = Self::is_symbol_imported(symbol_usages, file_path, export.name.as_str());
+        let is_consumed = Self::is_symbol_consumed(
+            symbol_usages,
+            file_symbols,
+            root_entry_points,
+            file_path,
+            export.name.as_str(),
+        );
         let is_used_by_name = all_project_usages.contains(export.name.as_str());
 
-        if is_imported || is_used_by_name {
+        if is_consumed || is_used_by_name {
+            trace!(
+                "[dead_symbols] ALIVE: {} from {} (consumed={}, used_by_name={})",
+                export.name,
+                file_path.file_name().unwrap_or_default().to_string_lossy(),
+                is_consumed,
+                is_used_by_name,
+            );
             return None;
         }
 
@@ -586,13 +813,23 @@ impl Detector for DeadSymbolsDetector {
 
         let smells = Self::detect_symbols(ctx.file_symbols.as_ref(), &ctx.script_entry_points, ctx);
 
+        debug!(
+            "[dead_symbols] detect_symbols returned {} smells, entry_points: {}",
+            smells.len(),
+            ctx.script_entry_points.len()
+        );
+
         smells
             .into_iter()
             .filter_map(|mut smell| {
                 if let Some(path) = smell.files.first() {
-                    let file_rule = match ctx.get_rule_for_file("dead_symbols", path) {
-                        Some(r) => r,
-                        None => return None,
+                    let Some(file_rule) = ctx.get_rule_for_file("dead_symbols", path) else {
+                        let relative = path.strip_prefix(&ctx.project_path).unwrap_or(path);
+                        debug!(
+                            "[dead_symbols] FILTERED OUT: {} (rule disabled/excluded for file)",
+                            relative.display()
+                        );
+                        return None;
                     };
                     smell.severity = file_rule.severity;
                 }

@@ -1,6 +1,6 @@
 ---
 title: Complejidad Ciclomática
-description: "Detecta funciones con demasiadas rutas de ramificación que son difíciles de entender, probar y mantener, aumentando el riesgo de errores."
+description: 'Detecta funciones con demasiadas rutas de ramificación que son difíciles de entender, probar y mantener, aumentando el riesgo de errores.'
 ---
 
 # Complejidad ciclomática (Cyclomatic Complexity)

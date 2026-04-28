@@ -1,6 +1,6 @@
 ---
 title: Tipos Órfãos
-description: "Encontra tipos ou interfaces que são definidos mas nunca usados, adicionando desordem e aumentando a carga cognitiva sem benefício."
+description: 'Encontra tipos ou interfaces que são definidos mas nunca usados, adicionando desordem e aumentando a carga cognitiva sem benefício.'
 ---
 
 # Tipos Órfãos

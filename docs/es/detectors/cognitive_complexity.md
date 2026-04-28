@@ -1,6 +1,6 @@
 ---
 title: Complejidad Cognitiva
-description: "Detecta funciones que son difíciles de entender debido a anidamiento profundo y lógica compleja, ayudando a reducir la carga mental y el riesgo de mantenimiento."
+description: 'Detecta funciones que son difíciles de entender debido a anidamiento profundo y lógica compleja, ayudando a reducir la carga mental y el riesgo de mantenimiento.'
 ---
 
 # Complejidad cognitiva

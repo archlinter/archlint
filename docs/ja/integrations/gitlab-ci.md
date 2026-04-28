@@ -1,6 +1,6 @@
 ---
 title: GitLab CI
-description: "CI/CDパイプラインでarchlintを使用して、GitLabマージリクエストでアーキテクチャルールを強制します。"
+description: 'CI/CDパイプラインでarchlintを使用して、GitLabマージリクエストでアーキテクチャルールを強制します。'
 ---
 
 # GitLab CI

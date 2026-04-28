@@ -1,6 +1,6 @@
 ---
 title: Suporte ao React
-description: "Análise especializada para componentes React, reconhecendo padrões de nomenclatura, desabilitando LCOM para componentes e entendendo custom hooks como pontos de entrada."
+description: 'Análise especializada para componentes React, reconhecendo padrões de nomenclatura, desabilitando LCOM para componentes e entendendo custom hooks como pontos de entrada.'
 ---
 
 # Suporte ao React

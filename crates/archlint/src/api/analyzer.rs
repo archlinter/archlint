@@ -83,6 +83,7 @@ impl Analyzer {
         self.state.detected_frameworks = detected_frameworks;
         self.state.script_entry_points = pkg_config.entry_points;
         self.state.dynamic_load_patterns = pkg_config.dynamic_load_patterns;
+        self.state.package_json_dirs = pkg_config.package_json_dirs;
 
         // Synchronize config hash
         self.state.config_hash = compute_config_hash(&self.config)?;
@@ -155,6 +156,7 @@ impl Analyzer {
             dynamic_load_patterns: self.state.dynamic_load_patterns.clone(),
             detected_frameworks: self.state.detected_frameworks.clone(),
             presets: self.state.presets.clone(),
+            package_json_dirs: self.state.package_json_dirs.clone(),
         }
     }
 

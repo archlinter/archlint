@@ -1,6 +1,6 @@
 ---
 title: Violação de Abstração
-description: "Detecta módulos que são muito concretos e estáveis (difíceis de mudar) ou muito abstratos e instáveis (sobreengenharia), violando o Princípio de Abstrações Estáveis."
+description: 'Detecta módulos que são muito concretos e estáveis (difíceis de mudar) ou muito abstratos e instáveis (sobreengenharia), violando o Princípio de Abstrações Estáveis.'
 ---
 
 # Violação de Abstração (Abstractness Violation)

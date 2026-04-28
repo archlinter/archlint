@@ -109,6 +109,7 @@ dependencies = [
  "memchr",
  "mimalloc",
  "notify",
+ "once_cell",
  "oxc_allocator",
  "oxc_ast",
  "oxc_ast_visit",

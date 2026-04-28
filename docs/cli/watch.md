@@ -1,6 +1,6 @@
 ---
 title: watch
-description: "Run archlint in watch mode to automatically re-analyze your project whenever files change, providing continuous feedback."
+description: 'Run archlint in watch mode to automatically re-analyze your project whenever files change, providing continuous feedback.'
 ---
 
 # archlint watch

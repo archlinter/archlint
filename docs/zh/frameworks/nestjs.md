@@ -1,6 +1,6 @@
 ---
 title: NestJS 支持
-description: "针对 NestJS 模块化架构的专业分析，识别 @Module 装饰器、控制器、提供者和分层强制执行。"
+description: '针对 NestJS 模块化架构的专业分析，识别 @Module 装饰器、控制器、提供者和分层强制执行。'
 ---
 
 # NestJS 支持

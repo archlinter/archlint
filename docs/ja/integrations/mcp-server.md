@@ -1,6 +1,6 @@
 ---
 title: MCPサーバー
-description: "Model Context Protocol (MCP)を使用してarchlintをClaudeやCursorなどのAIコーディングアシスタントに接続し、AIを活用したアーキテクチャリファクタリングを実現します。"
+description: 'Model Context Protocol (MCP)を使用してarchlintをClaudeやCursorなどのAIコーディングアシスタントに接続し、AIを活用したアーキテクチャリファクタリングを実現します。'
 ---
 
 # MCPサーバー

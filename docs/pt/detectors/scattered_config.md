@@ -1,6 +1,6 @@
 ---
 title: Configuração Dispersa
-description: "Identifica configuração espalhada por muitos arquivos em vez de estar centralizada, tornando mais difícil gerenciar e entender."
+description: 'Identifica configuração espalhada por muitos arquivos em vez de estar centralizada, tornando mais difícil gerenciar e entender.'
 ---
 
 # Configuração Espalhada

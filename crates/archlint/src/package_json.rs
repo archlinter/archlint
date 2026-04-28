@@ -12,6 +12,7 @@ pub struct PackageJsonParser;
 pub struct PackageConfig {
     pub entry_points: HashSet<PathBuf>,
     pub dynamic_load_patterns: Vec<String>,
+    pub package_json_dirs: HashSet<PathBuf>,
 }
 
 impl PackageJsonParser {
@@ -20,6 +21,7 @@ impl PackageJsonParser {
         let mut config = PackageConfig {
             entry_points: HashSet::new(),
             dynamic_load_patterns: Vec::new(),
+            package_json_dirs: HashSet::new(),
         };
 
         let path_regex =
@@ -35,6 +37,9 @@ impl PackageJsonParser {
         for entry in walker.flatten() {
             let path = entry.path();
             if path.file_name().is_some_and(|n| n == "package.json") {
+                if let Some(dir) = path.parent() {
+                    config.package_json_dirs.insert(dir.to_path_buf());
+                }
                 let _ =
                     Self::process_package_json(path, root, &mut config, &path_regex, &glob_regex);
             }

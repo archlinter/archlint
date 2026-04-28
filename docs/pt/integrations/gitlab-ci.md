@@ -1,6 +1,6 @@
 ---
 title: GitLab CI
-description: "Imponha regras arquiteturais em seus Merge Requests do GitLab usando o archlint no seu pipeline de CI/CD."
+description: 'Imponha regras arquiteturais em seus Merge Requests do GitLab usando o archlint no seu pipeline de CI/CD.'
 ---
 
 # GitLab CI

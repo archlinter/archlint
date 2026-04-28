@@ -1,6 +1,6 @@
 ---
 title: Soporte para NestJS
-description: "Análisis especializado para la arquitectura modular de NestJS, reconociendo decoradores @Module, Controllers, Providers y aplicación de capas."
+description: 'Análisis especializado para la arquitectura modular de NestJS, reconociendo decoradores @Module, Controllers, Providers y aplicación de capas.'
 ---
 
 # Soporte para NestJS

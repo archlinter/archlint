@@ -1,6 +1,6 @@
 ---
 title: Cyclic Dependencies
-description: "Circular dependencies occur when two or more modules depend on each other, either directly or indirectly. This creates tight coupling and testing difficulties."
+description: 'Circular dependencies occur when two or more modules depend on each other, either directly or indirectly. This creates tight coupling and testing difficulties.'
 ---
 
 # Cyclic Dependencies

@@ -1,6 +1,6 @@
 ---
 title: Next.js 支持
-description: "理解 Next.js 基于文件的路由，将 pages/app 目录识别为入口点，并为常见模式放宽 barrel 文件规则。"
+description: '理解 Next.js 基于文件的路由，将 pages/app 目录识别为入口点，并为常见模式放宽 barrel 文件规则。'
 ---
 
 # Next.js 支持

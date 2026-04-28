@@ -1,6 +1,6 @@
 ---
 title: 框架预设
-description: "了解如何创建自定义的基于 YAML 的预设，以理解特定于框架的模式并减少 archlint 分析中的误报。"
+description: '了解如何创建自定义的基于 YAML 的预设，以理解特定于框架的模式并减少 archlint 分析中的误报。'
 ---
 
 # 框架预设

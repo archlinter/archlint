@@ -1,6 +1,6 @@
 ---
 title: NestJS Support
-description: "Specialized analysis for NestJS modular architecture, recognizing @Module decorators, Controllers, Providers, and layer enforcement."
+description: 'Specialized analysis for NestJS modular architecture, recognizing @Module decorators, Controllers, Providers, and layer enforcement.'
 ---
 
 # NestJS Support

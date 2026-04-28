@@ -1,6 +1,6 @@
 ---
 title: Deep Nesting
-description: "Identify code blocks nested too deeply, making code exponentially harder to read and indicating functions doing too much."
+description: 'Identify code blocks nested too deeply, making code exponentially harder to read and indicating functions doing too much.'
 ---
 
 # Deep Nesting

@@ -1,6 +1,6 @@
 ---
 title: Primeira Verificação
-description: "Aprenda como executar sua primeira verificação arquitetural com o archlint, interpretar resultados e configurar a ferramenta para o seu projeto."
+description: 'Aprenda como executar sua primeira verificação arquitetural com o archlint, interpretar resultados e configurar a ferramenta para o seu projeto.'
 ---
 
 # Primeira Verificação
