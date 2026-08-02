@@ -23,9 +23,7 @@ impl PackageUtils {
             let prefix = &pattern_str[..pattern_str.len() - 1];
             pkg.starts_with(prefix)
         } else if pattern_str.contains('*') {
-            glob::Pattern::new(pattern_str)
-                .map(|pattern| pattern.matches(pkg))
-                .unwrap_or(false)
+            glob::Pattern::new(pattern_str).is_ok_and(|pattern| pattern.matches(pkg))
         } else {
             pattern_str == pkg
         }

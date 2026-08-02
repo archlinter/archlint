@@ -52,15 +52,28 @@ fn resolve_complexity_rule(
     detector_id: &str,
     path: &Path,
 ) -> Option<ResolvedRuleConfig> {
-    if let Some(rule) = ctx.get_rule_for_file(detector_id, path) {
-        return Some(rule);
-    }
-
-    if detector_id == "cyclomatic_complexity" {
+    // `complexity` is the historical name of `cyclomatic_complexity`. It is consulted
+    // only when the modern name is configured nowhere — reaching for it whenever the
+    // modern rule resolves to None would resurrect, with default settings, exactly the
+    // files the user excluded or switched off.
+    if detector_id == "cyclomatic_complexity"
+        && !is_rule_configured(ctx, detector_id)
+        && is_rule_configured(ctx, "complexity")
+    {
         return ctx.get_rule_for_file("complexity", path);
     }
 
-    None
+    ctx.get_rule_for_file(detector_id, path)
+}
+
+/// Whether the config names this rule at all, at the top level or in an override.
+fn is_rule_configured(ctx: &AnalysisContext, rule_id: &str) -> bool {
+    ctx.config.rules.contains_key(rule_id)
+        || ctx
+            .config
+            .overrides
+            .iter()
+            .any(|over| over.rules.contains_key(rule_id))
 }
 
 fn get_complexity_threshold(rule: &ResolvedRuleConfig) -> usize {

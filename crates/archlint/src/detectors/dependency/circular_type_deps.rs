@@ -3,7 +3,7 @@ use crate::engine::AnalysisContext;
 use crate::parser::ImportedSymbol;
 use petgraph::graph::DiGraph;
 use std::collections::HashMap;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
 /// Initializes the detector module.
 /// This function is used for module registration side-effects.
@@ -34,7 +34,7 @@ impl CircularTypeDepsDetector {
 
             for import in &symbols.imports {
                 if import.is_type_only {
-                    if let Some(target_path) = self.resolve_import(import, path, ctx) {
+                    if let Some(target_path) = Self::resolve_type_import(import, ctx) {
                         let to_node = *path_to_node
                             .entry(target_path.clone())
                             .or_insert_with(|| type_graph.add_node(target_path));
@@ -81,52 +81,17 @@ impl CircularTypeDepsDetector {
             .unwrap_or(Severity::Low)
     }
 
-    fn resolve_import(
-        &self,
-        import: &ImportedSymbol,
-        from: &Path,
-        ctx: &AnalysisContext,
-    ) -> Option<PathBuf> {
-        let node_idx = ctx.graph.get_node(from)?;
-        for target_node in ctx.graph.dependencies(node_idx) {
-            if let Some(target_path) = ctx.graph.get_file_path(target_node) {
-                if self.path_matches_source(target_path, &import.source) {
-                    return Some(target_path.clone());
-                }
-            }
-        }
-        None
-    }
-
-    fn path_matches_source(&self, target_path: &Path, source: &str) -> bool {
-        let source_normalized = source.replace('\\', "/");
-        let source_parts: Vec<&str> = source_normalized
-            .split('/')
-            .filter(|s| !s.is_empty() && *s != "." && *s != "..")
-            .collect();
-
-        if source_parts.is_empty() {
-            return false;
-        }
-
-        let mut current_target = target_path;
-        for part in source_parts.iter().rev() {
-            let matches_part = match current_target.file_name().and_then(|n| n.to_str()) {
-                Some(file_name) => file_name == *part || file_name.starts_with(&format!("{part}.")),
-                None => false,
-            };
-
-            if !matches_part {
-                return false;
-            }
-
-            if let Some(parent) = current_target.parent() {
-                current_target = parent;
-            } else {
-                return source_parts.len() == 1 || *part == source_parts[0];
-            }
-        }
-        true
+    /// Resolves a type-only import to the project file it points at.
+    ///
+    /// Deliberately does not go through `ctx.graph`: the graph only holds files with
+    /// runtime code (see `AnalysisEngine::get_runtime_files`), and a cycle between
+    /// pure type declarations — the case this detector exists for — has no such file
+    /// on either end. `import.source` is already an absolute path by this point
+    /// (`EngineBuilder::resolve_symbols`); imports that failed to resolve keep their
+    /// raw specifier and simply are not known project files.
+    fn resolve_type_import(import: &ImportedSymbol, ctx: &AnalysisContext) -> Option<PathBuf> {
+        let target = PathBuf::from(import.source.as_str());
+        ctx.file_symbols.contains_key(&target).then_some(target)
     }
 }
 

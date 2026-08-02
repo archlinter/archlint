@@ -10,12 +10,102 @@ pub const fn init() {}
 
 #[detector(SmellType::DeadCode)]
 pub struct DeadCodeDetector {
-    entry_patterns: Vec<String>,
+    compiled_entry_patterns: Vec<glob::Pattern>,
     explicit_entry_points: HashSet<PathBuf>,
     dynamic_load_patterns: Vec<String>,
     exclude: Vec<String>,
     compiled_exclude: Vec<glob::Pattern>,
     project_root: PathBuf,
+}
+
+/// Maps import/re-export specifiers to the files that use them.
+///
+/// Specifiers are resolved to absolute paths earlier in the pipeline, so the common
+/// case is an exact path key. Specifiers that failed to resolve — unconfigured aliases,
+/// virtual modules — keep their raw form and are indexed by their trailing segment
+/// instead. That fallback is deliberately lenient: without it, a project whose aliases
+/// archlint cannot resolve would light up with false dead-code reports. It applies
+/// *only* to unresolved specifiers, so two files that merely share a basename no longer
+/// keep each other alive.
+#[derive(Default)]
+struct SourceIndex {
+    by_key: HashMap<String, HashSet<PathBuf>>,
+}
+
+impl SourceIndex {
+    fn insert(&mut self, source: &str, user: &Path) {
+        self.by_key
+            .entry(Self::key_for_source(source))
+            .or_default()
+            .insert(user.to_path_buf());
+    }
+
+    fn key_for_source(source: &str) -> String {
+        let normalised = source.replace('\\', "/");
+        if Path::new(&normalised).is_absolute() {
+            return normalised;
+        }
+        normalised
+            .rsplit('/')
+            .next()
+            .unwrap_or(&normalised)
+            .to_string()
+    }
+
+    /// Keys a target file can be referenced by: its full path (resolved specifiers),
+    /// its name, and its name without extension (extension-less specifiers).
+    fn lookup_keys(target: &Path) -> Vec<String> {
+        let mut keys = Vec::with_capacity(3);
+        keys.push(target.to_string_lossy().replace('\\', "/"));
+
+        if let Some(file_name) = target.file_name().and_then(|name| name.to_str()) {
+            keys.push(file_name.to_string());
+            if let Some((base, _)) = file_name.rsplit_once('.') {
+                keys.push(base.to_string());
+            }
+        }
+
+        keys
+    }
+
+    fn users(&self, target: &Path) -> impl Iterator<Item = &PathBuf> {
+        Self::lookup_keys(target)
+            .into_iter()
+            .filter_map(|key| self.by_key.get(&key))
+            .flatten()
+    }
+
+    fn is_used(&self, target: &Path) -> bool {
+        self.users(target).next().is_some()
+    }
+}
+
+/// Project-wide usage facts, gathered in a single pass.
+///
+/// Every lookup here used to be a scan over all files, performed once per candidate
+/// file — which made whole-project dead-code analysis grow cubically.
+#[derive(Default)]
+struct UsageIndex {
+    /// Files imported with a `default` or namespace (`*`) binding.
+    default_imports: SourceIndex,
+    /// Files pulled in by an `export … from` somewhere.
+    reexports: SourceIndex,
+    /// Every identifier referenced from a non-excluded file.
+    local_usages: HashSet<String>,
+}
+
+/// Compiles glob patterns, skipping (and reporting) the ones that do not parse.
+fn compile_patterns(patterns: &[String], kind: &str) -> Vec<glob::Pattern> {
+    patterns
+        .iter()
+        .filter_map(|pattern| match glob::Pattern::new(pattern) {
+            Ok(compiled) => Some(compiled),
+            Err(e) => {
+                log::warn!("Invalid {kind} pattern '{pattern}': {e}");
+                None
+            }
+        })
+        .collect()
 }
 
 impl Detector for DeadCodeDetector {
@@ -104,9 +194,9 @@ impl Detector for DeadCodeDetector {
         );
 
         let symbol_imports = detector.build_symbol_imports_map(ctx.file_symbols.as_ref());
-        let reexport_map = detector.build_reexport_map(ctx.file_symbols.as_ref());
+        let usage_index = detector.build_usage_index(ctx.file_symbols.as_ref());
 
-        let dead_files = detector.find_dead_files(ctx, &symbol_imports, &reexport_map);
+        let dead_files = detector.find_dead_files(ctx, &symbol_imports, &usage_index);
 
         dead_files
             .into_iter()
@@ -145,40 +235,45 @@ impl DeadCodeDetector {
         symbol_imports
     }
 
-    fn build_reexport_map(
+    /// Gathers, in one pass, everything `is_dead_file` needs to know about the project.
+    fn build_usage_index(
         &self,
         file_symbols: &HashMap<PathBuf, crate::parser::FileSymbols>,
-    ) -> HashMap<PathBuf, HashSet<PathBuf>> {
-        let mut reexport_map: HashMap<PathBuf, HashSet<PathBuf>> = HashMap::new();
+    ) -> UsageIndex {
+        let mut index = UsageIndex::default();
 
-        for (importer_path, symbols) in file_symbols {
-            if self.is_path_excluded(importer_path) {
+        for (user_path, symbols) in file_symbols {
+            if self.is_path_excluded(user_path) {
                 continue;
             }
 
-            symbols
-                .exports
-                .iter()
-                .filter(|e| e.is_reexport)
-                .filter_map(|e| e.source.as_ref())
-                .map(PathBuf::from)
-                .filter(|reexported_file| file_symbols.contains_key(reexported_file))
-                .for_each(|reexported_file| {
-                    reexport_map
-                        .entry(reexported_file)
-                        .or_default()
-                        .insert(importer_path.clone());
-                });
+            for import in &symbols.imports {
+                if import.name == "default" || import.name == "*" {
+                    index.default_imports.insert(&import.source, user_path);
+                }
+            }
+
+            for export in &symbols.exports {
+                if export.is_reexport {
+                    if let Some(source) = export.source.as_ref() {
+                        index.reexports.insert(source, user_path);
+                    }
+                }
+            }
+
+            index
+                .local_usages
+                .extend(symbols.local_usages.iter().map(ToString::to_string));
         }
 
-        reexport_map
+        index
     }
 
     fn find_dead_files(
         &self,
         ctx: &AnalysisContext,
         symbol_imports: &HashMap<(PathBuf, String), HashSet<PathBuf>>,
-        reexport_map: &HashMap<PathBuf, HashSet<PathBuf>>,
+        usage_index: &UsageIndex,
     ) -> Vec<PathBuf> {
         let mut dead_files = Vec::new();
 
@@ -187,12 +282,7 @@ impl DeadCodeDetector {
                 if self.is_path_excluded(path) {
                     continue;
                 }
-                if self.is_dead_file(
-                    path,
-                    ctx.file_symbols.as_ref(),
-                    symbol_imports,
-                    reexport_map,
-                ) {
+                if self.is_dead_file(path, ctx.file_symbols.as_ref(), symbol_imports, usage_index) {
                     dead_files.push(path.clone());
                 }
             }
@@ -206,14 +296,14 @@ impl DeadCodeDetector {
         path: &Path,
         file_symbols: &HashMap<PathBuf, crate::parser::FileSymbols>,
         symbol_imports: &HashMap<(PathBuf, String), HashSet<PathBuf>>,
-        reexport_map: &HashMap<PathBuf, HashSet<PathBuf>>,
+        usage_index: &UsageIndex,
     ) -> bool {
         // We ignore fan_in from the graph because we've built our own symbol_imports map
         // that respects the detector-specific exclude patterns.
         !self.is_entry_point(path)
             && !self.matches_dynamic_load_pattern(path)
-            && !self.has_used_exports(path, file_symbols, symbol_imports)
-            && !self.is_reexported(path, file_symbols, reexport_map)
+            && !Self::has_used_exports(path, file_symbols, symbol_imports, usage_index)
+            && !usage_index.reexports.is_used(path)
     }
 
     #[must_use]
@@ -269,22 +359,22 @@ impl DeadCodeDetector {
 
         patterns.extend(config.entry_points.clone());
 
-        let mut compiled_exclude = Vec::with_capacity(exclude.len());
-        for pattern_str in exclude {
-            match glob::Pattern::new(pattern_str) {
-                Ok(p) => compiled_exclude.push(p),
-                Err(e) => log::warn!("Invalid exclude pattern '{pattern_str}': {e}"),
-            }
-        }
-
         Self {
-            entry_patterns: patterns,
+            compiled_entry_patterns: compile_patterns(&patterns, "entry point"),
             explicit_entry_points,
             dynamic_load_patterns,
             exclude: exclude.to_vec(),
-            compiled_exclude,
+            compiled_exclude: compile_patterns(exclude, "exclude"),
             project_root,
         }
+    }
+
+    /// Project-relative, forward-slashed path — the form all glob patterns match against.
+    fn relative_to_root(&self, path: &Path) -> String {
+        path.strip_prefix(&self.project_root)
+            .unwrap_or(path)
+            .to_string_lossy()
+            .replace('\\', "/")
     }
 
     fn is_path_excluded(&self, path: &Path) -> bool {
@@ -292,11 +382,7 @@ impl DeadCodeDetector {
             return false;
         }
 
-        let relative_path = path
-            .strip_prefix(&self.project_root)
-            .unwrap_or(path)
-            .to_string_lossy()
-            .replace('\\', "/");
+        let relative_path = self.relative_to_root(path);
 
         for pattern in &self.compiled_exclude {
             if pattern.matches(&relative_path) {
@@ -308,23 +394,19 @@ impl DeadCodeDetector {
     }
 
     fn has_used_exports(
-        &self,
         path: &Path,
         file_symbols: &HashMap<PathBuf, crate::parser::FileSymbols>,
         symbol_imports: &HashMap<(PathBuf, String), HashSet<PathBuf>>,
+        usage_index: &UsageIndex,
     ) -> bool {
         let symbols = match file_symbols.get(path) {
             Some(s) => s,
             _ => return false,
         };
 
-        let path_str = path.to_string_lossy();
-        let file_name = path.file_name().and_then(|n| n.to_str()).unwrap_or("");
-
         Self::check_named_exports(symbols, path, symbol_imports)
-            || self.check_default_imports(file_symbols, &path_str, file_name)
-            || self.check_reexports(file_symbols, &path_str, file_name)
-            || self.check_local_usages(symbols, file_symbols)
+            || usage_index.default_imports.is_used(path)
+            || Self::check_local_usages(symbols, &usage_index.local_usages)
     }
 
     fn check_named_exports(
@@ -347,175 +429,16 @@ impl DeadCodeDetector {
         false
     }
 
-    fn check_default_imports(
-        &self,
-        file_symbols: &HashMap<PathBuf, crate::parser::FileSymbols>,
-        path_str: &str,
-        file_name: &str,
-    ) -> bool {
-        file_symbols.iter().any(|(importer_path, fs)| {
-            if self.is_path_excluded(importer_path) {
-                return false;
-            }
-            fs.imports.iter().any(|import| {
-                (import.name == "default" || import.name == "*")
-                    && Self::matches_source(&import.source, path_str, file_name)
-            })
-        })
-    }
-
-    fn check_reexports(
-        &self,
-        file_symbols: &HashMap<PathBuf, crate::parser::FileSymbols>,
-        path_str: &str,
-        file_name: &str,
-    ) -> bool {
-        file_symbols
-            .iter()
-            .any(|(importer_path, reexporter_symbols)| {
-                if self.is_path_excluded(importer_path) {
-                    return false;
-                }
-                reexporter_symbols.exports.iter().any(|export| {
-                    export.is_reexport
-                        && export
-                            .source
-                            .as_ref()
-                            .is_some_and(|source| Self::matches_source(source, path_str, file_name))
-                })
-            })
-    }
-
-    fn matches_source(source: &str, path_str: &str, file_name: &str) -> bool {
-        if source == path_str || source.ends_with(file_name) {
-            return true;
-        }
-
-        // Handle extension-less imports (e.g. import './foo' for foo.ts)
-        if let Some(dot_pos) = file_name.rfind('.') {
-            let base = &file_name[..dot_pos];
-            if source == base
-                || source.ends_with(&format!("/{base}"))
-                || source.ends_with(&format!("\\{base}"))
-            {
-                return true;
-            }
-        }
-
-        false
-    }
-
     fn check_local_usages(
-        &self,
         symbols: &crate::parser::FileSymbols,
-        file_symbols: &HashMap<PathBuf, crate::parser::FileSymbols>,
-    ) -> bool {
-        for export in &symbols.exports {
-            if !export.is_reexport
-                && export.name != "default"
-                && export.name != "*"
-                && file_symbols.iter().any(|(importer_path, fs)| {
-                    if self.is_path_excluded(importer_path) {
-                        return false;
-                    }
-                    fs.local_usages.contains(&export.name)
-                })
-            {
-                return true;
-            }
-        }
-        false
-    }
-
-    fn is_reexported(
-        &self,
-        path: &Path,
-        file_symbols: &HashMap<PathBuf, crate::parser::FileSymbols>,
-        reexport_map: &HashMap<PathBuf, HashSet<PathBuf>>,
-    ) -> bool {
-        let path_buf = path.to_path_buf();
-        let path_str = path.to_string_lossy();
-        let file_name = path.file_name().and_then(|n| n.to_str()).unwrap_or("");
-
-        self.check_reexport_map(&path_buf, file_symbols, reexport_map)
-            || self.check_direct_reexports(file_symbols, &path_str, file_name)
-    }
-
-    fn check_reexport_map(
-        &self,
-        path_buf: &PathBuf,
-        file_symbols: &HashMap<PathBuf, crate::parser::FileSymbols>,
-        reexport_map: &HashMap<PathBuf, HashSet<PathBuf>>,
-    ) -> bool {
-        if let Some(reexporters) = reexport_map.get(path_buf) {
-            for reexporter in reexporters {
-                if self.is_entry_point(reexporter) {
-                    return true;
-                }
-
-                if self.is_reexporter_imported(file_symbols, reexporter) {
-                    return true;
-                }
-            }
-        }
-        false
-    }
-
-    fn is_reexporter_imported(
-        &self,
-        file_symbols: &HashMap<PathBuf, crate::parser::FileSymbols>,
-        reexporter: &Path,
-    ) -> bool {
-        let reexporter_str = reexporter.to_string_lossy();
-        let reexporter_file_name = reexporter
-            .file_name()
-            .and_then(|n| n.to_str())
-            .unwrap_or("");
-
-        file_symbols.iter().any(|(importer_path, fs)| {
-            if self.is_path_excluded(importer_path) {
-                return false;
-            }
-            fs.imports.iter().any(|import| {
-                Self::matches_source(&import.source, &reexporter_str, reexporter_file_name)
-            })
-        })
-    }
-
-    fn check_direct_reexports(
-        &self,
-        file_symbols: &HashMap<PathBuf, crate::parser::FileSymbols>,
-        path_str: &str,
-        file_name: &str,
-    ) -> bool {
-        file_symbols
-            .iter()
-            .filter(|(reexporter_path, _)| self.is_reexporter_used(file_symbols, reexporter_path))
-            .any(|(_, symbols)| Self::has_reexport_to_path(symbols, path_str, file_name))
-    }
-
-    fn has_reexport_to_path(
-        symbols: &crate::parser::FileSymbols,
-        path_str: &str,
-        file_name: &str,
+        local_usages: &HashSet<String>,
     ) -> bool {
         symbols.exports.iter().any(|export| {
-            export.is_reexport
-                && export
-                    .source
-                    .as_ref()
-                    .is_some_and(|source| Self::matches_source(source, path_str, file_name))
+            !export.is_reexport
+                && export.name != "default"
+                && export.name != "*"
+                && local_usages.contains(export.name.as_str())
         })
-    }
-
-    fn is_reexporter_used(
-        &self,
-        file_symbols: &HashMap<PathBuf, crate::parser::FileSymbols>,
-        reexporter_path: &Path,
-    ) -> bool {
-        !self.is_path_excluded(reexporter_path)
-            && (self.is_entry_point(reexporter_path)
-                || self.is_reexporter_imported(file_symbols, reexporter_path))
     }
 
     fn matches_dynamic_load_pattern(&self, path: &Path) -> bool {
@@ -550,25 +473,15 @@ impl DeadCodeDetector {
             return true;
         }
 
-        let path_str = path.to_string_lossy();
+        let relative_path = self.relative_to_root(path);
         let file_name = path.file_name().and_then(|s| s.to_str()).unwrap_or("");
 
-        for pattern in &self.entry_patterns {
-            if let Some(suffix) = pattern.strip_prefix('*') {
-                if file_name.ends_with(suffix) {
-                    return true;
-                }
-            } else if pattern.contains('*') {
-                let parts: Vec<&str> = pattern.split('*').collect();
-                if parts.iter().all(|part| path_str.contains(part)) {
-                    return true;
-                }
-            } else if file_name == pattern || path_str.ends_with(pattern) {
-                return true;
-            }
-        }
-
-        false
+        // Matched against both forms so path-shaped patterns (`**/bin/**`, `src/main.ts`)
+        // and bare-name patterns (`*.module.ts`, `index.ts`) both work — a glob `*` does
+        // not cross directory separators, so neither form alone covers the other.
+        self.compiled_entry_patterns
+            .iter()
+            .any(|pattern| pattern.matches(&relative_path) || pattern.matches(file_name))
     }
 }
 

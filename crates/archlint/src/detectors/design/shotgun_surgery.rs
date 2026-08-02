@@ -23,10 +23,16 @@ impl ShotgunSurgeryDetector {
         Self
     }
 
+    /// Collects the files touched by `commit`, as absolute paths.
+    ///
+    /// git reports paths relative to the repository root; every other map in the
+    /// analysis context is keyed by absolute path, so they are joined onto `workdir`
+    /// here (same convention as `GitHistoryCache::get_churn_map`).
     fn get_changed_files(
         &self,
         repo: &Repository,
         commit: &Commit,
+        workdir: &Path,
     ) -> Result<HashSet<PathBuf>, git2::Error> {
         let mut changed = HashSet::new();
         let tree = commit.tree()?;
@@ -40,7 +46,7 @@ impl ShotgunSurgeryDetector {
         diff.foreach(
             &mut |delta, _| {
                 if let Some(path) = delta.new_file().path() {
-                    changed.insert(path.to_path_buf());
+                    changed.insert(workdir.join(path));
                 }
                 true
             },
@@ -76,12 +82,19 @@ impl ShotgunSurgeryDetector {
             return Ok(HashMap::new());
         }
 
+        // Canonicalised so the joined paths line up with `ctx.file_symbols`, whose
+        // keys come from a canonicalised project root.
+        let workdir = repo.workdir().map_or_else(
+            || ctx.project_path.clone(),
+            |dir| dir.canonicalize().unwrap_or_else(|_| dir.to_path_buf()),
+        );
+
         let mut stats: HashMap<PathBuf, CoChangeStats> = HashMap::new();
 
         for oid in revwalk.take(lookback) {
             let oid = oid?;
             let commit = repo.find_commit(oid)?;
-            self.process_commit(&repo, &commit, &mut stats)?;
+            self.process_commit(&repo, &commit, &workdir, &mut stats)?;
         }
 
         Ok(stats)
@@ -91,9 +104,10 @@ impl ShotgunSurgeryDetector {
         &self,
         repo: &Repository,
         commit: &Commit,
+        workdir: &Path,
         stats: &mut HashMap<PathBuf, CoChangeStats>,
     ) -> Result<(), git2::Error> {
-        let changed_files = self.get_changed_files(repo, commit)?;
+        let changed_files = self.get_changed_files(repo, commit, workdir)?;
         let source_files: HashSet<PathBuf> = changed_files
             .into_iter()
             .filter(|p| self.is_source_code(p))

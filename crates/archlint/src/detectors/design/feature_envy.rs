@@ -74,7 +74,14 @@ impl FeatureEnvyDetector {
         path: &Path,
         source_usages: HashMap<String, usize>,
     ) -> Option<PathBuf> {
-        let (most_envied_source, _) = source_usages.into_iter().max_by_key(|&(_, count)| count)?;
+        // Ties are broken by source path so the winner does not depend on HashMap
+        // iteration order — the module ends up in the smell ID, which must be stable.
+        let (most_envied_source, _) =
+            source_usages
+                .into_iter()
+                .max_by(|(a_source, a_count), (b_source, b_count)| {
+                    a_count.cmp(b_count).then_with(|| b_source.cmp(a_source))
+                })?;
 
         if most_envied_source.starts_with('.') {
             let mut p = path.parent()?.to_path_buf();
@@ -129,5 +136,47 @@ impl Detector for FeatureEnvyDetector {
                 Some(smell)
             })
             .collect()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn tied_usages() -> HashMap<String, usize> {
+        let mut usages = HashMap::new();
+        usages.insert("/project/src/alpha.ts".to_string(), 2);
+        usages.insert("/project/src/beta.ts".to_string(), 2);
+        usages.insert("/project/src/gamma.ts".to_string(), 2);
+        usages
+    }
+
+    #[test]
+    fn test_most_envied_path_is_stable_when_counts_tie() {
+        let file = Path::new("/project/src/consumer.ts");
+        let expected = FeatureEnvyDetector::find_most_envied_path(file, tied_usages());
+        assert!(expected.is_some());
+
+        // Every HashMap gets its own hash seed, so a tie resolved by iteration
+        // order picks a different module on roughly every construction.
+        for _ in 0..200 {
+            assert_eq!(
+                FeatureEnvyDetector::find_most_envied_path(file, tied_usages()),
+                expected,
+                "tied envy counts must resolve to the same module, otherwise the smell ID flips between runs"
+            );
+        }
+    }
+
+    #[test]
+    fn test_most_envied_path_prefers_the_highest_count() {
+        let file = Path::new("/project/src/consumer.ts");
+        let mut usages = tied_usages();
+        usages.insert("/project/src/zeta.ts".to_string(), 5);
+
+        assert_eq!(
+            FeatureEnvyDetector::find_most_envied_path(file, usages),
+            Some(PathBuf::from("/project/src/zeta.ts"))
+        );
     }
 }
