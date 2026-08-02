@@ -321,7 +321,7 @@ pub fn detect_clusters(
     max_bucket_size: usize,
 ) -> Vec<Cluster> {
     let mut window_entries: Vec<WindowEntry> = window_map.into_iter().collect();
-    window_entries.sort_by(|a, b| a.0.cmp(&b.0));
+    window_entries.sort_by_key(|entry| entry.0);
 
     for entry in &mut window_entries {
         entry.1.sort();
