@@ -185,7 +185,10 @@ fn id_for_package_cycle(packages: &[String]) -> String {
     let mut sorted: Vec<&str> = packages.iter().map(String::as_str).collect();
     sorted.sort_unstable();
 
-    format!("packagecycle:{}", short_hash(&sorted.join("|")))
+    // NUL separates the names because it is the one byte a path component cannot
+    // contain; a printable delimiter would let `["a|b", "c"]` and `["a", "b|c"]`
+    // hash to the same ID.
+    format!("packagecycle:{}", short_hash(&sorted.join("\0")))
 }
 
 fn id_for_symbol_smell(
@@ -242,6 +245,20 @@ mod tests {
             generate_smell_id(&cycle_a, root),
             generate_smell_id(&cycle_b, root),
             "distinct package cycles must not share a snapshot ID"
+        );
+    }
+
+    #[test]
+    fn test_package_cycle_id_is_unambiguous_about_name_boundaries() {
+        let root = Path::new("/project");
+
+        let first = ArchSmell::new_package_cycle(vec!["a|b".to_string(), "c".to_string()]);
+        let second = ArchSmell::new_package_cycle(vec!["a".to_string(), "b|c".to_string()]);
+
+        assert_ne!(
+            generate_smell_id(&first, root),
+            generate_smell_id(&second, root),
+            "package names must not run together when they are hashed"
         );
     }
 

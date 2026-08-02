@@ -78,6 +78,24 @@ fn complex_function() -> String {
 }
 
 #[test]
+fn test_cyclomatic_complexity_reports_the_fixture_by_default() {
+    // Positive control for the three tests below: they all assert an absence, so
+    // without this one they would keep passing if the detector stopped reporting.
+    let (_dir, project_path) = project_with(&[
+        ("src/legacy/big.ts", &complex_function()),
+        (
+            ".archlint.yaml",
+            "rules:\n  cyclomatic_complexity:\n    enabled: true\n",
+        ),
+    ]);
+
+    assert!(
+        has_smell(&project_path, "high_cyclomatic_complexity"),
+        "the fixture must be reported when nothing silences it"
+    );
+}
+
+#[test]
 fn test_cyclomatic_complexity_honours_rule_exclude() {
     let (_dir, project_path) = project_with(&[
         ("src/legacy/big.ts", &complex_function()),
@@ -190,14 +208,22 @@ fn test_dead_code_is_not_masked_by_a_same_named_file_elsewhere() {
 
 #[test]
 fn test_unresolved_import_still_keeps_a_file_alive() {
-    // The alias cannot be resolved, so the specifier keeps its raw form. Falling back
-    // to the trailing segment is what stops unresolvable imports from producing a wave
-    // of false dead-code reports.
+    // The alias cannot be resolved, so the specifier keeps its raw form and only its
+    // trailing segment is left to match on.
+    //
+    // The file is deliberately kept alive by nothing else: it has a default export, so
+    // there is no export name for an identifier match to latch onto, and the local
+    // binding in main.ts is named differently again. Matching the specifier's trailing
+    // segment against the file name is the only thing standing between an unresolvable
+    // alias and a false dead-code report.
     let (_dir, project_path) = project_with(&[
-        ("src/lib/widget.ts", "export const widget = 1;\n"),
+        (
+            "src/lib/widget.ts",
+            "export default function buildWidget(): number { return 1; }\n",
+        ),
         (
             "src/main.ts",
-            "import { widget } from '@unresolvable/widget';\nconsole.log(widget);\n",
+            "import renderer from '@unresolvable/widget';\nconsole.log(renderer());\n",
         ),
     ]);
 
