@@ -18,9 +18,16 @@ pub fn generate_smell_id(smell: &ArchSmell, project_root: &Path) -> String {
             )
         }
 
-        SmellType::LayerViolation { to_layer, .. } => {
-            id_for_layer_violation(&smell.files[0], to_layer, project_root)
-        }
+        SmellType::LayerViolation { to_layer, .. } => with_line_hash_fallback(smell, |line| {
+            id_for_layer_violation(&smell.files[0], to_layer, line, project_root)
+        }),
+
+        SmellType::SdpViolation => with_line_hash_fallback(smell, |line| {
+            let relative = relative_path(&smell.files[0], project_root);
+            format!("sdp:{relative}:{line}")
+        }),
+
+        SmellType::PackageCycle { packages } => id_for_package_cycle(packages),
 
         SmellType::DeadSymbol { name, .. } => with_line_hash_fallback(smell, |line| {
             id_for_symbol_smell("dead", &smell.files[0], name, line, project_root)
@@ -156,9 +163,29 @@ fn id_for_file_smell(file: &Path, prefix: &str, project_root: &Path) -> String {
     format!("{}:{}", prefix.to_lowercase(), relative)
 }
 
-fn id_for_layer_violation(from_file: &Path, to_layer: &str, project_root: &Path) -> String {
+/// Builds the ID for a layer violation.
+///
+/// The import line disambiguates several illegal imports that go from the same
+/// file into the same layer — without it they would all collapse onto one ID.
+fn id_for_layer_violation(
+    from_file: &Path,
+    to_layer: &str,
+    line: usize,
+    project_root: &Path,
+) -> String {
     let relative = relative_path(from_file, project_root);
-    format!("layer:{relative}:{to_layer}")
+    format!("layer:{relative}:{to_layer}:{line}")
+}
+
+/// Builds the ID for a package-level cycle.
+///
+/// Package cycles carry no files, so the identity comes from the participating
+/// package names. They are sorted because a cycle may be enumerated from any node.
+fn id_for_package_cycle(packages: &[String]) -> String {
+    let mut sorted: Vec<&str> = packages.iter().map(String::as_str).collect();
+    sorted.sort_unstable();
+
+    format!("packagecycle:{}", short_hash(&sorted.join("|")))
 }
 
 fn id_for_symbol_smell(
@@ -203,6 +230,92 @@ fn short_hash(content: &str) -> String {
 mod tests {
     use super::*;
     use std::path::PathBuf;
+
+    #[test]
+    fn test_package_cycle_ids_differ_between_distinct_cycles() {
+        let root = Path::new("/project");
+
+        let cycle_a = ArchSmell::new_package_cycle(vec!["pa".to_string(), "pb".to_string()]);
+        let cycle_b = ArchSmell::new_package_cycle(vec!["pc".to_string(), "pd".to_string()]);
+
+        assert_ne!(
+            generate_smell_id(&cycle_a, root),
+            generate_smell_id(&cycle_b, root),
+            "distinct package cycles must not share a snapshot ID"
+        );
+    }
+
+    #[test]
+    fn test_package_cycle_id_is_order_independent() {
+        let root = Path::new("/project");
+
+        let forward = ArchSmell::new_package_cycle(vec!["pa".to_string(), "pb".to_string()]);
+        let reversed = ArchSmell::new_package_cycle(vec!["pb".to_string(), "pa".to_string()]);
+
+        assert_eq!(
+            generate_smell_id(&forward, root),
+            generate_smell_id(&reversed, root),
+            "a cycle enumerated from a different node is the same cycle"
+        );
+    }
+
+    #[test]
+    fn test_layer_violation_ids_differ_per_offending_import() {
+        let root = Path::new("/project");
+        let from = PathBuf::from("/project/src/domain/user.ts");
+
+        let first = ArchSmell::new_layer_violation(
+            from.clone(),
+            PathBuf::from("/project/src/infra/db.ts"),
+            "domain".to_string(),
+            "infra".to_string(),
+            1,
+            None,
+        );
+        let second = ArchSmell::new_layer_violation(
+            from,
+            PathBuf::from("/project/src/infra/http.ts"),
+            "domain".to_string(),
+            "infra".to_string(),
+            2,
+            None,
+        );
+
+        assert_ne!(
+            generate_smell_id(&first, root),
+            generate_smell_id(&second, root),
+            "two illegal imports into the same layer must not share a snapshot ID"
+        );
+    }
+
+    #[test]
+    fn test_sdp_violation_ids_differ_per_offending_import() {
+        let root = Path::new("/project");
+        let from = PathBuf::from("/project/src/core/service.ts");
+
+        let first = ArchSmell::new_sdp_violation(
+            from.clone(),
+            PathBuf::from("/project/src/util/a.ts"),
+            0.1,
+            0.9,
+            3,
+            None,
+        );
+        let second = ArchSmell::new_sdp_violation(
+            from,
+            PathBuf::from("/project/src/util/b.ts"),
+            0.1,
+            0.8,
+            4,
+            None,
+        );
+
+        assert_ne!(
+            generate_smell_id(&first, root),
+            generate_smell_id(&second, root),
+            "two SDP-violating imports from the same file must not share a snapshot ID"
+        );
+    }
 
     #[test]
     fn test_cycle_id_is_order_independent() {
