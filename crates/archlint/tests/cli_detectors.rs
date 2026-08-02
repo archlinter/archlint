@@ -125,6 +125,104 @@ fn test_legacy_complexity_rule_name_still_configures_the_detector() {
     );
 }
 
+#[test]
+fn test_entry_points_accept_globstar_patterns() {
+    let (_dir, project_path) = project_with(&[
+        (
+            "src/bin/tool.ts",
+            "export function runTool(): number { return 42; }\n",
+        ),
+        (".archlint.yaml", "entry_points: [\"**/bin/**\"]\n"),
+    ]);
+
+    assert!(
+        !has_smell(&project_path, "dead_code"),
+        "a file matched by an entry_points glob is not dead code"
+    );
+}
+
+#[test]
+fn test_entry_points_still_accept_suffix_patterns() {
+    let (_dir, project_path) = project_with(&[
+        (
+            "src/tool.handler.ts",
+            "export function runTool(): number { return 42; }\n",
+        ),
+        (".archlint.yaml", "entry_points: [\"*.handler.ts\"]\n"),
+    ]);
+
+    assert!(
+        !has_smell(&project_path, "dead_code"),
+        "suffix entry_points patterns must keep working"
+    );
+}
+
+#[test]
+fn test_dead_code_is_not_masked_by_a_same_named_file_elsewhere() {
+    // `src/b/helper.ts` is imported by nobody. Only `src/a/helper.ts` is used, and the
+    // two share a basename — which must not be enough to keep `b` alive.
+    let (_dir, project_path) = project_with(&[
+        (
+            "src/a/helper.ts",
+            "export default function alphaHelp(): number { return 1; }\n",
+        ),
+        (
+            "src/b/helper.ts",
+            "export default function betaHelp(): number { return 2; }\n",
+        ),
+        (
+            "src/main.ts",
+            "import alphaHelp from './a/helper';\nconsole.log(alphaHelp());\n",
+        ),
+    ]);
+
+    let dead: Vec<String> = scanned_smell_types(&project_path)
+        .into_iter()
+        .filter(|smell_type| smell_type.contains("dead_code"))
+        .collect();
+
+    assert_eq!(
+        dead.len(),
+        1,
+        "the unused file must be reported; got {dead:?}"
+    );
+}
+
+#[test]
+fn test_unresolved_import_still_keeps_a_file_alive() {
+    // The alias cannot be resolved, so the specifier keeps its raw form. Falling back
+    // to the trailing segment is what stops unresolvable imports from producing a wave
+    // of false dead-code reports.
+    let (_dir, project_path) = project_with(&[
+        ("src/lib/widget.ts", "export const widget = 1;\n"),
+        (
+            "src/main.ts",
+            "import { widget } from '@unresolvable/widget';\nconsole.log(widget);\n",
+        ),
+    ]);
+
+    assert!(
+        !has_smell(&project_path, "dead_code"),
+        "a file reachable only through an unresolved specifier must not be reported"
+    );
+}
+
+#[test]
+fn test_unmatched_file_is_still_dead_code() {
+    let (_dir, project_path) = project_with(&[
+        (
+            "src/lib/tool.ts",
+            "export function runTool(): number { return 42; }\n",
+        ),
+        (".archlint.yaml", "entry_points: [\"**/bin/**\"]\n"),
+    ]);
+
+    assert!(
+        has_smell(&project_path, "dead_code"),
+        "a file outside the entry_points globs is still dead code"
+    );
+}
+
 fn git(root: &Path, args: &[&str]) {
     let status = std::process::Command::new("git")
         .args(args)
