@@ -7,6 +7,14 @@ use std::collections::HashMap;
 /// Defines project settings, rules, and framework extensions.
 #[derive(Debug, Clone, Deserialize, Serialize, JsonSchema)]
 pub struct Config {
+    /// Files excluded from analysis, matched against paths relative to the project root.
+    ///
+    /// A plain path such as `legacy` or `src/legacy` matches that entry and everything
+    /// below it, at any depth; anything containing `*`, `?` or `[` is used as a glob.
+    /// Ignored files are still parsed so that imports resolve, but no smell is reported
+    /// for them and they do not count towards any detector threshold.
+    ///
+    /// Setting this key replaces the built-in test-file patterns rather than adding to them.
     #[serde(default = "default_ignore_patterns")]
     pub ignore: Vec<String>,
 

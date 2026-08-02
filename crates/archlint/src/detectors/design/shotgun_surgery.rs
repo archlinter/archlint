@@ -240,6 +240,7 @@ impl Detector for ShotgunSurgeryDetector {
                             *count >= min_frequency
                                 && self.is_source_code(p)
                                 && ctx.file_symbols.contains_key(p)
+                                && !ctx.is_ignored(p)
                         })
                         .collect();
 

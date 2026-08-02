@@ -53,6 +53,10 @@ impl Detector for ScatteredConfigDetector {
         let max_files: usize = rule.get_option("max_files").unwrap_or(3);
 
         for (path, symbols) in ctx.file_symbols.as_ref() {
+            if ctx.get_rule_for_file("scattered_config", path).is_none() {
+                continue;
+            }
+
             for var in &symbols.env_vars {
                 var_usage
                     .entry(var.to_string())

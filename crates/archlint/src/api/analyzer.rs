@@ -144,6 +144,10 @@ impl Analyzer {
     /// Create analysis context from current state
     fn create_analysis_context(&self) -> AnalysisContext {
         AnalysisContext {
+            ignored: crate::path_matcher::PathMatcher::from_config(
+                &self.config,
+                &self.project_root,
+            ),
             project_path: self.project_root.clone(),
             graph: Arc::clone(&self.state.graph),
             file_symbols: Arc::clone(&self.state.file_symbols),

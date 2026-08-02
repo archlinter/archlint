@@ -23,7 +23,7 @@ impl CircularTypeDepsDetector {
         let mut path_to_node = HashMap::new();
 
         for (path, symbols) in ctx.file_symbols.as_ref() {
-            let _rule = match ctx.get_rule_for_file("circular_type_deps", path) {
+            let _rule = match ctx.get_rule_for_file_keeping_ignored("circular_type_deps", path) {
                 Some(r) => r,
                 None => continue,
             };

@@ -18,8 +18,7 @@ pub fn tokenize_files(
     let mut file_tokens = FxHashMap::default();
 
     for path in ctx.file_metrics.keys() {
-        let rule = ctx.resolve_rule("code_clone", Some(path));
-        if !rule.enabled || ctx.is_excluded(path, &rule.exclude) {
+        if ctx.get_rule_for_file("code_clone", path).is_none() {
             continue;
         }
 

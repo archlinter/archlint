@@ -424,7 +424,8 @@ impl Detector for CycleDetector {
             .filter(|scc| {
                 !scc.iter().any(|&node| {
                     if let Some(path) = ctx.graph.get_file_path(node) {
-                        ctx.get_rule_for_file("cyclic_dependency", path).is_none()
+                        ctx.get_rule_for_file_keeping_ignored("cyclic_dependency", path)
+                            .is_none()
                     } else {
                         false
                     }
@@ -440,7 +441,9 @@ impl Detector for CycleDetector {
 
                 if let Some(node) = scc.first() {
                     if let Some(path) = ctx.graph.get_file_path(*node) {
-                        if let Some(rule) = ctx.get_rule_for_file("cyclic_dependency", path) {
+                        if let Some(rule) =
+                            ctx.get_rule_for_file_keeping_ignored("cyclic_dependency", path)
+                        {
                             smell.severity = rule.severity;
                         }
                     }

@@ -18,6 +18,7 @@ use crate::git_cache::GitHistoryCache;
 use crate::no_cli_mocks::console::{style, Term};
 use crate::package_json;
 use crate::parser::{FileIgnoredLines, ImportParser, ParsedFile, ParserConfig};
+use crate::path_matcher::PathMatcher;
 use crate::project_root::detect_project_root;
 use crate::report::{AnalysisReport, AnalysisReportBuilder};
 use crate::scanner::FileScanner;
@@ -27,7 +28,7 @@ use console::{style, Term};
 use log::{debug, info};
 use rayon::prelude::*;
 use std::collections::{HashMap, HashSet};
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use std::sync::Arc;
 
 type ParsedData = (
@@ -107,6 +108,7 @@ impl AnalysisEngine {
         let pkg_config = package_json::PackageJsonParser::parse(&self.project_root)?;
 
         let ctx = AnalysisContext {
+            ignored: PathMatcher::from_config(&final_config, &self.project_root),
             project_path: self.project_root.clone(),
             graph: Arc::new(graph),
             file_symbols: Arc::new(resolved_file_symbols),
@@ -148,6 +150,7 @@ impl AnalysisEngine {
             file_metrics,
             ignored_lines,
             churn_map,
+            ignored,
             ..
         } = ctx;
 
@@ -159,8 +162,7 @@ impl AnalysisEngine {
                     return false;
                 }
 
-                // Keep the smell if at least one of the files it's associated with is NOT ignored via config
-                smell.files.is_empty() || smell.files.iter().any(|f| !self.is_file_ignored(f))
+                !Self::is_smell_fully_ignored(smell, &ignored)
             })
             .collect();
 
@@ -335,18 +337,24 @@ impl AnalysisEngine {
         Ok(files)
     }
 
-    fn is_file_ignored(&self, path: &Path) -> bool {
-        if self.config.ignore.is_empty() {
+    /// Last line of defence for the global `ignore:` list.
+    ///
+    /// Detectors already skip ignored files, so this only catches smells whose
+    /// evidence turned out to be entirely within ignored paths — including
+    /// package-scoped smells that carry no `files` at all and are described
+    /// solely by their locations.
+    fn is_smell_fully_ignored(smell: &detectors::ArchSmell, ignored: &PathMatcher) -> bool {
+        if ignored.is_empty() {
             return false;
         }
-        let rel_path = path
-            .strip_prefix(&self.project_root)
-            .unwrap_or(path)
-            .to_string_lossy();
-        self.config
-            .ignore
+
+        let mut evidence = smell
+            .files
             .iter()
-            .any(|p| glob::Pattern::new(p).is_ok_and(|pattern| pattern.matches(&rel_path)))
+            .chain(smell.locations.iter().map(|loc| &loc.file))
+            .peekable();
+
+        evidence.peek().is_some() && evidence.all(|file| ignored.matches(file))
     }
 
     #[must_use]

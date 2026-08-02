@@ -55,6 +55,10 @@ impl PackageCycleDetector {
         let from_path = ctx.graph.get_file_path(from_idx)?;
         let to_path = ctx.graph.get_file_path(to_idx)?;
 
+        if ctx.is_ignored(from_path) || ctx.is_ignored(to_path) {
+            return None;
+        }
+
         let from_pkg = self.get_package_name(from_path, &ctx.project_path, package_depth);
         let to_pkg = self.get_package_name(to_path, &ctx.project_path, package_depth);
 

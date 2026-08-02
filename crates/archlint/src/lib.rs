@@ -24,6 +24,7 @@ pub mod metrics;
 pub mod no_cli_mocks;
 pub mod package_json;
 pub mod parser;
+pub mod path_matcher;
 pub mod project_root;
 pub mod report;
 pub mod resolver;

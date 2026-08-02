@@ -3,6 +3,7 @@ use crate::framework::presets::FrameworkPreset;
 use crate::framework::Framework;
 use crate::graph::DependencyGraph;
 use crate::parser::{FileIgnoredLines, FileSymbols, FunctionComplexity};
+use crate::path_matcher::PathMatcher;
 use crate::rule_resolver::ResolvedRuleConfig;
 use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
@@ -34,6 +35,8 @@ pub struct AnalysisContext {
     pub churn_map: HashMap<PathBuf, usize>,
     /// Global configuration for the analysis.
     pub config: Config,
+    /// Compiled form of the global `ignore:` list from [`Self::config`].
+    pub ignored: PathMatcher,
     /// Set of entry points for script analysis.
     pub script_entry_points: HashSet<PathBuf>,
     /// Patterns used for identifying dynamic imports.
@@ -76,8 +79,37 @@ impl AnalysisContext {
         false
     }
 
+    /// Check if a path is covered by the global `ignore:` list.
+    #[must_use]
+    pub fn is_ignored(&self, path: &Path) -> bool {
+        self.ignored.matches(path)
+    }
+
+    /// Resolve the rule for `path`, treating globally ignored files as invisible.
+    ///
+    /// This is the gate detectors use to decide whether a file participates in
+    /// analysis at all, so ignored files never reach a threshold, a metric or a
+    /// reported location.
     #[must_use]
     pub fn get_rule_for_file(&self, detector_id: &str, path: &Path) -> Option<ResolvedRuleConfig> {
+        if self.is_ignored(path) {
+            return None;
+        }
+        self.get_rule_for_file_keeping_ignored(detector_id, path)
+    }
+
+    /// Same as [`Self::get_rule_for_file`], but keeps globally ignored files visible.
+    ///
+    /// Used by detectors whose smell is a topological fact about a group of files
+    /// (cycles): dropping one member turns the group into something that is not a
+    /// cycle at all. Such detectors report the whole group and rely on the report
+    /// filter to drop groups whose members are all ignored.
+    #[must_use]
+    pub fn get_rule_for_file_keeping_ignored(
+        &self,
+        detector_id: &str,
+        path: &Path,
+    ) -> Option<ResolvedRuleConfig> {
         let rule = self.resolve_rule(detector_id, Some(path));
         if !rule.enabled || self.is_excluded(path, &rule.exclude) {
             None
@@ -96,9 +128,14 @@ impl AnalysisContext {
         }
     }
 
+    /// Build an empty context for tests.
+    ///
+    /// The global ignore list starts empty; a test that sets `config.ignore` must
+    /// rebuild `ignored` from it (see [`PathMatcher::from_config`]).
     #[must_use]
     pub fn default_for_test() -> Self {
         Self {
+            ignored: PathMatcher::default(),
             project_path: PathBuf::new(),
             graph: Arc::new(DependencyGraph::new()),
             file_symbols: Arc::new(HashMap::new()),
@@ -154,5 +191,35 @@ mod tests {
         assert!(ctx.is_excluded(Path::new("src/main.test.rs"), &patterns));
         assert!(ctx.is_excluded(Path::new("some/path/ignored/file.rs"), &patterns));
         assert!(!ctx.is_excluded(Path::new("src/main.rs"), &patterns));
+    }
+
+    fn ctx_ignoring(patterns: &[&str]) -> AnalysisContext {
+        let mut ctx = AnalysisContext::default_for_test();
+        ctx.project_path = PathBuf::from("/proj");
+        ctx.config.ignore = patterns.iter().map(|p| (*p).to_string()).collect();
+        ctx.ignored = PathMatcher::from_config(&ctx.config, &ctx.project_path);
+        ctx
+    }
+
+    #[test]
+    fn test_ignored_files_have_no_rule() {
+        let ctx = ctx_ignoring(&["legacy"]);
+
+        assert!(ctx.is_ignored(Path::new("/proj/legacy/a.ts")));
+        assert!(ctx
+            .get_rule_for_file("large_file", Path::new("/proj/legacy/a.ts"))
+            .is_none());
+        assert!(ctx
+            .get_rule_for_file("large_file", Path::new("/proj/src/a.ts"))
+            .is_some());
+    }
+
+    #[test]
+    fn test_topological_detectors_still_see_ignored_files() {
+        let ctx = ctx_ignoring(&["legacy"]);
+
+        assert!(ctx
+            .get_rule_for_file_keeping_ignored("cyclic_dependency", Path::new("/proj/legacy/a.ts"))
+            .is_some());
     }
 }

@@ -9,7 +9,7 @@ archlint provides several ways to exclude files or directories from analysis.
 
 ## Global Ignore
 
-The `ignore` section at the root of `.archlint.yaml` specifies files that should be completely skipped by all detectors.
+The `ignore` section at the root of `.archlint.yaml` excludes files from analysis. Ignored files are still parsed, so imports through them keep resolving, but no smell is reported for them and they do not count towards any detector threshold (for example `min_dependents` or `max_files_per_package`).
 
 ```yaml
 ignore:
@@ -19,6 +19,14 @@ ignore:
   - '**/tmp/**'
   - '**/*.d.ts'
 ```
+
+Patterns are matched against paths relative to the project root:
+
+- A plain path — `legacy`, `src/legacy`, `generated.ts` — matches that entry and everything below it, at any depth.
+- A pattern containing `*`, `?` or `[` is used as a glob. Note that `*` also matches `/`, so `src/*.ts` covers `src/a/b/c.ts`.
+- Unusable patterns are reported as warnings and skipped; the remaining patterns still apply.
+
+Setting `ignore` **replaces** the built-in defaults (`**/*.test.ts`, `**/__tests__/**` and the other test-file patterns) instead of adding to them. Repeat the ones you need if you still want test files excluded.
 
 ## .gitignore Support
 
