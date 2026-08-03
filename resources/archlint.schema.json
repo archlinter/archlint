@@ -5,6 +5,7 @@
   "type": "object",
   "properties": {
     "ignore": {
+      "description": "Files excluded from analysis, matched against paths relative to the project root.\n\nA plain path such as `legacy` or `src/legacy` matches that entry and everything below it, at any depth; anything containing `*`, `?` or `[` is used as a glob. Patterns that cannot be used are reported as warnings and skipped.\n\nIgnored files are still parsed so that imports resolve, but no smell is reported for them and they do not count towards any detector threshold. Cycles are the one exception: a cycle is a fact about a group of files, so one that runs through both live and ignored files is still reported, with its ignored members listed. A cycle whose members are all ignored is not reported.\n\nSetting this key replaces the built-in test-file patterns rather than adding to them.",
       "default": [
         "**/*.test.ts",
         "**/*.test.js",

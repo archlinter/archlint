@@ -21,6 +21,10 @@ impl HubDependencyDetector {
         let mut package_usage: HashMap<String, HashSet<PathBuf>> = HashMap::new();
 
         for (file, symbols) in ctx.file_symbols.as_ref() {
+            if ctx.get_rule_for_file("hub_dependency", file).is_none() {
+                continue;
+            }
+
             for import in &symbols.imports {
                 if PackageUtils::is_external_package(&import.source) {
                     let package = PackageUtils::extract_package_name(&import.source);

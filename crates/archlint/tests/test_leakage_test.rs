@@ -1,8 +1,9 @@
 mod common;
 
+use archlint::config::Config;
 use archlint::detectors::test_leakage::TestLeakageDetector;
 use archlint::detectors::Detector;
-use common::analyze_fixture;
+use common::{analyze_fixture, analyze_fixture_with_config};
 
 #[test]
 fn test_leakage_detected() {
@@ -49,7 +50,13 @@ fn test_no_leakage() {
 
 #[test]
 fn test_test_to_test_ok() {
-    let ctx = analyze_fixture("test_leakage/test_to_test");
+    // Empty the global ignore list: it covers test files by default, which would make
+    // this pass without ever reaching the detector's own test-to-test guard.
+    let config = Config {
+        ignore: Vec::new(),
+        ..Default::default()
+    };
+    let ctx = analyze_fixture_with_config("test_leakage/test_to_test", config);
     let detector = TestLeakageDetector;
     let smells = detector.detect(&ctx);
 

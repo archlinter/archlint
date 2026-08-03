@@ -76,6 +76,7 @@ pub fn analyze_fixture_with_config(name: &str, config: Config) -> AnalysisContex
         });
 
     AnalysisContext {
+        ignored: archlint::path_matcher::PathMatcher::from_config(&config, &root),
         project_path: root,
         graph: Arc::new(graph),
         file_symbols: Arc::new(file_symbols),

@@ -79,11 +79,17 @@ impl Detector for DeadCodeDetector {
                     .ignore
                     .iter()
                     .filter(|p| !test_patterns_set.contains(p.as_str()))
-                    .cloned(),
+                    .flat_map(|p| crate::path_matcher::expand_pattern(p)),
             );
         } else {
-            // Include all ignore patterns
-            combined_exclude.extend_from_slice(&ctx.config.ignore);
+            // Include all ignore patterns, in the same normalized form the rest of the
+            // pipeline uses, so a plain path means the same thing here as everywhere else.
+            combined_exclude.extend(
+                ctx.config
+                    .ignore
+                    .iter()
+                    .flat_map(|p| crate::path_matcher::expand_pattern(p)),
+            );
             // Explicitly add TEST_FILE_PATTERNS to ensure test files are always excluded
             // when count_test_imports=false, even if config.ignore is empty
             combined_exclude.extend(TEST_FILE_PATTERNS.iter().map(ToString::to_string));
