@@ -26,6 +26,8 @@ Los patrones se comparan con rutas relativas a la raíz del proyecto:
 - Un patrón que contenga `*`, `?` o `[` se usa como glob. Ten en cuenta que `*` también coincide con `/`, por lo que `src/*.ts` cubre `src/a/b/c.ts`.
 - Los patrones inutilizables se reportan como advertencias y se omiten; el resto de los patrones sigue aplicándose.
 
+Los ciclos son la única excepción a la regla anterior: un ciclo es un hecho sobre un grupo de archivos, por lo que un ciclo que pasa tanto por archivos activos como ignorados se sigue reportando, con sus miembros ignorados incluidos. Un ciclo cuyos miembros están todos ignorados no se reporta.
+
 Definir `ignore` **reemplaza** los valores predeterminados integrados (`**/*.test.ts`, `**/__tests__/**` y los demás patrones de archivos de prueba) en lugar de añadirse a ellos. Repite los que necesites si aún quieres excluir archivos de prueba.
 
 ## Soporte para .gitignore

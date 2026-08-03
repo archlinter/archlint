@@ -26,6 +26,8 @@ Patterns are matched against paths relative to the project root:
 - A pattern containing `*`, `?` or `[` is used as a glob. Note that `*` also matches `/`, so `src/*.ts` covers `src/a/b/c.ts`.
 - Unusable patterns are reported as warnings and skipped; the remaining patterns still apply.
 
+Cycles are the one exception to the rule above: a cycle is a fact about a group of files, so a cycle running through both live and ignored files is still reported, with its ignored members listed. A cycle whose members are all ignored is not reported.
+
 Setting `ignore` **replaces** the built-in defaults (`**/*.test.ts`, `**/__tests__/**` and the other test-file patterns) instead of adding to them. Repeat the ones you need if you still want test files excluded.
 
 ## .gitignore Support

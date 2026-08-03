@@ -26,6 +26,8 @@ Os padrões são comparados com caminhos relativos à raiz do projeto:
 - Um padrão que contenha `*`, `?` ou `[` é usado como glob. Observe que `*` também corresponde a `/`, portanto `src/*.ts` cobre `src/a/b/c.ts`.
 - Padrões inutilizáveis são reportados como avisos e ignorados; os demais padrões continuam valendo.
 
+Os ciclos são a única exceção à regra acima: um ciclo é um fato sobre um grupo de arquivos, portanto um ciclo que passa tanto por arquivos ativos quanto ignorados continua sendo reportado, com seus membros ignorados listados. Um ciclo cujos membros são todos ignorados não é reportado.
+
 Definir `ignore` **substitui** os padrões internos (`**/*.test.ts`, `**/__tests__/**` e os demais padrões de arquivos de teste) em vez de somar a eles. Repita os que você precisa se ainda quiser excluir arquivos de teste.
 
 ## Suporte ao .gitignore
