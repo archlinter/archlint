@@ -343,11 +343,10 @@ impl AnalysisEngine {
             .strip_prefix(&self.project_root)
             .unwrap_or(path)
             .to_string_lossy();
-        self.config.ignore.iter().any(|p| {
-            glob::Pattern::new(p)
-                .map(|pattern| pattern.matches(&rel_path))
-                .unwrap_or(false)
-        })
+        self.config
+            .ignore
+            .iter()
+            .any(|p| glob::Pattern::new(p).is_ok_and(|pattern| pattern.matches(&rel_path)))
     }
 
     #[must_use]
