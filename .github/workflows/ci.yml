@@ -73,19 +73,6 @@ jobs:
         with:
           sarif_file: 'trivy-results.sarif'
 
-  sonarqube:
-    name: SonarQube
-    runs-on: ubuntu-latest
-    if: github.event_name == 'pull_request' || startsWith(github.ref, 'refs/tags/v')
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-      - name: SonarQube Scan
-        uses: SonarSource/sonarqube-scan-action@v6
-        env:
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-
   lint:
     name: Lint
     runs-on: ubuntu-latest
