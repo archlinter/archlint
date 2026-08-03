@@ -1,3 +1,9 @@
+## [0.17.1](https://github.com/archlinter/archlint/compare/v0.17.0...v0.17.1) (2026-08-03)
+
+### Bug Fixes
+
+- **engine:** apply the global ignore list at detector input ([#40](https://github.com/archlinter/archlint/issues/40)) ([22bffb4](https://github.com/archlinter/archlint/commit/22bffb4f3f9072ada3157e462bac871b0910c4fa)), closes [#38](https://github.com/archlinter/archlint/issues/38)
+
 ## [0.17.0](https://github.com/archlinter/archlint/compare/v0.16.0...v0.17.0) (2026-04-28)
 
 ### Features
