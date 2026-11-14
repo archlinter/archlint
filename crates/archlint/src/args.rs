@@ -121,11 +121,7 @@ impl ScanArgs {
     /// Get quiet flag, automatically enabled when JSON output is requested
     #[must_use]
     pub const fn is_quiet(&self) -> bool {
-        self.quiet
-            || matches!(
-                self.output_format(),
-                OutputFormat::Json | OutputFormat::Sarif | OutputFormat::Junit
-            )
+        self.quiet || self.output_format().is_machine_readable()
     }
 }
 
@@ -145,4 +141,26 @@ pub enum OutputFormat {
     Sarif,
     #[cfg_attr(feature = "cli", value(name = "junit"))]
     Junit,
+}
+
+impl OutputFormat {
+    /// Formats meant for machines: progress output must stay off stdout.
+    #[must_use]
+    pub const fn is_machine_readable(self) -> bool {
+        matches!(self, Self::Json | Self::Sarif | Self::Junit)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::OutputFormat;
+
+    #[test]
+    fn machine_readable_formats_are_quiet() {
+        assert!(OutputFormat::Json.is_machine_readable());
+        assert!(OutputFormat::Sarif.is_machine_readable());
+        assert!(OutputFormat::Junit.is_machine_readable());
+        assert!(!OutputFormat::Table.is_machine_readable());
+        assert!(!OutputFormat::Markdown.is_machine_readable());
+    }
 }

@@ -25,13 +25,13 @@ architecture_check:
 
 Cada detector es un `<testsuite>`. Cada smell es un `<testcase>` fallido:
 
-| Campo | Valor |
-| ----- | ----- |
-| Nombre de la suite / `classname` | Id del detector, por ejemplo `cyclic_dependency` |
-| `name` | Explicación, más el archivo y la línea principales |
-| `file` y `line` | Ubicación principal, relativa a la raíz del proyecto |
-| `<failure type>` | Severidad: `low`, `medium`, `high` o `critical` |
-| Cuerpo del fallo | Motivo, riesgos, recomendaciones y ubicaciones |
+| Campo                            | Valor                                                |
+| -------------------------------- | ---------------------------------------------------- |
+| Nombre de la suite / `classname` | Id del detector, por ejemplo `dead_symbols`          |
+| `name`                           | Explicación, más el archivo y la línea principales   |
+| `file` y `line`                  | Ubicación principal, relativa a la raíz del proyecto |
+| `<failure type>`                 | Severidad: `low`, `medium`, `high` o `critical`      |
+| Cuerpo del fallo                 | Motivo, riesgos, recomendaciones y ubicaciones       |
 
 Un scan sin smells emite un único caso de prueba que pasa, llamado `no architectural smells`.
 
@@ -55,11 +55,11 @@ architecture_report:
 
 El archivo JUnit registra cada smell como un test fallido. El estado del job sigue el código de salida de `scan`:
 
-| Hallazgos | Código de salida |
-| --------- | ---------------- |
-| Cualquier smell `critical` | `2` |
-| Cualquier smell `high`, y ninguno `critical` | `1` |
-| Solo smells `low` o `medium`, o un scan limpio | `0` |
+| Hallazgos                                      | Código de salida |
+| ---------------------------------------------- | ---------------- |
+| Cualquier smell `critical`                     | `2`              |
+| Cualquier smell `high`, y ninguno `critical`   | `1`              |
+| Solo smells `low` o `medium`, o un scan limpio | `0`              |
 
 Los smells low y medium aparecen como tests fallidos y el job sigue en verde. Pasa `--min-severity high` cuando el informe solo debe listar hallazgos que también hacen fallar el job:
 

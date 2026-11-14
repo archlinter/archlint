@@ -25,13 +25,13 @@ architecture_check:
 
 每个检测器是一个 `<testsuite>`。每个 smell 是一个失败的 `<testcase>`：
 
-| 字段 | 值 |
-| ---- | -- |
-| 套件名 / `classname` | 检测器 id，例如 `cyclic_dependency` |
-| `name` | 说明，以及主要文件和行号 |
-| `file` 与 `line` | 相对于项目根目录的主要位置 |
-| `<failure type>` | 严重程度：`low`、`medium`、`high` 或 `critical` |
-| 失败正文 | 原因、风险、建议和位置 |
+| 字段                 | 值                                              |
+| -------------------- | ----------------------------------------------- |
+| 套件名 / `classname` | 检测器 id，例如 `dead_symbols`                  |
+| `name`               | 说明，以及主要文件和行号                        |
+| `file` 与 `line`     | 相对于项目根目录的主要位置                      |
+| `<failure type>`     | 严重程度：`low`、`medium`、`high` 或 `critical` |
+| 失败正文             | 原因、风险、建议和位置                          |
 
 没有 smell 的扫描会生成一个名为 `no architectural smells` 的通过用例。
 
@@ -55,11 +55,11 @@ architecture_report:
 
 JUnit 文件把每个 smell 记为失败的测试。作业状态遵循 `scan` 的退出码：
 
-| 发现 | 退出码 |
-| ---- | ------ |
-| 存在任意 `critical` smell | `2` |
-| 存在任意 `high` smell，且没有 `critical` | `1` |
-| 只有 `low` 或 `medium` smell，或扫描干净 | `0` |
+| 发现                                     | 退出码 |
+| ---------------------------------------- | ------ |
+| 存在任意 `critical` smell                | `2`    |
+| 存在任意 `high` smell，且没有 `critical` | `1`    |
+| 只有 `low` 或 `medium` smell，或扫描干净 | `0`    |
 
 low 和 medium 的 smell 仍会显示为失败测试，作业保持成功。若报告只应列出也会导致作业失败的发现，请传入 `--min-severity high`：
 

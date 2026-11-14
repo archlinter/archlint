@@ -25,13 +25,13 @@ architecture_check:
 
 Cada detector vira um `<testsuite>`. Cada smell vira um `<testcase>` com falha:
 
-| Campo | Valor |
-| ----- | ----- |
-| Nome da suíte / `classname` | Id do detector, como `cyclic_dependency` |
-| `name` | Explicação, mais o arquivo e a linha principais |
-| `file` e `line` | Localização principal, relativa à raiz do projeto |
-| `<failure type>` | Severidade: `low`, `medium`, `high` ou `critical` |
-| Corpo da falha | Motivo, riscos, recomendações e localizações |
+| Campo                       | Valor                                             |
+| --------------------------- | ------------------------------------------------- |
+| Nome da suíte / `classname` | Id do detector, como `dead_symbols`               |
+| `name`                      | Explicação, mais o arquivo e a linha principais   |
+| `file` e `line`             | Localização principal, relativa à raiz do projeto |
+| `<failure type>`            | Severidade: `low`, `medium`, `high` ou `critical` |
+| Corpo da falha              | Motivo, riscos, recomendações e localizações      |
 
 Um scan sem smells emite um único caso de teste que passa, chamado `no architectural smells`.
 
@@ -55,11 +55,11 @@ architecture_report:
 
 O arquivo JUnit registra cada smell como um teste com falha. O status do job segue o código de saída do `scan`:
 
-| Achados | Código de saída |
-| ------- | --------------- |
-| Qualquer smell `critical` | `2` |
-| Qualquer smell `high`, e nenhum `critical` | `1` |
-| Apenas smells `low` ou `medium`, ou um scan limpo | `0` |
+| Achados                                           | Código de saída |
+| ------------------------------------------------- | --------------- |
+| Qualquer smell `critical`                         | `2`             |
+| Qualquer smell `high`, e nenhum `critical`        | `1`             |
+| Apenas smells `low` ou `medium`, ou um scan limpo | `0`             |
 
 Smells low e medium aparecem como testes com falha, e o job continua verde. Passe `--min-severity high` quando o relatório deve listar só achados que também fazem o job falhar:
 

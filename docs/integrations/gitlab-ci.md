@@ -25,13 +25,13 @@ architecture_check:
 
 Each detector becomes a `<testsuite>`. Each smell becomes a failed `<testcase>`:
 
-| Field | Value |
-| ----- | ----- |
-| Suite name / `classname` | Detector id, such as `cyclic_dependency` |
-| `name` | Explanation, plus the primary file and line |
-| `file` and `line` | Primary location, relative to the project root |
-| `<failure type>` | Severity: `low`, `medium`, `high`, or `critical` |
-| Failure body | Reason, risks, recommendations, and locations |
+| Field                    | Value                                            |
+| ------------------------ | ------------------------------------------------ |
+| Suite name / `classname` | Detector id, such as `dead_symbols`              |
+| `name`                   | Explanation, plus the primary file and line      |
+| `file` and `line`        | Primary location, relative to the project root   |
+| `<failure type>`         | Severity: `low`, `medium`, `high`, or `critical` |
+| Failure body             | Reason, risks, recommendations, and locations    |
 
 A scan with no smells emits one passing test case named `no architectural smells`.
 
@@ -55,11 +55,11 @@ architecture_report:
 
 The JUnit file records every smell as a failed test. The job status follows the `scan` exit code:
 
-| Findings | Exit code |
-| -------- | --------- |
-| Any `critical` smell | `2` |
-| Any `high` smell, and no `critical` smell | `1` |
-| Only `low` or `medium` smells, or a clean scan | `0` |
+| Findings                                       | Exit code |
+| ---------------------------------------------- | --------- |
+| Any `critical` smell                           | `2`       |
+| Any `high` smell, and no `critical` smell      | `1`       |
+| Only `low` or `medium` smells, or a clean scan | `0`       |
 
 Low and medium smells still show up as failed tests, and the job stays green. Pass `--min-severity high` when the test report should list only findings that also fail the job:
 

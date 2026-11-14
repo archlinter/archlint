@@ -92,9 +92,8 @@ impl Cli {
             self.format.unwrap_or(OutputFormat::Table)
         };
         // Keep progress output off stdout for machine-readable formats.
-        let quiet = self.quiet
-            || self.json
-            || matches!(self.format, Some(OutputFormat::Sarif | OutputFormat::Junit));
+        let quiet =
+            self.quiet || self.json || self.format.is_some_and(OutputFormat::is_machine_readable);
         ScanArgs {
             path: self.path.clone().unwrap_or_else(|| PathBuf::from(".")),
             config: self.config.clone(),

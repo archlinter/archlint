@@ -172,7 +172,7 @@ fn format_sarif_message(explanation: &Explanation) -> String {
     )
 }
 
-fn normalize_path(path: &Path, scan_root: Option<&Path>) -> String {
+pub(super) fn normalize_path(path: &Path, scan_root: Option<&Path>) -> String {
     let path_str = if let Some(root) = scan_root {
         path.strip_prefix(root).unwrap_or(path).to_string_lossy()
     } else {

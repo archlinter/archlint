@@ -4,8 +4,9 @@
 //! smells emits a single passing test case so pipelines still record a result.
 //! GitLab, Jenkins, and Azure DevOps accept this shape.
 
-use crate::detectors::{ArchSmell, Severity};
+use crate::detectors::{ArchSmell, SmellType};
 use crate::explain::Explanation;
+use crate::report::sarif::normalize_path;
 use crate::report::AnalysisReport;
 use crate::Result;
 use std::fs;
@@ -119,7 +120,7 @@ fn render_case(smell: &ArchSmell, explanation: &Explanation, scan_root: Option<&
     let name = case_name(
         &explanation.problem,
         location.as_ref(),
-        case_discriminator(smell),
+        case_discriminator(smell, scan_root).as_deref(),
     );
     let mut attrs = format!(
         r#"name="{}" classname="{}""#,
@@ -133,7 +134,7 @@ fn render_case(smell: &ArchSmell, explanation: &Explanation, scan_root: Option<&
         }
     }
 
-    let failure_type = severity_name(&smell.severity);
+    let failure_type: &'static str = (&smell.severity).into();
     format!(
         "    <testcase {attrs}>\n      <failure type=\"{failure_type}\" message=\"{}\">{}</failure>\n    </testcase>",
         escape_attr(&explanation.problem),
@@ -160,20 +161,62 @@ fn primary_location(smell: &ArchSmell, scan_root: Option<&Path>) -> Option<CaseL
     })
 }
 
-fn case_discriminator(smell: &ArchSmell) -> Option<&str> {
+fn case_discriminator(smell: &ArchSmell, scan_root: Option<&Path>) -> Option<String> {
     if let Some(name) = dead_symbol_name(smell) {
-        return Some(name);
+        return Some(name.to_string());
     }
     smell.locations.first().and_then(|location| {
-        (!location.description.is_empty()).then_some(location.description.as_str())
+        (!location.description.is_empty())
+            .then(|| strip_scan_root(&location.description, scan_root))
     })
 }
 
-fn dead_symbol_name(smell: &ArchSmell) -> Option<&str> {
-    match &smell.smell_type {
-        crate::detectors::SmellType::DeadSymbol { name, .. } if !name.is_empty() => {
-            Some(name.as_str())
+/// Removes the scan root prefix from paths embedded in free-form text so that
+/// test case names stay stable across machines and CI workspaces.
+///
+/// The root is only stripped where it starts a path (not in the middle of
+/// another one), and Windows separators are normalized to `/`.
+///
+/// NOTE: detector descriptions are free-form; detectors should eventually emit
+/// scan-root-relative paths themselves.
+fn strip_scan_root(text: &str, scan_root: Option<&Path>) -> String {
+    let Some(root) = scan_root else {
+        return text.to_string();
+    };
+    let native = root.to_string_lossy();
+    let native = native.trim_end_matches(['/', '\\']);
+    if native.is_empty() {
+        return text.to_string();
+    }
+    let slashed = native.replace('\\', "/");
+    let text = if slashed == native {
+        std::borrow::Cow::Borrowed(text)
+    } else {
+        std::borrow::Cow::Owned(text.replace('\\', "/"))
+    };
+    let needle = format!("{slashed}/");
+
+    let mut out = String::with_capacity(text.len());
+    let mut rest: &str = &text;
+    while let Some(pos) = rest.find(&needle) {
+        let (head, tail) = rest.split_at(pos);
+        out.push_str(head);
+        let starts_path = match out.chars().next_back() {
+            None => true,
+            Some(c) => !(c.is_alphanumeric() || matches!(c, '/' | '.' | '_' | '-')),
+        };
+        if !starts_path {
+            out.push_str(&needle);
         }
+        rest = &tail[needle.len()..];
+    }
+    out.push_str(rest);
+    out
+}
+
+const fn dead_symbol_name(smell: &ArchSmell) -> Option<&str> {
+    match &smell.smell_type {
+        SmellType::DeadSymbol { name, .. } if !name.is_empty() => Some(name.as_str()),
         _ => None,
     }
 }
@@ -243,27 +286,11 @@ fn push_locations(body: &mut String, smell: &ArchSmell, scan_root: Option<&Path>
         }
         if !loc.description.is_empty() {
             body.push_str(" (");
-            body.push_str(&loc.description);
+            body.push_str(&strip_scan_root(&loc.description, scan_root));
             body.push(')');
         }
         body.push('\n');
     }
-}
-
-const fn severity_name(severity: &Severity) -> &'static str {
-    match severity {
-        Severity::Low => "low",
-        Severity::Medium => "medium",
-        Severity::High => "high",
-        Severity::Critical => "critical",
-    }
-}
-
-fn normalize_path(path: &Path, scan_root: Option<&Path>) -> String {
-    let relative = scan_root
-        .and_then(|root| path.strip_prefix(root).ok())
-        .unwrap_or(path);
-    relative.to_string_lossy().replace('\\', "/")
 }
 
 fn escape_attr(input: &str) -> String {
@@ -292,7 +319,7 @@ fn escape_xml(input: &str, attr: bool) -> String {
 }
 
 const fn is_xml_char(c: char) -> bool {
-    matches!(c, '\t' | '\n' | '\r' | '\u{20}'..=char::MAX)
+    matches!(c, '\t' | '\n' | '\r' | '\u{20}'..='\u{FFFD}' | '\u{10000}'..=char::MAX)
 }
 
 #[cfg(test)]
@@ -474,6 +501,97 @@ mod tests {
         assert!(xml.contains(r#"file="src/a&amp;b.ts" line="2""#));
         assert!(xml.contains(r#"uses &lt;img&gt; &amp; "quotes""#));
         assert!(!xml.contains("<img>"));
+    }
+
+    #[test]
+    fn case_names_do_not_contain_the_scan_root() {
+        let scan_root = PathBuf::from("/project");
+        let smell = ArchSmell {
+            smell_type: SmellType::GodModule,
+            severity: Severity::Medium,
+            files: vec![PathBuf::from("/project/src/a.ts")],
+            metrics: vec![],
+            locations: vec![LocationDetail::new(
+                PathBuf::from("/project/src/a.ts"),
+                1,
+                "imports from '/project/src/b.ts'".to_string(),
+            )],
+            cluster: None,
+        };
+        let report = report_with(vec![smell]);
+        let xml = generate_junit(
+            &report,
+            &crate::config::SeverityConfig::default(),
+            Some(&scan_root),
+        );
+
+        assert!(xml.contains("imports from &apos;src/b.ts&apos; (src/a.ts:1)"));
+        assert!(!xml.contains("/project/"));
+    }
+
+    #[test]
+    fn strip_scan_root_handles_edge_cases() {
+        assert_eq!(strip_scan_root("/p/a.ts", None), "/p/a.ts");
+        assert_eq!(strip_scan_root("/p/a.ts", Some(Path::new(""))), "/p/a.ts");
+        assert_eq!(strip_scan_root("/p/a.ts", Some(Path::new("/p/"))), "a.ts");
+        assert_eq!(
+            strip_scan_root(r"C:\p\a.ts", Some(Path::new(r"C:\p"))),
+            "a.ts"
+        );
+        assert_eq!(
+            strip_scan_root("C:/p/a.ts", Some(Path::new(r"C:\p"))),
+            "a.ts"
+        );
+    }
+
+    #[test]
+    fn strip_scan_root_only_strips_path_starts() {
+        let root = Some(Path::new("/p"));
+        assert_eq!(strip_scan_root("imports '/p/b.ts'", root), "imports 'b.ts'");
+        assert_eq!(strip_scan_root("/x/p/y", root), "/x/p/y");
+        assert_eq!(strip_scan_root("a /p/b and (/p/c)", root), "a b and (c)");
+        assert_eq!(
+            strip_scan_root(r"C:\p\src\b.ts", Some(Path::new(r"C:\p"))),
+            "src/b.ts"
+        );
+    }
+
+    #[test]
+    fn case_name_falls_back_for_empty_problem() {
+        assert_eq!(case_name("", None, None), "Architectural smell");
+    }
+
+    #[test]
+    fn smell_without_locations_or_files_has_no_file_attributes() {
+        let smell = ArchSmell {
+            smell_type: SmellType::GodModule,
+            severity: Severity::Low,
+            files: vec![],
+            metrics: vec![],
+            locations: vec![],
+            cluster: None,
+        };
+        let report = report_with(vec![smell]);
+        let xml = generate_junit(&report, &crate::config::SeverityConfig::default(), None);
+
+        assert!(xml.contains("<testcase name="));
+        assert!(!xml.contains(" file="));
+        assert!(!xml.contains("Locations:"));
+    }
+
+    #[test]
+    fn push_list_skips_empty_lists() {
+        let mut body = String::new();
+        push_list(&mut body, "Risks", &[]);
+        assert_eq!(body, "");
+    }
+
+    #[test]
+    fn invalid_xml_chars_are_dropped() {
+        assert_eq!(
+            escape_text("a\u{FFFE}b\u{FFFF}c\u{0}d\u{10000}"),
+            "abcd\u{10000}"
+        );
     }
 
     #[test]

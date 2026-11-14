@@ -25,13 +25,13 @@ architecture_check:
 
 各検出器は `<testsuite>` になります。各 smell は失敗した `<testcase>` になります。
 
-| 項目 | 値 |
-| ---- | -- |
-| スイート名 / `classname` | 検出器 ID。例: `cyclic_dependency` |
-| `name` | 説明と、主なファイルおよび行 |
-| `file` と `line` | プロジェクトルートからの相対パスでの主な位置 |
-| `<failure type>` | 重要度: `low`、`medium`、`high`、`critical` |
-| 失敗の本文 | 理由、リスク、推奨事項、位置 |
+| 項目                     | 値                                           |
+| ------------------------ | -------------------------------------------- |
+| スイート名 / `classname` | 検出器 ID。例: `dead_symbols`                |
+| `name`                   | 説明と、主なファイルおよび行                 |
+| `file` と `line`         | プロジェクトルートからの相対パスでの主な位置 |
+| `<failure type>`         | 重要度: `low`、`medium`、`high`、`critical`  |
+| 失敗の本文               | 理由、リスク、推奨事項、位置                 |
 
 smell がない scan は、`no architectural smells` という名前の成功したテストケースを 1 件出力します。
 
@@ -55,11 +55,11 @@ architecture_report:
 
 JUnit ファイルはすべての smell を失敗したテストとして記録します。ジョブの成否は `scan` の終了コードに従います。
 
-| 検出結果 | 終了コード |
-| -------- | ---------- |
-| `critical` の smell が 1 件以上 | `2` |
-| `high` の smell があり、`critical` はない | `1` |
-| `low` または `medium` のみ、もしくは検出なし | `0` |
+| 検出結果                                     | 終了コード |
+| -------------------------------------------- | ---------- |
+| `critical` の smell が 1 件以上              | `2`        |
+| `high` の smell があり、`critical` はない    | `1`        |
+| `low` または `medium` のみ、もしくは検出なし | `0`        |
 
 low と medium の smell は失敗したテストとして表示され、ジョブは成功のままです。ジョブを失敗させる検出結果だけをレポートに載せるには `--min-severity high` を渡します。
 
