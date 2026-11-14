@@ -11,7 +11,7 @@ archlint focuses on **JavaScript/TypeScript (including JSX/TSX)** codebases. The
 - **Detectors**: 30+ architectural smell detectors (including layer violations, SDP, LCOM4)
 - **Parsing**: AST-based analysis using `oxc`
 - **Performance**: parallel analysis + content-based caching
-- **Reporting**: table / JSON / Markdown (with Mermaid diagrams) / SARIF
+- **Reporting**: table / JSON / Markdown (with Mermaid diagrams) / SARIF / JUnit XML
 - **DX**: watch mode, YAML config with `extends`, path alias resolution, framework presets
 - **Distribution**: npm packages + platform-specific binaries
 - **Baseline & Diff**: snapshot command + diff against git refs or files

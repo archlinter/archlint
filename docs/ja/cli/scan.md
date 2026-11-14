@@ -17,7 +17,7 @@ archlint scan [path] [options]
 
 | オプション                      | デフォルト | 説明                                                        |
 | ------------------------------- | ---------- | ----------------------------------------------------------- |
-| `-f, --format <format>`         | `table`    | 出力形式: `table`, `json`, `markdown`, `sarif`              |
+| `-f, --format <format>`         | `table`    | 出力形式: `table`, `json`, `markdown`, `sarif`, `junit`     |
 | `-j, --json`                    | `false`    | `--format json` のショートカット                            |
 | `-r, --report <file>`           | `stdout`   | レポートをファイルに保存します                              |
 | `-s, --min-severity <sev>`      | `low`      | 重要度でフィルタリング: `low`, `medium`, `high`, `critical` |
@@ -41,6 +41,14 @@ archlint scan --format markdown --report report.md
 ```bash
 archlint scan --format sarif --report results.sarif
 ```
+
+### JUnitへのエクスポート (CIのテストレポート用)
+
+```bash
+archlint scan --format junit --report archlint-junit.xml
+```
+
+GitLab はこのファイルをテストレポートとして公開できます。[GitLab CI](/ja/integrations/gitlab-ci#junitテストレポート) を参照してください。
 
 ### サイクル検出のみを実行
 

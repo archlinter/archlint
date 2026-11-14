@@ -15,18 +15,18 @@ archlint scan [path] [options]
 
 ## Opciones
 
-| Opción                          | Por defecto | Descripción                                               |
-| ------------------------------- | ----------- | --------------------------------------------------------- |
-| `-f, --format <format>`         | `table`     | Formato de salida: `table`, `json`, `markdown`, `sarif`   |
-| `-j, --json`                    | `false`     | Atajo para `--format json`                                |
-| `-r, --report <file>`           | `stdout`    | Guarda el informe en un archivo                           |
-| `-s, --min-severity <sev>`      | `low`       | Filtra por severidad: `low`, `medium`, `high`, `critical` |
-| `-S, --min-score <score>`       | `none`      | Filtra por puntuación mínima de salud                     |
-| `-d, --detectors <ids>`         | `all`       | Lista de detectores a ejecutar, separados por comas       |
-| `-e, --exclude-detectors <ids>` | `none`      | Detectores a omitir                                       |
-| `-A, --all`                     | `false`     | Ejecuta todos los detectores (incluidos los desactivados) |
-| `--no-cache`                    | `false`     | Deshabilita el almacenamiento en caché del análisis       |
-| `--no-git`                      | `false`     | Deshabilita la integración con git (salta análisis churn) |
+| Opción                          | Por defecto | Descripción                                                      |
+| ------------------------------- | ----------- | ---------------------------------------------------------------- |
+| `-f, --format <format>`         | `table`     | Formato de salida: `table`, `json`, `markdown`, `sarif`, `junit` |
+| `-j, --json`                    | `false`     | Atajo para `--format json`                                       |
+| `-r, --report <file>`           | `stdout`    | Guarda el informe en un archivo                                  |
+| `-s, --min-severity <sev>`      | `low`       | Filtra por severidad: `low`, `medium`, `high`, `critical`        |
+| `-S, --min-score <score>`       | `none`      | Filtra por puntuación mínima de salud                            |
+| `-d, --detectors <ids>`         | `all`       | Lista de detectores a ejecutar, separados por comas              |
+| `-e, --exclude-detectors <ids>` | `none`      | Detectores a omitir                                              |
+| `-A, --all`                     | `false`     | Ejecuta todos los detectores (incluidos los desactivados)        |
+| `--no-cache`                    | `false`     | Deshabilita el almacenamiento en caché del análisis              |
+| `--no-git`                      | `false`     | Deshabilita la integración con git (salta análisis churn)        |
 
 ## Ejemplos
 
@@ -41,6 +41,14 @@ archlint scan --format markdown --report report.md
 ```bash
 archlint scan --format sarif --report results.sarif
 ```
+
+### Exportar a JUnit (para informes de tests en CI)
+
+```bash
+archlint scan --format junit --report archlint-junit.xml
+```
+
+GitLab puede publicar este archivo como informe de tests. Consulta [GitLab CI](/es/integrations/gitlab-ci#informes-de-tests-junit).
 
 ### Ejecutar solo detección de ciclos
 

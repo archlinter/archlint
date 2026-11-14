@@ -135,6 +135,9 @@ archlint scan ./my-project --format markdown --report architecture-report.md
 archlint scan ./my-project --format json --report report.json
 # Or use the shorter --json flag
 archlint scan ./my-project --json --report report.json
+
+# JUnit XML for GitLab, Jenkins, and Azure DevOps
+archlint scan ./my-project --format junit --report archlint-junit.xml
 ```
 
 ### Filter by severity

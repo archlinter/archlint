@@ -1,6 +1,7 @@
 use serde::{Deserialize, Serialize};
 use strum::Display;
 pub mod json;
+pub mod junit;
 pub mod markdown;
 pub mod mermaid;
 pub mod sarif;
@@ -433,6 +434,17 @@ impl AnalysisReport {
                 } else {
                     let output = sarif::generate_sarif(self, severity_config, scan_root)?;
                     println!("{}", serde_json::to_string_pretty(&output)?);
+                    Ok(())
+                }
+            }
+            crate::args::OutputFormat::Junit => {
+                if let Some(path) = path {
+                    junit::write_report(self, path, severity_config, scan_root)
+                } else {
+                    println!(
+                        "{}",
+                        junit::generate_junit(self, severity_config, scan_root)
+                    );
                     Ok(())
                 }
             }
